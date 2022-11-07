@@ -64,6 +64,7 @@
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <ExceptionHandling>false</ExceptionHandling>
       <AdditionalIncludeDirectories>..\fmt\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <DisableSpecificWarnings>4530;%(DisableSpecificWarnings)</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -87,6 +88,7 @@
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <ExceptionHandling>false</ExceptionHandling>
       <AdditionalIncludeDirectories>..\fmt\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <DisableSpecificWarnings>4530;%(DisableSpecificWarnings)</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -99,10 +101,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\Hydrogenium\UtlConcepts.ixx" />
-    <ClCompile Include="..\Hydrogenium\UtlHook.ixx">
-      <ExceptionHandling Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Sync</ExceptionHandling>
-      <ExceptionHandling Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Sync</ExceptionHandling>
-    </ClCompile>
+    <ClCompile Include="..\Hydrogenium\UtlHook.ixx" />
     <ClCompile Include="..\metamod-p\hlsdk\cl_dll\hud_iface.ixx" />
     <ClCompile Include="..\metamod-p\hlsdk\cl_dll\wrect.ixx" />
     <ClCompile Include="..\metamod-p\hlsdk\common\beamdef.ixx" />
@@ -167,7 +166,7 @@
     <ClCompile Include="..\metamod-p\metamod\meta_api.ixx" />
     <ClCompile Include="..\metamod-p\metamod\mutil.ixx" />
     <ClCompile Include="..\metamod-p\metamod\plinfo.ixx" />
-    <ClCompile Include="Resources.ixx" />
+    <ClCompile Include="Source\Resources.ixx" />
     <ClCompile Include="Source\CBase.ixx" />
     <ClCompile Include="Source\Message.ixx" />
     <ClCompile Include="Source\Plugin.ixx" />

@@ -247,7 +247,7 @@
     <ClCompile Include="..\metamod-p\hlsdk\dlls\activity.ixx">
       <Filter>HLSDK\dlls</Filter>
     </ClCompile>
-    <ClCompile Include="Resources.ixx">
+    <ClCompile Include="Source\Resources.ixx">
       <Filter>Source</Filter>
     </ClCompile>
   </ItemGroup>
