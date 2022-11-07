@@ -1,0 +1,8 @@
+LIBRARY
+EXPORTS
+	HookGameDLLExportedFn		@1
+	HookEngineAPI				@2
+	GiveFnptrsToDll				@3
+	Meta_Query					@4
+	Meta_Attach					@5
+	Meta_Detach					@6
