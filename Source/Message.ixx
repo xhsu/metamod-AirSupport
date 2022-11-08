@@ -36,6 +36,53 @@ import UtlConcepts;
 
 using std::bit_cast;
 
+export inline void MsgSend(entvars_t *pev, int iMessageIndex) noexcept
+{
+	g_engfuncs.pfnMessageBegin(MSG_ONE, iMessageIndex, nullptr, ent_cast<edict_t *>(pev));
+}
+
+export inline void MsgBroadcast(int iMessageIndex) noexcept
+{
+	g_engfuncs.pfnMessageBegin(MSG_BROADCAST, iMessageIndex, nullptr, nullptr);
+}
+
+export inline void WriteData(auto&& arg) noexcept
+{
+	using T = std::remove_cvref_t<std::decay_t<decltype(arg)>>;
+
+	// some special objects.
+
+	if constexpr (std::is_convertible_v<T, char *>)
+		g_engfuncs.pfnWriteString(arg);
+	else if constexpr (std::is_same_v<T, Vector>)
+	{
+		g_engfuncs.pfnWriteCoord(arg.x);
+		g_engfuncs.pfnWriteCoord(arg.y);
+		g_engfuncs.pfnWriteCoord(arg.z);
+	}
+
+	// general cases
+
+	else if constexpr (sizeof(T) == 4)	// long, int, float
+		g_engfuncs.pfnWriteLong(bit_cast<int>(arg));
+
+	else if constexpr (sizeof(T) == 2)	// short, char16_t
+		g_engfuncs.pfnWriteShort(bit_cast<short>(arg));
+
+	else if constexpr (std::is_same_v<T, bool> || (std::is_unsigned_v<T> && sizeof(T) == 1))	// bool, uchar, byte
+		g_engfuncs.pfnWriteByte(bit_cast<unsigned char>(arg));
+	else if constexpr (sizeof(T) == 1)	// signed char
+		g_engfuncs.pfnWriteChar(arg);
+
+	else
+		static_assert(std::_Always_false<T>, "Invalid argument!");
+};
+
+export __forceinline void MsgEnd(void) noexcept
+{
+	g_engfuncs.pfnMessageEnd();
+}
+
 export template <std::size_t N>
 struct StringLiteral
 {
@@ -51,12 +98,8 @@ struct StringLiteral
 	char m_rgsz[N];
 };
 
-// DO NOT USE
-// This is used only for determine whether a class is a message.
-struct __Dummy_GoldSrc_Msg_Struct {};
-
 export template <StringLiteral _name, typename... Tys>
-struct Message_t : public __Dummy_GoldSrc_Msg_Struct
+struct Message_t final
 {
 	// Reflection
 	using MsgArgs_t = std::tuple<Tys...>;
@@ -107,39 +150,9 @@ struct Message_t : public __Dummy_GoldSrc_Msg_Struct
 #endif
 
 	template <int iDest>
-	static void ManagedBegin(const Vector &vecOrigin, const entvars_t *pClient, const Tys&... args) noexcept
+	static void ManagedBegin(const Vector &vecOrigin, edict_t *pClient, const Tys&... args) noexcept
 	{
 		assert(m_iMessageIndex > 0);
-
-		static constexpr auto fnSend = [](auto &&arg) noexcept
-		{
-			using T = std::remove_cvref_t<std::decay_t<decltype(arg)>>;
-
-			if constexpr (std::is_convertible_v<T, char *>)
-				g_engfuncs.pfnWriteString(arg);
-			else if constexpr (std::is_same_v<T, Vector>)
-			{
-				g_engfuncs.pfnWriteCoord(arg.x);
-				g_engfuncs.pfnWriteCoord(arg.y);
-				g_engfuncs.pfnWriteCoord(arg.z);
-			}
-
-			// general cases
-
-			else if constexpr (sizeof(T) == 4)	// long, int, float
-				g_engfuncs.pfnWriteLong(bit_cast<int>(arg));
-
-			else if constexpr (sizeof(T) == 2)	// short, char16_t
-				g_engfuncs.pfnWriteShort(bit_cast<short>(arg));
-
-			else if constexpr (std::is_same_v<T, bool> || (std::is_unsigned_v<T> && sizeof(T) == 1))	// bool, uchar, byte
-				g_engfuncs.pfnWriteByte(bit_cast<unsigned char>(arg));
-			else if constexpr (sizeof(T) == 1)	// signed char
-				g_engfuncs.pfnWriteChar(arg);
-
-			else
-				static_assert(std::_Always_false<T>, "Invalid argument!");
-		};
 
 		if constexpr (iDest == MSG_ONE || iDest == MSG_ONE_UNRELIABLE || iDest == MSG_INIT)
 			g_engfuncs.pfnMessageBegin(iDest, m_iMessageIndex, nullptr, pClient);
@@ -147,25 +160,25 @@ struct Message_t : public __Dummy_GoldSrc_Msg_Struct
 			g_engfuncs.pfnMessageBegin(iDest, m_iMessageIndex);
 		else if constexpr (iDest == MSG_PAS || iDest == MSG_PAS_R || iDest == MSG_PVS || iDest == MSG_PVS_R)
 			g_engfuncs.pfnMessageBegin(iDest, m_iMessageIndex, vecOrigin);
-		else
-			static_assert(std::_Always_false<This_t>, "Invalid message casting method!");
+		//else
+		//	static_assert(std::_Always_false<This_t>, "Invalid message casting method!");	// #INVESTIGATE
 
 		MsgArgs_t tplArgs = std::make_tuple(args...);
 
 		// No panic, this is a instant-called lambda function.
 		// De facto static_for.
-		[&]<size_t... I>(std::index_sequence<I...>&&) noexcept
+		[&]<size_t... I>(std::index_sequence<I...>) noexcept
 		{
-			(fnSend(std::get<I>(tplArgs)), ...);
+			(WriteData(std::get<I>(tplArgs)), ...);
 		}
 		(IDX_SEQ);
 
 		g_engfuncs.pfnMessageEnd();
 	}
 
-	static inline void Send(const entvars_t *pClient, const Tys&... args) noexcept { return Cast<MSG_ONE>(nullptr, pClient, args...); }
-	template <int _dest> static inline void Broadcast(const Tys&... args) noexcept { return Cast<_dest>(Vector::Zero(), nullptr, args...); }
-	template <int _dest> static inline void Region(const Vector &vecOrigin, const Tys&... args) noexcept { return Cast<_dest>(vecOrigin, nullptr, args...); }
+	static inline void Send(edict_t *pClient, const Tys&... args) noexcept { return ManagedBegin<MSG_ONE>(Vector::Zero(), pClient, args...); }
+	template <int _dest> static inline void Broadcast(const Tys&... args) noexcept { return ManagedBegin<_dest>(Vector::Zero(), nullptr, args...); }
+	template <int _dest> static inline void Region(const Vector &vecOrigin, const Tys&... args) noexcept { return ManagedBegin<_dest>(vecOrigin, nullptr, args...); }
 
 	/* LUNA: clinet side stuff. #UNTESTED #UNDONE
 	static void Parse(void)

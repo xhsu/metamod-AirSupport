@@ -1,5 +1,8 @@
-import <cstdint>;
+#include <cassert>
+
 import <cstring>;
+
+import <string>;
 
 import progdefs;	// edict_t
 import util;
@@ -7,39 +10,21 @@ import util;
 import UtlHook;
 
 import Plugin;
-import Message;
 import CBase;
+import Hook;
+import Entity;
 
 // Resources.cpp
 extern void Precache(void) noexcept;
 //
 
-inline constexpr size_t VFTIDX_ITEM_DEPLOY = 64;
-inline constexpr size_t VFTIDX_ITEM_POSTFRAME = 70;
-inline constexpr size_t VFTIDX_WEAPON_PRIMARYATTACK = 87;
-inline constexpr size_t VFTIDX_WEAPON_SECONDARYATTACK = 88;
-inline constexpr size_t VFTIDX_ITEM_HOLSTER = 67;
-inline constexpr unsigned char RADIUS_FLASH_FN_PATTERN[] = "\x90\x81\xEC\x2A\x2A\x2A\x2A\xD9\x84\x24\xE4\x00\x00\x00\xD8\x0D\x2A\x2A\x2A\x2A\x8D";
-
-using fnItemDeploy_t = int(__thiscall *)(CBasePlayerItem *) noexcept;
-using fnItemPostFrame_t = void(__thiscall *)(CBasePlayerItem *) noexcept;
-using fnWeaponPrimaryAttack_t = void(__thiscall *)(CBasePlayerWeapon *) noexcept;
-using fnWeaponSecondaryAttack_t = void(__thiscall *)(CBasePlayerWeapon *) noexcept;
-using fnItemHolster_t = void(__thiscall *)(CBasePlayerItem *, int) noexcept;
-using fnRadiusFlash_t = void (*)(Vector vecSrc, entvars_t *pevInflictor, entvars_t *pevAttacker, float flDamage) noexcept;
-
-inline fnItemDeploy_t g_pfnItemDeploy = nullptr;
-inline fnItemPostFrame_t g_pfnItemPostFrame = nullptr;
-inline fnWeaponPrimaryAttack_t g_pfnWeaponPrimaryAttack = nullptr;
-inline fnWeaponSecondaryAttack_t g_pfnWeaponSecondaryAttack = nullptr;
-inline fnItemHolster_t g_pfnItemHolster = nullptr;
-inline fnRadiusFlash_t g_pfnRadiusFlash = nullptr;
-
-int HamF_Item_Deploy(CBasePlayerItem *pThis) noexcept { return g_pfnItemDeploy(pThis); }
-void HamF_Item_PostFrame(CBasePlayerItem *pThis) noexcept { return g_pfnItemPostFrame(pThis); }
-void HamF_Weapon_PrimaryAttack(CBasePlayerWeapon *pThis) noexcept { g_pfnRadiusFlash(pThis->pev->origin, pThis->pev, &pThis->pev->owner->v, 1); return g_pfnWeaponPrimaryAttack(pThis); }
-void HamF_Weapon_SecondaryAttack(CBasePlayerWeapon *pThis) noexcept { return g_pfnWeaponSecondaryAttack(pThis); }
-void HamF_Item_Holster(CBasePlayerItem *pThis, int skiplocal) noexcept { return g_pfnItemHolster(pThis, skiplocal); }
+// Weapon.cpp
+extern int HamF_Item_Deploy(CBasePlayerItem *pThis) noexcept;
+extern void HamF_Item_PostFrame(CBasePlayerItem *pThis) noexcept;
+extern void HamF_Weapon_PrimaryAttack(CBasePlayerWeapon *pThis) noexcept;
+extern void HamF_Weapon_SecondaryAttack(CBasePlayerWeapon *pThis) noexcept;
+extern void HamF_Item_Holster(CBasePlayerItem *pThis, int skiplocal) noexcept;
+//
 
 void DeployHooks(void) noexcept
 {
@@ -72,17 +57,32 @@ void DeployHooks(void) noexcept
 	UTIL_VirtualTableInjection(vft, VFTIDX_ITEM_HOLSTER, UTIL_CreateTrampoline(true, 1, &HamF_Item_Holster), (void **)&g_pfnItemHolster);
 
 	g_pfnRadiusFlash = (fnRadiusFlash_t)UTIL_SearchPattern("mp.dll", RADIUS_FLASH_FN_PATTERN, 1);
+	g_pfnSelectItem = (fnSelectItem_t)UTIL_SearchPattern("mp.dll", SELECT_ITEM_FN_PATTERN, 1);
+	g_pfnApplyMultiDamage = (fnApplyMultiDamage_t)UTIL_SearchPattern("mp.dll", APPLY_MULTI_DAMAGE_FN_PATTERN, 1);
+	g_pfnClearMultiDamage = (fnClearMultiDamage_t)UTIL_SearchPattern("mp.dll", CLEAR_MULTI_DAMAGE_FN_PATTERN, 1);
+	g_pfnDefaultDeploy = (fnDefaultDeploy_t)UTIL_SearchPattern("mp.dll", DEFAULT_DEPLOY_FN_PATTERN, 1);
+
+	assert(g_pfnRadiusFlash != nullptr);
+	assert(g_pfnSelectItem != nullptr);
+	assert(g_pfnApplyMultiDamage != nullptr);
+	assert(g_pfnClearMultiDamage != nullptr);
+	assert(g_pfnDefaultDeploy != nullptr);
 }
 
-using gmsgScreenFade = Message_t<"ScreenFade", uint16_t, uint16_t, uint16_t, byte, byte, byte, byte>;
-using gmsgScreenShake = Message_t<"ScreenShake", uint16_t, uint16_t, uint16_t>;
-using gmsgBarTime = Message_t<"BarTime", int16_t>;
-
-void RetriveMessageIndex(void) noexcept
+void RetrieveMessageHandles(void) noexcept
 {
 	gmsgScreenFade::Retrieve();
 	gmsgScreenShake::Retrieve();
 	gmsgBarTime::Retrieve();
+
+	gmsgWeaponAnim::m_iMessageIndex = SVC_WEAPONANIM;
+}
+
+void RetrieveCVarHandles(void) noexcept
+{
+	gcvarFriendlyFire = g_engfuncs.pfnCVarGetPointer("mp_friendlyfire");
+	gcvarMaxSpeed = g_engfuncs.pfnCVarGetPointer("sv_maxspeed");
+	gcvarMaxVelocity = g_engfuncs.pfnCVarGetPointer("sv_maxvelocity");
 }
 
 // Meta API
@@ -117,9 +117,19 @@ void fw_Touch_Post(edict_t *pentTouched, edict_t *pentOther) noexcept
 	// post
 }
 
-void fw_ClientCommand(edict_t *pEntity) noexcept
+extern META_RES OnClientCommand(CBasePlayer *pPlayer, const std::string &szCommand) noexcept;
+void fw_ClientCommand(edict_t *pEdict) noexcept
 {
 	gpMetaGlobals->mres = MRES_IGNORED;
+
+	[[unlikely]]
+	if (!pEdict->pvPrivateData)
+		return;
+
+	if (auto const pEntity = (CBaseEntity *)pEdict->pvPrivateData; !pEntity->IsPlayer())
+		return;
+
+	gpMetaGlobals->mres = OnClientCommand((CBasePlayer *)pEdict->pvPrivateData, g_engfuncs.pfnCmd_Argv(0));
 	// pre
 }
 
@@ -136,7 +146,12 @@ void fw_ServerActivate_Post(edict_t *pEdictList, int edictCount, int clientMax) 
 	// plugin_init
 
 	DeployHooks();
-	RetriveMessageIndex();
+	RetrieveMessageHandles();
+	RetrieveCVarHandles();
+
+	// plugin_cfg
+	g_engfuncs.pfnCvar_DirectSet(gcvarMaxSpeed, "9999.0");
+	g_engfuncs.pfnCvar_DirectSet(gcvarMaxVelocity, "9999.0");
 
 	bInitialized = true;
 }
@@ -155,6 +170,12 @@ void fw_TraceLine_Post(const float *v1, const float *v2, int fNoMonsters, edict_
 
 int fw_CheckVisibility(const edict_t *entity, unsigned char *pset) noexcept
 {
+	if (entity->v.classname == MAKE_STRING(Classname::JET))
+	{
+		gpMetaGlobals->mres = MRES_SUPERCEDE;
+		return true;
+	}
+
 	gpMetaGlobals->mres = MRES_IGNORED;
 	return 0;
 	// pre

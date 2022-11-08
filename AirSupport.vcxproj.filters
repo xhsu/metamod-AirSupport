@@ -250,5 +250,23 @@
     <ClCompile Include="Source\Resources.ixx">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="Source\ClientCommand.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Hook.ixx">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Touch.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Entity.ixx">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Hydrogenium\UtlRandom.ixx">
+      <Filter>Hydrogenium</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Weapon.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

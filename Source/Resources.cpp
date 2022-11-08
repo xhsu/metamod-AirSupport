@@ -56,4 +56,7 @@ void Precache(void) noexcept
 
 	for (auto &&decal : Decal::GUNSHOT)
 		decal.Initialize();
+
+	for (auto &&decal : Decal::SCORCH)
+		decal.Initialize();
 }

@@ -10,15 +10,6 @@ using std::array;
 using std::string;
 using std::unordered_map;
 
-export enum EAirSupportTypes
-{
-	AIR_STRIKE = 0,
-	CLUSTER_BOMB,
-	CARPET_BOMB,
-	GUNSHIP_STRIKE,
-	FUEL_AIR_BOMB,	// thermobaric weapon
-};
-
 export namespace Models
 {
 	inline constexpr array PLANE =
@@ -47,6 +38,25 @@ export namespace Models
 	inline constexpr char GIBS_BRICK[] = "models/gibs_brickred.mdl";
 
 	inline unordered_map<string, int> m_rgLibrary{};
+
+	namespace v_radio
+	{
+		enum struct seq
+		{
+			idle,
+			draw,
+			holster,
+			use,
+		};
+
+		namespace time
+		{
+			inline constexpr float idle = (float)((double)2 / (double)15);
+			inline constexpr float draw = (float)((double)31 / (double)30);
+			inline constexpr float holster = (float)((double)39 / (double)30);
+			inline constexpr float use = (float)((double)124 / (double)45);
+		};
+	};
 };
 
 export namespace Sounds
@@ -131,5 +141,11 @@ export namespace Decal
 		Decal_t{"{shot3", 0},
 		Decal_t{"{shot4", 0},
 		Decal_t{"{shot5", 0},
+	};
+
+	inline array SCORCH =
+	{
+		Decal_t{"{scorch1", 0},
+		Decal_t{"{scorch2", 0},
 	};
 }

@@ -323,6 +323,42 @@ public:
 	qboolean m_fSequenceLoops;
 };
 
+export enum WeaponIdType
+{
+	WEAPON_NONE,
+	WEAPON_P228,
+	WEAPON_NIL,
+	WEAPON_SCOUT,
+	WEAPON_HEGRENADE,
+	WEAPON_XM1014,
+	WEAPON_C4,
+	WEAPON_MAC10,
+	WEAPON_AUG,
+	WEAPON_SMOKEGRENADE,
+	WEAPON_ELITE,
+	WEAPON_FIVESEVEN,
+	WEAPON_UMP45,
+	WEAPON_SG550,
+	WEAPON_GALIL,
+	WEAPON_FAMAS,
+	WEAPON_USP,
+	WEAPON_GLOCK18,
+	WEAPON_AWP,
+	WEAPON_MP5N,
+	WEAPON_M249,
+	WEAPON_M3,
+	WEAPON_M4A1,
+	WEAPON_TMP,
+	WEAPON_G3SG1,
+	WEAPON_FLASHBANG,
+	WEAPON_DEAGLE,
+	WEAPON_SG552,
+	WEAPON_AK47,
+	WEAPON_KNIFE,
+	WEAPON_P90,
+	WEAPON_SHIELDGUN = 99
+};
+
 export class CBasePlayerItem : public CBaseAnimating
 {
 public:
@@ -446,9 +482,9 @@ public:
 	int m_fInSpecialReload;
 	int m_iDefaultAmmo;
 	int m_iShellId;
-	int m_fMaxSpeed;
+	float m_fMaxSpeed;
 	bool m_bDelayFire;
-	int m_iDirection;
+	qboolean m_iDirection;
 	bool m_bSecondarySilencerOn;
 	float m_flAccuracy;
 	float m_flLastFire;
