@@ -177,6 +177,7 @@
     <ClCompile Include="Source\Resources.cpp" />
     <ClCompile Include="Source\Hook.cpp" />
     <ClCompile Include="Source\Plugin.cpp" />
+    <ClCompile Include="Source\Task.ixx" />
     <ClCompile Include="Source\Touch.cpp" />
     <ClCompile Include="Source\Weapon.cpp" />
   </ItemGroup>

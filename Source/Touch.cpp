@@ -275,6 +275,20 @@ void VisualEffects(const Vector &vecOrigin) noexcept
 	}
 }
 
+void Impact(CBasePlayer *pAttacker, CBaseEntity *pProjectile, CBaseEntity *pOther, float flDamage) noexcept
+{
+	g_engfuncs.pfnMakeVectors(pProjectile->pev->angles);
+
+	TraceResult tr{};
+	g_engfuncs.pfnTraceLine(pProjectile->pev->origin, pProjectile->pev->origin + gpGlobals->v_forward * 4096.f, dont_ignore_monsters, ent_cast<edict_t *>(pProjectile->pev), &tr);
+
+	if (&tr.pHit->v != pOther->pev)
+		return;
+
+	pOther->TraceAttack(pAttacker->pev, flDamage, gpGlobals->v_forward, &tr, DMG_BULLET);
+	g_pfnApplyMultiDamage(pProjectile->pev, pAttacker->pev);
+}
+
 META_RES OnTouch(CBaseEntity *pEntity, CBaseEntity *pOther) noexcept
 {
 	if (pEntity->pev->classname == MAKE_STRING(Classname::JET) && pev_valid(pOther->pev) != 2)
@@ -294,6 +308,9 @@ META_RES OnTouch(CBaseEntity *pEntity, CBaseEntity *pOther) noexcept
 		CBasePlayer *pPlayer = (CBasePlayer *)pEntity->pev->owner->pvPrivateData;
 
 		g_engfuncs.pfnEmitSound(ent_cast<edict_t *>(pEntity->pev), CHAN_WEAPON, UTIL_GetRandomOne(Sounds::EXPLOSION), VOL_NORM, 0.3f, 0, UTIL_Random(92, 116));
+
+		if (pev_valid(pOther->pev) == 2)
+			Impact(pPlayer, pEntity, pOther, 125.f);
 
 		Explosion(pPlayer, pEntity->pev->origin, 350.f, 8.f, 275.f, 2048.f);
 		VisualEffects(pEntity->pev->origin);

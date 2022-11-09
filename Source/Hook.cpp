@@ -9,10 +9,11 @@ import util;
 
 import UtlHook;
 
-import Plugin;
 import CBase;
-import Hook;
 import Entity;
+import Hook;
+import Plugin;
+import Task;
 
 // Resources.cpp
 extern void Precache(void) noexcept;
@@ -305,7 +306,7 @@ inline constexpr DLL_FUNCTIONS gFunctionTable_Post =
 	.pfnPlayerPreThink	= nullptr,
 	.pfnPlayerPostThink	= nullptr,
 
-	.pfnStartFrame		= nullptr,
+	.pfnStartFrame		= &Tasks::Think,
 	.pfnParmsNewLevel	= nullptr,
 	.pfnParmsChangeLevel= nullptr,
 

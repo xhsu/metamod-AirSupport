@@ -268,5 +268,8 @@
     <ClCompile Include="Source\Weapon.cpp">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Task.ixx">
+      <Filter>Source</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
