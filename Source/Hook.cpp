@@ -306,7 +306,7 @@ inline constexpr DLL_FUNCTIONS gFunctionTable_Post =
 	.pfnPlayerPreThink	= nullptr,
 	.pfnPlayerPostThink	= nullptr,
 
-	.pfnStartFrame		= &Tasks::Think,
+	.pfnStartFrame		= &TimedFnMgr::Think,
 	.pfnParmsNewLevel	= nullptr,
 	.pfnParmsChangeLevel= nullptr,
 

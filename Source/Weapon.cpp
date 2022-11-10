@@ -1,3 +1,5 @@
+#include <fmt/core.h>
+
 import Entity;
 import Hook;
 import Resources;
@@ -63,7 +65,72 @@ int HamF_Item_Deploy(CBasePlayerItem *pItem) noexcept
 	// #UNDONE clear AS_CARPET_BOMBING src origin
 }
 
-void HamF_Item_PostFrame(CBasePlayerItem *pThis) noexcept { return g_pfnItemPostFrame(pThis); }
+void HamF_Item_PostFrame(CBasePlayerItem *pThis) noexcept
+{
+	if (pThis->pev->weapons != RADIO_KEY || !pThis->m_pPlayer || !pThis->m_pPlayer->IsAlive())
+		return g_pfnItemPostFrame(pThis);
+
+	[[unlikely]]
+	if (pThis->m_pPlayer->m_afButtonPressed & IN_ATTACK)
+	{
+		g_engfuncs.pfnMakeVectors(pThis->m_pPlayer->pev->v_angle);
+
+		Vector vecSrc = pThis->m_pPlayer->GetGunPosition();
+		Vector vecEnd = vecSrc + gpGlobals->v_forward * 4096.f;
+
+		TraceResult tr{};
+		g_engfuncs.pfnTraceLine(vecSrc, vecEnd, dont_ignore_monsters, ent_cast<edict_t *>(pThis->m_pPlayer->pev), &tr);
+
+		vecSrc = tr.vecEndPos;
+		vecEnd = Vector(vecSrc.x, vecSrc.y, 8192.f);
+		g_engfuncs.pfnTraceLine(vecSrc, vecEnd, ignore_monsters, tr.pHit, &tr);
+
+		if (g_engfuncs.pfnPointContents(tr.vecEndPos) != CONTENTS_SKY)
+		{
+			g_engfuncs.pfnClientPrintf(ent_cast<edict_t *>(pThis->m_pPlayer->pev), print_center, "You must target an outdoor location.");
+			return;
+		}
+
+		auto const pEdict = g_engfuncs.pfnCreateNamedEntity(MAKE_STRING("info_target"));
+		if (pev_valid(&pEdict->v) != 2)
+			return;
+
+		g_engfuncs.pfnSetOrigin(pEdict, Vector(tr.vecEndPos.x, tr.vecEndPos.y, tr.vecEndPos.z - 2.5f));
+		g_engfuncs.pfnSetModel(pEdict, Models::PROJECTILE[AIR_STRIKE]);
+		g_engfuncs.pfnSetSize(pEdict, Vector(-2, -2, -2), Vector(2, 2, 2));
+
+		pEdict->v.classname = MAKE_STRING(Classname::MISSILE);
+		pEdict->v.owner = ent_cast<edict_t *>(pThis->m_pPlayer->pev);
+		pEdict->v.solid = SOLID_BBOX;
+		pEdict->v.movetype = MOVETYPE_FLY;
+		pEdict->v.velocity = Vector(0, 0, -1000);
+		g_engfuncs.pfnVecToAngles(pEdict->v.velocity, pEdict->v.angles);
+		pEdict->v.groupinfo = MISSILE_GROUPINFO;
+
+		MsgPVS(SVC_TEMPENTITY, tr.vecEndPos);
+		WriteData(TE_SPRITE);
+		WriteData(tr.vecEndPos);
+		WriteData((short)Sprite::m_rgLibrary[Sprite::FIRE]);
+		WriteData((byte)5);
+		WriteData((byte)255);
+		MsgEnd();
+
+		pEdict->v.effects = EF_LIGHT | EF_BRIGHTLIGHT;
+
+		MsgBroadcast(SVC_TEMPENTITY);
+		WriteData(TE_BEAMFOLLOW);
+		WriteData(ent_cast<short>(pEdict));
+		WriteData((short)Sprite::m_rgLibrary[Sprite::SMOKE_TRAIL]);
+		WriteData((byte)10);
+		WriteData((byte)3);
+		WriteData((byte)255);
+		WriteData((byte)255);
+		WriteData((byte)255);
+		WriteData((byte)255);
+		MsgEnd();
+	}
+}
+
 void HamF_Weapon_PrimaryAttack(CBasePlayerWeapon *pThis) noexcept { return g_pfnWeaponPrimaryAttack(pThis); }
 void HamF_Weapon_SecondaryAttack(CBasePlayerWeapon *pThis) noexcept { return g_pfnWeaponSecondaryAttack(pThis); }
 void HamF_Item_Holster(CBasePlayerItem *pThis, int skiplocal) noexcept { return g_pfnItemHolster(pThis, skiplocal); }

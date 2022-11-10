@@ -17,3 +17,4 @@ export namespace Classname
 }
 
 export inline constexpr auto RADIO_KEY = 16486345;
+export inline constexpr auto MISSILE_GROUPINFO = (1 << 10);

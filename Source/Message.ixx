@@ -46,6 +46,11 @@ export inline void MsgBroadcast(int iMessageIndex) noexcept
 	g_engfuncs.pfnMessageBegin(MSG_BROADCAST, iMessageIndex, nullptr, nullptr);
 }
 
+export inline void MsgPVS(int iMessageIndex, const Vector &vecOrigin) noexcept
+{
+	g_engfuncs.pfnMessageBegin(MSG_PVS, iMessageIndex, vecOrigin, nullptr);
+}
+
 export inline void WriteData(auto&& arg) noexcept
 {
 	using T = std::remove_cvref_t<std::decay_t<decltype(arg)>>;

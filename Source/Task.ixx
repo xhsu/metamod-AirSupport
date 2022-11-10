@@ -1,52 +1,110 @@
 export module Task;
 
-export import <functional>;
-export import <list>;
-export import <tuple>;
+import <chrono>;
+import <coroutine>;
+import <functional>;
+import <list>;
 
-export import progdefs;
+namespace ch = std::chrono;
 
-using std::function;
-using std::list;
-using std::pair;
-using std::tuple;
+using namespace std;
+using namespace std::literals;
 
-export struct Tasks
+export struct TimedFn final
 {
-	static void Think(void) noexcept
+	struct promise_type final // FIXED NAME
+	{
+		ch::steady_clock::time_point m_NextThink{ ch::steady_clock::now() + 24h };
+
+		static constexpr void unhandled_exception(void) noexcept {}	// Fixed name. What to do in a case of an exception.
+		TimedFn get_return_object(void) noexcept { return TimedFn{ this }; }	// Fixed name. Coroutine creation.
+		static constexpr suspend_never initial_suspend(void) noexcept { return {}; }	// Fixed name. Startup.
+		suspend_always yield_value(ch::seconds const &TimeFrame) noexcept { m_NextThink = ch::steady_clock::now() + TimeFrame; return {}; }	// Fixed name. Value from co_yield
+		suspend_always await_transform(ch::seconds const &TimeFrame) noexcept { m_NextThink = ch::steady_clock::now() + TimeFrame; return {}; }	// Fixed name. Value from co_await
+		//static constexpr void return_value(void) noexcept {}	// Fixed name. Value from co_return. LUNA: Mutually exclusive with return_void?
+		static constexpr void return_void(void) noexcept {}	// Fixed name. Value from co_return. LUNA: Mutually exclusive with return_value?
+		static constexpr suspend_always final_suspend(void) noexcept { return {}; }	// Ending. LUNA: must be suspend_always otherwise it will cause memory access violation: accessing freed mem.
+	};
+
+	using Handle_t = std::coroutine_handle<promise_type>;
+	Handle_t m_handle;
+	unsigned long m_iCoroutineMarker{ 0ul };	// LUNA: use for marking the removal of coroutine
+
+	explicit TimedFn(promise_type *ppt) noexcept : m_handle{ Handle_t::from_promise(*ppt) } {}	// Get handle and form the promise
+	TimedFn(TimedFn &&rhs) noexcept : m_handle{ std::exchange(rhs.m_handle, nullptr) }, m_iCoroutineMarker{ rhs.m_iCoroutineMarker } {}	// Move only
+	~TimedFn() noexcept { if (m_handle) m_handle.destroy(); }
+
+	__forceinline bool Done(void) const noexcept { return m_handle.done(); }
+	__forceinline bool ShouldResume(void) const noexcept { return m_handle.promise().m_NextThink < ch::steady_clock::now(); }
+	__forceinline void Resume(void) const noexcept { return m_handle.resume(); }
+	__forceinline auto operator<=> (TimedFn const &rhs) const noexcept { return this->m_handle.promise().m_NextThink <=> rhs.m_handle.promise().m_NextThink; }
+};
+
+export namespace TimedFnMgr
+{
+	inline list<TimedFn> m_List{};
+
+	inline void Think(void) noexcept
 	{
 		if (m_List.empty())
 			return;
 
 		[[unlikely]]
-		if (std::get<0>(m_List.front()) < gpGlobals->time)
+		if (m_List.front().ShouldResume())
 		{
-			std::get<2>(m_List.front())();
-			m_List.pop_front();
+			if (!m_List.front().Done())
+			{
+				m_List.front().Resume();
+
+				m_List.sort();
+				m_List.remove_if(std::bind_front(&TimedFn::Done));
+			}
 		}
 	}
 
-	static void Add(float flDelayExecute, unsigned int iTaskIndex, const function<void()> &fn) noexcept
+	inline void Enroll(TimedFn &&obj, unsigned long iCoroutineMarker = 0ul) noexcept
 	{
-		m_List.emplace_back(
-			flDelayExecute + gpGlobals->time,
-			iTaskIndex,
-			fn
-		);
+		[[likely]]
+		if (!obj.Done())
+		{
+			obj.m_iCoroutineMarker = iCoroutineMarker;
 
-		m_List.sort([](auto const &lhs, auto const &rhs) noexcept { return std::get<0>(lhs) < std::get<0>(rhs); });
+			m_List.emplace_back(std::forward<TimedFn>(obj));
+			m_List.sort();
+			m_List.remove_if(std::bind_front(&TimedFn::Done));
+		}
 	}
 
-	static void Remove(unsigned int iTaskIndex) noexcept
+	inline unsigned int Delist(unsigned long iCoroutineMarker) noexcept
 	{
-		m_List.remove_if(
-			[=](auto const &elem) noexcept
-			{
-				return std::get<1>(elem) == iTaskIndex;
-			}
-		);
+		if (!m_List.empty())
+			return m_List.remove_if([=](TimedFn const &obj) noexcept { return obj.m_iCoroutineMarker == iCoroutineMarker; });
+
+		return 0;
 	}
 
-private:
-	static inline list<tuple<float, unsigned int, function<void()>>> m_List{};
+	inline unsigned int Count(unsigned long iCoroutineMarker) noexcept
+	{
+		unsigned int ret{};
+
+		for (auto const& obj : m_List)
+		{
+			if (obj.m_iCoroutineMarker == iCoroutineMarker)
+				++ret;
+		}
+
+		return ret;
+	}
+
+	inline bool Exist(unsigned long iCoroutineMarker) noexcept
+	{
+		for (auto const &obj : m_List)
+		{
+			[[unlikely]]
+			if (obj.m_iCoroutineMarker == iCoroutineMarker)
+				return true;
+		}
+
+		return false;
+	}
 };
