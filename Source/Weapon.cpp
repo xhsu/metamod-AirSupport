@@ -1,8 +1,16 @@
-#include <fmt/core.h>
+﻿#include <fmt/core.h>
+
+import <array>;
+import <numbers>;
 
 import Entity;
 import Hook;
 import Resources;
+import Task;
+
+import UtlRandom;
+
+using std::array;
 
 enum EWeaponState
 {
@@ -51,7 +59,24 @@ int HamF_Item_Deploy(CBasePlayerItem *pItem) noexcept
 	pThis->m_pPlayer->m_bShieldDrawn = false;
 
 	if (pThis->pev->weapons == RADIO_KEY)
-		return g_pfnDefaultDeploy(pThis, Models::V_RADIO, Models::P_RADIO, (int)Models::v_radio::seq::draw, "knife", false);	// Enforce to play the anim.
+	{
+		g_pfnDefaultDeploy(pThis, Models::V_RADIO, Models::P_RADIO, (int)Models::v_radio::seq::draw, "knife", false);	// Enforce to play the anim.
+
+		TimedFnMgr::Enroll(
+			[](CBasePlayerWeapon *pThis) noexcept -> TimedFn
+			{
+				pThis->m_pPlayer->m_flNextAttack = Models::v_radio::time::draw;
+				pThis->m_flNextPrimaryAttack = Models::v_radio::time::draw;
+				pThis->m_flNextSecondaryAttack = Models::v_radio::time::draw;
+				pThis->m_flTimeWeaponIdle = Models::v_radio::time::draw;
+				co_await Models::v_radio::time::draw;
+
+				pThis->SendWeaponAnim((int)Models::v_radio::seq::idle, false);
+			}(pThis)
+		);
+
+		return true;
+	}
 	else
 	{
 		g_engfuncs.pfnEmitSound(ent_cast<edict_t *>(pThis->pev), CHAN_ITEM, "weapons/knife_deploy1.wav", 0.3f, 2.4f, 0, PITCH_NORM);
@@ -65,14 +90,30 @@ int HamF_Item_Deploy(CBasePlayerItem *pItem) noexcept
 	// #UNDONE clear AS_CARPET_BOMBING src origin
 }
 
-void HamF_Item_PostFrame(CBasePlayerItem *pThis) noexcept
+void HamF_Item_PostFrame(CBasePlayerItem *pItem) noexcept
 {
+	auto const pThis = (CBasePlayerWeapon *)pItem;
+
 	if (pThis->pev->weapons != RADIO_KEY || !pThis->m_pPlayer || !pThis->m_pPlayer->IsAlive())
 		return g_pfnItemPostFrame(pThis);
 
 	[[unlikely]]
 	if (pThis->m_pPlayer->m_afButtonPressed & IN_ATTACK)
 	{
+		TimedFnMgr::Enroll(
+			[](CBasePlayerWeapon *pThis) noexcept -> TimedFn
+			{
+				pThis->SendWeaponAnim((int)Models::v_radio::seq::use, false);
+				pThis->m_pPlayer->m_flNextAttack = Models::v_radio::time::use;
+				pThis->m_flNextPrimaryAttack = Models::v_radio::time::use;
+				pThis->m_flNextSecondaryAttack = Models::v_radio::time::use;
+				pThis->m_flTimeWeaponIdle = Models::v_radio::time::use;
+				co_await Models::v_radio::time::use;
+
+				pThis->SendWeaponAnim((int)Models::v_radio::seq::idle, false);
+			}(pThis)
+		);
+
 		g_engfuncs.pfnMakeVectors(pThis->m_pPlayer->pev->v_angle);
 
 		Vector vecSrc = pThis->m_pPlayer->GetGunPosition();
@@ -106,6 +147,7 @@ void HamF_Item_PostFrame(CBasePlayerItem *pThis) noexcept
 		pEdict->v.velocity = Vector(0, 0, -1000);
 		g_engfuncs.pfnVecToAngles(pEdict->v.velocity, pEdict->v.angles);
 		pEdict->v.groupinfo = MISSILE_GROUPINFO;
+		pEdict->v.nextthink = 0.1f;
 
 		MsgPVS(SVC_TEMPENTITY, tr.vecEndPos);
 		WriteData(TE_SPRITE);
@@ -117,6 +159,7 @@ void HamF_Item_PostFrame(CBasePlayerItem *pThis) noexcept
 
 		pEdict->v.effects = EF_LIGHT | EF_BRIGHTLIGHT;
 
+		// #INVESTIGATE why won't this work?
 		MsgBroadcast(SVC_TEMPENTITY);
 		WriteData(TE_BEAMFOLLOW);
 		WriteData(ent_cast<short>(pEdict));
@@ -128,6 +171,61 @@ void HamF_Item_PostFrame(CBasePlayerItem *pThis) noexcept
 		WriteData((byte)255);
 		WriteData((byte)255);
 		MsgEnd();
+
+		static constexpr auto get_spherical_coord = [](float radius, float inclination, float azimuth) noexcept
+		{
+			radius = std::clamp(radius, 0.f, 8192.f);	// r ∈ [0, ∞)
+			inclination = (float)std::clamp(inclination * std::numbers::pi / 180.0, 0.0, std::numbers::pi);	// θ ∈ [0, π]
+			azimuth = (float)std::clamp(azimuth * std::numbers::pi / 180.0, 0.0, std::numbers::pi * 2.0);	// φ ∈ [0, 2π)
+
+			auto const length = radius * sin(inclination);
+
+			return Vector(
+				length * cos(azimuth),
+				length * sin(azimuth),
+				radius * cos(inclination)
+			);
+		};
+
+		static constexpr auto get_aim_origin_vector = [](double fwd, double right, double up) noexcept
+		{
+			return gpGlobals->v_forward * fwd + gpGlobals->v_right * right + gpGlobals->v_up * up;
+		};
+
+		g_engfuncs.pfnMakeVectors(pEdict->v.angles);
+
+		auto const qRot = Quaternion::Rotate(Vector(0, 0, 1), gpGlobals->v_forward);
+
+		array const rgvecPericoord =
+		{
+			pEdict->v.origin + qRot * get_spherical_coord(24.f, 120.f, 0.f),
+			pEdict->v.origin + qRot * get_spherical_coord(24.f, 120.f, 72.f),
+			pEdict->v.origin + qRot * get_spherical_coord(24.f, 120.f, 144.f),
+			pEdict->v.origin + qRot * get_spherical_coord(24.f, 120.f, 216.f),
+			pEdict->v.origin + qRot * get_spherical_coord(24.f, 120.f, 288.f),
+		};
+
+		for (auto &&vecPos : rgvecPericoord)
+		{
+			MsgPVS(SVC_TEMPENTITY, vecPos);
+			WriteData(TE_SPRITE);
+			WriteData(vecPos);
+			WriteData((short)Sprite::m_rgLibrary[Sprite::SMOKE]);
+			WriteData((byte)10);
+			WriteData((byte)50);
+			MsgEnd();
+		}
+
+		static constexpr auto fnMissileTravelSound = [](edict_t *pEdict) noexcept -> TimedFn
+		{
+			for (; pev_valid(pEdict);)
+			{
+				g_engfuncs.pfnEmitSound(pEdict, CHAN_WEAPON, Sounds::TRAVEL, VOL_NORM, ATTN_NORM, 0, UTIL_Random(94, 112));
+				co_await 1.f;
+			}
+		};
+
+		TimedFnMgr::Enroll(fnMissileTravelSound(pEdict), ent_cast<unsigned long>(pEdict) + MISSILE_SOUND_CORO_KEY);
 	}
 }
 

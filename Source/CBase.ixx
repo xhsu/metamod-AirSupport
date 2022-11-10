@@ -432,7 +432,7 @@ public:
 	virtual void UpdateItemInfo(void) = 0;
 	virtual qboolean PlayEmptySound(void) = 0;
 	virtual void ResetEmptySound(void) = 0;
-	virtual void SendWeaponAnim(int iAnim, int skiplocal = 0) = 0;
+	virtual void SendWeaponAnim(int iAnim, int skiplocal = false) = 0;
 	virtual qboolean CanDeploy(void) = 0;
 	virtual qboolean IsWeapon(void) = 0;
 	virtual qboolean IsUseable(void) = 0;
