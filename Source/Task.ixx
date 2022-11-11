@@ -1,26 +1,24 @@
 export module Task;
 
-import <chrono>;
 import <coroutine>;
 import <functional>;
 import <list>;
 
-namespace ch = std::chrono;
+import progdefs;
 
 using namespace std;
-using namespace std::literals;
 
 export struct TimedFn final
 {
 	struct promise_type final // FIXED NAME
 	{
-		ch::steady_clock::time_point m_NextThink{ ch::steady_clock::now() + 24h };
+		float m_flNextThink{ gpGlobals->time + 3600 };
 
 		static constexpr void unhandled_exception(void) noexcept {}	// Fixed name. What to do in a case of an exception.
 		TimedFn get_return_object(void) noexcept { return TimedFn{ this }; }	// Fixed name. Coroutine creation.
 		static constexpr suspend_never initial_suspend(void) noexcept { return {}; }	// Fixed name. Startup.
-		suspend_always yield_value(ch::seconds const &TimeFrame) noexcept { m_NextThink = ch::steady_clock::now() + TimeFrame; return {}; }	// Fixed name. Value from co_yield
-		suspend_always await_transform(ch::seconds const &TimeFrame) noexcept { m_NextThink = ch::steady_clock::now() + TimeFrame; return {}; }	// Fixed name. Value from co_await
+		suspend_always yield_value(float flTimeFrame) noexcept { m_flNextThink = gpGlobals->time + flTimeFrame; return {}; }	// Fixed name. Value from co_yield
+		suspend_always await_transform(float flTimeFrame) noexcept { m_flNextThink = gpGlobals->time + flTimeFrame; return {}; }	// Fixed name. Value from co_await
 		//static constexpr void return_value(void) noexcept {}	// Fixed name. Value from co_return. LUNA: Mutually exclusive with return_void?
 		static constexpr void return_void(void) noexcept {}	// Fixed name. Value from co_return. LUNA: Mutually exclusive with return_value?
 		static constexpr suspend_always final_suspend(void) noexcept { return {}; }	// Ending. LUNA: must be suspend_always otherwise it will cause memory access violation: accessing freed mem.
@@ -35,9 +33,9 @@ export struct TimedFn final
 	~TimedFn() noexcept { if (m_handle) m_handle.destroy(); }
 
 	__forceinline bool Done(void) const noexcept { return m_handle.done(); }
-	__forceinline bool ShouldResume(void) const noexcept { return m_handle.promise().m_NextThink < ch::steady_clock::now(); }
+	__forceinline bool ShouldResume(void) const noexcept { return m_handle.promise().m_flNextThink < gpGlobals->time; }
 	__forceinline void Resume(void) const noexcept { return m_handle.resume(); }
-	__forceinline auto operator<=> (TimedFn const &rhs) const noexcept { return this->m_handle.promise().m_NextThink <=> rhs.m_handle.promise().m_NextThink; }
+	__forceinline auto operator<=> (TimedFn const &rhs) const noexcept { return this->m_handle.promise().m_flNextThink <=> rhs.m_handle.promise().m_flNextThink; }
 };
 
 export namespace TimedFnMgr

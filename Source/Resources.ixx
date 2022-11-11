@@ -121,6 +121,9 @@ export namespace Sprite
 	inline constexpr char SMOKE_1[] = "sprites/gas_smoke1.spr";
 	inline constexpr char SMOKE_2[] = "sprites/wall_puff1.spr";
 
+	inline constexpr char BEAM[] = "sprites/laserbeam.spr";
+	inline constexpr char AIM[] = "sprites/targetsign.spr";
+
 	inline unordered_map<string, int> m_rgLibrary{};
 };
 
@@ -149,3 +152,8 @@ export namespace Decal
 		Decal_t{"{scorch2", 0},
 	};
 }
+
+export namespace HUD
+{
+	inline constexpr char RADIO[] = "weapon_radio";
+};

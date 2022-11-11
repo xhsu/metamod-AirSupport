@@ -20,6 +20,7 @@ extern void Precache(void) noexcept;
 //
 
 // Weapon.cpp
+extern int HamF_Item_AddToPlayer(CBasePlayerItem *pThis, CBasePlayer *pPlayer) noexcept;
 extern int HamF_Item_Deploy(CBasePlayerItem *pThis) noexcept;
 extern void HamF_Item_PostFrame(CBasePlayerItem *pThis) noexcept;
 extern void HamF_Weapon_PrimaryAttack(CBasePlayerWeapon *pThis) noexcept;
@@ -51,6 +52,7 @@ void DeployHooks(void) noexcept
 		return;
 	}
 
+	UTIL_VirtualTableInjection(vft, VFTIDX_ITEM_ADDTOPLAYER, UTIL_CreateTrampoline(true, 1, &HamF_Item_AddToPlayer), (void **)&g_pfnItemAddToPlayer);
 	UTIL_VirtualTableInjection(vft, VFTIDX_ITEM_DEPLOY, UTIL_CreateTrampoline(true, 0, &HamF_Item_Deploy), (void **)&g_pfnItemDeploy);
 	UTIL_VirtualTableInjection(vft, VFTIDX_ITEM_POSTFRAME, UTIL_CreateTrampoline(true, 0, &HamF_Item_PostFrame), (void **)&g_pfnItemPostFrame);
 	UTIL_VirtualTableInjection(vft, VFTIDX_WEAPON_PRIMARYATTACK, UTIL_CreateTrampoline(true, 0, &HamF_Weapon_PrimaryAttack), (void **)&g_pfnWeaponPrimaryAttack);
@@ -75,6 +77,8 @@ void RetrieveMessageHandles(void) noexcept
 	gmsgScreenFade::Retrieve();
 	gmsgScreenShake::Retrieve();
 	gmsgBarTime::Retrieve();
+	gmsgWeaponList::Retrieve();
+	gmsgWeapPickup::Retrieve();
 
 	gmsgWeaponAnim::m_iMessageIndex = SVC_WEAPONANIM;
 }
@@ -92,29 +96,31 @@ int fw_Spawn(edict_t *pent) noexcept
 {
 	gpMetaGlobals->mres = MRES_IGNORED;
 
-	static bool bInitialized = false;
+//	static bool bInitialized = false;
 
-	[[likely]]
-	if (bInitialized)
-		return 0;
+//	[[likely]]
+//	if (bInitialized)
+//		return 0;
 
 	// plugin_precache
 
 	Precache();
 
-	bInitialized = true;
+//	bInitialized = true;
 	return 0;
 }
 
+extern META_RES OnThink(CBaseEntity *pEntity) noexcept;
 void fw_Think_Post(edict_t *pent) noexcept
 {
-	gpMetaGlobals->mres = MRES_IGNORED;
+	gpMetaGlobals->mres = pev_valid(pent) == 2 ? OnThink((CBaseEntity *)pent->pvPrivateData) : MRES_IGNORED;
 	// post
 }
 
+extern META_RES OnTouch(CBaseEntity *pEntity, CBaseEntity *pOther) noexcept;
 void fw_Touch_Post(edict_t *pentTouched, edict_t *pentOther) noexcept
 {
-	gpMetaGlobals->mres = MRES_IGNORED;
+	gpMetaGlobals->mres = pev_valid(pentTouched) == 2 ? OnTouch((CBaseEntity *)pentTouched->pvPrivateData, (CBaseEntity *)pentOther->pvPrivateData) : MRES_IGNORED;
 	// post
 }
 
@@ -165,6 +171,79 @@ void fw_PlayerPostThink(edict_t *pEntity) noexcept
 
 void fw_TraceLine_Post(const float *v1, const float *v2, int fNoMonsters, edict_t *pentToSkip, TraceResult *ptr) noexcept
 {
+/*
+	if (!ptr->pHit || !ent_cast<int>(ptr->pHit))
+	{
+		if (!pentToSkip || pev_valid(&pentToSkip->v) != 2)
+			goto LIB_SKIP;
+
+		if (CBaseEntity *pent = (CBaseEntity *)pentToSkip->pvPrivateData; !pent->IsPlayer() || !pent->IsAlive())
+			goto LIB_SKIP;
+
+		Vector &vecK = ptr->vecPlaneNormal;
+		Quaternion Q = Quaternion::Rotate(Vector(0, 0, 1), vecK);
+		//Vector vecI = CrossProduct(vecK, Vector(0, 0, 1)).Normalize();
+		Vector vecI = Q * Vector(1, 0, 0);
+		//Vector vecJ = CrossProduct(vecK, vecI).Normalize();
+		Vector vecJ = Q * Vector(0, 1, 0);
+
+		if ((CrossProduct(vecI, vecJ) - vecK).Length() > 0.001f)
+			g_engfuncs.pfnClientPrintf(pentToSkip, print_center, std::format("{}", gpGlobals->time).c_str());
+
+		MsgPVS(SVC_TEMPENTITY, ptr->vecEndPos);
+		WriteData(TE_BEAMPOINTS);
+		WriteData(ptr->vecEndPos);
+		WriteData(ptr->vecEndPos + vecK * 32);
+		WriteData((short)Sprite::m_rgLibrary[Sprite::SMOKE_TRAIL]);
+		WriteData((byte)0);
+		WriteData((byte)255);
+		WriteData((byte)4);
+		WriteData((byte)10);
+		WriteData((byte)1);	//amp
+		WriteData((byte)255);
+		WriteData((byte)0);
+		WriteData((byte)0);
+		WriteData((byte)255);
+		WriteData((byte)0);
+		MsgEnd();
+
+		MsgPVS(SVC_TEMPENTITY, ptr->vecEndPos);
+		WriteData(TE_BEAMPOINTS);
+		WriteData(ptr->vecEndPos);
+		WriteData(ptr->vecEndPos + vecJ * 32);
+		WriteData((short)Sprite::m_rgLibrary[Sprite::SMOKE_TRAIL]);
+		WriteData((byte)0);
+		WriteData((byte)255);
+		WriteData((byte)4);
+		WriteData((byte)10);
+		WriteData((byte)1);	//amp
+		WriteData((byte)0);
+		WriteData((byte)255);
+		WriteData((byte)0);
+		WriteData((byte)255);
+		WriteData((byte)0);
+		MsgEnd();
+
+		MsgPVS(SVC_TEMPENTITY, ptr->vecEndPos);
+		WriteData(TE_BEAMPOINTS);
+		WriteData(ptr->vecEndPos);
+		WriteData(ptr->vecEndPos + vecI * 32);
+		WriteData((short)Sprite::m_rgLibrary[Sprite::SMOKE_TRAIL]);
+		WriteData((byte)0);
+		WriteData((byte)255);
+		WriteData((byte)4);
+		WriteData((byte)10);
+		WriteData((byte)1);	//amp
+		WriteData((byte)0);
+		WriteData((byte)0);
+		WriteData((byte)255);
+		WriteData((byte)255);
+		WriteData((byte)0);
+		MsgEnd();
+	}
+
+LIB_SKIP:;
+*/
 	gpMetaGlobals->mres = MRES_IGNORED;
 	// post
 }

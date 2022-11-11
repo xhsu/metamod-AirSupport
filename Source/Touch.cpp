@@ -2,6 +2,7 @@
 
 import <array>;
 import <numbers>;
+import <ranges>;
 
 import meta_api;
 
@@ -11,6 +12,7 @@ import CBase;
 import Entity;
 import Hook;
 import Resources;
+import Task;
 
 using std::array;
 
@@ -89,12 +91,11 @@ void Explosion(CBasePlayer *pAttacker, const Vector &vecOrigin, float flRadius, 
 {
 	bool const bInWater = g_engfuncs.pfnPointContents(vecOrigin) == CONTENTS_WATER;
 
-	for (auto &&pEdict : FIND_ENTITY_IN_SPHERE(vecOrigin, flRadius))
+	for (auto &&pEntity : FIND_ENTITY_IN_SPHERE(vecOrigin, flRadius)
+		| std::views::filter([](edict_t *pEdict) noexcept { return pEdict->v.takedamage != DAMAGE_NO; })
+		| std::views::transform([](edict_t *pEdict) noexcept { return (CBaseEntity *)pEdict->pvPrivateData; })
+		)
 	{
-		if (pEdict->v.takedamage == DAMAGE_NO)
-			continue;
-
-		auto const pEntity = (CBaseEntity *)pEdict->pvPrivateData;
 		if (pEntity->IsPlayer())
 		{
 			auto const pVictim = (CBasePlayer *)pEntity;
@@ -115,13 +116,13 @@ void Explosion(CBasePlayer *pAttacker, const Vector &vecOrigin, float flRadius, 
 		if (flModifiedDmg < 1.f)
 			continue;
 
-		pEntity->TakeDamage(nullptr, pAttacker->pev, flModifiedDmg, DMG_EXPLOSION);
+		pEntity->TakeDamage(pAttacker->pev, pAttacker->pev, flModifiedDmg, DMG_EXPLOSION);
 
 		if (!pEntity->IsAlive())
 			continue;
 
-		gmsgScreenShake::Send(pEdict, 1 << 13, 1 << 13, 1 << 13);
-		gmsgScreenFade::Send(pEdict, 1 << 10, 0, 0x0000, 255, 255, 255, 255);
+		gmsgScreenShake::Send(ent_cast<edict_t *>(pEntity->pev), 1 << 13, 1 << 13, 1 << 13);
+		gmsgScreenFade::Send(ent_cast<edict_t *>(pEntity->pev), 1 << 10, 0, 0x0000, 255, 255, 255, 255);
 
 		pEntity->pev->punchangle += Vector(UTIL_Random(-flPunchMax, flPunchMax), UTIL_Random(-flPunchMax, flPunchMax), UTIL_Random(-flPunchMax, flPunchMax));
 
@@ -138,34 +139,34 @@ void VisualEffects(const Vector &vecOrigin) noexcept
 	MsgBroadcast(SVC_TEMPENTITY);
 	WriteData(TE_SPRITE);
 	WriteData(Vector(vecOrigin.x, vecOrigin.y, vecOrigin.z + 200.f));
-	WriteData<short>(Sprite::m_rgLibrary[Sprite::ROCKET_EXPLO]);
-	WriteData<byte>(20);
-	WriteData<byte>(100);
+	WriteData((short)Sprite::m_rgLibrary[Sprite::ROCKET_EXPLO]);
+	WriteData((byte)20);
+	WriteData((byte)100);
 	MsgEnd();
 
 	MsgBroadcast(SVC_TEMPENTITY);
 	WriteData(TE_SPRITE);
 	WriteData(Vector(vecOrigin.x, vecOrigin.y, vecOrigin.z + 70.f));
-	WriteData<short>(Sprite::m_rgLibrary[Sprite::ROCKET_EXPLO2]);
-	WriteData<byte>(30);
-	WriteData<byte>(255);
+	WriteData((short)Sprite::m_rgLibrary[Sprite::ROCKET_EXPLO2]);
+	WriteData((byte)30);
+	WriteData((byte)255);
 	MsgEnd();
 
 	MsgBroadcast(SVC_TEMPENTITY);
 	WriteData(TE_WORLDDECAL);
 	WriteData(vecOrigin);
-	WriteData<byte>(UTIL_GetRandomOne(Decal::SCORCH).m_Index);
+	WriteData((byte)UTIL_GetRandomOne(Decal::SCORCH).m_Index);
 	MsgEnd();
 
 	MsgBroadcast(SVC_TEMPENTITY);
 	WriteData(TE_DLIGHT);
 	WriteData(vecOrigin);
-	WriteData<byte>(50);
-	WriteData<byte>(255);
-	WriteData<byte>(0);
-	WriteData<byte>(0);
-	WriteData<byte>(2);
-	WriteData<byte>(0);
+	WriteData((byte)50);
+	WriteData((byte)255);
+	WriteData((byte)0);
+	WriteData((byte)0);
+	WriteData((byte)2);
+	WriteData((byte)0);
 	MsgEnd();
 
 	TraceResult tr{};
@@ -187,7 +188,7 @@ void VisualEffects(const Vector &vecOrigin) noexcept
 	if (g_engfuncs.pfnPointContents(vecOrigin) == CONTENTS_WATER)
 		return;
 
-	static constexpr auto get_spherical_coord = [](const Vector &vecOrigin, float radius, float inclination, float azimuth) noexcept
+	static constexpr auto get_spherical_coord = [](const Vector &vecOrigin, const Quaternion &qRotation, float radius, float inclination, float azimuth) noexcept
 	{
 		radius = std::clamp(radius, 0.f, 8192.f);	// r ∈ [0, ∞)
 		inclination = (float)std::clamp(inclination * std::numbers::pi / 180.0, 0.0, std::numbers::pi);	// θ ∈ [0, π]
@@ -195,10 +196,10 @@ void VisualEffects(const Vector &vecOrigin) noexcept
 
 		auto const length = radius * sin(inclination);
 
-		return Vector(
-			vecOrigin.x + length * cos(azimuth),
-			vecOrigin.y + length * sin(azimuth),
-			vecOrigin.z + radius * cos(inclination)
+		return vecOrigin + qRotation * Vector(
+			length * cos(azimuth),
+			length * sin(azimuth),
+			radius * cos(inclination)
 		);
 	};
 
@@ -217,16 +218,18 @@ void VisualEffects(const Vector &vecOrigin) noexcept
 		MsgEnd();
 	};
 
+	auto const qRotation = Quaternion::Rotate(Vector(0, 0, 1), tr.vecPlaneNormal);
+
 	array const rgvecVelocitys =
 	{
-		get_spherical_coord(Vector::Zero(), 1.f, UTIL_Random(20.f, 30.f), 0),
-		get_spherical_coord(Vector::Zero(), 1.f, UTIL_Random(20.f, 30.f), 45),
-		get_spherical_coord(Vector::Zero(), 1.f, UTIL_Random(20.f, 30.f), 90),
-		get_spherical_coord(Vector::Zero(), 1.f, UTIL_Random(20.f, 30.f), 135),
-		get_spherical_coord(Vector::Zero(), 1.f, UTIL_Random(20.f, 30.f), 180),
-		get_spherical_coord(Vector::Zero(), 1.f, UTIL_Random(20.f, 30.f), 225),
-		get_spherical_coord(Vector::Zero(), 1.f, UTIL_Random(20.f, 30.f), 270),
-		get_spherical_coord(Vector::Zero(), 1.f, UTIL_Random(20.f, 30.f), 315),
+		get_spherical_coord(Vector::Zero(), qRotation, 1.f, UTIL_Random(20.f, 30.f), 0),
+		get_spherical_coord(Vector::Zero(), qRotation, 1.f, UTIL_Random(20.f, 30.f), 45),
+		get_spherical_coord(Vector::Zero(), qRotation, 1.f, UTIL_Random(20.f, 30.f), 90),
+		get_spherical_coord(Vector::Zero(), qRotation, 1.f, UTIL_Random(20.f, 30.f), 135),
+		get_spherical_coord(Vector::Zero(), qRotation, 1.f, UTIL_Random(20.f, 30.f), 180),
+		get_spherical_coord(Vector::Zero(), qRotation, 1.f, UTIL_Random(20.f, 30.f), 225),
+		get_spherical_coord(Vector::Zero(), qRotation, 1.f, UTIL_Random(20.f, 30.f), 270),
+		get_spherical_coord(Vector::Zero(), qRotation, 1.f, UTIL_Random(20.f, 30.f), 315),
 	};
 
 	for (auto &&vecVelocity : rgvecVelocitys)
@@ -245,22 +248,22 @@ void VisualEffects(const Vector &vecOrigin) noexcept
 		MsgBroadcast(SVC_TEMPENTITY);
 		WriteData(TE_SPRITE);
 		WriteData(vecOrigin + vecVelocity * UTIL_Random(200.f, 300.f));
-		WriteData<short>(Sprite::m_rgLibrary[Sprite::SMOKE]);
-		WriteData<byte>(25);
-		WriteData<byte>(225);
+		WriteData((short)Sprite::m_rgLibrary[Sprite::SMOKE]);
+		WriteData((byte)25);
+		WriteData((byte)225);
 		MsgEnd();
 	}
 
 	array const rgvecPericoords =
 	{
-		get_spherical_coord(vecOrigin, 128.f, UTIL_Random(85.f, 95.f), 0),
-		get_spherical_coord(vecOrigin, 128.f, UTIL_Random(85.f, 95.f), 45),
-		get_spherical_coord(vecOrigin, 128.f, UTIL_Random(85.f, 95.f), 90),
-		get_spherical_coord(vecOrigin, 128.f, UTIL_Random(85.f, 95.f), 135),
-		get_spherical_coord(vecOrigin, 128.f, UTIL_Random(85.f, 95.f), 180),
-		get_spherical_coord(vecOrigin, 128.f, UTIL_Random(85.f, 95.f), 225),
-		get_spherical_coord(vecOrigin, 128.f, UTIL_Random(85.f, 95.f), 270),
-		get_spherical_coord(vecOrigin, 128.f, UTIL_Random(85.f, 95.f), 315),
+		get_spherical_coord(vecOrigin, qRotation, 128.f, UTIL_Random(85.f, 95.f), 0),
+		get_spherical_coord(vecOrigin, qRotation, 128.f, UTIL_Random(85.f, 95.f), 45),
+		get_spherical_coord(vecOrigin, qRotation, 128.f, UTIL_Random(85.f, 95.f), 90),
+		get_spherical_coord(vecOrigin, qRotation, 128.f, UTIL_Random(85.f, 95.f), 135),
+		get_spherical_coord(vecOrigin, qRotation, 128.f, UTIL_Random(85.f, 95.f), 180),
+		get_spherical_coord(vecOrigin, qRotation, 128.f, UTIL_Random(85.f, 95.f), 225),
+		get_spherical_coord(vecOrigin, qRotation, 128.f, UTIL_Random(85.f, 95.f), 270),
+		get_spherical_coord(vecOrigin, qRotation, 128.f, UTIL_Random(85.f, 95.f), 315),
 	};
 
 	for (auto &&vecPeri : rgvecPericoords)
@@ -268,9 +271,9 @@ void VisualEffects(const Vector &vecOrigin) noexcept
 		MsgBroadcast(SVC_TEMPENTITY);
 		WriteData(TE_SPRITE);
 		WriteData(vecPeri);
-		WriteData<short>(Sprite::m_rgLibrary[Sprite::SMOKE_2]);
-		WriteData<byte>(50);
-		WriteData<byte>(50);
+		WriteData((short)Sprite::m_rgLibrary[Sprite::SMOKE_2]);
+		WriteData((byte)50);
+		WriteData((byte)50);
 		MsgEnd();
 	}
 }
@@ -314,6 +317,8 @@ META_RES OnTouch(CBaseEntity *pEntity, CBaseEntity *pOther) noexcept
 
 		Explosion(pPlayer, pEntity->pev->origin, 350.f, 8.f, 275.f, 2048.f);
 		VisualEffects(pEntity->pev->origin);
+
+		pEntity->pev->flags |= FL_KILLME;
 	}
 
 // #UNDONE else if (!strcmp(szClassName, "petrol_bomb"))

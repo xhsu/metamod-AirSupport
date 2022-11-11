@@ -213,9 +213,13 @@ public:
 };
 
 export template <typename T>
-class EHANDLE
+struct EHANDLE final
 {
-public:
+	EHANDLE(edict_t *pEdict) noexcept { Set(pEdict); }
+	EHANDLE(entvars_t *pev) noexcept { if (pev) Set(pev->pContainingEntity); }
+	EHANDLE(CBaseEntity *pEntity) noexcept : EHANDLE(pEntity->pev) {}
+	explicit EHANDLE(int iEntIndex) noexcept { if (iEntIndex > 0) Set(INDEXENT(iEntIndex)); }
+
 	inline edict_t *Get(void) const noexcept
 	{
 		if (!m_pent)
@@ -432,7 +436,7 @@ public:
 	virtual void UpdateItemInfo(void) = 0;
 	virtual qboolean PlayEmptySound(void) = 0;
 	virtual void ResetEmptySound(void) = 0;
-	virtual void SendWeaponAnim(int iAnim, int skiplocal = 0) = 0;
+	virtual void SendWeaponAnim(int iAnim, int skiplocal = false) = 0;
 	virtual qboolean CanDeploy(void) = 0;
 	virtual qboolean IsWeapon(void) = 0;
 	virtual qboolean IsUseable(void) = 0;

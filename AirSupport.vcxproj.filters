@@ -271,5 +271,11 @@
     <ClCompile Include="Source\Task.ixx">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Think.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Beam.ixx">
+      <Filter>Source</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
