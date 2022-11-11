@@ -21,6 +21,7 @@ import <array>;
 import <bit>;
 import <functional>;
 import <numeric>;
+import <string>;
 import <tuple>;
 import <type_traits>;
 import <utility>;
@@ -57,7 +58,7 @@ export inline void WriteData(auto&& arg) noexcept
 
 	// some special objects.
 
-	if constexpr (std::is_convertible_v<T, char *>)
+	if constexpr (std::is_convertible_v<T, std::string_view>)
 		g_engfuncs.pfnWriteString(arg);
 	else if constexpr (std::is_same_v<T, Vector>)
 	{

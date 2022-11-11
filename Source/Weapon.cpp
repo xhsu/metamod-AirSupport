@@ -48,6 +48,30 @@ enum EVShieldKnife
 inline constexpr float KNIFE_MAX_SPEED = 250.0f;
 inline constexpr float KNIFE_MAX_SPEED_SHIELD = 180.0f;
 
+int HamF_Item_AddToPlayer(CBasePlayerItem *pThis, CBasePlayer *pPlayer) noexcept
+{
+	g_pfnItemAddToPlayer(pThis, pPlayer);
+
+	if (pPlayer->IsBot())
+		return true;
+
+	gmsgWeaponList::Send(ent_cast<edict_t *>(pPlayer->pev),
+		HUD::RADIO,
+		(byte)-1,
+		(byte)-1,
+		(byte)-1,
+		(byte)-1,
+		4,	// slot
+		2,	// pos
+		WEAPON_NIL,
+		0
+	);
+
+	pPlayer->pev->weapons |= (1 << WEAPON_NIL);
+
+	return true;
+}
+
 int HamF_Item_Deploy(CBasePlayerItem *pItem) noexcept
 {
 	auto const pThis = (CBasePlayerWeapon *)pItem;	// The actual class of this one is ... CKnife, but anyway.
@@ -63,13 +87,16 @@ int HamF_Item_Deploy(CBasePlayerItem *pItem) noexcept
 		g_pfnDefaultDeploy(pThis, Models::V_RADIO, Models::P_RADIO, (int)Models::v_radio::seq::draw, "knife", false);	// Enforce to play the anim.
 
 		TimedFnMgr::Enroll(
-			[](CBasePlayerWeapon *pThis) noexcept -> TimedFn
+			[](EHANDLE<CBasePlayerWeapon> pThis) noexcept -> TimedFn
 			{
 				pThis->m_pPlayer->m_flNextAttack = Models::v_radio::time::draw;
 				pThis->m_flNextPrimaryAttack = Models::v_radio::time::draw;
 				pThis->m_flNextSecondaryAttack = Models::v_radio::time::draw;
 				pThis->m_flTimeWeaponIdle = Models::v_radio::time::draw;
 				co_await Models::v_radio::time::draw;
+
+				if (!pThis || pThis->m_pPlayer->m_pActiveItem != pThis || pThis->pev->weapons != RADIO_KEY)
+					co_return;
 
 				pThis->SendWeaponAnim((int)Models::v_radio::seq::idle, false);
 			}(pThis)
@@ -101,7 +128,7 @@ void HamF_Item_PostFrame(CBasePlayerItem *pItem) noexcept
 	if (pThis->m_pPlayer->m_afButtonPressed & IN_ATTACK)
 	{
 		TimedFnMgr::Enroll(
-			[](CBasePlayerWeapon *pThis) noexcept -> TimedFn
+			[](EHANDLE<CBasePlayerWeapon> pThis) noexcept -> TimedFn
 			{
 				pThis->SendWeaponAnim((int)Models::v_radio::seq::use, false);
 				pThis->m_pPlayer->m_flNextAttack = Models::v_radio::time::use;
@@ -109,6 +136,9 @@ void HamF_Item_PostFrame(CBasePlayerItem *pItem) noexcept
 				pThis->m_flNextSecondaryAttack = Models::v_radio::time::use;
 				pThis->m_flTimeWeaponIdle = Models::v_radio::time::use;
 				co_await Models::v_radio::time::use;
+
+				if (!pThis || pThis->m_pPlayer->m_pActiveItem != pThis || pThis->pev->weapons != RADIO_KEY)
+					co_return;
 
 				pThis->SendWeaponAnim((int)Models::v_radio::seq::idle, false);
 			}(pThis)
@@ -146,7 +176,7 @@ void HamF_Item_PostFrame(CBasePlayerItem *pItem) noexcept
 		pEdict->v.movetype = MOVETYPE_FLY;
 		pEdict->v.velocity = Vector(0, 0, -1000);
 		g_engfuncs.pfnVecToAngles(pEdict->v.velocity, pEdict->v.angles);
-		pEdict->v.groupinfo = MISSILE_GROUPINFO;
+		//pEdict->v.groupinfo = MISSILE_GROUPINFO; // #POTENTIAL_BUG
 		pEdict->v.nextthink = 0.1f;
 
 		MsgPVS(SVC_TEMPENTITY, tr.vecEndPos);
@@ -216,11 +246,11 @@ void HamF_Item_PostFrame(CBasePlayerItem *pItem) noexcept
 			MsgEnd();
 		}
 
-		static constexpr auto fnMissileTravelSound = [](edict_t *pEdict) noexcept -> TimedFn
+		static constexpr auto fnMissileTravelSound = [](EHANDLE<CBaseEntity> pEntity) noexcept -> TimedFn
 		{
-			for (; pev_valid(pEdict);)
+			for (; pEntity;)
 			{
-				g_engfuncs.pfnEmitSound(pEdict, CHAN_WEAPON, Sounds::TRAVEL, VOL_NORM, ATTN_NORM, 0, UTIL_Random(94, 112));
+				g_engfuncs.pfnEmitSound(pEntity.Get(), CHAN_WEAPON, Sounds::TRAVEL, VOL_NORM, ATTN_NORM, 0, UTIL_Random(94, 112));
 				co_await 1.f;
 			}
 		};
@@ -231,4 +261,10 @@ void HamF_Item_PostFrame(CBasePlayerItem *pItem) noexcept
 
 void HamF_Weapon_PrimaryAttack(CBasePlayerWeapon *pThis) noexcept { return g_pfnWeaponPrimaryAttack(pThis); }
 void HamF_Weapon_SecondaryAttack(CBasePlayerWeapon *pThis) noexcept { return g_pfnWeaponSecondaryAttack(pThis); }
-void HamF_Item_Holster(CBasePlayerItem *pThis, int skiplocal) noexcept { return g_pfnItemHolster(pThis, skiplocal); }
+
+void HamF_Item_Holster(CBasePlayerItem *pThis, int skiplocal) noexcept
+{
+	g_pfnItemHolster(pThis, skiplocal);
+
+	pThis->pev->weapons = 0;
+}

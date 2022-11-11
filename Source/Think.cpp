@@ -21,11 +21,16 @@ META_RES OnThink(CBaseEntity *pEntity) noexcept
 		UTIL_Random(-0.35f, 0.35f)
 	);
 
-	g_engfuncs.pfnMakeVectors(pEntity->pev->angles);
+	// GoldSrc Mystery #1: The fucking v_angle and angles.
+	g_engfuncs.pfnMakeVectors(Vector(
+		-pEntity->pev->angles.x,
+		pEntity->pev->angles.y,
+		pEntity->pev->angles.z)
+	);
 
-	//pEntity->pev->velocity = gpGlobals->v_forward * 1000;
+	pEntity->pev->velocity = gpGlobals->v_forward * 1000;
 
-	Vector vecOrigin = pEntity->pev->origin + gpGlobals->v_forward * -100;
+	Vector vecOrigin = pEntity->pev->origin + gpGlobals->v_forward * -48;
 
 	MsgPVS(SVC_TEMPENTITY, vecOrigin);
 	WriteData(TE_SPRITE);

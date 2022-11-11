@@ -149,3 +149,8 @@ export namespace Decal
 		Decal_t{"{scorch2", 0},
 	};
 }
+
+export namespace HUD
+{
+	inline constexpr char RADIO[] = "weapon_radio";
+};

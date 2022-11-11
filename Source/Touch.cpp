@@ -92,12 +92,10 @@ void Explosion(CBasePlayer *pAttacker, const Vector &vecOrigin, float flRadius, 
 	bool const bInWater = g_engfuncs.pfnPointContents(vecOrigin) == CONTENTS_WATER;
 
 	for (auto &&pEntity : FIND_ENTITY_IN_SPHERE(vecOrigin, flRadius)
+		| std::views::filter([](edict_t *pEdict) noexcept { return pEdict->v.takedamage != DAMAGE_NO; })
 		| std::views::transform([](edict_t *pEdict) noexcept { return (CBaseEntity *)pEdict->pvPrivateData; })
 		)
 	{
-		if (pEntity->pev->takedamage == DAMAGE_NO)
-			continue;
-
 		if (pEntity->IsPlayer())
 		{
 			auto const pVictim = (CBasePlayer *)pEntity;
@@ -319,8 +317,6 @@ META_RES OnTouch(CBaseEntity *pEntity, CBaseEntity *pOther) noexcept
 
 		Explosion(pPlayer, pEntity->pev->origin, 350.f, 8.f, 275.f, 2048.f);
 		VisualEffects(pEntity->pev->origin);
-
-		TimedFnMgr::Delist(MISSILE_SOUND_CORO_KEY + ent_cast<unsigned long>(pEntity->pev));
 
 		pEntity->pev->flags |= FL_KILLME;
 	}

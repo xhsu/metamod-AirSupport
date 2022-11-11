@@ -20,6 +20,7 @@ extern void Precache(void) noexcept;
 //
 
 // Weapon.cpp
+extern int HamF_Item_AddToPlayer(CBasePlayerItem *pThis, CBasePlayer *pPlayer) noexcept;
 extern int HamF_Item_Deploy(CBasePlayerItem *pThis) noexcept;
 extern void HamF_Item_PostFrame(CBasePlayerItem *pThis) noexcept;
 extern void HamF_Weapon_PrimaryAttack(CBasePlayerWeapon *pThis) noexcept;
@@ -51,6 +52,7 @@ void DeployHooks(void) noexcept
 		return;
 	}
 
+	UTIL_VirtualTableInjection(vft, VFTIDX_ITEM_ADDTOPLAYER, UTIL_CreateTrampoline(true, 1, &HamF_Item_AddToPlayer), (void **)&g_pfnItemAddToPlayer);
 	UTIL_VirtualTableInjection(vft, VFTIDX_ITEM_DEPLOY, UTIL_CreateTrampoline(true, 0, &HamF_Item_Deploy), (void **)&g_pfnItemDeploy);
 	UTIL_VirtualTableInjection(vft, VFTIDX_ITEM_POSTFRAME, UTIL_CreateTrampoline(true, 0, &HamF_Item_PostFrame), (void **)&g_pfnItemPostFrame);
 	UTIL_VirtualTableInjection(vft, VFTIDX_WEAPON_PRIMARYATTACK, UTIL_CreateTrampoline(true, 0, &HamF_Weapon_PrimaryAttack), (void **)&g_pfnWeaponPrimaryAttack);
@@ -75,6 +77,7 @@ void RetrieveMessageHandles(void) noexcept
 	gmsgScreenFade::Retrieve();
 	gmsgScreenShake::Retrieve();
 	gmsgBarTime::Retrieve();
+	gmsgWeaponList::Retrieve();
 
 	gmsgWeaponAnim::m_iMessageIndex = SVC_WEAPONANIM;
 }
