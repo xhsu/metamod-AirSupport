@@ -42,6 +42,7 @@ META_RES OnClientCommand(CBasePlayer *pPlayer, const string &szCommand) noexcept
 						co_return;
 
 					pThis->SendWeaponAnim((int)Models::v_radio::seq::idle, false);
+					pThis->pev->euser1->v.effects &= ~EF_NODRAW;
 				}((CBasePlayerWeapon *)pPlayer->m_pActiveItem)
 			);
 

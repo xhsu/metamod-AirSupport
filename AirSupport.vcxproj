@@ -167,6 +167,7 @@
     <ClCompile Include="..\metamod-p\metamod\meta_api.ixx" />
     <ClCompile Include="..\metamod-p\metamod\mutil.ixx" />
     <ClCompile Include="..\metamod-p\metamod\plinfo.ixx" />
+    <ClCompile Include="Source\Beam.ixx" />
     <ClCompile Include="Source\ClientCommand.cpp" />
     <ClCompile Include="Source\Entity.ixx" />
     <ClCompile Include="Source\Hook.ixx" />

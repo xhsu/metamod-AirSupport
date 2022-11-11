@@ -3,6 +3,9 @@
 import <array>;
 import <numbers>;
 
+import meta_api;
+
+import Beam;
 import Entity;
 import Hook;
 import Resources;
@@ -69,12 +72,52 @@ int HamF_Item_AddToPlayer(CBasePlayerItem *pThis, CBasePlayer *pPlayer) noexcept
 
 	pPlayer->pev->weapons |= (1 << WEAPON_NIL);
 
+	gmsgWeapPickup::Send(pPlayer->pev->pContainingEntity, WEAPON_NIL);
+
 	return true;
+}
+
+void CreateBeam(CBasePlayerWeapon *pWeapon) noexcept
+{
+	auto const pBeam = Beam_Create(Sprite::BEAM, 32.f);
+
+	Beam_SetFlags(&pBeam->v, BEAM_FSHADEOUT);	// fade out on rear end.
+	Beam_PointsInit(pBeam, pWeapon->m_pPlayer->pev->origin, pWeapon->m_pPlayer->GetGunPosition());
+
+	pBeam->v.classname = MAKE_STRING(Classname::BEAM);
+	pBeam->v.effects |= EF_NODRAW;
+	pBeam->v.renderfx = kRenderFxNone;
+	pBeam->v.nextthink = 0.1f;
+	pBeam->v.euser1 = ent_cast<edict_t *>(pWeapon->m_pPlayer->pev);	// pev->owner gets occupied by 'starting ent'
+
+	//auto const pSprite = g_engfuncs.pfnCreateNamedEntity(MAKE_STRING("cycler_sprite"));
+	//g_engfuncs.pfnSetModel(pSprite, Sprite::AIM);
+	//pSprite->v.framerate = 10;
+	//pSprite->v.renderfx = kRenderFxStrobeSlow;
+	//pSprite->v.rendermode = kRenderNormal;
+	//pSprite->v.renderamt = 128;
+	//pSprite->v.rendercolor = Vector(255, 255, 255);
+
+	//gpGamedllFuncs->dllapi_table->pfnSpawn(pSprite);
+
+	//pSprite->v.classname = MAKE_STRING(Classname::AIM);
+	//pSprite->v.solid = SOLID_NOT;
+	//pSprite->v.takedamage = DAMAGE_NO;
+	//pSprite->v.effects |= EF_NODRAW;
+	//pSprite->v.euser1 = ent_cast<edict_t *>(pWeapon->m_pPlayer->pev);
+
+	pWeapon->pev->euser1 = pBeam;
+	//pWeapon->pev->euser2 = pSprite;
+	//pSprite->v.euser2 = pBeam;
+	//pBeam->v.euser2 = pSprite;
 }
 
 int HamF_Item_Deploy(CBasePlayerItem *pItem) noexcept
 {
 	auto const pThis = (CBasePlayerWeapon *)pItem;	// The actual class of this one is ... CKnife, but anyway.
+
+	if (!pThis->pev->euser1)
+		CreateBeam(pThis);
 
 	pThis->m_iSwing = 0;
 	pThis->m_fMaxSpeed = KNIFE_MAX_SPEED;
@@ -99,6 +142,7 @@ int HamF_Item_Deploy(CBasePlayerItem *pItem) noexcept
 					co_return;
 
 				pThis->SendWeaponAnim((int)Models::v_radio::seq::idle, false);
+				pThis->pev->euser1->v.effects &= ~EF_NODRAW;
 			}(pThis)
 		);
 
@@ -106,6 +150,8 @@ int HamF_Item_Deploy(CBasePlayerItem *pItem) noexcept
 	}
 	else
 	{
+		pThis->pev->euser1->v.effects |= EF_NODRAW;
+
 		g_engfuncs.pfnEmitSound(ent_cast<edict_t *>(pThis->pev), CHAN_ITEM, "weapons/knife_deploy1.wav", 0.3f, 2.4f, 0, PITCH_NORM);
 
 		if (pThis->m_pPlayer->m_bOwnsShield)
@@ -267,4 +313,8 @@ void HamF_Item_Holster(CBasePlayerItem *pThis, int skiplocal) noexcept
 	g_pfnItemHolster(pThis, skiplocal);
 
 	pThis->pev->weapons = 0;
+
+	[[likely]]
+	if (pThis->pev->euser1)
+		pThis->pev->euser1->v.effects |= EF_NODRAW;
 }

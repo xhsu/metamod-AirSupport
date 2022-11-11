@@ -78,6 +78,7 @@ void RetrieveMessageHandles(void) noexcept
 	gmsgScreenShake::Retrieve();
 	gmsgBarTime::Retrieve();
 	gmsgWeaponList::Retrieve();
+	gmsgWeapPickup::Retrieve();
 
 	gmsgWeaponAnim::m_iMessageIndex = SVC_WEAPONANIM;
 }

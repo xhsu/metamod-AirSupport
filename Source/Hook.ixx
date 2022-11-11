@@ -46,6 +46,7 @@ export using gmsgScreenShake = Message_t<"ScreenShake", uint16_t, uint16_t, uint
 export using gmsgBarTime = Message_t<"BarTime", int16_t>;
 export using gmsgWeaponAnim = Message_t<"WeapAnim", byte, byte>;	// actually no such message exist. pure wrapper.
 export using gmsgWeaponList = Message_t<"WeaponList", const char*, byte, byte, byte, byte, byte, byte, byte, byte>;
+export using gmsgWeapPickup = Message_t<"WeapPickup", byte>;
 
 export inline cvar_t *gcvarMaxSpeed = nullptr;
 export inline cvar_t *gcvarMaxVelocity = nullptr;
