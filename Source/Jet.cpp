@@ -1,4 +1,7 @@
 import Entity;
+import Resources;
+
+import UtlRandom;
 
 extern "C++" namespace Jet
 {
@@ -7,6 +10,9 @@ extern "C++" namespace Jet
 		auto pPlayer = EHANDLE<CBasePlayer>(pJet->pev->euser1);
 		auto pTarget = EHANDLE<CBaseEntity>(pJet->pev->euser2);
 		auto pMissile = EHANDLE<CBaseEntity>(nullptr);
+
+		//g_engfuncs.pfnEmitSound(pJet.Get(), CHAN_WEAPON, UTIL_GetRandomOne(Sounds::JET), VOL_NORM, ATTN_NONE, 0, UTIL_Random(92, 118));	// #INVESTIGATE
+		g_engfuncs.pfnClientCommand(pPlayer.Get(), "spk %s\n", UTIL_GetRandomOne(Sounds::JET));
 
 		for (; pJet && pTarget;)
 		{
@@ -29,7 +35,7 @@ extern "C++" namespace Jet
 
 			[[unlikely]]
 			if (pJet->pev->origin.x >= 4096 || pJet->pev->origin.y >= 4096 || pJet->pev->origin.z >= 4096
-				|| pJet->pev->origin.x <= -4096 || pJet->pev->origin.y <= -4096 || pJet->pev->origin.z <= -4096)	// pJet->IsInWorld() have a speed limit.
+				|| pJet->pev->origin.x <= -4096 || pJet->pev->origin.y <= -4096 || pJet->pev->origin.z <= -4096)	// pJet->IsInWorld() have a speed limit, but we don't need it here.
 			{
 				pJet->pev->flags |= FL_KILLME;
 				co_return;

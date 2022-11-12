@@ -105,4 +105,9 @@ export namespace TimedFnMgr
 
 		return false;
 	}
+
+	inline void Clear(void) noexcept
+	{
+		m_List.clear();
+	}
 };

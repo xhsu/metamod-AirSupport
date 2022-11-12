@@ -206,8 +206,6 @@ extern "C++" namespace FixedTarget
 		pJet->v.euser1 = pPlayer->edict();	// pev->owner was not occupied, but just keep the usage sync with Laser type.
 		pJet->v.euser2 = pTarget->edict();
 
-		g_engfuncs.pfnEmitSound(pJet, CHAN_WEAPON, UTIL_GetRandomOne(Sounds::JET), VOL_NORM, ATTN_NONE, 0, UTIL_Random(92, 118));
-
 		TimedFnMgr::Enroll(Jet::Think(pJet));
 
 		for (; pTarget;)

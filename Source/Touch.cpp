@@ -5,6 +5,7 @@ import <numbers>;
 import <ranges>;
 
 import meta_api;
+import shake;
 
 import UtlRandom;
 
@@ -96,13 +97,6 @@ void Explosion(CBasePlayer *pAttacker, const Vector &vecOrigin, float flRadius, 
 		| std::views::transform([](edict_t *pEdict) noexcept { return (CBaseEntity *)pEdict->pvPrivateData; })
 		)
 	{
-		if (pEntity->IsPlayer())
-		{
-			auto const pVictim = (CBasePlayer *)pEntity;
-			if (pVictim->IsAlive() && gcvarFriendlyFire->value <= 0 && pVictim->m_iTeam == pAttacker->m_iTeam)
-				continue;
-		}
-
 		// blast's don't tavel into or out of water
 		if (bInWater && pEntity->pev->waterlevel == 0)
 			continue;
@@ -110,24 +104,46 @@ void Explosion(CBasePlayer *pAttacker, const Vector &vecOrigin, float flRadius, 
 		if (!bInWater && pEntity->pev->waterlevel == 3)
 			continue;
 
-		float flDistance = (vecOrigin - pEntity->Center()).Length();
-		float flModifiedDmg = (flRadius - flDistance) * (flRadius - flDistance) * 1.25f / (flRadius * flRadius) * (GetAmountOfPlayerVisible(vecOrigin, pEntity) * flDamage) * 1.5f;
+		float const flDistance = (vecOrigin - pEntity->Center()).Length();
+		float const flModifer = (flRadius - flDistance) * (flRadius - flDistance) * 1.25f / (flRadius * flRadius) * 1.5f;
+		float const flAdjustedDmg = flModifer * GetAmountOfPlayerVisible(vecOrigin, pEntity) * flDamage;
 
-		if (flModifiedDmg < 1.f)
+		if (flAdjustedDmg < 1.f)
 			continue;
 
-		pEntity->TakeDamage(pAttacker->pev, pAttacker->pev, flModifiedDmg, DMG_EXPLOSION);
+		if (pEntity->IsPlayer())
+		{
+			auto const pVictim = (CBasePlayer *)pEntity;
+			if (pVictim->IsAlive() && gcvarFriendlyFire->value <= 0 && pVictim->m_iTeam == pAttacker->m_iTeam)
+				goto LAB_APPLY_DISRUPT;
+		}
 
+		pEntity->TakeDamage(pAttacker->pev, pAttacker->pev, flAdjustedDmg, DMG_EXPLOSION);
+
+	LAB_APPLY_DISRUPT:;
 		if (!pEntity->IsAlive())
 			continue;
 
-		gmsgScreenShake::Send(ent_cast<edict_t *>(pEntity->pev), 1 << 13, 1 << 13, 1 << 13);
-		gmsgScreenFade::Send(ent_cast<edict_t *>(pEntity->pev), 1 << 10, 0, 0x0000, 255, 255, 255, 255);
+		gmsgScreenShake::Send(ent_cast<edict_t *>(pEntity->pev),
+			std::clamp(25 * (1 << 12), 0, 0xFFFF),	// amp
+			std::clamp(5 * (1 << 12), 0, 0xFFFF),	// dur
+			std::clamp(1 * (1 << 12), 0, 0xFFFF)	// freq
+		);
+
+		gmsgScreenFade::Send(ent_cast<edict_t *>(pEntity->pev),
+			std::clamp<int>(0.2 * (1 << 12), 0, 0xFFFF),	// fade time
+			std::clamp<int>(0.1 * (1 << 12), 0, 0xFFFF),	// fade hold
+			FFADE_OUT,	// flags
+			255,		// r
+			255,		// g
+			255,		// b
+			255			// a
+		);
 
 		pEntity->pev->punchangle += Vector(UTIL_Random(-flPunchMax, flPunchMax), UTIL_Random(-flPunchMax, flPunchMax), UTIL_Random(-flPunchMax, flPunchMax));
 
-		Vector vecVelocity = (pEntity->Center() - vecOrigin).Normalize();
-		float flSpeed = powf(flKnockForce, (flRadius - flDistance) / flRadius);
+		Vector const vecVelocity = (pEntity->Center() - vecOrigin).Normalize();
+		float const flSpeed = flModifer * flKnockForce;
 
 		if (pEntity->pev->maxspeed > 1)
 			pEntity->pev->velocity += vecVelocity * flSpeed;
