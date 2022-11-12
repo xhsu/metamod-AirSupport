@@ -162,7 +162,7 @@ public:
 //
 //	static CBaseEntity *Create(char *szName, const Vector &vecOrigin, const Vector &vecAngles, edict_t *pentOwner = NULL);
 //
-//	edict_t *edict(void) { return ENT(pev); }
+	__forceinline edict_t *edict(void) const noexcept { return pev->pContainingEntity; }
 //	EOFFSET eoffset(void) { return OFFSET(pev); }
 //	int entindex(void) { return ENTINDEX(edict()); }
 //
@@ -217,7 +217,8 @@ struct EHANDLE final
 {
 	EHANDLE(edict_t *pEdict) noexcept { Set(pEdict); }
 	EHANDLE(entvars_t *pev) noexcept { if (pev) Set(pev->pContainingEntity); }
-	EHANDLE(CBaseEntity *pEntity) noexcept : EHANDLE(pEntity->pev) {}
+	EHANDLE(T *pEntity) noexcept : EHANDLE(pEntity->pev) {}
+	explicit EHANDLE(std::nullptr_t) noexcept {}
 	explicit EHANDLE(int iEntIndex) noexcept { if (iEntIndex > 0) Set(INDEXENT(iEntIndex)); }
 
 	inline edict_t *Get(void) const noexcept
@@ -505,6 +506,30 @@ public:
 	float m_flDecreaseShotsFired;
 	unsigned short m_usFireGlock18;
 	unsigned short m_usFireFamas;
+};
+
+export class CBasePlayerAmmo : public CBaseEntity
+{
+public:
+	virtual void Spawn(void) = 0;
+	virtual qboolean AddAmmo(CBaseEntity *pOther) = 0;
+
+public:
+	//void Materialize(void) = 0;
+	//void DefaultTouch(CBaseEntity *pOther) = 0;
+	CBaseEntity *Respawn(void) = 0;
+};
+
+export class CItem : public CBaseEntity
+{
+public:
+	virtual void Spawn(void) = 0;
+	virtual CBaseEntity *Respawn(void) = 0;
+	virtual qboolean MyTouch(CBasePlayer *pPlayer) = 0;
+
+//public:
+//	void EXPORT ItemTouch(CBaseEntity *pOther) = 0;
+//	void EXPORT Materialize(void) = 0;
 };
 
 export class CBaseToggle : public CBaseAnimating
@@ -875,6 +900,14 @@ export enum struct MusicState
 	CALM,
 	INTENSE
 };
+
+export inline constexpr auto HIDEHUD_WEAPONS = (1 << 0);
+export inline constexpr auto HIDEHUD_FLASHLIGHT = (1 << 1);
+export inline constexpr auto HIDEHUD_ALL = (1 << 2);
+export inline constexpr auto HIDEHUD_HEALTH = (1 << 3);
+export inline constexpr auto HIDEHUD_TIMER = (1 << 4);
+export inline constexpr auto HIDEHUD_MONEY = (1 << 5);
+export inline constexpr auto HIDEHUD_CROSSHAIR = (1 << 6);
 
 export class CBasePlayer : public CBaseMonster
 {

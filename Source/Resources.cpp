@@ -17,6 +17,8 @@ void Precache(void) noexcept
 	Models::m_rgLibrary[Models::GIBS_WALL_BROWN] = g_engfuncs.pfnPrecacheModel(Models::GIBS_WALL_BROWN);
 	Models::m_rgLibrary[Models::GIBS_WOOD] = g_engfuncs.pfnPrecacheModel(Models::GIBS_WOOD);
 
+	Models::m_rgLibrary[Models::TARGET] = g_engfuncs.pfnPrecacheModel(Models::TARGET);
+
 	// Sounds
 
 	for (auto &&psz : Sounds::RADIO)

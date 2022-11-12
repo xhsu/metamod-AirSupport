@@ -11,6 +11,7 @@ import UtlHook;
 
 import CBase;
 import Entity;
+import GameRules;
 import Hook;
 import Plugin;
 import Task;
@@ -25,11 +26,24 @@ extern int HamF_Item_Deploy(CBasePlayerItem *pThis) noexcept;
 extern void HamF_Item_PostFrame(CBasePlayerItem *pThis) noexcept;
 extern void HamF_Weapon_PrimaryAttack(CBasePlayerWeapon *pThis) noexcept;
 extern void HamF_Weapon_SecondaryAttack(CBasePlayerWeapon *pThis) noexcept;
+extern qboolean HamF_Item_CanHolster(CBasePlayerItem *pThis) noexcept;
 extern void HamF_Item_Holster(CBasePlayerItem *pThis, int skiplocal) noexcept;
 //
 
+// Round.cpp
+extern void OrpheuF_CleanUpMap(CHalfLifeMultiplay *pThis) noexcept;
+//
+
+inline bool g_bShouldPrecache = true;
+
 void DeployHooks(void) noexcept
 {
+	static bool bHooksPerformed = false;
+
+	[[likely]]
+	if (bHooksPerformed)
+		return;
+
 	edict_t *pEnt = g_engfuncs.pfnCreateNamedEntity(MAKE_STRING("weapon_knife"));
 
 	if (!pEnt || !pEnt->pvPrivateData) [[unlikely]]
@@ -41,35 +55,40 @@ void DeployHooks(void) noexcept
 		return;
 	}
 
-	auto const vft = UTIL_RetrieveVirtualFunctionTable(pEnt->pvPrivateData);
+	auto const rgpfnCKnife = UTIL_RetrieveVirtualFunctionTable(pEnt->pvPrivateData);
 
 	g_engfuncs.pfnRemoveEntity(pEnt);
 	pEnt = nullptr;
 
-	if (vft == nullptr) [[unlikely]]
+	if (rgpfnCKnife == nullptr) [[unlikely]]
 	{
 		LOG_ERROR("Failed to retrieve vtable for \"weapon_knife\".");
 		return;
 	}
 
-	UTIL_VirtualTableInjection(vft, VFTIDX_ITEM_ADDTOPLAYER, UTIL_CreateTrampoline(true, 1, &HamF_Item_AddToPlayer), (void **)&g_pfnItemAddToPlayer);
-	UTIL_VirtualTableInjection(vft, VFTIDX_ITEM_DEPLOY, UTIL_CreateTrampoline(true, 0, &HamF_Item_Deploy), (void **)&g_pfnItemDeploy);
-	UTIL_VirtualTableInjection(vft, VFTIDX_ITEM_POSTFRAME, UTIL_CreateTrampoline(true, 0, &HamF_Item_PostFrame), (void **)&g_pfnItemPostFrame);
-	UTIL_VirtualTableInjection(vft, VFTIDX_WEAPON_PRIMARYATTACK, UTIL_CreateTrampoline(true, 0, &HamF_Weapon_PrimaryAttack), (void **)&g_pfnWeaponPrimaryAttack);
-	UTIL_VirtualTableInjection(vft, VFTIDX_WEAPON_SECONDARYATTACK, UTIL_CreateTrampoline(true, 0, &HamF_Weapon_SecondaryAttack), (void **)&g_pfnWeaponSecondaryAttack);
-	UTIL_VirtualTableInjection(vft, VFTIDX_ITEM_HOLSTER, UTIL_CreateTrampoline(true, 1, &HamF_Item_Holster), (void **)&g_pfnItemHolster);
+	UTIL_VirtualTableInjection(rgpfnCKnife, VFTIDX_ITEM_ADDTOPLAYER, UTIL_CreateTrampoline(true, 1, &HamF_Item_AddToPlayer), (void **)&g_pfnItemAddToPlayer);
+	UTIL_VirtualTableInjection(rgpfnCKnife, VFTIDX_ITEM_DEPLOY, UTIL_CreateTrampoline(true, 0, &HamF_Item_Deploy), (void **)&g_pfnItemDeploy);
+	UTIL_VirtualTableInjection(rgpfnCKnife, VFTIDX_ITEM_POSTFRAME, UTIL_CreateTrampoline(true, 0, &HamF_Item_PostFrame), (void **)&g_pfnItemPostFrame);
+	UTIL_VirtualTableInjection(rgpfnCKnife, VFTIDX_WEAPON_PRIMARYATTACK, UTIL_CreateTrampoline(true, 0, &HamF_Weapon_PrimaryAttack), (void **)&g_pfnWeaponPrimaryAttack);
+	UTIL_VirtualTableInjection(rgpfnCKnife, VFTIDX_WEAPON_SECONDARYATTACK, UTIL_CreateTrampoline(true, 0, &HamF_Weapon_SecondaryAttack), (void **)&g_pfnWeaponSecondaryAttack);
+	UTIL_VirtualTableInjection(rgpfnCKnife, VFTIDX_ITEM_CANHOLSTER, UTIL_CreateTrampoline(true, 0, &HamF_Item_CanHolster), (void **)&g_pfnItemCanHolster);
+	UTIL_VirtualTableInjection(rgpfnCKnife, VFTIDX_ITEM_HOLSTER, UTIL_CreateTrampoline(true, 1, &HamF_Item_Holster), (void **)&g_pfnItemHolster);
 
 	g_pfnRadiusFlash = (fnRadiusFlash_t)UTIL_SearchPattern("mp.dll", RADIUS_FLASH_FN_PATTERN, 1);
 	g_pfnSelectItem = (fnSelectItem_t)UTIL_SearchPattern("mp.dll", SELECT_ITEM_FN_PATTERN, 1);
 	g_pfnApplyMultiDamage = (fnApplyMultiDamage_t)UTIL_SearchPattern("mp.dll", APPLY_MULTI_DAMAGE_FN_PATTERN, 1);
 	g_pfnClearMultiDamage = (fnClearMultiDamage_t)UTIL_SearchPattern("mp.dll", CLEAR_MULTI_DAMAGE_FN_PATTERN, 1);
 	g_pfnDefaultDeploy = (fnDefaultDeploy_t)UTIL_SearchPattern("mp.dll", DEFAULT_DEPLOY_FN_PATTERN, 1);
+	g_pfnSwitchWeapon = (fnSwitchWeapon_t)UTIL_SearchPattern("mp.dll", SWITCH_WEAPON_FN_PATTERN, 1);
 
 	assert(g_pfnRadiusFlash != nullptr);
 	assert(g_pfnSelectItem != nullptr);
 	assert(g_pfnApplyMultiDamage != nullptr);
 	assert(g_pfnClearMultiDamage != nullptr);
 	assert(g_pfnDefaultDeploy != nullptr);
+	assert(g_pfnSwitchWeapon != nullptr);
+
+	bHooksPerformed = true;
 }
 
 void RetrieveMessageHandles(void) noexcept
@@ -96,17 +115,15 @@ int fw_Spawn(edict_t *pent) noexcept
 {
 	gpMetaGlobals->mres = MRES_IGNORED;
 
-//	static bool bInitialized = false;
-
-//	[[likely]]
-//	if (bInitialized)
-//		return 0;
+	[[likely]]
+	if (!g_bShouldPrecache)
+		return 0;
 
 	// plugin_precache
 
 	Precache();
 
-//	bInitialized = true;
+	g_bShouldPrecache = false;
 	return 0;
 }
 
@@ -130,7 +147,7 @@ void fw_ClientCommand(edict_t *pEdict) noexcept
 	gpMetaGlobals->mres = MRES_IGNORED;
 
 	[[unlikely]]
-	if (!pEdict->pvPrivateData)
+	if (pev_valid(pEdict) != 2)
 		return;
 
 	if (auto const pEntity = (CBaseEntity *)pEdict->pvPrivateData; !pEntity->IsPlayer())
@@ -144,12 +161,6 @@ void fw_ServerActivate_Post(edict_t *pEdictList, int edictCount, int clientMax) 
 {
 	gpMetaGlobals->mres = MRES_IGNORED;
 
-	static bool bInitialized = false;
-
-	[[likely]]
-	if (bInitialized)
-		return;
-
 	// plugin_init
 
 	DeployHooks();
@@ -157,10 +168,38 @@ void fw_ServerActivate_Post(edict_t *pEdictList, int edictCount, int clientMax) 
 	RetrieveCVarHandles();
 
 	// plugin_cfg
+
 	g_engfuncs.pfnCvar_DirectSet(gcvarMaxSpeed, "9999.0");
 	g_engfuncs.pfnCvar_DirectSet(gcvarMaxVelocity, "9999.0");
 
-	bInitialized = true;
+	// This hook is very special, since it is actually delete-newed in each new game.
+	// Therefore we must hook it every time.
+	if (!g_pGameRules)
+	{
+		auto addr = (std::uintptr_t)UTIL_SearchPattern("mp.dll", CWORLD_PRECACHE_FN_PATTERN, 1);
+
+		assert(addr != 0);
+
+		addr += (std::ptrdiff_t)(0xD29B4 - 0xD2940);
+		g_pGameRules = *(CHalfLifeMultiplay **)(void **)(*(long *)addr);
+
+		assert(g_pGameRules != nullptr);
+
+		// However, the hook status remains even if the game reloaded.
+		// Still need this method to make sure the hooks are happened only once.
+
+		static bool bGameRuleHooked = false;
+
+		[[unlikely]]
+		if (!bGameRuleHooked)
+		{
+			auto const rgpfnCHalfLifeMultiplay = UTIL_RetrieveVirtualFunctionTable(g_pGameRules);
+
+			UTIL_VirtualTableInjection(rgpfnCHalfLifeMultiplay, VFTIDX_CHalfLifeMultiplay_CleanUpMap, UTIL_CreateTrampoline(true, 0, OrpheuF_CleanUpMap), (void **)&g_pfnCleanUpMap);
+
+			bGameRuleHooked = true;
+		}
+	}
 }
 
 void fw_PlayerPostThink(edict_t *pEntity) noexcept
@@ -380,7 +419,7 @@ inline constexpr DLL_FUNCTIONS gFunctionTable_Post =
 	.pfnClientCommand		= nullptr,
 	.pfnClientUserInfoChanged= nullptr,
 	.pfnServerActivate		= &fw_ServerActivate_Post,
-	.pfnServerDeactivate	= nullptr,
+	.pfnServerDeactivate	= []() noexcept { g_bShouldPrecache = true; g_pGameRules = nullptr; },
 
 	.pfnPlayerPreThink	= nullptr,
 	.pfnPlayerPostThink	= nullptr,

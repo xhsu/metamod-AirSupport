@@ -277,5 +277,20 @@
     <ClCompile Include="Source\Beam.ixx">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Missile.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Target.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\GameRules.ixx">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Round.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Jet.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

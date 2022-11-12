@@ -14,7 +14,7 @@ export namespace Models
 {
 	inline constexpr array PLANE =
 	{
-		"models/F18.mdl",
+		"models/F22.mdl",
 		"models/F18.mdl",
 		"models/F18.mdl",
 		"models/AC130_fly.mdl",
@@ -37,6 +37,8 @@ export namespace Models
 	inline constexpr char GIBS_WOOD[] = "models/gibs_woodplank.mdl";
 	inline constexpr char GIBS_BRICK[] = "models/gibs_brickred.mdl";
 
+	inline constexpr char TARGET[] = "models/Test_001.mdl";
+
 	inline unordered_map<string, int> m_rgLibrary{};
 
 	namespace v_radio
@@ -57,6 +59,11 @@ export namespace Models
 			inline constexpr float use = (float)((double)124 / (double)45);
 		};
 	};
+
+	namespace targetmdl
+	{
+		inline constexpr auto FPS = (2.0 * 256.0 / 17.0);	// the pev->frame must count from 0-255, with all model frame stretch and distributed.
+	}
 };
 
 export namespace Sounds

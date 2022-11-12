@@ -170,7 +170,10 @@
     <ClCompile Include="Source\Beam.ixx" />
     <ClCompile Include="Source\ClientCommand.cpp" />
     <ClCompile Include="Source\Entity.ixx" />
+    <ClCompile Include="Source\GameRules.ixx" />
     <ClCompile Include="Source\Hook.ixx" />
+    <ClCompile Include="Source\Jet.cpp" />
+    <ClCompile Include="Source\Missile.cpp" />
     <ClCompile Include="Source\Resources.ixx" />
     <ClCompile Include="Source\CBase.ixx" />
     <ClCompile Include="Source\Message.ixx" />
@@ -178,6 +181,8 @@
     <ClCompile Include="Source\Resources.cpp" />
     <ClCompile Include="Source\Hook.cpp" />
     <ClCompile Include="Source\Plugin.cpp" />
+    <ClCompile Include="Source\Round.cpp" />
+    <ClCompile Include="Source\Target.cpp" />
     <ClCompile Include="Source\Task.ixx" />
     <ClCompile Include="Source\Think.cpp" />
     <ClCompile Include="Source\Touch.cpp" />

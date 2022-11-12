@@ -4,11 +4,9 @@ import <string>;
 
 import meta_api;
 
-import CBase;
 import Entity;
 import Hook;
 import Resources;
-import Task;
 
 using std::string;
 
@@ -25,28 +23,7 @@ META_RES OnClientCommand(CBasePlayer *pPlayer, const string &szCommand) noexcept
 			if (pWeapon->pev->weapons == RADIO_KEY)
 				return MRES_SUPERCEDE;
 
-			pPlayer->pev->viewmodel = MAKE_STRING(Models::V_RADIO);
-			pPlayer->pev->weaponmodel = MAKE_STRING(Models::P_RADIO);
-
-			TimedFnMgr::Enroll(
-				[](EHANDLE<CBasePlayerWeapon> pThis) noexcept -> TimedFn
-				{
-					pThis->SendWeaponAnim((int)Models::v_radio::seq::draw, false);
-					pThis->m_pPlayer->m_flNextAttack = Models::v_radio::time::draw;
-					pThis->m_flNextPrimaryAttack = Models::v_radio::time::draw;
-					pThis->m_flNextSecondaryAttack = Models::v_radio::time::draw;
-					pThis->m_flTimeWeaponIdle = Models::v_radio::time::draw;
-					co_await Models::v_radio::time::draw;
-
-					if (!pThis || pThis->m_pPlayer->m_pActiveItem != pThis || pThis->pev->weapons != RADIO_KEY)
-						co_return;
-
-					pThis->SendWeaponAnim((int)Models::v_radio::seq::idle, false);
-					pThis->pev->euser1->v.effects &= ~EF_NODRAW;
-				}((CBasePlayerWeapon *)pPlayer->m_pActiveItem)
-			);
-
-			pWeapon->pev->weapons = RADIO_KEY;
+			TimedFnMgr::Enroll(Weapon::Task_RadioDeploy((CBasePlayerWeapon *)pWeapon));
 		}
 		else if (auto const pWeapon = pPlayer->m_rgpPlayerItems[3])
 		{
@@ -63,9 +40,12 @@ META_RES OnClientCommand(CBasePlayer *pPlayer, const string &szCommand) noexcept
 			if (pWeapon->pev->weapons != RADIO_KEY)
 				return MRES_IGNORED;
 
-			pWeapon->pev->weapons = 0;
+			// Clear radio events
+			Weapon::OnRadioHolster(pWeapon);
 
+			// Take out knife.
 			g_pfnItemDeploy(pWeapon);
+
 			return MRES_SUPERCEDE;
 		}
 	}
