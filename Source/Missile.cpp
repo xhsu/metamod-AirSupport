@@ -16,13 +16,28 @@ using std::array;
 
 extern "C++" namespace Missile
 {
+	TimedFn Task_RemoveBeam(short iEntIndex) noexcept
+	{
+		co_await 1.f;
+
+		// Ent gets invalided.
+		MsgBroadcast(SVC_TEMPENTITY);
+		WriteData(TE_KILLBEAM);
+		WriteData(iEntIndex);
+		MsgEnd();
+	}
+
 	TimedFn Task_TravelSFX(EHANDLE<CBaseEntity> pEntity) noexcept
 	{
+		auto const iEntIndex = ent_cast<short>(pEntity.Get());
+
 		for (; pEntity;)
 		{
 			g_engfuncs.pfnEmitSound(pEntity.Get(), CHAN_WEAPON, Sounds::TRAVEL, VOL_NORM, ATTN_NORM, 0, UTIL_Random(94, 112));
 			co_await 1.f;
 		}
+
+		TimedFnMgr::Enroll(Task_RemoveBeam(iEntIndex));
 	};
 
 	edict_t *Create(CBasePlayer *pPlayer, Vector const &vecSpawnOrigin, Vector const &vecTargetOrigin) noexcept
@@ -54,7 +69,6 @@ extern "C++" namespace Missile
 
 		pEdict->v.effects = EF_LIGHT | EF_BRIGHTLIGHT;
 
-		// #INVESTIGATE why won't this work?
 		MsgBroadcast(SVC_TEMPENTITY);
 		WriteData(TE_BEAMFOLLOW);
 		WriteData(ent_cast<short>(pEdict));

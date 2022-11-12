@@ -1,3 +1,7 @@
+module;
+
+#include <fmt/core.h>
+
 export module Plugin;
 
 export import <source_location>;
@@ -22,4 +26,5 @@ inline constexpr plugin_info_t gPluginInfo =
 export inline void LOG_ERROR(const char *pszMessage, std::source_location const &SrcLoc = std::source_location::current()) noexcept
 {
 	gpMetaUtilFuncs->pfnLogError(&gPluginInfo, "[%s => %s]: %s", SrcLoc.file_name(), SrcLoc.function_name(), pszMessage);
+	g_engfuncs.pfnServerPrint(fmt::format("\nError:\n\t[{} => {}]: {}\n", SrcLoc.file_name(), SrcLoc.function_name(), pszMessage).c_str());
 }

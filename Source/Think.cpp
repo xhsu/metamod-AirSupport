@@ -20,14 +20,6 @@ META_RES OnThink(CBaseEntity *pEntity) noexcept
 		Target::Think(pEntity);
 		return MRES_HANDLED;
 	}
-	//else if (pEntity->pev->classname == MAKE_STRING(Classname::FIXED_TARGET))
-	//{
-	//	pEntity->pev->rendermode = kRenderTransAdd;
-	//	pEntity->pev->renderfx = kRenderFxDistort;
-	//	pEntity->pev->renderamt = 128;
-	//	pEntity->pev->nextthink = 0.1f;
-	//	return MRES_HANDLED;
-	//}
 
 	return MRES_IGNORED;
 }

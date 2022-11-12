@@ -81,12 +81,33 @@ void DeployHooks(void) noexcept
 	g_pfnDefaultDeploy = (fnDefaultDeploy_t)UTIL_SearchPattern("mp.dll", DEFAULT_DEPLOY_FN_PATTERN, 1);
 	g_pfnSwitchWeapon = (fnSwitchWeapon_t)UTIL_SearchPattern("mp.dll", SWITCH_WEAPON_FN_PATTERN, 1);
 
+#ifdef _DEBUG
 	assert(g_pfnRadiusFlash != nullptr);
 	assert(g_pfnSelectItem != nullptr);
 	assert(g_pfnApplyMultiDamage != nullptr);
 	assert(g_pfnClearMultiDamage != nullptr);
 	assert(g_pfnDefaultDeploy != nullptr);
 	assert(g_pfnSwitchWeapon != nullptr);
+#else
+	[[unlikely]]
+	if (!g_pfnRadiusFlash)
+		LOG_ERROR("Function \"::RadiusFlash\" no found!");
+	[[unlikely]]
+	if (!g_pfnSelectItem)
+		LOG_ERROR("Function \"CBasePlayer::SelectItem\" no found!");
+	[[unlikely]]
+	if (!g_pfnApplyMultiDamage)
+		LOG_ERROR("Function \"::ApplyMultiDamage\" no found!");
+	[[unlikely]]
+	if (!g_pfnClearMultiDamage)
+		LOG_ERROR("Function \"::ClearMultiDamage\" no found!");
+	[[unlikely]]
+	if (!g_pfnDefaultDeploy)
+		LOG_ERROR("Function \"CBasePlayerWeapon::DefaultDeploy\" no found!");
+	[[unlikely]]
+	if (!g_pfnSwitchWeapon)
+		LOG_ERROR("Function \"CBasePlayer::SwitchWeapon\" no found!");
+#endif
 
 	bHooksPerformed = true;
 }
@@ -178,7 +199,13 @@ void fw_ServerActivate_Post(edict_t *pEdictList, int edictCount, int clientMax) 
 	{
 		auto addr = (std::uintptr_t)UTIL_SearchPattern("mp.dll", CWORLD_PRECACHE_FN_PATTERN, 1);
 
+#ifdef _DEBUG
 		assert(addr != 0);
+#else
+		[[unlikely]]
+		if (!addr)
+			LOG_ERROR("Function \"CWorld::Precache\" no found!");
+#endif
 
 		addr += (std::ptrdiff_t)(0xD29B4 - 0xD2940);
 		g_pGameRules = *(CHalfLifeMultiplay **)(void **)(*(long *)addr);
@@ -419,7 +446,7 @@ inline constexpr DLL_FUNCTIONS gFunctionTable_Post =
 	.pfnClientCommand		= nullptr,
 	.pfnClientUserInfoChanged= nullptr,
 	.pfnServerActivate		= &fw_ServerActivate_Post,
-	.pfnServerDeactivate	= []() noexcept { g_bShouldPrecache = true; g_pGameRules = nullptr; },
+	.pfnServerDeactivate	= []() noexcept { g_bShouldPrecache = true; g_pGameRules = nullptr; TimedFnMgr::Clear(); },
 
 	.pfnPlayerPreThink	= nullptr,
 	.pfnPlayerPostThink	= nullptr,

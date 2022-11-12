@@ -164,7 +164,7 @@ public:
 //
 	__forceinline edict_t *edict(void) const noexcept { return pev->pContainingEntity; }
 //	EOFFSET eoffset(void) { return OFFSET(pev); }
-//	int entindex(void) { return ENTINDEX(edict()); }
+	__forceinline int entindex(void) const noexcept { return g_engfuncs.pfnIndexOfEdict(edict()); }
 //
 //public:
 //	void *operator new(size_t stAllocateBlock, entvars_t *newpev) { return ALLOC_PRIVATE(ENT(newpev), stAllocateBlock); }
@@ -219,7 +219,7 @@ struct EHANDLE final
 	EHANDLE(entvars_t *pev) noexcept { if (pev) Set(pev->pContainingEntity); }
 	EHANDLE(T *pEntity) noexcept : EHANDLE(pEntity->pev) {}
 	explicit EHANDLE(std::nullptr_t) noexcept {}
-	explicit EHANDLE(int iEntIndex) noexcept { if (iEntIndex > 0) Set(INDEXENT(iEntIndex)); }
+	explicit EHANDLE(int iEntIndex) noexcept { if (iEntIndex > 0) Set(ent_cast<edict_t *>(iEntIndex)); }
 
 	inline edict_t *Get(void) const noexcept
 	{
