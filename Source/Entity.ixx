@@ -36,8 +36,8 @@ export extern "C++" namespace Weapon
 {
 	extern TimedFn Task_RadioDeploy(EHANDLE<CBasePlayerWeapon> pThis) noexcept;
 	extern TimedFn Task_RadioRejected(EHANDLE<CBasePlayerWeapon> pThis) noexcept;
-	extern TimedFn Task_RadioUse(EHANDLE<CBasePlayerWeapon> pThis) noexcept;
-	extern void OnRadioHolster(CBasePlayerItem *pThis) noexcept;
+	extern TimedFn Task_RadioAccepted(EHANDLE<CBasePlayerWeapon> pThis) noexcept;
+	extern void OnRadioHolster(CBasePlayerWeapon *pThis) noexcept;
 };
 
 export extern "C++" namespace Laser
@@ -50,16 +50,17 @@ export extern "C++" namespace Target
 {
 	extern void Create(CBasePlayerWeapon *pWeapon) noexcept;
 	extern void Think(CBaseEntity *pEntity) noexcept;
+	extern TimedFn Task_ScanJetSpawn(EHANDLE<CBaseEntity> pTarget) noexcept;
 };
 
 export extern "C++" namespace FixedTarget
 {
 	extern edict_t *Create(Vector const &vecOrigin, Vector const &vecAngles, CBasePlayer *const pPlayer) noexcept;
 	extern void Start(CBaseEntity *pTarget) noexcept;
-	extern TimedFn Think(EHANDLE<CBaseEntity> pEntity) noexcept;
+	extern TimedFn Task_RecruitJet(EHANDLE<CBaseEntity> pEntity) noexcept;
 };
 
 export extern "C++" namespace Jet
 {
-	TimedFn Think(EHANDLE<CBaseEntity> pEntity) noexcept;
+	TimedFn Task_Jet(EHANDLE<CBaseEntity> pEntity) noexcept;
 };

@@ -119,7 +119,7 @@ void HamF_Item_PostFrame(CBasePlayerItem *pItem) noexcept
 		if (pThis->pev->euser1->v.skin != Models::targetmdl::SKIN_GREEN)
 			TimedFnMgr::Enroll(Weapon::Task_RadioRejected(pThis));
 		else
-			TimedFnMgr::Enroll(Weapon::Task_RadioUse(pThis));
+			TimedFnMgr::Enroll(Weapon::Task_RadioAccepted(pThis));
 	}
 }
 
@@ -133,7 +133,9 @@ qboolean HamF_Item_CanHolster(CBasePlayerItem *pThis) noexcept
 
 void HamF_Item_Holster(CBasePlayerItem *pThis, int skiplocal) noexcept
 {
-	Weapon::OnRadioHolster(pThis);
+	if (pThis->pev->weapons == RADIO_KEY)
+		Weapon::OnRadioHolster((CBasePlayerWeapon *)pThis);
+
 	g_pfnItemHolster(pThis, skiplocal);
 }
 
@@ -145,6 +147,10 @@ extern "C++" namespace Weapon
 
 	TimedFn Task_RadioDeploy(EHANDLE<CBasePlayerWeapon> pThis) noexcept
 	{
+		// Remove shield protection for now.
+		if (pThis->m_pPlayer->m_bOwnsShield)
+			pThis->m_pPlayer->pev->gamestate = 1;
+
 		pThis->pev->weapons = RADIO_KEY;
 		pThis->m_pPlayer->m_iHideHUD |= HIDEHUD_CROSSHAIR;
 		pThis->has_disconnected = true;	// BORROWED MEMBER: allow holster.
@@ -152,13 +158,12 @@ extern "C++" namespace Weapon
 		g_pfnDefaultDeploy(pThis, Models::V_RADIO, Models::P_RADIO, (int)Models::v_radio::seq::draw, "knife", false);	// Enforce to play the anim.
 
 		pThis->m_pPlayer->m_flNextAttack = Models::v_radio::time::draw;
-		pThis->m_flNextPrimaryAttack = Models::v_radio::time::draw;
-		pThis->m_flNextSecondaryAttack = Models::v_radio::time::draw;
-		pThis->m_flTimeWeaponIdle = Models::v_radio::time::draw;
-		co_await Models::v_radio::time::draw;
+		pThis->m_flNextPrimaryAttack = std::numeric_limits<float>::max();
+		pThis->m_flNextSecondaryAttack = std::numeric_limits<float>::max();
+		pThis->m_flTimeWeaponIdle = std::numeric_limits<float>::max();
 
-		if (!pThis || pThis->m_pPlayer->m_pActiveItem != pThis || pThis->pev->weapons != RADIO_KEY)
-			co_return;
+		co_await Models::v_radio::time::draw;
+		RESUME_CHECK;
 
 		pThis->SendWeaponAnim((int)Models::v_radio::seq::idle, false);
 		pThis->pev->euser1->v.effects &= ~EF_NODRAW;
@@ -169,9 +174,6 @@ extern "C++" namespace Weapon
 		pThis->has_disconnected = false;	// BORROWED MEMBER: forbid holster.
 		pThis->SendWeaponAnim((int)Models::v_radio::seq::use);
 		pThis->m_pPlayer->m_flNextAttack = Models::v_radio::time::use;
-		pThis->m_flNextPrimaryAttack = Models::v_radio::time::use;
-		pThis->m_flNextSecondaryAttack = Models::v_radio::time::use;
-		pThis->m_flTimeWeaponIdle = Models::v_radio::time::use;
 
 		g_engfuncs.pfnEmitSound(pThis.Get(), CHAN_AUTO, Sounds::NOISE, VOL_NORM, ATTN_STATIC, 0, UTIL_Random(92, 108));
 
@@ -196,7 +198,7 @@ extern "C++" namespace Weapon
 		pThis->has_disconnected = true;	// BORROWED MEMBER: allow holster.
 	}
 
-	TimedFn Task_RadioUse(EHANDLE<CBasePlayerWeapon> pThis) noexcept
+	TimedFn Task_RadioAccepted(EHANDLE<CBasePlayerWeapon> pThis) noexcept
 	{
 		EHANDLE<CBaseEntity> pTarget = pThis->pev->euser1;
 		EHANDLE<CBaseEntity> pFixedTarget = FixedTarget::Create(pTarget->pev->origin, pTarget->pev->angles, pThis->m_pPlayer);
@@ -206,9 +208,6 @@ extern "C++" namespace Weapon
 		pThis->has_disconnected = false;	// BORROWED MEMBER: forbid holster.
 		pThis->SendWeaponAnim((int)Models::v_radio::seq::use);
 		pThis->m_pPlayer->m_flNextAttack = Models::v_radio::time::use;
-		pThis->m_flNextPrimaryAttack = Models::v_radio::time::use;
-		pThis->m_flNextSecondaryAttack = Models::v_radio::time::use;
-		pThis->m_flTimeWeaponIdle = Models::v_radio::time::use;
 
 		g_engfuncs.pfnEmitSound(pThis.Get(), CHAN_AUTO, Sounds::NOISE, VOL_NORM, ATTN_STATIC, 0, UTIL_Random(92, 108));
 
@@ -240,9 +239,7 @@ extern "C++" namespace Weapon
 
 		pThis->SendWeaponAnim((int)Models::v_radio::seq::holster);
 		pThis->m_pPlayer->m_flNextAttack = Models::v_radio::time::holster;
-		pThis->m_flNextPrimaryAttack = Models::v_radio::time::holster;
-		pThis->m_flNextSecondaryAttack = Models::v_radio::time::holster;
-		pThis->m_flTimeWeaponIdle = Models::v_radio::time::holster;
+
 		co_await Models::v_radio::time::holster;
 		RESUME_CHECK;
 
@@ -272,13 +269,21 @@ extern "C++" namespace Weapon
 		}
 	}
 
-	void OnRadioHolster(CBasePlayerItem *pThis) noexcept
+	void OnRadioHolster(CBasePlayerWeapon *pThis) noexcept
 	{
+		pThis->m_flNextPrimaryAttack = 0;	// Because we use a essentially infinity at the draw.
+		pThis->m_flNextSecondaryAttack = 0;
+		pThis->m_flTimeWeaponIdle = 0;
+
 		pThis->pev->weapons = 0;
 		pThis->m_pPlayer->m_iHideHUD &= ~HIDEHUD_CROSSHAIR;	// #TODO use CurWeapon to fix crosshair?
 
 		[[likely]]
 		if (pThis->pev->euser1)
 			pThis->pev->euser1->v.effects |= EF_NODRAW;
+
+		// Resume shield protection
+		if (pThis->m_pPlayer->m_bOwnsShield)
+			pThis->m_pPlayer->pev->gamestate = 0;
 	}
 };

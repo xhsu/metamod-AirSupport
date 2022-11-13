@@ -55,7 +55,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;_DEBUG;AIRSUPPORT_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)FMT_HEADER_ONLY</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_DEBUG;AIRSUPPORT_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)FMT_HEADER_ONLY;_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>Precompiled.hpp</PrecompiledHeaderFile>
@@ -79,7 +79,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;NDEBUG;AIRSUPPORT_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)FMT_HEADER_ONLY</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;AIRSUPPORT_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)FMT_HEADER_ONLY;_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>Precompiled.hpp</PrecompiledHeaderFile>
@@ -188,6 +188,8 @@
     <ClCompile Include="Source\Task.ixx" />
     <ClCompile Include="Source\Think.cpp" />
     <ClCompile Include="Source\Touch.cpp" />
+    <ClCompile Include="Source\Waypoint.cpp" />
+    <ClCompile Include="Source\Waypoint.ixx" />
     <ClCompile Include="Source\Weapon.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

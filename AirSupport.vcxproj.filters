@@ -295,5 +295,11 @@
     <ClCompile Include="Source\Prefab.ixx">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Waypoint.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Waypoint.ixx">
+      <Filter>Source</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

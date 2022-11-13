@@ -34,6 +34,11 @@ extern void HamF_Item_Holster(CBasePlayerItem *pThis, int skiplocal) noexcept;
 extern void OrpheuF_CleanUpMap(CHalfLifeMultiplay *pThis) noexcept;
 //
 
+// Waypoint.cpp
+extern TimedFn Waypoint_Scan(void) noexcept;
+extern void Waypoint_Read(void) noexcept;
+//
+
 inline bool g_bShouldPrecache = true;
 
 void DeployHooks(void) noexcept
@@ -69,8 +74,8 @@ void DeployHooks(void) noexcept
 	UTIL_VirtualTableInjection(rgpfnCKnife, VFTIDX_ITEM_ADDTOPLAYER, UTIL_CreateTrampoline(true, 1, &HamF_Item_AddToPlayer), (void **)&g_pfnItemAddToPlayer);
 	UTIL_VirtualTableInjection(rgpfnCKnife, VFTIDX_ITEM_DEPLOY, UTIL_CreateTrampoline(true, 0, &HamF_Item_Deploy), (void **)&g_pfnItemDeploy);
 	UTIL_VirtualTableInjection(rgpfnCKnife, VFTIDX_ITEM_POSTFRAME, UTIL_CreateTrampoline(true, 0, &HamF_Item_PostFrame), (void **)&g_pfnItemPostFrame);
-	UTIL_VirtualTableInjection(rgpfnCKnife, VFTIDX_WEAPON_PRIMARYATTACK, UTIL_CreateTrampoline(true, 0, &HamF_Weapon_PrimaryAttack), (void **)&g_pfnWeaponPrimaryAttack);
-	UTIL_VirtualTableInjection(rgpfnCKnife, VFTIDX_WEAPON_SECONDARYATTACK, UTIL_CreateTrampoline(true, 0, &HamF_Weapon_SecondaryAttack), (void **)&g_pfnWeaponSecondaryAttack);
+//	UTIL_VirtualTableInjection(rgpfnCKnife, VFTIDX_WEAPON_PRIMARYATTACK, UTIL_CreateTrampoline(true, 0, &HamF_Weapon_PrimaryAttack), (void **)&g_pfnWeaponPrimaryAttack);
+//	UTIL_VirtualTableInjection(rgpfnCKnife, VFTIDX_WEAPON_SECONDARYATTACK, UTIL_CreateTrampoline(true, 0, &HamF_Weapon_SecondaryAttack), (void **)&g_pfnWeaponSecondaryAttack);
 	UTIL_VirtualTableInjection(rgpfnCKnife, VFTIDX_ITEM_CANHOLSTER, UTIL_CreateTrampoline(true, 0, &HamF_Item_CanHolster), (void **)&g_pfnItemCanHolster);
 	UTIL_VirtualTableInjection(rgpfnCKnife, VFTIDX_ITEM_HOLSTER, UTIL_CreateTrampoline(true, 1, &HamF_Item_Holster), (void **)&g_pfnItemHolster);
 
@@ -213,6 +218,7 @@ void fw_ServerActivate_Post(edict_t *pEdictList, int edictCount, int clientMax) 
 	DeployHooks();
 	RetrieveMessageHandles();
 	RetrieveCVarHandles();
+	Waypoint_Read();
 
 	// plugin_cfg
 
