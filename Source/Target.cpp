@@ -23,6 +23,7 @@ extern "C++" namespace Laser
 		pBeam->v.renderfx = kRenderFxNone;
 		pBeam->v.nextthink = 0.1f;
 		pBeam->v.euser1 = pWeapon->m_pPlayer->edict();	// pev->owner gets occupied by 'starting ent'
+		pBeam->v.team = pWeapon->m_pPlayer->m_iTeam;
 
 		//auto const pSprite = g_engfuncs.pfnCreateNamedEntity(MAKE_STRING("cycler_sprite"));
 		//g_engfuncs.pfnSetModel(pSprite, Sprite::AIM);
@@ -103,6 +104,7 @@ extern "C++" namespace Target
 		pTarget->v.renderamt = 128;
 		pTarget->v.nextthink = 0.1f;
 		pTarget->v.euser1 = pWeapon->m_pPlayer->edict();	// pev->owner was not occupied, but just keep the usage sync with Laser type.
+		pTarget->v.team = pWeapon->m_pPlayer->m_iTeam;
 
 		pWeapon->pev->euser1 = pTarget;
 	}
@@ -126,8 +128,8 @@ extern "C++" namespace Target
 		auto const pPlayer = (CBasePlayer *)pEntity->pev->euser1->pvPrivateData;
 		g_engfuncs.pfnMakeVectors(pPlayer->pev->v_angle);
 
-		Vector vecSrc = pPlayer->GetGunPosition();
-		Vector vecEnd = vecSrc + gpGlobals->v_forward * 4096.f;
+		Vector const vecSrc = pPlayer->GetGunPosition();
+		Vector const vecEnd = vecSrc + gpGlobals->v_forward * 4096.f;
 		TraceResult tr{};
 
 		g_engfuncs.pfnTraceLine(vecSrc, vecEnd, ignore_monsters, pEntity->pev->euser1, &tr);
@@ -136,6 +138,12 @@ extern "C++" namespace Target
 		pEntity->pev->angles.x += 270.f;	// don't know why, but this is the deal.
 
 		g_engfuncs.pfnSetOrigin(pEntity->edict(), tr.vecEndPos);
+
+		// Determind model color
+
+		g_engfuncs.pfnTraceLine(tr.vecEndPos, Vector(tr.vecEndPos.x, tr.vecEndPos.y, 8192), ignore_monsters, nullptr, &tr);
+
+		pEntity->pev->skin = g_engfuncs.pfnPointContents(tr.vecEndPos) == CONTENTS_SKY ? Models::targetmdl::SKIN_GREEN : Models::targetmdl::SKIN_RED;
 
 		// Model Animation
 
@@ -151,7 +159,7 @@ extern "C++" namespace Target
 
 extern "C++" namespace FixedTarget
 {
-	void Create(Vector const &vecOrigin, Vector const &vecAngles, edict_t* const pPlayer) noexcept
+	edict_t *Create(Vector const &vecOrigin, Vector const &vecAngles, CBasePlayer *const pPlayer) noexcept
 	{
 		auto const pTarget = g_engfuncs.pfnCreateNamedEntity(MAKE_STRING("info_target"));
 
@@ -167,9 +175,16 @@ extern "C++" namespace FixedTarget
 		pTarget->v.rendermode = kRenderTransAdd;
 		pTarget->v.renderfx = kRenderFxDistort;
 		pTarget->v.renderamt = 0;
+		pTarget->v.skin = Models::targetmdl::SKIN_BLUE;
 		pTarget->v.nextthink = 0.1f;
-		pTarget->v.euser1 = pPlayer;	// pev->owner was not occupied, but just keep the usage sync with Laser type.
+		pTarget->v.euser1 = pPlayer->edict();	// pev->owner was not occupied, but just keep the usage sync with Laser type.
+		pTarget->v.team = pPlayer->m_iTeam;
 
+		return pTarget;
+	}
+
+	void Start(CBaseEntity *pTarget) noexcept
+	{
 		TimedFnMgr::Enroll(FixedTarget::Think(pTarget));
 	}
 

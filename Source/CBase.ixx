@@ -7,6 +7,42 @@ export import activity;
 import cdll_dll;
 import pm_materials;
 
+// These are caps bits to indicate what an object's capabilities (currently used for save/restore and level transitions)
+export inline constexpr auto FCAP_CUSTOMSAVE = 0x00000001;
+export inline constexpr auto FCAP_ACROSS_TRANSITION = 0x00000002; // Should transfer between transitions
+export inline constexpr auto FCAP_MUST_SPAWN = 0x00000004; // Spawn after restore
+export inline constexpr auto FCAP_DONT_SAVE = 0x80000000; // Don't save this
+export inline constexpr auto FCAP_IMPULSE_USE = 0x00000008; // Can be used by the player
+export inline constexpr auto FCAP_CONTINUOUS_USE = 0x00000010; // Can be used by the player
+export inline constexpr auto FCAP_ONOFF_USE = 0x00000020; // Can be used by the player
+export inline constexpr auto FCAP_DIRECTIONAL_USE = 0x00000040; // Player sends +/- 1 when using (currently only tracktrains)
+export inline constexpr auto FCAP_MASTER = 0x00000080; // Can be used to "master" other entities (like multisource)
+export inline constexpr auto FCAP_MUST_RESET = 0x00000100; // Should reset on the new round
+export inline constexpr auto FCAP_MUST_RELEASE = 0x00000200; // Should release on the new round
+
+// UNDONE: This will ignore transition volumes (trigger_transition), but not the PVS!!!
+export inline constexpr auto FCAP_FORCE_TRANSITION = 0x00000080; // ALWAYS goes across transitions
+
+// for Classify
+export inline constexpr auto CLASS_NONE = 0;
+export inline constexpr auto CLASS_MACHINE = 1;
+export inline constexpr auto CLASS_PLAYER = 2;
+export inline constexpr auto CLASS_HUMAN_PASSIVE = 3;
+export inline constexpr auto CLASS_HUMAN_MILITARY = 4;
+export inline constexpr auto CLASS_ALIEN_MILITARY = 5;
+export inline constexpr auto CLASS_ALIEN_PASSIVE = 6;
+export inline constexpr auto CLASS_ALIEN_MONSTER = 7;
+export inline constexpr auto CLASS_ALIEN_PREY = 8;
+export inline constexpr auto CLASS_ALIEN_PREDATOR = 9;
+export inline constexpr auto CLASS_INSECT = 10;
+export inline constexpr auto CLASS_PLAYER_ALLY = 11;
+export inline constexpr auto CLASS_PLAYER_BIOWEAPON = 12; // hornets and snarks.launched by players
+export inline constexpr auto CLASS_ALIEN_BIOWEAPON = 13; // hornets and snarks.launched by the alien menace
+export inline constexpr auto CLASS_VEHICLE = 14;
+export inline constexpr auto CLASS_BARNACLE = 99; // special because no one pays attention to it, and it eats a wide cross-section of creatures.
+
+export inline constexpr auto SF_NORESPAWN = (1<<30); // set this bit on guns and stuff that should never respawn.
+
 export enum USE_TYPE
 {
 	USE_OFF,
@@ -47,7 +83,7 @@ public:
 	virtual void AddPointsToTeam(int score, qboolean bAllowNegativeScore) = 0;
 	virtual qboolean AddPlayerItem(CBasePlayerItem *pItem) = 0;
 	virtual qboolean RemovePlayerItem(CBasePlayerItem *pItem) = 0;
-	virtual int GiveAmmo(int iAmount, char *szName, int iMax) = 0;
+	virtual int GiveAmmo(int iAmount, char *szName, int iMax) = 0;	// LUNA: the 'char*' here is cursed. If I swap it to 'const char*', the entire [pure] virtual function table will be doomed. #INVESTIGATE
 	virtual float GetDelay(void) = 0;
 	virtual int IsMoving(void) = 0;
 	virtual void OverrideReset(void) = 0;
@@ -165,14 +201,15 @@ public:
 	__forceinline edict_t *edict(void) const noexcept { return pev->pContainingEntity; }
 //	EOFFSET eoffset(void) { return OFFSET(pev); }
 	__forceinline int entindex(void) const noexcept { return g_engfuncs.pfnIndexOfEdict(edict()); }
-//
-//public:
-//	void *operator new(size_t stAllocateBlock, entvars_t *newpev) { return ALLOC_PRIVATE(ENT(newpev), stAllocateBlock); }
-//
-//#if defined(_MSC_VER) && _MSC_VER >= 1200
-//	void operator delete(void *pMem, entvars_t *pev) { pev->flags |= FL_KILLME; }
-//#endif
-//
+
+	// allow engine to allocate instance data
+	void *operator new(size_t iBlockSize, entvars_t *pevnew) noexcept { return g_engfuncs.pfnPvAllocEntPrivateData(ent_cast<edict_t *>(pevnew), iBlockSize); }
+
+	// don't use this.
+#if _MSC_VER >= 1200 // only build this code if MSVC++ 6.0 or higher
+	void operator delete(void *pMem, entvars_t *pevnew) noexcept { pevnew->flags |= FL_KILLME; }
+#endif
+
 //public:
 //	static TYPEDESCRIPTION m_SaveData[];
 
@@ -578,8 +615,6 @@ public:
 	string_t m_sMaster;
 };
 
-export inline constexpr auto GIB_HEALTH_VALUE = -30;
-
 export inline constexpr auto ROUTE_SIZE = 8;
 export inline constexpr auto MAX_OLD_ENEMIES = 4;
 
@@ -601,34 +636,40 @@ export inline constexpr auto bits_CAP_MELEE_ATTACK2 = (1 << 14);
 export inline constexpr auto bits_CAP_FLY = (1 << 15);
 export inline constexpr auto bits_CAP_DOORS_GROUP = (bits_CAP_USE | bits_CAP_AUTO_DOORS | bits_CAP_OPEN_DOORS);
 
-export inline constexpr auto DMG_GENERIC = 0;
-export inline constexpr auto DMG_CRUSH = (1 << 0);
-export inline constexpr auto DMG_BULLET = (1 << 1);
-export inline constexpr auto DMG_SLASH = (1 << 2);
-export inline constexpr auto DMG_BURN = (1 << 3);
-export inline constexpr auto DMG_FREEZE = (1 << 4);
-export inline constexpr auto DMG_FALL = (1 << 5);
-export inline constexpr auto DMG_BLAST = (1 << 6);
-export inline constexpr auto DMG_CLUB = (1 << 7);
-export inline constexpr auto DMG_SHOCK = (1 << 8);
-export inline constexpr auto DMG_SONIC = (1 << 9);
-export inline constexpr auto DMG_ENERGYBEAM = (1 << 10);
-export inline constexpr auto DMG_NEVERGIB = (1 << 12);
-export inline constexpr auto DMG_ALWAYSGIB = (1 << 13);
-export inline constexpr auto DMG_DROWN = (1 << 14);
-export inline constexpr auto DMG_TIMEBASED = (~(0x3FFF));
+export inline constexpr auto DMG_GENERIC = 0;		// generic damage was done
+export inline constexpr auto DMG_CRUSH = (1 << 0);	// crushed by falling or moving object
+export inline constexpr auto DMG_BULLET = (1 << 1);	// shot
+export inline constexpr auto DMG_SLASH = (1 << 2);	// cut, clawed, stabbed
+export inline constexpr auto DMG_BURN = (1 << 3);	// heat burned
+export inline constexpr auto DMG_FREEZE = (1 << 4);	// frozen
+export inline constexpr auto DMG_FALL = (1 << 5);	// fell too far
+export inline constexpr auto DMG_BLAST = (1 << 6);	// explosive blast damage
+export inline constexpr auto DMG_CLUB = (1 << 7);	// crowbar, punch, headbutt
+export inline constexpr auto DMG_SHOCK = (1 << 8);	// electric shock
+export inline constexpr auto DMG_SONIC = (1 << 9);	// sound pulse shockwave
+export inline constexpr auto DMG_ENERGYBEAM = (1 << 10);	// laser or other high energy beam
+export inline constexpr auto DMG_NEVERGIB = (1 << 12);		// with this bit OR'd in, no damage type will be able to gib victims upon death
+export inline constexpr auto DMG_ALWAYSGIB = (1 << 13);		// with this bit OR'd in, any damage type can be made to gib victims upon death
+export inline constexpr auto DMG_DROWN = (1 << 14);			// Drowning
 
-export inline constexpr auto DMG_PARALYZE = (1 << 15);
-export inline constexpr auto DMG_NERVEGAS = (1 << 16);
-export inline constexpr auto DMG_POISON = (1 << 17);
-export inline constexpr auto DMG_RADIATION = (1 << 18);
-export inline constexpr auto DMG_DROWNRECOVER = (1 << 19);
-export inline constexpr auto DMG_ACID = (1 << 20);
-export inline constexpr auto DMG_SLOWBURN = (1 << 21);
-export inline constexpr auto DMG_SLOWFREEZE = (1 << 22);
-export inline constexpr auto DMG_MORTAR = (1 << 23);
+// time-based damage
+export inline constexpr auto DMG_TIMEBASED = (~(0x3FFF));	// mask for time-based damage
+
+export inline constexpr auto DMG_PARALYZE = (1 << 15);		// slows affected creature down
+export inline constexpr auto DMG_NERVEGAS = (1 << 16);		// nerve toxins, very bad
+export inline constexpr auto DMG_POISON = (1 << 17);		// blood poisioning
+export inline constexpr auto DMG_RADIATION = (1 << 18);		// radiation exposure
+export inline constexpr auto DMG_DROWNRECOVER = (1 << 19);	// drowning recovery
+export inline constexpr auto DMG_ACID = (1 << 20);			// toxic chemicals or acid burns
+export inline constexpr auto DMG_SLOWBURN = (1 << 21);		// in an oven
+export inline constexpr auto DMG_SLOWFREEZE = (1 << 22);	// in a subzero freezer
+export inline constexpr auto DMG_MORTAR = (1 << 23);		// Hit by air raid (done to distinguish grenade from mortar)
 export inline constexpr auto DMG_EXPLOSION = (1 << 24);
+
+// These are the damage types that are allowed to gib corpses
 export inline constexpr auto DMG_GIB_CORPSE = (DMG_CRUSH | DMG_FALL | DMG_BLAST | DMG_SONIC | DMG_CLUB);
+
+// These are the damage types that have client hud art
 export inline constexpr auto DMG_SHOWNHUD = (DMG_POISON | DMG_ACID | DMG_FREEZE | DMG_SLOWFREEZE | DMG_DROWN | DMG_BURN | DMG_SLOWBURN | DMG_NERVEGAS | DMG_RADIATION | DMG_SHOCK);
 
 export inline constexpr auto PARALYZE_DURATION = 2;
@@ -662,9 +703,12 @@ export inline constexpr auto itbd_SlowBurn = 6;
 export inline constexpr auto itbd_SlowFreeze = 7;
 export inline constexpr auto CDMG_TIMEBASED = 8;
 
-export inline constexpr auto GIB_NORMAL = 0;
-export inline constexpr auto GIB_NEVER = 1;
-export inline constexpr auto GIB_ALWAYS = 2;
+// When calling KILLED(), a value that governs gib behavior is expected to be
+// one of these three values
+export inline constexpr auto GIB_NORMAL = 0; // Gib if entity was overkilled
+export inline constexpr auto GIB_NEVER = 1; // Never gib, no matter how much death damage is done ( freezing, etc )
+export inline constexpr auto GIB_ALWAYS = 2; // Always gib ( Houndeye Shock, Barnacle Bite )
+export inline constexpr auto GIB_HEALTH_VALUE = -30;
 
 export class CBaseMonster : public CBaseToggle
 {

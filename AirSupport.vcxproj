@@ -175,6 +175,7 @@
     <ClCompile Include="Source\Hook.ixx" />
     <ClCompile Include="Source\Jet.cpp" />
     <ClCompile Include="Source\Missile.cpp" />
+    <ClCompile Include="Source\Prefab.ixx" />
     <ClCompile Include="Source\Resources.ixx" />
     <ClCompile Include="Source\CBase.ixx" />
     <ClCompile Include="Source\Message.ixx" />

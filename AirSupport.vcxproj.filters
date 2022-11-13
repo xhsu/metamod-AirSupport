@@ -292,5 +292,8 @@
     <ClCompile Include="Source\Jet.cpp">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Prefab.ixx">
+      <Filter>Source</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

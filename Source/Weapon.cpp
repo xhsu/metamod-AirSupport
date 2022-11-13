@@ -5,7 +5,6 @@ import <numbers>;
 
 import meta_api;
 
-import Beam;
 import Entity;
 import Hook;
 import Resources;
@@ -117,25 +116,10 @@ void HamF_Item_PostFrame(CBasePlayerItem *pItem) noexcept
 	[[unlikely]]
 	if (pThis->m_pPlayer->m_afButtonPressed & IN_ATTACK)
 	{
-		g_engfuncs.pfnMakeVectors(pThis->m_pPlayer->pev->v_angle);
-
-		Vector vecSrc = pThis->m_pPlayer->GetGunPosition();
-		Vector vecEnd = vecSrc + gpGlobals->v_forward * 4096.f;
-
-		TraceResult tr{};
-		g_engfuncs.pfnTraceLine(vecSrc, vecEnd, dont_ignore_monsters, ent_cast<edict_t *>(pThis->m_pPlayer->pev), &tr);
-
-		vecSrc = tr.vecEndPos;
-		vecEnd = Vector(vecSrc.x, vecSrc.y, 8192.f);
-		g_engfuncs.pfnTraceLine(vecSrc, vecEnd, ignore_monsters, tr.pHit, &tr);
-
-		if (g_engfuncs.pfnPointContents(tr.vecEndPos) != CONTENTS_SKY)
-		{
-			g_engfuncs.pfnClientPrintf(pThis->m_pPlayer->edict(), print_center, "You must target an outdoor location.");
-			return;
-		}
-
-		TimedFnMgr::Enroll(Weapon::Task_RadioUse(pThis));
+		if (pThis->pev->euser1->v.skin != Models::targetmdl::SKIN_GREEN)
+			TimedFnMgr::Enroll(Weapon::Task_RadioRejected(pThis));
+		else
+			TimedFnMgr::Enroll(Weapon::Task_RadioUse(pThis));
 	}
 }
 
@@ -155,6 +139,10 @@ void HamF_Item_Holster(CBasePlayerItem *pThis, int skiplocal) noexcept
 
 extern "C++" namespace Weapon
 {
+#define RESUME_CHECK	\
+	if (!pThis || pThis->m_pPlayer->m_pActiveItem != pThis || pThis->pev->weapons != RADIO_KEY)	\
+		co_return
+
 	TimedFn Task_RadioDeploy(EHANDLE<CBasePlayerWeapon> pThis) noexcept
 	{
 		pThis->pev->weapons = RADIO_KEY;
@@ -176,11 +164,44 @@ extern "C++" namespace Weapon
 		pThis->pev->euser1->v.effects &= ~EF_NODRAW;
 	}
 
+	TimedFn Task_RadioRejected(EHANDLE<CBasePlayerWeapon> pThis) noexcept
+	{
+		pThis->has_disconnected = false;	// BORROWED MEMBER: forbid holster.
+		pThis->SendWeaponAnim((int)Models::v_radio::seq::use);
+		pThis->m_pPlayer->m_flNextAttack = Models::v_radio::time::use;
+		pThis->m_flNextPrimaryAttack = Models::v_radio::time::use;
+		pThis->m_flNextSecondaryAttack = Models::v_radio::time::use;
+		pThis->m_flTimeWeaponIdle = Models::v_radio::time::use;
+
+		g_engfuncs.pfnEmitSound(pThis.Get(), CHAN_AUTO, Sounds::NOISE, VOL_NORM, ATTN_STATIC, 0, UTIL_Random(92, 108));
+
+		static constexpr float TIME_PRESS_TALK = 19.f / 45.f;
+		co_await TIME_PRESS_TALK;
+		RESUME_CHECK;
+
+		g_engfuncs.pfnEmitSound(pThis.Get(), CHAN_VOICE, Sounds::REQUESTING, 0.75f, ATTN_STATIC, 0, UTIL_Random(92, 108));
+
+		static constexpr float TIME_REQUESTING = 1.2f;
+		co_await TIME_REQUESTING;
+		RESUME_CHECK;
+
+		g_engfuncs.pfnEmitSound(pThis.Get(), CHAN_VOICE, Sounds::REJECTING, 0.75f, ATTN_STATIC, 0, UTIL_Random(92, 108));
+		g_engfuncs.pfnClientPrintf(pThis->m_pPlayer->edict(), print_center, "You must target an outdoor location.");
+
+		static_assert(Models::v_radio::time::use - TIME_PRESS_TALK - TIME_REQUESTING > 0);
+		co_await (Models::v_radio::time::use - TIME_PRESS_TALK - TIME_REQUESTING);
+		RESUME_CHECK;
+
+		pThis->SendWeaponAnim((int)Models::v_radio::seq::idle, false);
+		pThis->has_disconnected = true;	// BORROWED MEMBER: allow holster.
+	}
+
 	TimedFn Task_RadioUse(EHANDLE<CBasePlayerWeapon> pThis) noexcept
 	{
-		auto const pTarget = (CBaseEntity *)pThis->pev->euser1->pvPrivateData;
+		EHANDLE<CBaseEntity> pTarget = pThis->pev->euser1;
+		EHANDLE<CBaseEntity> pFixedTarget = FixedTarget::Create(pTarget->pev->origin, pTarget->pev->angles, pThis->m_pPlayer);
+
 		pTarget->pev->effects |= EF_NODRAW;
-		FixedTarget::Create(pTarget->pev->origin, pTarget->pev->angles, pThis->m_pPlayer->edict());
 
 		pThis->has_disconnected = false;	// BORROWED MEMBER: forbid holster.
 		pThis->SendWeaponAnim((int)Models::v_radio::seq::use);
@@ -188,10 +209,34 @@ extern "C++" namespace Weapon
 		pThis->m_flNextPrimaryAttack = Models::v_radio::time::use;
 		pThis->m_flNextSecondaryAttack = Models::v_radio::time::use;
 		pThis->m_flTimeWeaponIdle = Models::v_radio::time::use;
-		co_await Models::v_radio::time::use;
 
-		if (!pThis || pThis->m_pPlayer->m_pActiveItem != pThis || pThis->pev->weapons != RADIO_KEY)
-			co_return;
+		g_engfuncs.pfnEmitSound(pThis.Get(), CHAN_AUTO, Sounds::NOISE, VOL_NORM, ATTN_STATIC, 0, UTIL_Random(92, 108));
+
+		static constexpr float TIME_PRESS_TALK = 19.f / 45.f;
+		co_await TIME_PRESS_TALK;
+		RESUME_CHECK;
+
+		g_engfuncs.pfnEmitSound(pThis.Get(), CHAN_VOICE, Sounds::REQUESTING, 0.75f, ATTN_STATIC, 0, UTIL_Random(92, 108));
+
+		static constexpr float TIME_REQUESTING = 1.2f;
+		co_await TIME_REQUESTING;
+		RESUME_CHECK;
+
+		g_engfuncs.pfnEmitSound(pThis.Get(), CHAN_VOICE, Sounds::RADIO[AIR_STRIKE], 0.75f, ATTN_STATIC, 0, UTIL_Random(92, 108));
+
+		static constexpr float TIME_RESPOUNDING = 1.f;
+		co_await TIME_RESPOUNDING;
+		RESUME_CHECK;
+
+		[[likely]]
+		if (pFixedTarget)
+			FixedTarget::Start(pFixedTarget);
+		else
+			co_return;	// Round ended or something???
+
+		static_assert(Models::v_radio::time::use - TIME_PRESS_TALK - TIME_REQUESTING - TIME_RESPOUNDING > 0);
+		co_await (Models::v_radio::time::use - TIME_PRESS_TALK - TIME_REQUESTING - TIME_RESPOUNDING);
+		RESUME_CHECK;
 
 		pThis->SendWeaponAnim((int)Models::v_radio::seq::holster);
 		pThis->m_pPlayer->m_flNextAttack = Models::v_radio::time::holster;
@@ -199,9 +244,7 @@ extern "C++" namespace Weapon
 		pThis->m_flNextSecondaryAttack = Models::v_radio::time::holster;
 		pThis->m_flTimeWeaponIdle = Models::v_radio::time::holster;
 		co_await Models::v_radio::time::holster;
-
-		if (!pThis || pThis->m_pPlayer->m_pActiveItem != pThis || pThis->pev->weapons != RADIO_KEY)
-			co_return;
+		RESUME_CHECK;
 
 		for (auto &&pItem : pThis->m_pPlayer->m_rgpPlayerItems)
 		{

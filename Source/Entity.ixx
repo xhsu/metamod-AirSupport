@@ -35,6 +35,7 @@ export extern "C++" namespace Missile	// To allow module export a function in a 
 export extern "C++" namespace Weapon
 {
 	extern TimedFn Task_RadioDeploy(EHANDLE<CBasePlayerWeapon> pThis) noexcept;
+	extern TimedFn Task_RadioRejected(EHANDLE<CBasePlayerWeapon> pThis) noexcept;
 	extern TimedFn Task_RadioUse(EHANDLE<CBasePlayerWeapon> pThis) noexcept;
 	extern void OnRadioHolster(CBasePlayerItem *pThis) noexcept;
 };
@@ -53,7 +54,8 @@ export extern "C++" namespace Target
 
 export extern "C++" namespace FixedTarget
 {
-	extern void Create(Vector const& vecOrigin, Vector const& vecAngles, edict_t *const pPlayer) noexcept;
+	extern edict_t *Create(Vector const &vecOrigin, Vector const &vecAngles, CBasePlayer *const pPlayer) noexcept;
+	extern void Start(CBaseEntity *pTarget) noexcept;
 	extern TimedFn Think(EHANDLE<CBaseEntity> pEntity) noexcept;
 };
 
