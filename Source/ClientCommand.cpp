@@ -10,6 +10,11 @@ import Resources;
 
 using std::string;
 
+// Waypoint.cpp
+extern TimedFn Waypoint_Scan(void) noexcept;
+extern void Waypoint_Read(void) noexcept;
+//
+
 META_RES OnClientCommand(CBasePlayer *pPlayer, const string &szCommand) noexcept
 {
 	if (!pPlayer->IsAlive())
@@ -41,7 +46,7 @@ META_RES OnClientCommand(CBasePlayer *pPlayer, const string &szCommand) noexcept
 				return MRES_IGNORED;
 
 			// Clear radio events
-			Weapon::OnRadioHolster(pWeapon);
+			Weapon::OnRadioHolster((CBasePlayerWeapon *)pWeapon);
 
 			// Take out knife.
 			g_pfnItemDeploy(pWeapon);
@@ -64,6 +69,25 @@ META_RES OnClientCommand(CBasePlayer *pPlayer, const string &szCommand) noexcept
 		g_engfuncs.pfnClientPrintf(pEdict, print_console, fmt::format("[AIMING AT]:\n\t{}\n\t{}\n\t{}\n", tr.vecEndPos.x, tr.vecEndPos.y, tr.vecEndPos.z).c_str());
 		return MRES_SUPERCEDE;
 	}
+	else if (szCommand == "scanjetspawn")
+	{
+		TimedFnMgr::Enroll(Waypoint_Scan());
+		return MRES_SUPERCEDE;
+	}
+	else if (szCommand == "readjetspawn")
+	{
+		Waypoint_Read();
+		return MRES_SUPERCEDE;
+	}
+	//else if (szCommand == "showjetspawn")
+	//{
+	//	if (!TimedFnMgr::Exist(RADIO_KEY * 2))
+	//		TimedFnMgr::Enroll(Waypoint_Show(pPlayer), RADIO_KEY * 2);
+	//	else
+	//		TimedFnMgr::Delist(RADIO_KEY * 2);
+	//
+	//	return MRES_SUPERCEDE;
+	//}
 
 	return MRES_IGNORED;
 }

@@ -26,6 +26,7 @@ void Precache(void) noexcept
 
 	g_engfuncs.pfnPrecacheSound(Sounds::REQUESTING);
 	g_engfuncs.pfnPrecacheSound(Sounds::REJECTING);
+	g_engfuncs.pfnPrecacheSound(Sounds::NOISE);
 
 	g_engfuncs.pfnPrecacheSound(Sounds::TRAVEL);
 

@@ -47,16 +47,20 @@ export namespace TimedFnMgr
 		if (m_List.empty())
 			return;
 
-		[[unlikely]]
-		if (m_List.front().ShouldResume())
+		while (!m_List.empty())
 		{
-			if (!m_List.front().Done())
-			{
-				m_List.front().Resume();
+			m_List.sort();
 
-				m_List.sort();
-				m_List.remove_if(std::bind_front(&TimedFn::Done));
+			while (m_List.front().Done())
+			{
+				m_List.pop_front();
 			}
+
+			[[likely]]
+			if (m_List.front().ShouldResume())
+				m_List.front().Resume();
+			else
+				break;	// if the first one in queue is not going to resume, then nor should anyone else.
 		}
 	}
 

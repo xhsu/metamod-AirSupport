@@ -5,7 +5,7 @@ import UtlRandom;
 
 extern "C++" namespace Jet
 {
-	TimedFn Think(EHANDLE<CBaseEntity> pJet) noexcept
+	TimedFn Task_Jet(EHANDLE<CBaseEntity> pJet) noexcept
 	{
 		auto pPlayer = EHANDLE<CBasePlayer>(pJet->pev->euser1);
 		auto pTarget = EHANDLE<CBaseEntity>(pJet->pev->euser2);
@@ -16,7 +16,7 @@ extern "C++" namespace Jet
 
 		for (; pJet && pTarget;)
 		{
-			co_await 0.1f;	// try it every other frame.
+			co_await 0.01f;	// try it every other frame.
 
 			TraceResult tr{};
 			g_engfuncs.pfnTraceLine(pJet->pev->origin, pTarget->pev->origin, ignore_monsters, pJet.Get(), &tr);

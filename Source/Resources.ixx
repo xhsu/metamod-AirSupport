@@ -14,30 +14,30 @@ export namespace Models
 {
 	inline constexpr array PLANE =
 	{
-		"models/F22.mdl",
-		"models/F18.mdl",
-		"models/F18.mdl",
-		"models/AC130_fly.mdl",
-		"models/F18.mdl",
+		"models/AirSupport/F22.mdl",
+		"models/AirSupport/F18.mdl",
+		"models/AirSupport/F18.mdl",
+		"models/AirSupport/AC-130.mdl",
+		"models/AirSupport/F18.mdl",
 	};
 
 	inline constexpr array PROJECTILE =
 	{
-		"models/mq9_missile.mdl",
-		"models/mortar-rocket.mdl",
-		"models/mortar-rocket.mdl",
-		"models/mortar-rocket.mdl",
-		"models/mortar-rocket.mdl",
+		"models/AirSupport/mq9_missile.mdl",
+		"models/AirSupport/mortar-rocket.mdl",
+		"models/AirSupport/mortar-rocket.mdl",
+		"models/AirSupport/mortar-rocket.mdl",
+		"models/AirSupport/mortar-rocket.mdl",
 	};
 
-	inline constexpr char V_RADIO[] = "models/v_radio.mdl";
-	inline constexpr char P_RADIO[] = "models/p_radio.mdl";
+	inline constexpr char V_RADIO[] = "models/AirSupport/v_radio.mdl";
+	inline constexpr char P_RADIO[] = "models/AirSupport/p_radio.mdl";
 
-	inline constexpr char GIBS_WALL_BROWN[] = "models/gibs_wallbrown.mdl";
-	inline constexpr char GIBS_WOOD[] = "models/gibs_woodplank.mdl";
-	inline constexpr char GIBS_BRICK[] = "models/gibs_brickred.mdl";
+	inline constexpr char GIBS_WALL_BROWN[] = "models/AirSupport/gibs_wallbrown.mdl";
+	inline constexpr char GIBS_WOOD[] = "models/AirSupport/gibs_woodplank.mdl";
+	inline constexpr char GIBS_BRICK[] = "models/AirSupport/gibs_brickred.mdl";
 
-	inline constexpr char TARGET[] = "models/Test_001.mdl";
+	inline constexpr char TARGET[] = "models/AirSupport/Test_001.mdl";
 
 	inline unordered_map<string, int> m_rgLibrary{};
 
@@ -63,6 +63,10 @@ export namespace Models
 	namespace targetmdl
 	{
 		inline constexpr auto FPS = (2.0 * 256.0 / 17.0);	// the pev->frame must count from 0-255, with all model frame stretch and distributed.
+
+		inline constexpr auto SKIN_GREEN = 0;
+		inline constexpr auto SKIN_BLUE = 1;
+		inline constexpr auto SKIN_RED = 2;
 	}
 };
 
@@ -79,6 +83,7 @@ export namespace Sounds
 
 	inline constexpr char REQUESTING[] = "airsupport/radio/radio_use.wav";
 	inline constexpr char REJECTING[] = "airsupport/radio/radio_negative.wav";
+	inline constexpr char NOISE[] = "weapons/RADIO/radio_use.wav";
 
 	inline constexpr char TRAVEL[] = "weapons/law_travel.wav";
 

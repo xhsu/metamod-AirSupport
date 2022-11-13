@@ -34,6 +34,11 @@ extern void HamF_Item_Holster(CBasePlayerItem *pThis, int skiplocal) noexcept;
 extern void OrpheuF_CleanUpMap(CHalfLifeMultiplay *pThis) noexcept;
 //
 
+// Waypoint.cpp
+extern TimedFn Waypoint_Scan(void) noexcept;
+extern void Waypoint_Read(void) noexcept;
+//
+
 inline bool g_bShouldPrecache = true;
 
 void DeployHooks(void) noexcept
@@ -69,8 +74,8 @@ void DeployHooks(void) noexcept
 	UTIL_VirtualTableInjection(rgpfnCKnife, VFTIDX_ITEM_ADDTOPLAYER, UTIL_CreateTrampoline(true, 1, &HamF_Item_AddToPlayer), (void **)&g_pfnItemAddToPlayer);
 	UTIL_VirtualTableInjection(rgpfnCKnife, VFTIDX_ITEM_DEPLOY, UTIL_CreateTrampoline(true, 0, &HamF_Item_Deploy), (void **)&g_pfnItemDeploy);
 	UTIL_VirtualTableInjection(rgpfnCKnife, VFTIDX_ITEM_POSTFRAME, UTIL_CreateTrampoline(true, 0, &HamF_Item_PostFrame), (void **)&g_pfnItemPostFrame);
-	UTIL_VirtualTableInjection(rgpfnCKnife, VFTIDX_WEAPON_PRIMARYATTACK, UTIL_CreateTrampoline(true, 0, &HamF_Weapon_PrimaryAttack), (void **)&g_pfnWeaponPrimaryAttack);
-	UTIL_VirtualTableInjection(rgpfnCKnife, VFTIDX_WEAPON_SECONDARYATTACK, UTIL_CreateTrampoline(true, 0, &HamF_Weapon_SecondaryAttack), (void **)&g_pfnWeaponSecondaryAttack);
+//	UTIL_VirtualTableInjection(rgpfnCKnife, VFTIDX_WEAPON_PRIMARYATTACK, UTIL_CreateTrampoline(true, 0, &HamF_Weapon_PrimaryAttack), (void **)&g_pfnWeaponPrimaryAttack);
+//	UTIL_VirtualTableInjection(rgpfnCKnife, VFTIDX_WEAPON_SECONDARYATTACK, UTIL_CreateTrampoline(true, 0, &HamF_Weapon_SecondaryAttack), (void **)&g_pfnWeaponSecondaryAttack);
 	UTIL_VirtualTableInjection(rgpfnCKnife, VFTIDX_ITEM_CANHOLSTER, UTIL_CreateTrampoline(true, 0, &HamF_Item_CanHolster), (void **)&g_pfnItemCanHolster);
 	UTIL_VirtualTableInjection(rgpfnCKnife, VFTIDX_ITEM_HOLSTER, UTIL_CreateTrampoline(true, 1, &HamF_Item_Holster), (void **)&g_pfnItemHolster);
 
@@ -78,14 +83,37 @@ void DeployHooks(void) noexcept
 	g_pfnSelectItem = (fnSelectItem_t)UTIL_SearchPattern("mp.dll", SELECT_ITEM_FN_PATTERN, 1);
 	g_pfnApplyMultiDamage = (fnApplyMultiDamage_t)UTIL_SearchPattern("mp.dll", APPLY_MULTI_DAMAGE_FN_PATTERN, 1);
 	g_pfnClearMultiDamage = (fnClearMultiDamage_t)UTIL_SearchPattern("mp.dll", CLEAR_MULTI_DAMAGE_FN_PATTERN, 1);
+	g_pfnAddMultiDamage = (fnAddMultiDamage_t)UTIL_SearchPattern("mp.dll", ADD_MULTI_DAMAGE_FN_PATTERN, 1);
 	g_pfnDefaultDeploy = (fnDefaultDeploy_t)UTIL_SearchPattern("mp.dll", DEFAULT_DEPLOY_FN_PATTERN, 1);
 	g_pfnSwitchWeapon = (fnSwitchWeapon_t)UTIL_SearchPattern("mp.dll", SWITCH_WEAPON_FN_PATTERN, 1);
+
+	pEnt = g_engfuncs.pfnCreateNamedEntity(MAKE_STRING("info_target"));	// Technically this is not CBaseEntity, but it is the closest one. It overrides Spawn() and ObjectCaps(), so it is still pure enough.
+
+	if (!pEnt || !pEnt->pvPrivateData) [[unlikely]]
+	{
+		if (pEnt)
+			g_engfuncs.pfnRemoveEntity(pEnt);
+
+		LOG_ERROR("Failed to retrieve classtype for \"info_target\".");
+		return;
+	}
+
+	g_pfnEntityTraceAttack = (fnEntityTraceAttack_t)UTIL_RetrieveVirtualFunction(pEnt->pvPrivateData, VFTIDX_CBASE_TRACEATTACK);
+	g_pfnEntityTakeDamage = (fnEntityTakeDamage_t)UTIL_RetrieveVirtualFunction(pEnt->pvPrivateData, VFTIDX_CBASE_TAKEDAMAGE);
+	g_pfnEntityKilled = (fnEntityKilled_t)UTIL_RetrieveVirtualFunction(pEnt->pvPrivateData, VFTIDX_CBASE_KILLED);
+	g_pfnEntityTraceBleed = (fnEntityTraceBleed_t)UTIL_RetrieveVirtualFunction(pEnt->pvPrivateData, VFTIDX_CBASE_TRACEBLEED);
+	g_pfnEntityDamageDecal = (fnEntityDamageDecal_t)UTIL_RetrieveVirtualFunction(pEnt->pvPrivateData, VFTIDX_CBASE_DAMAGEDECAL);
+	g_pfnEntityGetNextTarget = (fnEntityGetNextTarget_t)UTIL_RetrieveVirtualFunction(pEnt->pvPrivateData, VFTIDX_CBASE_GETNEXTTARGET);
+
+	g_engfuncs.pfnRemoveEntity(pEnt);
+	pEnt = nullptr;
 
 #ifdef _DEBUG
 	assert(g_pfnRadiusFlash != nullptr);
 	assert(g_pfnSelectItem != nullptr);
 	assert(g_pfnApplyMultiDamage != nullptr);
 	assert(g_pfnClearMultiDamage != nullptr);
+	assert(g_pfnAddMultiDamage != nullptr);
 	assert(g_pfnDefaultDeploy != nullptr);
 	assert(g_pfnSwitchWeapon != nullptr);
 #else
@@ -101,6 +129,9 @@ void DeployHooks(void) noexcept
 	[[unlikely]]
 	if (!g_pfnClearMultiDamage)
 		LOG_ERROR("Function \"::ClearMultiDamage\" no found!");
+	[[unlikely]]
+	if (!g_pfnAddMultiDamage)
+		LOG_ERROR("Function \"::AddMultiDamage\" no found!");
 	[[unlikely]]
 	if (!g_pfnDefaultDeploy)
 		LOG_ERROR("Function \"CBasePlayerWeapon::DefaultDeploy\" no found!");
@@ -187,6 +218,7 @@ void fw_ServerActivate_Post(edict_t *pEdictList, int edictCount, int clientMax) 
 	DeployHooks();
 	RetrieveMessageHandles();
 	RetrieveCVarHandles();
+	Waypoint_Read();
 
 	// plugin_cfg
 

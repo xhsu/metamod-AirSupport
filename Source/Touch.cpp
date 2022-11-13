@@ -127,7 +127,7 @@ void Explosion(CBasePlayer *pAttacker, const Vector &vecOrigin, float flRadius, 
 		gmsgScreenShake::Send(ent_cast<edict_t *>(pEntity->pev),
 			std::clamp(25 * (1 << 12), 0, 0xFFFF),	// amp
 			std::clamp(5 * (1 << 12), 0, 0xFFFF),	// dur
-			std::clamp(1 * (1 << 12), 0, 0xFFFF)	// freq
+			std::clamp(12 * (1 << 8), 0, 0xFFFF)		// freq
 		);
 
 		gmsgScreenFade::Send(ent_cast<edict_t *>(pEntity->pev),
