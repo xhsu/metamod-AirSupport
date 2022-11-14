@@ -92,7 +92,7 @@ int HamF_Item_Deploy(CBasePlayerItem *pItem) noexcept
 
 	if (pThis->pev->weapons == RADIO_KEY)
 	{
-		TimedFnMgr::Enroll(Weapon::Task_RadioDeploy(pThis));
+		TaskScheduler::Enroll(Weapon::Task_RadioDeploy(pThis));
 		return true;
 	}
 
@@ -117,9 +117,9 @@ void HamF_Item_PostFrame(CBasePlayerItem *pItem) noexcept
 	if (pThis->m_pPlayer->m_afButtonPressed & IN_ATTACK)
 	{
 		if (pThis->pev->euser1->v.skin != Models::targetmdl::SKIN_GREEN)
-			TimedFnMgr::Enroll(Weapon::Task_RadioRejected(pThis));
+			TaskScheduler::Enroll(Weapon::Task_RadioRejected(pThis));
 		else
-			TimedFnMgr::Enroll(Weapon::Task_RadioAccepted(pThis));
+			TaskScheduler::Enroll(Weapon::Task_RadioAccepted(pThis));
 	}
 }
 
@@ -145,7 +145,7 @@ extern "C++" namespace Weapon
 	if (!pThis || pThis->m_pPlayer->m_pActiveItem != pThis || pThis->pev->weapons != RADIO_KEY)	\
 		co_return
 
-	TimedFn Task_RadioDeploy(EHANDLE<CBasePlayerWeapon> pThis) noexcept
+	Task Task_RadioDeploy(EHANDLE<CBasePlayerWeapon> pThis) noexcept
 	{
 		// Remove shield protection for now.
 		if (pThis->m_pPlayer->m_bOwnsShield)
@@ -169,7 +169,7 @@ extern "C++" namespace Weapon
 		pThis->pev->euser1->v.effects &= ~EF_NODRAW;
 	}
 
-	TimedFn Task_RadioRejected(EHANDLE<CBasePlayerWeapon> pThis) noexcept
+	Task Task_RadioRejected(EHANDLE<CBasePlayerWeapon> pThis) noexcept
 	{
 		pThis->has_disconnected = false;	// BORROWED MEMBER: forbid holster.
 		pThis->SendWeaponAnim((int)Models::v_radio::seq::use);
@@ -198,7 +198,7 @@ extern "C++" namespace Weapon
 		pThis->has_disconnected = true;	// BORROWED MEMBER: allow holster.
 	}
 
-	TimedFn Task_RadioAccepted(EHANDLE<CBasePlayerWeapon> pThis) noexcept
+	Task Task_RadioAccepted(EHANDLE<CBasePlayerWeapon> pThis) noexcept
 	{
 		EHANDLE<CBaseEntity> pTarget = pThis->pev->euser1;
 		EHANDLE<CBaseEntity> pFixedTarget = FixedTarget::Create(pTarget->pev->origin, pTarget->pev->angles, pThis->m_pPlayer);

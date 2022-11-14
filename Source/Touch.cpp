@@ -88,7 +88,7 @@ float GetAmountOfPlayerVisible(const Vector& vecSrc, CBaseEntity *pEntity) noexc
 	return retval;
 }
 
-void Explosion(CBasePlayer *pAttacker, const Vector &vecOrigin, float flRadius, float flPunchMax, float flDamage, float flKnockForce) noexcept
+void Explosion(CBasePlayer *pAttacker, const Vector &vecOrigin, float const flRadius, float const flDamage) noexcept
 {
 	bool const bInWater = g_engfuncs.pfnPointContents(vecOrigin) == CONTENTS_WATER;
 
@@ -114,39 +114,56 @@ void Explosion(CBasePlayer *pAttacker, const Vector &vecOrigin, float flRadius, 
 		if (pEntity->IsPlayer())
 		{
 			auto const pVictim = (CBasePlayer *)pEntity;
-			if (pVictim->IsAlive() && gcvarFriendlyFire->value <= 0 && pVictim->m_iTeam == pAttacker->m_iTeam)
-				goto LAB_APPLY_DISRUPT;
+			if (pVictim->IsAlive() && gcvarFriendlyFire->value < 1 && pVictim->m_iTeam == pAttacker->m_iTeam)
+				continue;
 		}
 
 		pEntity->TakeDamage(pAttacker->pev, pAttacker->pev, flAdjustedDmg, DMG_EXPLOSION);
+	}
+}
 
-	LAB_APPLY_DISRUPT:;
-		if (!pEntity->IsAlive())
-			continue;
+void ScreenEffects(const Vector &vecOrigin, float const flRadius, float const flPunchMax, float const flKnockForce) noexcept
+{
+	for (auto &&pPlayer : FIND_ENTITY_IN_SPHERE(vecOrigin, flRadius)
+		| std::views::filter([](edict_t *pEdict) noexcept { return pEdict->v.takedamage != DAMAGE_NO; })
+		| std::views::transform([](edict_t *pEdict) noexcept { return (CBaseEntity *)pEdict->pvPrivateData; })
+		| std::views::transform([](CBaseEntity *pEntity) noexcept { return (pEntity->IsPlayer() && pEntity->IsAlive()) ? (CBasePlayer *)pEntity : nullptr; })
+		| std::views::filter([](CBasePlayer *pPlayer) noexcept { return pPlayer != nullptr; })
+		)
+	{
+		Vector const vecDiff = pPlayer->pev->origin - vecOrigin;
+		float const flDistance = vecDiff.Length();
+		float const flModifer = (flRadius - flDistance) * (flRadius - flDistance) * 1.25f / (flRadius * flRadius) * 1.5f;
 
-		gmsgScreenShake::Send(ent_cast<edict_t *>(pEntity->pev),
-			std::clamp(25 * (1 << 12), 0, 0xFFFF),	// amp
-			std::clamp(5 * (1 << 12), 0, 0xFFFF),	// dur
-			std::clamp(12 * (1 << 8), 0, 0xFFFF)		// freq
+		gmsgScreenShake::Send(pPlayer->edict(),
+			ScaledFloat<1 << 12>(25 * flModifer),	// amp
+			ScaledFloat<1 << 12>(5 * flModifer),	// dur
+			ScaledFloat<1 << 8>(12)					// freq
 		);
 
-		gmsgScreenFade::Send(ent_cast<edict_t *>(pEntity->pev),
-			std::clamp<int>(0.2 * (1 << 12), 0, 0xFFFF),	// fade time
-			std::clamp<int>(0.1 * (1 << 12), 0, 0xFFFF),	// fade hold
-			FFADE_OUT,	// flags
+		gmsgScreenFade::Send(pPlayer->edict(),
+			ScaledFloat<1 << 12>(1.0 * flModifer),	// phase time
+			ScaledFloat<1 << 12>(0.1),	// color hold
+			FFADE_IN,	// flags
 			255,		// r
 			255,		// g
 			255,		// b
 			255			// a
 		);
 
-		pEntity->pev->punchangle += Vector(UTIL_Random(-flPunchMax, flPunchMax), UTIL_Random(-flPunchMax, flPunchMax), UTIL_Random(-flPunchMax, flPunchMax));
+		float const flPunch = flPunchMax * flModifer;
+		pPlayer->pev->punchangle += Vector(
+			flPunch * (UTIL_Random() ? 1 : -1),
+			flPunch * (UTIL_Random() ? 1 : -1),
+			flPunch * (UTIL_Random() ? 1 : -1)
+		);
 
-		Vector const vecVelocity = (pEntity->Center() - vecOrigin).Normalize();
 		float const flSpeed = flModifer * flKnockForce;
+		if (pPlayer->pev->maxspeed > 1)
+			pPlayer->pev->velocity += vecDiff.Normalize() * flSpeed;
 
-		if (pEntity->pev->maxspeed > 1)
-			pEntity->pev->velocity += vecVelocity * flSpeed;
+		if (flModifer > 0.65f)
+			g_engfuncs.pfnClientCommand(pPlayer->edict(), "spk %s\n", Sounds::PLAYER_EAR_RINGING);
 	}
 }
 
@@ -331,7 +348,8 @@ META_RES OnTouch(CBaseEntity *pEntity, CBaseEntity *pOther) noexcept
 		if (pev_valid(pOther->pev) == 2)
 			Impact(pPlayer, pEntity, pOther, 125.f);
 
-		Explosion(pPlayer, pEntity->pev->origin, 350.f, 8.f, 275.f, 2048.f);
+		Explosion(pPlayer, pEntity->pev->origin, 350.f, 275.f);
+		ScreenEffects(pEntity->pev->origin, 700.f, 12.f, 2048.f);
 		VisualEffects(pEntity->pev->origin);
 
 		pEntity->pev->flags |= FL_KILLME;

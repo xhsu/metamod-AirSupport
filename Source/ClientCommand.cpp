@@ -7,11 +7,12 @@ import meta_api;
 import Entity;
 import Hook;
 import Resources;
+import Query;
 
 using std::string;
 
 // Waypoint.cpp
-extern TimedFn Waypoint_Scan(void) noexcept;
+extern Task Waypoint_Scan(void) noexcept;
 extern void Waypoint_Read(void) noexcept;
 //
 
@@ -28,7 +29,7 @@ META_RES OnClientCommand(CBasePlayer *pPlayer, const string &szCommand) noexcept
 			if (pWeapon->pev->weapons == RADIO_KEY)
 				return MRES_SUPERCEDE;
 
-			TimedFnMgr::Enroll(Weapon::Task_RadioDeploy((CBasePlayerWeapon *)pWeapon));
+			TaskScheduler::Enroll(Weapon::Task_RadioDeploy((CBasePlayerWeapon *)pWeapon));
 		}
 		else if (auto const pWeapon = pPlayer->m_rgpPlayerItems[3])
 		{
@@ -71,7 +72,7 @@ META_RES OnClientCommand(CBasePlayer *pPlayer, const string &szCommand) noexcept
 	}
 	else if (szCommand == "scanjetspawn")
 	{
-		TimedFnMgr::Enroll(Waypoint_Scan());
+		TaskScheduler::Enroll(Waypoint_Scan());
 		return MRES_SUPERCEDE;
 	}
 	else if (szCommand == "readjetspawn")

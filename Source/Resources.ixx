@@ -136,6 +136,8 @@ export namespace Sprite
 	inline constexpr char BEAM[] = "sprites/laserbeam.spr";
 	inline constexpr char AIM[] = "sprites/targetsign.spr";
 
+	inline constexpr char TRAIL[] = "sprites/smoke.spr";
+
 	inline unordered_map<string, int> m_rgLibrary{};
 };
 

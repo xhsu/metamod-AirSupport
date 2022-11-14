@@ -26,7 +26,7 @@ using std::array;
 using std::span;
 using std::vector;
 
-TimedFn Waypoint_Scan(void) noexcept
+Task Waypoint_Scan(void) noexcept
 {
 //	TimedFnMgr::Delist(RADIO_KEY * 2);
 

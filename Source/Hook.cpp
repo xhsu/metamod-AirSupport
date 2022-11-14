@@ -35,7 +35,7 @@ extern void OrpheuF_CleanUpMap(CHalfLifeMultiplay *pThis) noexcept;
 //
 
 // Waypoint.cpp
-extern TimedFn Waypoint_Scan(void) noexcept;
+extern Task Waypoint_Scan(void) noexcept;
 extern void Waypoint_Read(void) noexcept;
 //
 
@@ -478,12 +478,12 @@ inline constexpr DLL_FUNCTIONS gFunctionTable_Post =
 	.pfnClientCommand		= nullptr,
 	.pfnClientUserInfoChanged= nullptr,
 	.pfnServerActivate		= &fw_ServerActivate_Post,
-	.pfnServerDeactivate	= []() noexcept { g_bShouldPrecache = true; g_pGameRules = nullptr; TimedFnMgr::Clear(); },
+	.pfnServerDeactivate	= []() noexcept { g_bShouldPrecache = true; g_pGameRules = nullptr; TaskScheduler::Clear(); },
 
 	.pfnPlayerPreThink	= nullptr,
 	.pfnPlayerPostThink	= nullptr,
 
-	.pfnStartFrame		= &TimedFnMgr::Think,
+	.pfnStartFrame		= &TaskScheduler::Think,
 	.pfnParmsNewLevel	= nullptr,
 	.pfnParmsChangeLevel= nullptr,
 

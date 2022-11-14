@@ -63,7 +63,7 @@
       <ScanSourceForModuleDependencies>true</ScanSourceForModuleDependencies>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <ExceptionHandling>false</ExceptionHandling>
-      <AdditionalIncludeDirectories>..\fmt\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\fmt\include\;..\range-v3\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4530;%(DisableSpecificWarnings)</DisableSpecificWarnings>
     </ClCompile>
     <Link>
@@ -87,7 +87,7 @@
       <ScanSourceForModuleDependencies>true</ScanSourceForModuleDependencies>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <ExceptionHandling>false</ExceptionHandling>
-      <AdditionalIncludeDirectories>..\fmt\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\fmt\include\;..\range-v3\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4530;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
     </ClCompile>
@@ -102,6 +102,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\Hydrogenium\UtlConcepts.ixx" />
+    <ClCompile Include="..\Hydrogenium\UtlFunction.ixx" />
     <ClCompile Include="..\Hydrogenium\UtlHook.ixx" />
     <ClCompile Include="..\Hydrogenium\UtlRandom.ixx" />
     <ClCompile Include="..\metamod-p\hlsdk\cl_dll\hud_iface.ixx" />
@@ -176,6 +177,7 @@
     <ClCompile Include="Source\Jet.cpp" />
     <ClCompile Include="Source\Missile.cpp" />
     <ClCompile Include="Source\Prefab.ixx" />
+    <ClCompile Include="Source\Query.ixx" />
     <ClCompile Include="Source\Resources.ixx" />
     <ClCompile Include="Source\CBase.ixx" />
     <ClCompile Include="Source\Message.ixx" />
@@ -187,7 +189,10 @@
     <ClCompile Include="Source\Target.cpp" />
     <ClCompile Include="Source\Task.ixx" />
     <ClCompile Include="Source\Think.cpp" />
-    <ClCompile Include="Source\Touch.cpp" />
+    <ClCompile Include="Source\Touch.cpp">
+      <DisableSpecificWarnings Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">4244;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <DisableSpecificWarnings Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">4244;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+    </ClCompile>
     <ClCompile Include="Source\Waypoint.cpp" />
     <ClCompile Include="Source\Waypoint.ixx" />
     <ClCompile Include="Source\Weapon.cpp" />
