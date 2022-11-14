@@ -7,7 +7,6 @@ import meta_api;
 import Entity;
 import Hook;
 import Resources;
-import Query;
 
 using std::string;
 
@@ -43,7 +42,7 @@ META_RES OnClientCommand(CBasePlayer *pPlayer, const string &szCommand) noexcept
 	{
 		if (auto const pWeapon = pPlayer->m_pActiveItem; pWeapon->m_iId == WEAPON_KNIFE)
 		{
-			if (pWeapon->pev->weapons != RADIO_KEY)
+			if (pWeapon->pev->weapons != RADIO_KEY || !pWeapon->CanHolster())
 				return MRES_IGNORED;
 
 			// Clear radio events

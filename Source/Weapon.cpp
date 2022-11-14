@@ -10,6 +10,7 @@ import Hook;
 import Resources;
 import Task;
 
+import UtlHook;
 import UtlRandom;
 
 using std::array;
@@ -287,3 +288,24 @@ extern "C++" namespace Weapon
 			pThis->m_pPlayer->pev->gamestate = 0;
 	}
 };
+
+qboolean SwitchWeapon(CBasePlayer *pPlayer, CBasePlayerItem *pWeapon) noexcept
+{
+	if (pPlayer->m_pActiveItem && !pPlayer->m_pActiveItem->CanHolster())
+		return false;
+
+	UTIL_UndoPatch(g_pfnSwitchWeapon, HookInfo::SwitchWeapon.m_OriginalBytes);
+	auto const ret = g_pfnSwitchWeapon(pPlayer, pWeapon);
+	UTIL_DoPatch(g_pfnSwitchWeapon, HookInfo::SwitchWeapon.m_PatchedBytes);
+	return ret;
+}
+
+void SelectItem(CBasePlayer *pPlayer, const char *pstr) noexcept
+{
+	if (pPlayer->m_pActiveItem && !pPlayer->m_pActiveItem->CanHolster())
+		return;
+
+	UTIL_UndoPatch(g_pfnSelectItem, HookInfo::SelectItem.m_OriginalBytes);
+	g_pfnSelectItem(pPlayer, pstr);
+	UTIL_DoPatch(g_pfnSelectItem, HookInfo::SelectItem.m_PatchedBytes);
+}

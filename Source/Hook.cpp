@@ -28,6 +28,8 @@ extern void HamF_Weapon_PrimaryAttack(CBasePlayerWeapon *pThis) noexcept;
 extern void HamF_Weapon_SecondaryAttack(CBasePlayerWeapon *pThis) noexcept;
 extern qboolean HamF_Item_CanHolster(CBasePlayerItem *pThis) noexcept;
 extern void HamF_Item_Holster(CBasePlayerItem *pThis, int skiplocal) noexcept;
+extern qboolean SwitchWeapon(CBasePlayer *pPlayer, CBasePlayerItem *pWeapon) noexcept;
+extern void SelectItem(CBasePlayer *pPlayer, const char *pstr) noexcept;
 //
 
 // Round.cpp
@@ -139,6 +141,15 @@ void DeployHooks(void) noexcept
 	if (!g_pfnSwitchWeapon)
 		LOG_ERROR("Function \"CBasePlayer::SwitchWeapon\" no found!");
 #endif
+
+	HookInfo::SelectItem.m_Address = g_pfnSelectItem;
+	HookInfo::SwitchWeapon.m_Address = g_pfnSwitchWeapon;
+
+	UTIL_PreparePatch(g_pfnSelectItem, UTIL_CreateTrampoline(true, 1, &::SelectItem), HookInfo::SelectItem.m_PatchedBytes, HookInfo::SelectItem.m_OriginalBytes);
+	UTIL_PreparePatch(g_pfnSwitchWeapon, UTIL_CreateTrampoline(true, 1, &::SwitchWeapon), HookInfo::SwitchWeapon.m_PatchedBytes, HookInfo::SwitchWeapon.m_OriginalBytes);
+
+	UTIL_DoPatch(g_pfnSelectItem, HookInfo::SelectItem.m_PatchedBytes);
+	UTIL_DoPatch(g_pfnSwitchWeapon, HookInfo::SwitchWeapon.m_PatchedBytes);
 
 	bHooksPerformed = true;
 }
