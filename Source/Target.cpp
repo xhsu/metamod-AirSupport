@@ -109,7 +109,7 @@ extern "C++" namespace Target
 
 		pWeapon->pev->euser1 = pTarget;
 
-		TimedFnMgr::Enroll(Task_ScanJetSpawn(pTarget));
+		TaskScheduler::Enroll(Task_ScanJetSpawn(pTarget));
 	}
 
 	void Think(CBaseEntity *pEntity) noexcept
@@ -121,7 +121,7 @@ extern "C++" namespace Target
 			return;
 		}
 
-		pEntity->pev->nextthink = 0.1f;
+		pEntity->pev->nextthink = 0.1f;	// This think needs to be called every frame, so we are not making it a task.
 
 		if (pEntity->pev->effects & EF_NODRAW)
 			return;
@@ -165,7 +165,7 @@ extern "C++" namespace Target
 			pEntity->pev->frame -= float((pEntity->pev->frame / 256.0) * 256.0);
 	}
 
-	TimedFn Task_ScanJetSpawn(EHANDLE<CBaseEntity> pTarget) noexcept
+	Task Task_ScanJetSpawn(EHANDLE<CBaseEntity> pTarget) noexcept
 	{
 		TraceResult tr{};
 		EHANDLE<CBasePlayer> pPlayer = pTarget->pev->euser1;
@@ -180,7 +180,7 @@ extern "C++" namespace Target
 				continue;
 			}
 
-			if (pTarget->pev->vuser2 != Vector::Zero())
+			if (pTarget->pev->vuser2 != Vector::Zero())	// result yielded. skip this round.
 			{
 				co_await (gpGlobals->frametime * 2.f);
 				continue;
@@ -202,23 +202,26 @@ extern "C++" namespace Target
 				if (!(iCounter % 512))
 				{
 					co_await (gpGlobals->frametime * 2.f);
-
-					if (pTarget->pev->vuser2 == Vector::Zero())
-						break;	// Start over.
 				}
 			}
 
-			// Try to get a temp spawn location above player.
-			Vector const vecSrc = pPlayer->GetGunPosition();
-			Vector const vecEnd = { vecSrc.x, vecSrc.y, 8192.f };
+			[[unlikely]]
+			if (pTarget->pev->vuser2 == Vector::Zero())
+			{
+				// Try to get a temp spawn location above player.
+				Vector const vecSrc = pPlayer->GetGunPosition();
+				Vector const vecEnd = { vecSrc.x, vecSrc.y, 8192.f };
 
-			g_engfuncs.pfnTraceLine(vecSrc, vecEnd, ignore_monsters | ignore_glass, nullptr, &tr);
+				g_engfuncs.pfnTraceLine(vecSrc, vecEnd, ignore_monsters | ignore_glass, nullptr, &tr);
 
-			Vector const vecSavedCandidate = tr.vecEndPos;
-			g_engfuncs.pfnTraceLine(vecSavedCandidate, pTarget->pev->vuser1, ignore_monsters | ignore_glass, nullptr, &tr);
+				if (Vector const vecSavedCandidate = tr.vecEndPos; g_engfuncs.pfnPointContents(vecSavedCandidate) == CONTENTS_SKY)
+				{
+					g_engfuncs.pfnTraceLine(vecSavedCandidate, pTarget->pev->vuser1, ignore_monsters | ignore_glass, nullptr, &tr);
 
-			if (tr.flFraction > 0.99f)
-				pTarget->pev->vuser2 = vecSavedCandidate;
+					if (tr.flFraction > 0.99f)
+						pTarget->pev->vuser2 = vecSavedCandidate;
+				}
+			}
 		}
 
 		co_return;
@@ -251,30 +254,30 @@ extern "C++" namespace FixedTarget
 		pTarget->v.vuser1 = vecOrigin;		// Targeting origin input.
 		pTarget->v.vuser2 = Vector::Zero();	// Clearing jet spawn origin output.
 
-		TimedFnMgr::Enroll(Target::Task_ScanJetSpawn(pTarget));	// This function is cross-usage-allowed.
+		TaskScheduler::Enroll(Target::Task_ScanJetSpawn(pTarget));	// This function is cross-usage-allowed.
 
 		return pTarget;
 	}
 
 	void Start(CBaseEntity *pTarget) noexcept
 	{
-		TimedFnMgr::Enroll(FixedTarget::Task_RecruitJet(pTarget));
+		TaskScheduler::Enroll(FixedTarget::Task_RecruitJet(pTarget));
 	}
 
-	TimedFn Task_RecruitJet(EHANDLE<CBaseEntity> pTarget) noexcept
+	Task Task_RecruitJet(EHANDLE<CBaseEntity> pFixedTarget) noexcept
 	{
-		auto const pPlayer = (CBasePlayer *)pTarget->pev->euser1->pvPrivateData; assert(pPlayer != nullptr);
-		auto const &vecJetSpawn = pTarget->pev->vuser2;
+		auto const pPlayer = (CBasePlayer *)pFixedTarget->pev->euser1->pvPrivateData; assert(pPlayer != nullptr);
+		auto const &vecJetSpawn = pFixedTarget->pev->vuser2;
 
 		if (vecJetSpawn == Vector::Zero())
 		{
 			g_engfuncs.pfnClientPrintf(pPlayer->edict(), print_center, "The pilot found nowhere to approach your location.");
-			pTarget->pev->flags |= FL_KILLME;
+			pFixedTarget->pev->flags |= FL_KILLME;
 			co_return;
 		}
 
 		auto const pJet = g_engfuncs.pfnCreateNamedEntity(MAKE_STRING("info_target"));
-		auto const vecDir = Vector(pTarget->pev->origin.x, pTarget->pev->origin.y, vecJetSpawn.z) - vecJetSpawn;
+		auto const vecDir = Vector(pFixedTarget->pev->origin.x, pFixedTarget->pev->origin.y, vecJetSpawn.z) - vecJetSpawn;
 
 		g_engfuncs.pfnVecToAngles(vecDir, pJet->v.angles);
 		g_engfuncs.pfnSetOrigin(pJet, vecJetSpawn);
@@ -286,31 +289,31 @@ extern "C++" namespace FixedTarget
 		pJet->v.movetype = MOVETYPE_NOCLIP;
 		pJet->v.velocity = vecDir.Normalize() * 4096;
 		pJet->v.euser1 = pPlayer->edict();	// pev->owner was not occupied, but just keep the usage sync with Laser type.
-		pJet->v.euser2 = pTarget->edict();
+		pJet->v.euser2 = pFixedTarget->edict();
 
-		TimedFnMgr::Enroll(Jet::Task_Jet(pJet));
+		TaskScheduler::Enroll(Jet::Task_Jet(pJet));
 
-		for (EHANDLE<CBaseEntity> pJetEntity = pJet; pTarget;)
+		for (EHANDLE<CBaseEntity> pJetEntity = pJet; pFixedTarget;)
 		{
 			[[unlikely]]
 			if (!pJetEntity)	// Jet found no way to launch missile
 			{
 				g_engfuncs.pfnClientPrintf(pPlayer->edict(), print_center, "The pilot have no clear sight.");
-				pTarget->pev->flags |= FL_KILLME;
+				pFixedTarget->pev->flags |= FL_KILLME;
 				co_return;
 			}
 
-			if (pev_valid(pTarget->pev->euser2) == 2)	// Waiting for a missile binding to it.
+			if (pev_valid(pFixedTarget->pev->euser2) == 2)	// Waiting for a missile binding to it.
 				break;
 
 			co_await 0.01f;
 		}
 
-		for (; pTarget;)
+		for (; pFixedTarget;)
 		{
-			if (pev_valid(pTarget->pev->euser2) != 2)	// Missile entity despawned.
+			if (pev_valid(pFixedTarget->pev->euser2) != 2)	// Missile entity despawned.
 			{
-				pTarget->pev->flags |= FL_KILLME;	// So should this.
+				pFixedTarget->pev->flags |= FL_KILLME;	// So should this.
 				break;
 			}
 

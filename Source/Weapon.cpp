@@ -10,6 +10,7 @@ import Hook;
 import Resources;
 import Task;
 
+import UtlHook;
 import UtlRandom;
 
 using std::array;
@@ -92,7 +93,7 @@ int HamF_Item_Deploy(CBasePlayerItem *pItem) noexcept
 
 	if (pThis->pev->weapons == RADIO_KEY)
 	{
-		TimedFnMgr::Enroll(Weapon::Task_RadioDeploy(pThis));
+		TaskScheduler::Enroll(Weapon::Task_RadioDeploy(pThis));
 		return true;
 	}
 
@@ -117,9 +118,9 @@ void HamF_Item_PostFrame(CBasePlayerItem *pItem) noexcept
 	if (pThis->m_pPlayer->m_afButtonPressed & IN_ATTACK)
 	{
 		if (pThis->pev->euser1->v.skin != Models::targetmdl::SKIN_GREEN)
-			TimedFnMgr::Enroll(Weapon::Task_RadioRejected(pThis));
+			TaskScheduler::Enroll(Weapon::Task_RadioRejected(pThis));
 		else
-			TimedFnMgr::Enroll(Weapon::Task_RadioAccepted(pThis));
+			TaskScheduler::Enroll(Weapon::Task_RadioAccepted(pThis));
 	}
 }
 
@@ -145,7 +146,7 @@ extern "C++" namespace Weapon
 	if (!pThis || pThis->m_pPlayer->m_pActiveItem != pThis || pThis->pev->weapons != RADIO_KEY)	\
 		co_return
 
-	TimedFn Task_RadioDeploy(EHANDLE<CBasePlayerWeapon> pThis) noexcept
+	Task Task_RadioDeploy(EHANDLE<CBasePlayerWeapon> pThis) noexcept
 	{
 		// Remove shield protection for now.
 		if (pThis->m_pPlayer->m_bOwnsShield)
@@ -169,7 +170,7 @@ extern "C++" namespace Weapon
 		pThis->pev->euser1->v.effects &= ~EF_NODRAW;
 	}
 
-	TimedFn Task_RadioRejected(EHANDLE<CBasePlayerWeapon> pThis) noexcept
+	Task Task_RadioRejected(EHANDLE<CBasePlayerWeapon> pThis) noexcept
 	{
 		pThis->has_disconnected = false;	// BORROWED MEMBER: forbid holster.
 		pThis->SendWeaponAnim((int)Models::v_radio::seq::use);
@@ -188,7 +189,7 @@ extern "C++" namespace Weapon
 		RESUME_CHECK;
 
 		g_engfuncs.pfnEmitSound(pThis.Get(), CHAN_VOICE, Sounds::REJECTING, 0.75f, ATTN_STATIC, 0, UTIL_Random(92, 108));
-		g_engfuncs.pfnClientPrintf(pThis->m_pPlayer->edict(), print_center, "You must target an outdoor location.");
+		g_engfuncs.pfnClientPrintf(pThis->m_pPlayer->edict(), print_center, "The location cannot be target due to current analysis.");
 
 		static_assert(Models::v_radio::time::use - TIME_PRESS_TALK - TIME_REQUESTING > 0);
 		co_await (Models::v_radio::time::use - TIME_PRESS_TALK - TIME_REQUESTING);
@@ -198,7 +199,7 @@ extern "C++" namespace Weapon
 		pThis->has_disconnected = true;	// BORROWED MEMBER: allow holster.
 	}
 
-	TimedFn Task_RadioAccepted(EHANDLE<CBasePlayerWeapon> pThis) noexcept
+	Task Task_RadioAccepted(EHANDLE<CBasePlayerWeapon> pThis) noexcept
 	{
 		EHANDLE<CBaseEntity> pTarget = pThis->pev->euser1;
 		EHANDLE<CBaseEntity> pFixedTarget = FixedTarget::Create(pTarget->pev->origin, pTarget->pev->angles, pThis->m_pPlayer);
@@ -287,3 +288,24 @@ extern "C++" namespace Weapon
 			pThis->m_pPlayer->pev->gamestate = 0;
 	}
 };
+
+qboolean SwitchWeapon(CBasePlayer *pPlayer, CBasePlayerItem *pWeapon) noexcept
+{
+	if (pPlayer->m_pActiveItem && !pPlayer->m_pActiveItem->CanHolster())
+		return false;
+
+	UTIL_UndoPatch(g_pfnSwitchWeapon, HookInfo::SwitchWeapon.m_OriginalBytes);
+	auto const ret = g_pfnSwitchWeapon(pPlayer, pWeapon);
+	UTIL_DoPatch(g_pfnSwitchWeapon, HookInfo::SwitchWeapon.m_PatchedBytes);
+	return ret;
+}
+
+void SelectItem(CBasePlayer *pPlayer, const char *pstr) noexcept
+{
+	if (pPlayer->m_pActiveItem && !pPlayer->m_pActiveItem->CanHolster())
+		return;
+
+	UTIL_UndoPatch(g_pfnSelectItem, HookInfo::SelectItem.m_OriginalBytes);
+	g_pfnSelectItem(pPlayer, pstr);
+	UTIL_DoPatch(g_pfnSelectItem, HookInfo::SelectItem.m_PatchedBytes);
+}

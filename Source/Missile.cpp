@@ -16,7 +16,7 @@ using std::array;
 
 extern "C++" namespace Missile
 {
-	TimedFn Task_RemoveBeam(short iEntIndex) noexcept
+	Task Task_RemoveBeam(short iEntIndex) noexcept
 	{
 		co_await 1.f;
 
@@ -27,7 +27,7 @@ extern "C++" namespace Missile
 		MsgEnd();
 	}
 
-	TimedFn Task_TravelSFX(EHANDLE<CBaseEntity> pEntity) noexcept
+	Task Task_TravelSFX(EHANDLE<CBaseEntity> pEntity) noexcept
 	{
 		auto const iEntIndex = ent_cast<short>(pEntity.Get());
 
@@ -37,7 +37,7 @@ extern "C++" namespace Missile
 			co_await 1.f;
 		}
 
-		TimedFnMgr::Enroll(Task_RemoveBeam(iEntIndex));
+		TaskScheduler::Enroll(Task_RemoveBeam(iEntIndex));
 	};
 
 	edict_t *Create(CBasePlayer *pPlayer, Vector const &vecSpawnOrigin, Vector const &vecTargetOrigin) noexcept
@@ -120,7 +120,7 @@ extern "C++" namespace Missile
 			MsgEnd();
 		}
 
-		TimedFnMgr::Enroll(Task_TravelSFX(pEdict));
+		TaskScheduler::Enroll(Task_TravelSFX(pEdict));
 
 		return pEdict;
 	}

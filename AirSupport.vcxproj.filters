@@ -301,5 +301,11 @@
     <ClCompile Include="Source\Waypoint.ixx">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Query.ixx">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Hydrogenium\UtlFunction.ixx">
+      <Filter>Hydrogenium</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

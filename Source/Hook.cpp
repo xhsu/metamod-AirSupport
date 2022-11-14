@@ -28,6 +28,8 @@ extern void HamF_Weapon_PrimaryAttack(CBasePlayerWeapon *pThis) noexcept;
 extern void HamF_Weapon_SecondaryAttack(CBasePlayerWeapon *pThis) noexcept;
 extern qboolean HamF_Item_CanHolster(CBasePlayerItem *pThis) noexcept;
 extern void HamF_Item_Holster(CBasePlayerItem *pThis, int skiplocal) noexcept;
+extern qboolean SwitchWeapon(CBasePlayer *pPlayer, CBasePlayerItem *pWeapon) noexcept;
+extern void SelectItem(CBasePlayer *pPlayer, const char *pstr) noexcept;
 //
 
 // Round.cpp
@@ -35,7 +37,7 @@ extern void OrpheuF_CleanUpMap(CHalfLifeMultiplay *pThis) noexcept;
 //
 
 // Waypoint.cpp
-extern TimedFn Waypoint_Scan(void) noexcept;
+extern Task Waypoint_Scan(void) noexcept;
 extern void Waypoint_Read(void) noexcept;
 //
 
@@ -139,6 +141,15 @@ void DeployHooks(void) noexcept
 	if (!g_pfnSwitchWeapon)
 		LOG_ERROR("Function \"CBasePlayer::SwitchWeapon\" no found!");
 #endif
+
+	HookInfo::SelectItem.m_Address = g_pfnSelectItem;
+	HookInfo::SwitchWeapon.m_Address = g_pfnSwitchWeapon;
+
+	UTIL_PreparePatch(g_pfnSelectItem, UTIL_CreateTrampoline(true, 1, &::SelectItem), HookInfo::SelectItem.m_PatchedBytes, HookInfo::SelectItem.m_OriginalBytes);
+	UTIL_PreparePatch(g_pfnSwitchWeapon, UTIL_CreateTrampoline(true, 1, &::SwitchWeapon), HookInfo::SwitchWeapon.m_PatchedBytes, HookInfo::SwitchWeapon.m_OriginalBytes);
+
+	UTIL_DoPatch(g_pfnSelectItem, HookInfo::SelectItem.m_PatchedBytes);
+	UTIL_DoPatch(g_pfnSwitchWeapon, HookInfo::SwitchWeapon.m_PatchedBytes);
 
 	bHooksPerformed = true;
 }
@@ -365,6 +376,25 @@ void fw_SetGroupMask_Post(int mask, int op) noexcept
 	// post
 }
 
+qboolean fw_AddToFullPack(entity_state_t *pState, int iEntIndex, edict_t *pEdict, edict_t *pClientSendTo, qboolean cl_lw, qboolean bIsPlayer, unsigned char *pSet)
+{
+	gpMetaGlobals->mres = MRES_IGNORED;
+
+	[[unlikely]]
+	if (pEdict->v.classname == MAKE_STRING(Classname::AIM) || pEdict->v.classname == MAKE_STRING(Classname::FIXED_TARGET))
+	{
+		auto const pClient = (CBasePlayer *)pClientSendTo->pvPrivateData;
+
+		if (pEdict->v.team != pClient->m_iTeam)
+		{
+			gpMetaGlobals->mres = MRES_SUPERCEDE;
+			return false;
+		}
+	}
+
+	return true;
+}
+
 // Register Meta Hooks
 
 inline constexpr DLL_FUNCTIONS gFunctionTable =
@@ -418,7 +448,7 @@ inline constexpr DLL_FUNCTIONS gFunctionTable =
 
 	.pfnSetupVisibility	= nullptr,
 	.pfnUpdateClientData= nullptr,
-	.pfnAddToFullPack	= nullptr,
+	.pfnAddToFullPack	= &fw_AddToFullPack,
 	.pfnCreateBaseline	= nullptr,
 	.pfnRegisterEncoders= nullptr,
 	.pfnGetWeaponData	= nullptr,
@@ -478,12 +508,12 @@ inline constexpr DLL_FUNCTIONS gFunctionTable_Post =
 	.pfnClientCommand		= nullptr,
 	.pfnClientUserInfoChanged= nullptr,
 	.pfnServerActivate		= &fw_ServerActivate_Post,
-	.pfnServerDeactivate	= []() noexcept { g_bShouldPrecache = true; g_pGameRules = nullptr; TimedFnMgr::Clear(); },
+	.pfnServerDeactivate	= []() noexcept { g_bShouldPrecache = true; g_pGameRules = nullptr; TaskScheduler::Clear(); },
 
 	.pfnPlayerPreThink	= nullptr,
 	.pfnPlayerPostThink	= nullptr,
 
-	.pfnStartFrame		= &TimedFnMgr::Think,
+	.pfnStartFrame		= &TaskScheduler::Think,
 	.pfnParmsNewLevel	= nullptr,
 	.pfnParmsChangeLevel= nullptr,
 

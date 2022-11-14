@@ -89,6 +89,19 @@ export __forceinline void MsgEnd(void) noexcept
 	g_engfuncs.pfnMessageEnd();
 }
 
+export template <unsigned int iScale>
+inline unsigned short ScaledFloat(double fl) noexcept
+{
+	return (unsigned short)std::round(std::clamp<double>(fl * iScale, 0, 0xFFFF));
+}
+
+export template <unsigned int iScale>
+inline void WriteScaledFloat(double fl) noexcept
+{
+	auto const val = (unsigned short)std::round(std::clamp<double>(fl * iScale, 0, 0xFFFF));
+	WriteData(val);
+}
+
 export template <std::size_t N>
 struct StringLiteral
 {

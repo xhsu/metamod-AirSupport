@@ -27,6 +27,8 @@ export inline constexpr unsigned char CLEAR_MULTI_DAMAGE_FN_PATTERN[] = "\x90\x3
 export inline constexpr unsigned char ADD_MULTI_DAMAGE_FN_PATTERN[] = "\x90\x56\x8B\x74\x24\x0C\x85\xF6\x74\x2A\xA1\x2A\x2A\x2A\x2A\x8B\x4C\x24\x14";
 export inline constexpr unsigned char DEFAULT_DEPLOY_FN_PATTERN[] = "\x90\x56\x8B\xF1\x8B\x06\xFF\x90\xF8\x00\x00\x00\x85\xC0\x75\x2A\x5E";
 export inline constexpr unsigned char SWITCH_WEAPON_FN_PATTERN[] = "\x90\x83\xEC\x0C\x56\x57\x8B\x7C\x24\x18\x8B\xF1\x8B\xCF\x8B\x07\xFF\x90\xF8\x00\x00\x00";
+//export inline constexpr unsigned char SELECT_NEXT_ITEM_FN_PATTERN[] = "";
+//export inline constexpr unsigned char SELECT_LAST_ITEM_FN_PATTERN[] = "";
 export inline constexpr unsigned char CWORLD_PRECACHE_FN_PATTERN[] = "\x90\x55\x57\x33\xFF\x68\x2A\x2A\x2A\x2A\x68\x2A\x2A\x2A\x2A\x8B\xE9\x89\x3D\x2A\x2A\x2A\x2A\x89\x3D\x2A\x2A\x2A\x2A\x89\x3D";
 
 export using fnEntityTraceAttack_t = void(__thiscall *)(CBaseEntity *, entvars_t *pevAttacker, float flDamage, Vector vecDir, TraceResult *ptr, int bitsDamageType) noexcept;
@@ -83,3 +85,16 @@ export using gmsgWeapPickup = Message_t<"WeapPickup", byte>;
 export inline cvar_t *gcvarMaxSpeed = nullptr;
 export inline cvar_t *gcvarMaxVelocity = nullptr;
 export inline cvar_t *gcvarFriendlyFire = nullptr;
+
+export struct FunctionHook_t
+{
+	unsigned char m_OriginalBytes[5]{};
+	unsigned char m_PatchedBytes[5]{};
+	void *m_Address{};
+};
+
+export namespace HookInfo
+{
+	inline FunctionHook_t SwitchWeapon{};
+	inline FunctionHook_t SelectItem{};
+};

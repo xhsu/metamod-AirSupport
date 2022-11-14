@@ -58,6 +58,8 @@ void Precache(void) noexcept
 	Sprite::m_rgLibrary[Sprite::BEAM] = g_engfuncs.pfnPrecacheModel(Sprite::BEAM);
 	//Sprite::m_rgLibrary[Sprite::AIM] = g_engfuncs.pfnPrecacheModel(Sprite::AIM);
 
+	Sprite::m_rgLibrary[Sprite::TRAIL] = g_engfuncs.pfnPrecacheModel(Sprite::TRAIL);
+
 	// Decal
 
 	for (auto &&decal : Decal::GUNSHOT)

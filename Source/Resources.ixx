@@ -17,7 +17,7 @@ export namespace Models
 		"models/AirSupport/F22.mdl",
 		"models/AirSupport/F18.mdl",
 		"models/AirSupport/F18.mdl",
-		"models/AirSupport/AC-130.mdl",
+		"models/AirSupport/AC130.mdl",
 		"models/AirSupport/F18.mdl",
 	};
 
@@ -33,9 +33,9 @@ export namespace Models
 	inline constexpr char V_RADIO[] = "models/AirSupport/v_radio.mdl";
 	inline constexpr char P_RADIO[] = "models/AirSupport/p_radio.mdl";
 
-	inline constexpr char GIBS_WALL_BROWN[] = "models/AirSupport/gibs_wallbrown.mdl";
-	inline constexpr char GIBS_WOOD[] = "models/AirSupport/gibs_woodplank.mdl";
-	inline constexpr char GIBS_BRICK[] = "models/AirSupport/gibs_brickred.mdl";
+	inline constexpr char GIBS_WALL_BROWN[] = "models/gibs_wallbrown.mdl";
+	inline constexpr char GIBS_WOOD[] = "models/gibs_woodplank.mdl";
+	inline constexpr char GIBS_BRICK[] = "models/gibs_brickred.mdl";
 
 	inline constexpr char TARGET[] = "models/AirSupport/Test_001.mdl";
 
@@ -135,6 +135,8 @@ export namespace Sprite
 
 	inline constexpr char BEAM[] = "sprites/laserbeam.spr";
 	inline constexpr char AIM[] = "sprites/targetsign.spr";
+
+	inline constexpr char TRAIL[] = "sprites/smoke.spr";
 
 	inline unordered_map<string, int> m_rgLibrary{};
 };

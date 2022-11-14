@@ -11,7 +11,7 @@ import Resources;
 using std::string;
 
 // Waypoint.cpp
-extern TimedFn Waypoint_Scan(void) noexcept;
+extern Task Waypoint_Scan(void) noexcept;
 extern void Waypoint_Read(void) noexcept;
 //
 
@@ -28,7 +28,7 @@ META_RES OnClientCommand(CBasePlayer *pPlayer, const string &szCommand) noexcept
 			if (pWeapon->pev->weapons == RADIO_KEY)
 				return MRES_SUPERCEDE;
 
-			TimedFnMgr::Enroll(Weapon::Task_RadioDeploy((CBasePlayerWeapon *)pWeapon));
+			TaskScheduler::Enroll(Weapon::Task_RadioDeploy((CBasePlayerWeapon *)pWeapon));
 		}
 		else if (auto const pWeapon = pPlayer->m_rgpPlayerItems[3])
 		{
@@ -42,7 +42,7 @@ META_RES OnClientCommand(CBasePlayer *pPlayer, const string &szCommand) noexcept
 	{
 		if (auto const pWeapon = pPlayer->m_pActiveItem; pWeapon->m_iId == WEAPON_KNIFE)
 		{
-			if (pWeapon->pev->weapons != RADIO_KEY)
+			if (pWeapon->pev->weapons != RADIO_KEY || !pWeapon->CanHolster())
 				return MRES_IGNORED;
 
 			// Clear radio events
@@ -71,7 +71,7 @@ META_RES OnClientCommand(CBasePlayer *pPlayer, const string &szCommand) noexcept
 	}
 	else if (szCommand == "scanjetspawn")
 	{
-		TimedFnMgr::Enroll(Waypoint_Scan());
+		TaskScheduler::Enroll(Waypoint_Scan());
 		return MRES_SUPERCEDE;
 	}
 	else if (szCommand == "readjetspawn")
