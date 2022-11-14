@@ -51,10 +51,13 @@ export namespace TaskScheduler
 		{
 			m_List.sort();
 
-			while (m_List.front().Done())
+			while (!m_List.empty() && m_List.front().Done())
 			{
 				m_List.pop_front();
 			}
+
+			if (m_List.empty())
+				break;
 
 			[[likely]]
 			if (m_List.front().ShouldResume())

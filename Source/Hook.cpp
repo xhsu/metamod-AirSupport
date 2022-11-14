@@ -142,14 +142,14 @@ void DeployHooks(void) noexcept
 		LOG_ERROR("Function \"CBasePlayer::SwitchWeapon\" no found!");
 #endif
 
-	HookInfo::SelectItem.m_Address = g_pfnSelectItem;
-	HookInfo::SwitchWeapon.m_Address = g_pfnSwitchWeapon;
+	//HookInfo::SelectItem.m_Address = g_pfnSelectItem;
+	//HookInfo::SwitchWeapon.m_Address = g_pfnSwitchWeapon;
 
-	UTIL_PreparePatch(g_pfnSelectItem, UTIL_CreateTrampoline(true, 1, &::SelectItem), HookInfo::SelectItem.m_PatchedBytes, HookInfo::SelectItem.m_OriginalBytes);
-	UTIL_PreparePatch(g_pfnSwitchWeapon, UTIL_CreateTrampoline(true, 1, &::SwitchWeapon), HookInfo::SwitchWeapon.m_PatchedBytes, HookInfo::SwitchWeapon.m_OriginalBytes);
+	//UTIL_PreparePatch(g_pfnSelectItem, UTIL_CreateTrampoline(true, 1, &::SelectItem), HookInfo::SelectItem.m_PatchedBytes, HookInfo::SelectItem.m_OriginalBytes);
+	//UTIL_PreparePatch(g_pfnSwitchWeapon, UTIL_CreateTrampoline(true, 1, &::SwitchWeapon), HookInfo::SwitchWeapon.m_PatchedBytes, HookInfo::SwitchWeapon.m_OriginalBytes);
 
-	UTIL_DoPatch(g_pfnSelectItem, HookInfo::SelectItem.m_PatchedBytes);
-	UTIL_DoPatch(g_pfnSwitchWeapon, HookInfo::SwitchWeapon.m_PatchedBytes);
+	//UTIL_DoPatch(g_pfnSelectItem, HookInfo::SelectItem.m_PatchedBytes);
+	//UTIL_DoPatch(g_pfnSwitchWeapon, HookInfo::SwitchWeapon.m_PatchedBytes);
 
 	bHooksPerformed = true;
 }

@@ -144,6 +144,8 @@ extern "C++" namespace Target
 
 		// Determind model color
 
+		pEntity->pev->team = pPlayer->m_iTeam;	// ZR, ZR.
+
 		if ((pEntity->pev->vuser1 - pEntity->pev->origin).LengthSquared() > 24 * 24)
 		{
 			pEntity->pev->vuser1 = pEntity->pev->origin;	// Moving too far from last aiming
@@ -202,6 +204,9 @@ extern "C++" namespace Target
 				if (!(iCounter % 512))
 				{
 					co_await (gpGlobals->frametime * 2.f);
+
+					if (!pTarget)
+						co_return;
 				}
 			}
 

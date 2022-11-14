@@ -35,8 +35,6 @@ extern "C++" namespace Jet
 
 		for (; pJet && pTarget;)
 		{
-			co_await gpGlobals->frametime;	// try it every other frame.
-
 			TraceResult tr{};
 			g_engfuncs.pfnTraceLine(pJet->pev->origin, pTarget->pev->origin, ignore_monsters, pJet.Get(), &tr);
 
@@ -46,12 +44,12 @@ extern "C++" namespace Jet
 				pTarget->pev->euser2 = pMissile.Get();	// pTarget now has a missile binding to it.
 				break;
 			}
+
+			co_await gpGlobals->frametime;	// try it every other frame.
 		}
 
 		for (; pJet;)
 		{
-			co_await 0.2f;
-
 			[[unlikely]]
 			if (pJet->pev->origin.x >= 4096 || pJet->pev->origin.y >= 4096 || pJet->pev->origin.z >= 4096
 				|| pJet->pev->origin.x <= -4096 || pJet->pev->origin.y <= -4096 || pJet->pev->origin.z <= -4096)	// pJet->IsInWorld() have a speed limit, but we don't need it here.
@@ -64,6 +62,8 @@ extern "C++" namespace Jet
 				pJet->pev->flags |= FL_KILLME;
 				co_return;
 			}
+
+			co_await 0.2f;
 		}
 	}
 };

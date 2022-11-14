@@ -199,8 +199,8 @@ public:
 //	static CBaseEntity *Create(char *szName, const Vector &vecOrigin, const Vector &vecAngles, edict_t *pentOwner = NULL);
 //
 	__forceinline edict_t *edict(void) const noexcept { return pev->pContainingEntity; }
-//	EOFFSET eoffset(void) { return OFFSET(pev); }
-	__forceinline int entindex(void) const noexcept { return g_engfuncs.pfnIndexOfEdict(edict()); }
+	__forceinline int eoffset(void) const noexcept { return g_engfuncs.pfnEntOffsetOfPEntity(edict()); }
+	__forceinline short entindex(void) const noexcept { return g_engfuncs.pfnIndexOfEdict(edict()); }
 
 	// allow engine to allocate instance data
 	void *operator new(size_t iBlockSize, entvars_t *pevnew) noexcept { return g_engfuncs.pfnPvAllocEntPrivateData(ent_cast<edict_t *>(pevnew), iBlockSize); }
