@@ -365,6 +365,25 @@ void fw_SetGroupMask_Post(int mask, int op) noexcept
 	// post
 }
 
+qboolean fw_AddToFullPack(entity_state_t *pState, int iEntIndex, edict_t *pEdict, edict_t *pClientSendTo, qboolean cl_lw, qboolean bIsPlayer, unsigned char *pSet)
+{
+	gpMetaGlobals->mres = MRES_IGNORED;
+
+	[[unlikely]]
+	if (pEdict->v.classname == MAKE_STRING(Classname::AIM) || pEdict->v.classname == MAKE_STRING(Classname::FIXED_TARGET))
+	{
+		auto const pClient = (CBasePlayer *)pClientSendTo->pvPrivateData;
+
+		if (pEdict->v.team != pClient->m_iTeam)
+		{
+			gpMetaGlobals->mres = MRES_SUPERCEDE;
+			return false;
+		}
+	}
+
+	return true;
+}
+
 // Register Meta Hooks
 
 inline constexpr DLL_FUNCTIONS gFunctionTable =
@@ -418,7 +437,7 @@ inline constexpr DLL_FUNCTIONS gFunctionTable =
 
 	.pfnSetupVisibility	= nullptr,
 	.pfnUpdateClientData= nullptr,
-	.pfnAddToFullPack	= nullptr,
+	.pfnAddToFullPack	= &fw_AddToFullPack,
 	.pfnCreateBaseline	= nullptr,
 	.pfnRegisterEncoders= nullptr,
 	.pfnGetWeaponData	= nullptr,
