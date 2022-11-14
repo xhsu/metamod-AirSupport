@@ -188,7 +188,7 @@ extern "C++" namespace Weapon
 		RESUME_CHECK;
 
 		g_engfuncs.pfnEmitSound(pThis.Get(), CHAN_VOICE, Sounds::REJECTING, 0.75f, ATTN_STATIC, 0, UTIL_Random(92, 108));
-		g_engfuncs.pfnClientPrintf(pThis->m_pPlayer->edict(), print_center, "You must target an outdoor location.");
+		g_engfuncs.pfnClientPrintf(pThis->m_pPlayer->edict(), print_center, "The location cannot be target due to current analysis.");
 
 		static_assert(Models::v_radio::time::use - TIME_PRESS_TALK - TIME_REQUESTING > 0);
 		co_await (Models::v_radio::time::use - TIME_PRESS_TALK - TIME_REQUESTING);
