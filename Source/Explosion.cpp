@@ -10,8 +10,10 @@ import shake;
 import UtlRandom;
 
 import CBase;
+import Effects;
 import Entity;
 import Hook;
+import Math;
 import Resources;
 import Task;
 
@@ -88,7 +90,7 @@ float GetAmountOfPlayerVisible(const Vector& vecSrc, CBaseEntity *pEntity) noexc
 	return retval;
 }
 
-void Explosion(CBasePlayer *pAttacker, const Vector &vecOrigin, float const flRadius, float const flDamage) noexcept
+void RangeDamage(CBasePlayer *pAttacker, const Vector &vecOrigin, float const flRadius, float const flDamage) noexcept
 {
 	bool const bInWater = g_engfuncs.pfnPointContents(vecOrigin) == CONTENTS_WATER;
 
@@ -136,7 +138,7 @@ void ScreenEffects(const Vector &vecOrigin, float const flRadius, float const fl
 		float const flModifer = (flRadius - flDistance) * (flRadius - flDistance) * 1.25f / (flRadius * flRadius) * 1.5f;
 
 		gmsgScreenShake::Send(pPlayer->edict(),
-			ScaledFloat<1 << 12>(25.0 * flModifer),	// amp
+			ScaledFloat<1 << 12>(35.0 * flModifer),	// amp
 			ScaledFloat<1 << 12>(5.0 * flModifer),	// dur
 			ScaledFloat<1 << 8>(12)					// freq
 		);
@@ -224,21 +226,6 @@ Task VisualEffects(const Vector vecOrigin) noexcept	// The parameter must pass b
 	if (g_engfuncs.pfnPointContents(vecOrigin) == CONTENTS_WATER)
 		co_return;
 
-	static constexpr auto get_spherical_coord = [](const Vector &vecOrigin, const Quaternion &qRotation, double radius, double inclination, double azimuth) noexcept
-	{
-		radius = std::clamp(radius, 0.0, 8192.0);	// r ∈ [0, ∞)
-		inclination = std::clamp(inclination * std::numbers::pi / 180.0, 0.0, std::numbers::pi);	// θ ∈ [0, π]
-		azimuth = std::clamp(azimuth * std::numbers::pi / 180.0, 0.0, std::numbers::pi * 2.0);	// φ ∈ [0, 2π)
-
-		auto const length = radius * sin(inclination);
-
-		return vecOrigin + qRotation * Vector(
-			length * cos(azimuth),
-			length * sin(azimuth),
-			radius * cos(inclination)
-		);
-	};
-
 	static constexpr auto BreakModel = [](const Vector &vecOrigin, const Vector &vecScale, const Vector &vecVelocity, float flRandSpeedVar, short iModel, byte iCount, float flLife, byte bitsFlags) noexcept
 	{
 		MsgBroadcast(SVC_TEMPENTITY);
@@ -315,7 +302,13 @@ Task VisualEffects(const Vector vecOrigin) noexcept	// The parameter must pass b
 		MsgEnd();
 	}
 
-	co_return;
+	co_await gpGlobals->frametime;
+
+	for (int i = 0; i < 8; ++i)
+	{
+		auto const pFlame = Prefab_t::Create<CFlame>(Classname::CFLAME, vecOrigin, Vector::Zero());
+		pFlame->pev->velocity = get_spherical_coord(750.0, UTIL_Random(15.0, 25.0), UTIL_Random(0.0, 359.9));
+	}
 }
 
 void Impact(CBasePlayer *pAttacker, CBaseEntity *pProjectile, float flDamage) noexcept
@@ -323,12 +316,22 @@ void Impact(CBasePlayer *pAttacker, CBaseEntity *pProjectile, float flDamage) no
 	g_engfuncs.pfnMakeVectors(pProjectile->pev->angles);
 
 	TraceResult tr{};
-	g_engfuncs.pfnTraceLine(pProjectile->pev->origin, pProjectile->pev->origin + gpGlobals->v_forward * 4096.f, dont_ignore_monsters, ent_cast<edict_t *>(pProjectile->pev), &tr);
+	g_engfuncs.pfnTraceLine(pProjectile->pev->origin, pProjectile->pev->origin + gpGlobals->v_forward * 32.f, dont_ignore_monsters, ent_cast<edict_t *>(pProjectile->pev), &tr);
 
 	if (pev_valid(tr.pHit) != 2)
 		return;
 
 	CBaseEntity *pOther = (CBaseEntity *)tr.pHit->pvPrivateData;
+
+	if (pOther->pev->takedamage == DAMAGE_NO)
+		return;
+
+	if (pOther->IsPlayer())
+	{
+		auto const pVictim = (CBasePlayer *)pOther;
+		if (pVictim->IsAlive() && gcvarFriendlyFire->value < 1 && pVictim->m_iTeam == pAttacker->m_iTeam)
+			return;
+	}
 
 	pOther->TraceAttack(pAttacker->pev, flDamage, gpGlobals->v_forward, &tr, DMG_BULLET);
 	g_pfnApplyMultiDamage(pProjectile->pev, pAttacker->pev);
@@ -336,13 +339,7 @@ void Impact(CBasePlayer *pAttacker, CBaseEntity *pProjectile, float flDamage) no
 
 META_RES OnTouch(CBaseEntity *pEntity, CBaseEntity *pOther) noexcept
 {
-	if (pEntity->pev->classname == MAKE_STRING(Classname::JET) && pev_valid(pOther->pev) != 2)
-	{
-		pEntity->pev->flags |= FL_KILLME;
-		return MRES_HANDLED;
-	}
-
-	else if (pEntity->pev->classname == MAKE_STRING(Classname::MISSILE))
+	if (pEntity->pev->classname == MAKE_STRING(Classname::MISSILE))
 	{
 		if (g_engfuncs.pfnPointContents(pEntity->pev->origin) == CONTENTS_SKY)
 		{
@@ -355,7 +352,7 @@ META_RES OnTouch(CBaseEntity *pEntity, CBaseEntity *pOther) noexcept
 		g_engfuncs.pfnEmitSound(ent_cast<edict_t *>(pEntity->pev), CHAN_WEAPON, UTIL_GetRandomOne(Sounds::EXPLOSION), VOL_NORM, 0.3f, 0, UTIL_Random(92, 116));
 
 		Impact(pPlayer, pEntity, 125.f);
-		Explosion(pPlayer, pEntity->pev->origin, 350.f, 275.f);
+		RangeDamage(pPlayer, pEntity->pev->origin, 350.f, 275.f);
 		ScreenEffects(pEntity->pev->origin, 700.f, 12.f, 2048.f);
 		TaskScheduler::Enroll(VisualEffects(pEntity->pev->origin));
 

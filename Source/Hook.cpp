@@ -9,11 +9,11 @@ import util;
 
 import UtlHook;
 
-import CBase;
 import Entity;
 import GameRules;
 import Hook;
 import Plugin;
+import Prefab;
 import Task;
 
 // Resources.cpp
@@ -395,6 +395,23 @@ qboolean fw_AddToFullPack(entity_state_t *pState, int iEntIndex, edict_t *pEdict
 	return true;
 }
 
+void fw_OnFreeEntPrivateData(edict_t *pEdict) noexcept
+{
+	gpMetaGlobals->mres = MRES_IGNORED;
+
+	[[likely]]
+	if (auto const pEntity = (CBaseEntity *)pEdict->pvPrivateData; pEntity != nullptr)
+	{
+		[[unlikely]]
+		if (auto const pPrefab = dynamic_cast<Prefab_t *>(pEntity); pPrefab != nullptr)
+		{
+			pPrefab->~Prefab_t();	// It's kind of ... UB... but we don't have any other way.
+
+			gpMetaGlobals->mres = MRES_SUPERCEDE;
+		}
+	}
+}
+
 // Register Meta Hooks
 
 inline constexpr DLL_FUNCTIONS gFunctionTable =
@@ -562,6 +579,35 @@ int HookGameDLLExportedFn_Post(DLL_FUNCTIONS *pFunctionTable, int *interfaceVers
 	}
 
 	memcpy(pFunctionTable, &gFunctionTable_Post, sizeof(DLL_FUNCTIONS));
+	return true;
+}
+
+inline constexpr NEW_DLL_FUNCTIONS gNewFunctionTable =
+{
+	.pfnOnFreeEntPrivateData	= &fw_OnFreeEntPrivateData,
+	.pfnGameShutdown			= nullptr,
+	.pfnShouldCollide			= nullptr,
+	.pfnCvarValue				= nullptr,
+	.pfnCvarValue2				= nullptr,
+};
+
+int HookGameDLLNewFn(NEW_DLL_FUNCTIONS *pFunctionTable, int *interfaceVersion) noexcept
+{
+	if (!pFunctionTable) [[unlikely]]
+	{
+		gpMetaUtilFuncs->pfnLogError(&gPluginInfo, "Function 'HookGameDLLNewFn' called with null 'pFunctionTable' parameter.");
+		return false;
+	}
+	else if (*interfaceVersion != NEW_DLL_FUNCTIONS_VERSION) [[unlikely]]
+	{
+		gpMetaUtilFuncs->pfnLogError(&gPluginInfo, "Function 'HookGameDLLNewFn' called with version mismatch. Expected: %d, receiving: %d.", NEW_DLL_FUNCTIONS_VERSION, *interfaceVersion);
+
+		//! Tell metamod what version we had, so it can figure out who is out of date.
+		*interfaceVersion = NEW_DLL_FUNCTIONS_VERSION;
+		return false;
+	}
+
+	memcpy(pFunctionTable, &gNewFunctionTable, sizeof(DLL_FUNCTIONS));
 	return true;
 }
 

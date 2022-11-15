@@ -51,7 +51,6 @@ void Precache(void) noexcept
 	Sprite::m_rgLibrary[Sprite::SMOKE_TRAIL] = g_engfuncs.pfnPrecacheModel(Sprite::SMOKE_TRAIL);
 	Sprite::m_rgLibrary[Sprite::FIRE] = g_engfuncs.pfnPrecacheModel(Sprite::FIRE);
 	Sprite::m_rgLibrary[Sprite::FIRE2] = g_engfuncs.pfnPrecacheModel(Sprite::FIRE2);
-	Sprite::m_rgLibrary[Sprite::FIRE3] = g_engfuncs.pfnPrecacheModel(Sprite::FIRE3);
 	Sprite::m_rgLibrary[Sprite::SMOKE_1] = g_engfuncs.pfnPrecacheModel(Sprite::SMOKE_1);
 	Sprite::m_rgLibrary[Sprite::SMOKE_2] = g_engfuncs.pfnPrecacheModel(Sprite::SMOKE_2);
 
@@ -59,6 +58,9 @@ void Precache(void) noexcept
 	//Sprite::m_rgLibrary[Sprite::AIM] = g_engfuncs.pfnPrecacheModel(Sprite::AIM);
 
 	Sprite::m_rgLibrary[Sprite::TRAIL] = g_engfuncs.pfnPrecacheModel(Sprite::TRAIL);
+
+	for (auto &&psz : Sprite::FLAME)
+		Sprite::m_rgLibrary[psz] = g_engfuncs.pfnPrecacheModel(psz);
 
 	// Decal
 

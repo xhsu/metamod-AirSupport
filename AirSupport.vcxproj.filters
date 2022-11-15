@@ -256,7 +256,7 @@
     <ClCompile Include="Source\Hook.ixx">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Touch.cpp">
+    <ClCompile Include="Source\Explosion.cpp">
       <Filter>Source</Filter>
     </ClCompile>
     <ClCompile Include="Source\Entity.ixx">
@@ -306,6 +306,15 @@
     </ClCompile>
     <ClCompile Include="..\Hydrogenium\UtlFunction.ixx">
       <Filter>Hydrogenium</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Flame.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Effects.ixx">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Math.ixx">
+      <Filter>Source</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

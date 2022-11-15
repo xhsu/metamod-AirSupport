@@ -9,8 +9,10 @@ import Plugin;
 // Hook.cpp
 extern int HookEngineAPI(enginefuncs_t *pengfuncsFromEngine, int *interfaceVersion) noexcept;
 extern int HookEngineAPI_Post(enginefuncs_t *pengfuncsFromEngine, int *interfaceVersion) noexcept;
+extern int HookGameDLLNewFn(NEW_DLL_FUNCTIONS *pFunctionTable, int *interfaceVersion) noexcept;
 extern int HookGameDLLExportedFn(DLL_FUNCTIONS *pFunctionTable, int *interfaceVersion) noexcept;
 extern int HookGameDLLExportedFn_Post(DLL_FUNCTIONS *pFunctionTable, int *interfaceVersion) noexcept;
+//
 
 // From SDK dlls/h_export.cpp:
 
@@ -33,7 +35,7 @@ inline constexpr META_FUNCTIONS gMetaFunctionTable =
 	.pfnGetEntityAPI_Post		= nullptr,						// META; called after game DLL
 	.pfnGetEntityAPI2			= &HookGameDLLExportedFn,		// HL SDK2; called before game DLL
 	.pfnGetEntityAPI2_Post		= &HookGameDLLExportedFn_Post,	// META; called after game DLL
-	.pfnGetNewDLLFunctions		= nullptr,						// HL SDK2; called before game DLL
+	.pfnGetNewDLLFunctions		= HookGameDLLNewFn,				// HL SDK2; called before game DLL
 	.pfnGetNewDLLFunctions_Post	= nullptr,						// META; called after game DLL
 	.pfnGetEngineFunctions		= &HookEngineAPI,				// META; called before HL engine
 	.pfnGetEngineFunctions_Post	= &HookEngineAPI_Post,			// META; called after HL engine

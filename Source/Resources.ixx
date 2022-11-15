@@ -129,7 +129,6 @@ export namespace Sprite
 	inline constexpr char SMOKE_TRAIL[] = "sprites/tdm_smoke.spr";
 	inline constexpr char FIRE[] = "sprites/rockefire.spr";
 	inline constexpr char FIRE2[] = "sprites/hotglow.spr";
-	inline constexpr char FIRE3[] = "sprites/flame.spr";
 	inline constexpr char SMOKE_1[] = "sprites/gas_smoke1.spr";
 	inline constexpr char SMOKE_2[] = "sprites/wall_puff1.spr";
 
@@ -138,7 +137,21 @@ export namespace Sprite
 
 	inline constexpr char TRAIL[] = "sprites/smoke.spr";
 
+	inline constexpr array FLAME =
+	{
+		"sprites/flame1.spr",
+		"sprites/flame2.spr",
+		"sprites/flame3.spr",
+	};
+
 	inline unordered_map<string, int> m_rgLibrary{};
+
+	namespace Frames
+	{
+		inline constexpr array FLAME = { 17, 16, 16 };
+	};
+
+	static_assert(FLAME.size() == Frames::FLAME.size());
 };
 
 export namespace Decal

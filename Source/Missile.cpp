@@ -6,6 +6,7 @@ import progdefs;
 
 import CBase;
 import Entity;
+import Math;
 import Message;
 import Resources;
 import Task;
@@ -80,32 +81,17 @@ extern "C++" namespace Missile
 		WriteData((byte)255);
 		MsgEnd();
 
-		static constexpr auto get_spherical_coord = [](double radius, double inclination, double azimuth) noexcept
-		{
-			radius = std::clamp(radius, 0.0, 8192.0);	// r ∈ [0, ∞)
-			inclination = std::clamp(inclination * std::numbers::pi / 180.0, 0.0, std::numbers::pi);	// θ ∈ [0, π]
-			azimuth = std::clamp(azimuth * std::numbers::pi / 180.0, 0.0, std::numbers::pi * 2.0);	// φ ∈ [0, 2π)
-
-			auto const length = radius * sin(inclination);
-
-			return Vector(
-				length * cos(azimuth),
-				length * sin(azimuth),
-				radius * cos(inclination)
-			);
-		};
-
 		g_engfuncs.pfnMakeVectors(pEdict->v.angles);
 
 		auto const qRot = Quaternion::Rotate(Vector(0, 0, 1), gpGlobals->v_forward);
 
 		array const rgvecPericoord =
 		{
-			pEdict->v.origin + qRot * get_spherical_coord(24.f, 120.f, 0.f),
-			pEdict->v.origin + qRot * get_spherical_coord(24.f, 120.f, 72.f),
-			pEdict->v.origin + qRot * get_spherical_coord(24.f, 120.f, 144.f),
-			pEdict->v.origin + qRot * get_spherical_coord(24.f, 120.f, 216.f),
-			pEdict->v.origin + qRot * get_spherical_coord(24.f, 120.f, 288.f),
+			get_spherical_coord(pEdict->v.origin, qRot, 24.f, 120.f, 0.f),
+			get_spherical_coord(pEdict->v.origin, qRot, 24.f, 120.f, 72.f),
+			get_spherical_coord(pEdict->v.origin, qRot, 24.f, 120.f, 144.f),
+			get_spherical_coord(pEdict->v.origin, qRot, 24.f, 120.f, 216.f),
+			get_spherical_coord(pEdict->v.origin, qRot, 24.f, 120.f, 288.f),
 		};
 
 		for (auto &&vecPos : rgvecPericoord)

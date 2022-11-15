@@ -174,10 +174,13 @@
     <ClCompile Include="..\metamod-p\metamod\plinfo.ixx" />
     <ClCompile Include="Source\Beam.ixx" />
     <ClCompile Include="Source\ClientCommand.cpp" />
+    <ClCompile Include="Source\Effects.ixx" />
     <ClCompile Include="Source\Entity.ixx" />
+    <ClCompile Include="Source\Flame.cpp" />
     <ClCompile Include="Source\GameRules.ixx" />
     <ClCompile Include="Source\Hook.ixx" />
     <ClCompile Include="Source\Jet.cpp" />
+    <ClCompile Include="Source\Math.ixx" />
     <ClCompile Include="Source\Missile.cpp" />
     <ClCompile Include="Source\Prefab.ixx" />
     <ClCompile Include="Source\Query.ixx" />
@@ -192,7 +195,7 @@
     <ClCompile Include="Source\Target.cpp" />
     <ClCompile Include="Source\Task.ixx" />
     <ClCompile Include="Source\Think.cpp" />
-    <ClCompile Include="Source\Touch.cpp">
+    <ClCompile Include="Source\Explosion.cpp">
       <DisableSpecificWarnings Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">4244;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <DisableSpecificWarnings Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">4244;%(DisableSpecificWarnings)</DisableSpecificWarnings>
     </ClCompile>

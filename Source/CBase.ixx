@@ -204,6 +204,7 @@ public:
 
 	// allow engine to allocate instance data
 	void *operator new(size_t iBlockSize, entvars_t *pevnew) noexcept { return g_engfuncs.pfnPvAllocEntPrivateData(ent_cast<edict_t *>(pevnew), iBlockSize); }
+	void *operator new(size_t iBlockSize, edict_t *pent) noexcept { return g_engfuncs.pfnPvAllocEntPrivateData(pent, iBlockSize); }
 
 	// don't use this.
 #if _MSC_VER >= 1200 // only build this code if MSVC++ 6.0 or higher

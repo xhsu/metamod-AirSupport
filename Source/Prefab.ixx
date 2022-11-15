@@ -1,17 +1,32 @@
+module;
+
+#include <cassert>
+
 export module Prefab;
 
 import <cmath>;
+
+import <concepts>;
+import <functional>;
+import <list>;
 
 import util;
 
 export import CBase;
 export import Hook;
+export import Task;
+
+using std::list;
 
 export struct Prefab_t : public CBaseEntity
 {
+	// Patch the loose end.
+	virtual ~Prefab_t() noexcept = default;
+
+	// Define all missing function from our pure virtual class.
 	void Spawn() noexcept override {}
 	void Precache() noexcept override {}
-	void Restart() noexcept override {}
+	void Restart() noexcept override { m_Scheduler.Clear(); }
 	void KeyValue(KeyValueData *pkvd) noexcept override { pkvd->fHandled = false; }
 	int Save(void *save) noexcept override { return 0; }
 	int Restore(void *restore) noexcept override { return 0; }
@@ -145,7 +160,7 @@ export struct Prefab_t : public CBaseEntity
 	qboolean IsNetClient() noexcept override { return false; }
 	const char *TeamID() noexcept override { return ""; }
 	CBaseEntity *GetNextTarget() noexcept override { return g_pfnEntityGetNextTarget(this); }
-	void Think() noexcept override { if (m_pfnThink) (this->*m_pfnThink)(); }
+	void Think() noexcept final { pev->nextthink = 0.1f; m_Scheduler.Think(); }
 	void Touch(CBaseEntity *pOther) noexcept override { if (m_pfnTouch) (this->*m_pfnTouch)(pOther); }
 	void Use(CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType = USE_OFF, float value = 0.0f) noexcept override { if (m_pfnUse) (this->*m_pfnUse)(pActivator, pCaller, useType, value); }
 	void Blocked(CBaseEntity *pOther) noexcept override { if (m_pfnBlocked) (this->*m_pfnBlocked)(pOther); }
@@ -207,5 +222,136 @@ export struct Prefab_t : public CBaseEntity
 			// line of sight is valid.
 			return true;
 		}
+	}
+
+	// Have to entity have to be created like this.
+	template <typename T, size_t N>
+	static T *Create(const char (&szClassName)[N], const Vector& vecOrigin, const Vector& vecAngles) noexcept
+	{
+		auto const pEdict = g_engfuncs.pfnCreateEntity();
+
+		assert(pEdict != nullptr);
+		assert(pEdict->pvPrivateData == nullptr);
+
+		auto const pPrefab = new(pEdict) T;
+
+		pPrefab->pev = &pEdict->v;
+
+		assert(pPrefab->pev != nullptr);
+		assert(pEdict->pvPrivateData != nullptr);
+		assert(pEdict->v.pContainingEntity == pEdict);
+
+		pEdict->v.classname = MAKE_STRING(szClassName);
+		pEdict->v.angles = vecAngles;
+		pEdict->v.origin = vecOrigin;
+
+		pPrefab->Spawn();
+
+		return pPrefab;
+	}
+
+	struct PrefabScheduler_t
+	{
+		list<Task> m_List{};
+
+		inline void Think(void) noexcept
+		{
+			if (m_List.empty())
+				return;
+
+			while (!m_List.empty())
+			{
+				m_List.sort();
+
+				while (!m_List.empty() && m_List.front().Done())
+				{
+					m_List.pop_front();
+				}
+
+				if (m_List.empty())
+					break;
+
+				[[likely]]
+				if (m_List.front().ShouldResume())
+					m_List.front().Resume();
+				else
+					break;	// if the first one in queue is not going to resume, then nor should anyone else.
+			}
+		}
+
+		inline void Enroll(Task &&obj, unsigned long iCoroutineMarker = 0ul) noexcept
+		{
+			[[likely]]
+			if (!obj.Done())
+			{
+				obj.m_iCoroutineMarker = iCoroutineMarker;
+
+				m_List.emplace_back(std::forward<Task>(obj));
+				m_List.sort();
+				m_List.remove_if(std::bind_front(&Task::Done));
+			}
+		}
+
+		inline unsigned int Delist(unsigned long iCoroutineMarker) noexcept
+		{
+			if (!m_List.empty())
+				return m_List.remove_if([=](Task const &obj) noexcept { return obj.m_iCoroutineMarker == iCoroutineMarker; });
+
+			return 0;
+		}
+
+		inline unsigned int Count(unsigned long iCoroutineMarker) noexcept
+		{
+			unsigned int ret{};
+
+			for (auto const &obj : m_List)
+			{
+				if (obj.m_iCoroutineMarker == iCoroutineMarker)
+					++ret;
+			}
+
+			return ret;
+		}
+
+		inline bool Exist(unsigned long iCoroutineMarker) noexcept
+		{
+			for (auto const &obj : m_List)
+			{
+				[[unlikely]]
+				if (obj.m_iCoroutineMarker == iCoroutineMarker)
+					return true;
+			}
+
+			return false;
+		}
+
+		inline void Clear(void) noexcept
+		{
+			m_List.clear();
+		}
+	}
+	m_Scheduler{};
+
+	// Move these to original CBaseEntity?
+
+	__forceinline void SetTouch(std::nullptr_t) noexcept { m_pfnTouch = nullptr; }
+	template <typename T>
+	__forceinline void SetTouch(void (T:: *pfn)(CBaseEntity *pOther)) noexcept
+	{
+		m_pfnTouch = reinterpret_cast<decltype(m_pfnTouch)>(pfn);
+	}
+
+	__forceinline void SetUse(std::nullptr_t) noexcept { m_pfnTouch = nullptr; }
+	template <typename T>
+	__forceinline void SetUse(void (T:: *pfn)(CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value)) noexcept
+	{
+		m_pfnUse = reinterpret_cast<decltype(m_pfnUse)>(pfn);
+	}
+
+	__forceinline void SetBlocked(std::nullptr_t) noexcept { m_pfnTouch = nullptr; }
+	template <typename T>
+	__forceinline void SetBlocked(void (T:: *pfn)(CBaseEntity *pOther)) noexcept
+	{
+		m_pfnBlocked = reinterpret_cast<decltype(m_pfnBlocked)>(pfn);
 	}
 };

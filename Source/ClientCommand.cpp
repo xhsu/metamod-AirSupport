@@ -8,6 +8,10 @@ import Entity;
 import Hook;
 import Resources;
 
+import Effects;
+import Math;
+import UtlRandom;
+
 using std::string;
 
 // Waypoint.cpp
@@ -88,6 +92,21 @@ META_RES OnClientCommand(CBasePlayer *pPlayer, const string &szCommand) noexcept
 	//
 	//	return MRES_SUPERCEDE;
 	//}
+	else if (szCommand == "test001")
+	{
+		g_engfuncs.pfnMakeVectors(pPlayer->pev->v_angle);
+
+		auto const vecSrc = pPlayer->GetGunPosition();
+		auto const vecEnd = vecSrc + gpGlobals->v_forward * 4096.f;
+
+		TraceResult tr{};
+		g_engfuncs.pfnTraceLine(vecSrc, vecEnd, ignore_monsters | ignore_glass, nullptr, &tr);
+
+		auto const pFlame = Prefab_t::Create<CFlame>(Classname::CFLAME, tr.vecEndPos, Vector::Zero());
+		pFlame->pev->velocity = get_spherical_coord(750.0, UTIL_Random(15.0, 25.0), UTIL_Random(0.0, 359.9));
+
+		return MRES_SUPERCEDE;
+	}
 
 	return MRES_IGNORED;
 }
