@@ -171,7 +171,7 @@ void VisualEffects(const Vector &vecOrigin) noexcept
 {
 	MsgBroadcast(SVC_TEMPENTITY);
 	WriteData(TE_SPRITE);
-	WriteData(Vector(vecOrigin.x, vecOrigin.y, vecOrigin.z + 200.f));
+	WriteData(Vector(vecOrigin.x, vecOrigin.y, vecOrigin.z + 200.0));
 	WriteData((short)Sprite::m_rgLibrary[Sprite::ROCKET_EXPLO]);
 	WriteData((byte)20);
 	WriteData((byte)100);
@@ -179,7 +179,7 @@ void VisualEffects(const Vector &vecOrigin) noexcept
 
 	MsgBroadcast(SVC_TEMPENTITY);
 	WriteData(TE_SPRITE);
-	WriteData(Vector(vecOrigin.x, vecOrigin.y, vecOrigin.z + 70.f));
+	WriteData(Vector(vecOrigin.x, vecOrigin.y, vecOrigin.z + 70.0));
 	WriteData((short)Sprite::m_rgLibrary[Sprite::ROCKET_EXPLO2]);
 	WriteData((byte)30);
 	WriteData((byte)255);
@@ -221,11 +221,11 @@ void VisualEffects(const Vector &vecOrigin) noexcept
 	if (g_engfuncs.pfnPointContents(vecOrigin) == CONTENTS_WATER)
 		return;
 
-	static constexpr auto get_spherical_coord = [](const Vector &vecOrigin, const Quaternion &qRotation, float radius, float inclination, float azimuth) noexcept
+	static constexpr auto get_spherical_coord = [](const Vector &vecOrigin, const Quaternion &qRotation, double radius, double inclination, double azimuth) noexcept
 	{
-		radius = std::clamp(radius, 0.f, 8192.f);	// r ∈ [0, ∞)
-		inclination = (float)std::clamp(inclination * std::numbers::pi / 180.0, 0.0, std::numbers::pi);	// θ ∈ [0, π]
-		azimuth = (float)std::clamp(azimuth * std::numbers::pi / 180.0, 0.0, std::numbers::pi * 2.0);	// φ ∈ [0, 2π)
+		radius = std::clamp(radius, 0.0, 8192.0);	// r ∈ [0, ∞)
+		inclination = std::clamp(inclination * std::numbers::pi / 180.0, 0.0, std::numbers::pi);	// θ ∈ [0, π]
+		azimuth = std::clamp(azimuth * std::numbers::pi / 180.0, 0.0, std::numbers::pi * 2.0);	// φ ∈ [0, 2π)
 
 		auto const length = radius * sin(inclination);
 
@@ -318,7 +318,7 @@ void Impact(CBasePlayer *pAttacker, CBaseEntity *pProjectile, CBaseEntity *pOthe
 	TraceResult tr{};
 	g_engfuncs.pfnTraceLine(pProjectile->pev->origin, pProjectile->pev->origin + gpGlobals->v_forward * 4096.f, dont_ignore_monsters, ent_cast<edict_t *>(pProjectile->pev), &tr);
 
-	if (&tr.pHit->v != pOther->pev)
+	if (tr.pHit && &tr.pHit->v != pOther->pev)
 		return;
 
 	pOther->TraceAttack(pAttacker->pev, flDamage, gpGlobals->v_forward, &tr, DMG_BULLET);

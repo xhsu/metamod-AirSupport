@@ -115,7 +115,8 @@ extern "C++" namespace Target
 	void Think(CBaseEntity *pEntity) noexcept
 	{
 		[[unlikely]]
-		if (pev_valid(pEntity->pev->euser1) != 2 || !((CBasePlayer *)pEntity->pev->euser1->pvPrivateData)->IsAlive())
+		if (EHANDLE<CBasePlayer> pPlayer = pEntity->pev->euser1;
+			!pPlayer || !pPlayer->IsAlive() || !pPlayer->m_rgpPlayerItems[3] || pev_valid(pPlayer->m_rgpPlayerItems[3]->pev) != 2)
 		{
 			pEntity->pev->flags |= FL_KILLME;
 			return;
@@ -146,7 +147,7 @@ extern "C++" namespace Target
 
 		pEntity->pev->team = pPlayer->m_iTeam;	// ZR, ZR.
 
-		if ((pEntity->pev->vuser1 - pEntity->pev->origin).LengthSquared() > 24 * 24)
+		if ((pEntity->pev->vuser1 - pEntity->pev->origin).LengthSquared() > 24.0 * 24.0)
 		{
 			pEntity->pev->vuser1 = pEntity->pev->origin;	// Moving too far from last aiming
 			pEntity->pev->vuser2 = Vector::Zero();	// Clear last est. jet spawn.
@@ -211,7 +212,7 @@ extern "C++" namespace Target
 			}
 
 			[[unlikely]]
-			if (pTarget->pev->vuser2 == Vector::Zero())
+			if (pTarget->pev->vuser2 == Vector::Zero() && pPlayer && pPlayer->IsAlive())
 			{
 				// Try to get a temp spawn location above player.
 				Vector const vecSrc = pPlayer->GetGunPosition();

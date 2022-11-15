@@ -256,11 +256,11 @@ struct EHANDLE final
 	EHANDLE(entvars_t *pev) noexcept { if (pev) Set(pev->pContainingEntity); }
 	EHANDLE(T *pEntity) noexcept : EHANDLE(pEntity->pev) {}
 	explicit EHANDLE(std::nullptr_t) noexcept {}
-	explicit EHANDLE(int iEntIndex) noexcept { if (iEntIndex > 0) Set(ent_cast<edict_t *>(iEntIndex)); }
+	explicit EHANDLE(short iEntIndex) noexcept { if (iEntIndex > 0) Set(ent_cast<edict_t *>(iEntIndex)); }
 
 	inline edict_t *Get(void) const noexcept
 	{
-		if (!m_pent)
+		if (pev_valid(m_pent) != 2)
 			return nullptr;
 
 		if (m_pent->serialnumber != m_serialnumber)
@@ -272,7 +272,7 @@ struct EHANDLE final
 	{
 		m_pent = pent;
 
-		if (pent)
+		if (pev_valid(pent) == 2)
 			m_serialnumber = m_pent->serialnumber;
 
 		return pent;
@@ -287,7 +287,7 @@ struct EHANDLE final
 		{
 			m_pent = ent_cast<edict_t *>(pEntity->pev);
 
-			if (m_pent)
+			if (pev_valid(m_pent) == 2)
 				m_serialnumber = m_pent->serialnumber;
 		}
 		else

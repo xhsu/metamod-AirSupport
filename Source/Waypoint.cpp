@@ -99,10 +99,10 @@ Task Waypoint_Scan(void) noexcept
 		Vector const vecGround = tr.vecEndPos;
 		array const vecDirs =
 		{
-			Vector(it->x + 32.f, it->y, vecGround.z),
-			Vector(it->x - 32.f, it->y, vecGround.z),
-			Vector(it->x, it->y + 32.f, vecGround.z),
-			Vector(it->x, it->y - 32.f, vecGround.z),
+			Vector(it->x + 32.0, it->y, vecGround.z),
+			Vector(it->x - 32.0, it->y, vecGround.z),
+			Vector(it->x, it->y + 32.0, vecGround.z),
+			Vector(it->x, it->y - 32.0, vecGround.z),
 		};
 
 		for (auto &&vec : vecDirs)
@@ -191,7 +191,7 @@ void Waypoint_Read(void) noexcept
 		fread(&g_WaypointMgr.m_iCount, sizeof(size_t), 1, f);
 		assert(g_WaypointMgr.m_iCount > 0);
 
-		g_WaypointMgr.m_prgvecOrigins = (Vector *)malloc(g_WaypointMgr.m_iCount * sizeof(Vector));
+		g_WaypointMgr.m_prgvecOrigins = (Vector *)malloc(g_WaypointMgr.m_iCount * sizeof(Vector)); assert(g_WaypointMgr.m_prgvecOrigins != nullptr);
 		fread(g_WaypointMgr.m_prgvecOrigins, sizeof(Vector), g_WaypointMgr.m_iCount, f);
 
 		g_WaypointMgr.m_rgvecOrigins = span<Vector>(g_WaypointMgr.m_prgvecOrigins, g_WaypointMgr.m_iCount);

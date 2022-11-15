@@ -81,11 +81,11 @@ extern "C++" namespace Missile
 		WriteData((byte)255);
 		MsgEnd();
 
-		static constexpr auto get_spherical_coord = [](float radius, float inclination, float azimuth) noexcept
+		static constexpr auto get_spherical_coord = [](double radius, double inclination, double azimuth) noexcept
 		{
-			radius = std::clamp(radius, 0.f, 8192.f);	// r ∈ [0, ∞)
-			inclination = (float)std::clamp(inclination * std::numbers::pi / 180.0, 0.0, std::numbers::pi);	// θ ∈ [0, π]
-			azimuth = (float)std::clamp(azimuth * std::numbers::pi / 180.0, 0.0, std::numbers::pi * 2.0);	// φ ∈ [0, 2π)
+			radius = std::clamp(radius, 0.0, 8192.0);	// r ∈ [0, ∞)
+			inclination = std::clamp(inclination * std::numbers::pi / 180.0, 0.0, std::numbers::pi);	// θ ∈ [0, π]
+			azimuth = std::clamp(azimuth * std::numbers::pi / 180.0, 0.0, std::numbers::pi * 2.0);	// φ ∈ [0, 2π)
 
 			auto const length = radius * sin(inclination);
 
