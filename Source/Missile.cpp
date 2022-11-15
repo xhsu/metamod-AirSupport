@@ -56,7 +56,6 @@ extern "C++" namespace Missile
 		pEdict->v.movetype = MOVETYPE_TOSS;
 		pEdict->v.velocity = (vecTargetOrigin - vecSpawnOrigin).Normalize() * 1000;
 		g_engfuncs.pfnVecToAngles(pEdict->v.velocity, pEdict->v.angles);
-		//pEdict->v.groupinfo = MISSILE_GROUPINFO; // #POTENTIAL_BUG
 		pEdict->v.nextthink = 0.1f;
 
 		MsgPVS(SVC_TEMPENTITY, vecSpawnOrigin);

@@ -167,7 +167,7 @@ void ScreenEffects(const Vector &vecOrigin, float const flRadius, float const fl
 	}
 }
 
-void VisualEffects(const Vector &vecOrigin) noexcept
+Task VisualEffects(const Vector vecOrigin) noexcept	// The parameter must pass by copy. This is a coroutine.
 {
 	MsgBroadcast(SVC_TEMPENTITY);
 	WriteData(TE_SPRITE);
@@ -194,13 +194,15 @@ void VisualEffects(const Vector &vecOrigin) noexcept
 	MsgBroadcast(SVC_TEMPENTITY);
 	WriteData(TE_DLIGHT);
 	WriteData(vecOrigin);
-	WriteData((byte)50);
+	WriteData((byte)70);
 	WriteData((byte)255);
 	WriteData((byte)0);
 	WriteData((byte)0);
 	WriteData((byte)2);
 	WriteData((byte)0);
 	MsgEnd();
+
+	co_await gpGlobals->frametime;
 
 	TraceResult tr{};
 	g_engfuncs.pfnTraceLine(vecOrigin, Vector(vecOrigin.x, vecOrigin.y, 8192.f), ignore_monsters, nullptr, &tr);
@@ -211,6 +213,7 @@ void VisualEffects(const Vector &vecOrigin) noexcept
 		auto pEdict = g_engfuncs.pfnCreateNamedEntity(MAKE_STRING("spark_shower"));
 		g_engfuncs.pfnSetOrigin(pEdict, vecOrigin);
 		g_engfuncs.pfnVecToAngles(tr.vecPlaneNormal, pEdict->v.angles);
+		pEdict->v.angles.x += 270.f;	// don't know why, but this is the deal.
 
 		pEdict->v.absmin = vecOrigin - Vector(1, 1, 1);
 		pEdict->v.absmax = vecOrigin + Vector(1, 1, 1);
@@ -219,7 +222,7 @@ void VisualEffects(const Vector &vecOrigin) noexcept
 	}
 
 	if (g_engfuncs.pfnPointContents(vecOrigin) == CONTENTS_WATER)
-		return;
+		co_return;
 
 	static constexpr auto get_spherical_coord = [](const Vector &vecOrigin, const Quaternion &qRotation, double radius, double inclination, double azimuth) noexcept
 	{
@@ -287,6 +290,8 @@ void VisualEffects(const Vector &vecOrigin) noexcept
 		MsgEnd();
 	}
 
+	co_await gpGlobals->frametime;
+
 	array const rgvecPericoords =
 	{
 		get_spherical_coord(vecOrigin, qRotation, 128.f, UTIL_Random(85.f, 95.f), 0),
@@ -309,17 +314,21 @@ void VisualEffects(const Vector &vecOrigin) noexcept
 		WriteData((byte)50);
 		MsgEnd();
 	}
+
+	co_return;
 }
 
-void Impact(CBasePlayer *pAttacker, CBaseEntity *pProjectile, CBaseEntity *pOther, float flDamage) noexcept
+void Impact(CBasePlayer *pAttacker, CBaseEntity *pProjectile, float flDamage) noexcept
 {
 	g_engfuncs.pfnMakeVectors(pProjectile->pev->angles);
 
 	TraceResult tr{};
 	g_engfuncs.pfnTraceLine(pProjectile->pev->origin, pProjectile->pev->origin + gpGlobals->v_forward * 4096.f, dont_ignore_monsters, ent_cast<edict_t *>(pProjectile->pev), &tr);
 
-	if (tr.pHit && &tr.pHit->v != pOther->pev)
+	if (pev_valid(tr.pHit) != 2)
 		return;
+
+	CBaseEntity *pOther = (CBaseEntity *)tr.pHit->pvPrivateData;
 
 	pOther->TraceAttack(pAttacker->pev, flDamage, gpGlobals->v_forward, &tr, DMG_BULLET);
 	g_pfnApplyMultiDamage(pProjectile->pev, pAttacker->pev);
@@ -345,12 +354,10 @@ META_RES OnTouch(CBaseEntity *pEntity, CBaseEntity *pOther) noexcept
 
 		g_engfuncs.pfnEmitSound(ent_cast<edict_t *>(pEntity->pev), CHAN_WEAPON, UTIL_GetRandomOne(Sounds::EXPLOSION), VOL_NORM, 0.3f, 0, UTIL_Random(92, 116));
 
-		if (pev_valid(pOther->pev) == 2)
-			Impact(pPlayer, pEntity, pOther, 125.f);
-
+		Impact(pPlayer, pEntity, 125.f);
 		Explosion(pPlayer, pEntity->pev->origin, 350.f, 275.f);
 		ScreenEffects(pEntity->pev->origin, 700.f, 12.f, 2048.f);
-		VisualEffects(pEntity->pev->origin);
+		TaskScheduler::Enroll(VisualEffects(pEntity->pev->origin));
 
 		pEntity->pev->flags |= FL_KILLME;
 	}
