@@ -90,21 +90,31 @@ Task CFlame::Task_EmitSmoke() noexcept
 {
 	for (;;)
 	{
-		co_await UTIL_Random(1.5f, 2.5f);
+		co_await UTIL_Random(0.5f, 0.8f);
 
 		Vector const vecNoise = pev->scale * Vector(
 			UTIL_Random(-24.0, 24.0),
 			UTIL_Random(-24.0, 24.0),
-			UTIL_Random(-40.0, -24.0)
+			UTIL_Random(-60.0, -36.0)
 		);
 
 		MsgPVS(SVC_TEMPENTITY, pev->view_ofs);
-		WriteData(TE_SPRITE);
+		WriteData(TE_SMOKE);
 		WriteData(pev->view_ofs + vecNoise);
-		WriteData((short)Sprite::m_rgLibrary[Sprite::SMOKE_2]);
-		WriteData((byte)50);
-		WriteData((byte)50);
+		WriteData((short)Sprite::m_rgLibrary[Sprite::BLACK_SMOKE]);
+		WriteData((byte)UTIL_Random(10, 20));	// (scale in 0.1's)
+		WriteData((byte)UTIL_Random(15, 20));	// (framerate)
 		MsgEnd();
+
+		//MsgPVS(SVC_TEMPENTITY, pev->view_ofs);
+		//WriteData(TE_FIREFIELD);
+		//WriteData(pev->view_ofs + vecNoise);
+		//WriteData((short)UTIL_Random(-32.0 * pev->scale, 32.0 * pev->scale));
+		//WriteData((short)Sprite::m_rgLibrary[Sprite::BLACK_SMOKE]);
+		//WriteData((byte)UTIL_Random(2, 4));
+		//WriteData((byte)(TEFIRE_FLAG_SOMEFLOAT | TEFIRE_FLAG_ALPHA));
+		//WriteData((byte)25);
+		//MsgEnd();
 	}
 }
 
