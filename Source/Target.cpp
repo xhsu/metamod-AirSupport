@@ -216,7 +216,7 @@ extern "C++" namespace Target
 			{
 				// Try to get a temp spawn location above player.
 				Vector const vecSrc = pPlayer->GetGunPosition();
-				Vector const vecEnd = { vecSrc.x, vecSrc.y, 8192.f };
+				Vector const vecEnd { vecSrc.x, vecSrc.y, 8192.f };
 
 				g_engfuncs.pfnTraceLine(vecSrc, vecEnd, ignore_monsters | ignore_glass, nullptr, &tr);
 
@@ -226,6 +226,11 @@ extern "C++" namespace Target
 
 					if (tr.flFraction > 0.99f)
 						pTarget->pev->vuser2 = vecSavedCandidate;
+				}
+				else
+				{
+					// Must have a break here, otherwise it would cause FS due to infinite loop.
+					co_await (gpGlobals->frametime * 2.f);
 				}
 			}
 		}

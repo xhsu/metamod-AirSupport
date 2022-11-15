@@ -136,8 +136,8 @@ void ScreenEffects(const Vector &vecOrigin, float const flRadius, float const fl
 		float const flModifer = (flRadius - flDistance) * (flRadius - flDistance) * 1.25f / (flRadius * flRadius) * 1.5f;
 
 		gmsgScreenShake::Send(pPlayer->edict(),
-			ScaledFloat<1 << 12>(25 * flModifer),	// amp
-			ScaledFloat<1 << 12>(5 * flModifer),	// dur
+			ScaledFloat<1 << 12>(25.0 * flModifer),	// amp
+			ScaledFloat<1 << 12>(5.0 * flModifer),	// dur
 			ScaledFloat<1 << 8>(12)					// freq
 		);
 
@@ -153,9 +153,9 @@ void ScreenEffects(const Vector &vecOrigin, float const flRadius, float const fl
 
 		float const flPunch = flPunchMax * flModifer;
 		pPlayer->pev->punchangle += Vector(
-			flPunch * (UTIL_Random() ? 1 : -1),
-			flPunch * (UTIL_Random() ? 1 : -1),
-			flPunch * (UTIL_Random() ? 1 : -1)
+			flPunch * (UTIL_Random() ? 1.0 : -1.0),
+			flPunch * (UTIL_Random() ? 1.0 : -1.0),
+			flPunch * (UTIL_Random() ? 1.0 : -1.0)
 		);
 
 		float const flSpeed = flModifer * flKnockForce;
