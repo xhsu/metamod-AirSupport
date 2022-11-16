@@ -405,7 +405,7 @@ void fw_OnFreeEntPrivateData(edict_t *pEdict) noexcept
 		[[unlikely]]
 		if (auto const pPrefab = dynamic_cast<Prefab_t *>(pEntity); pPrefab != nullptr)
 		{
-			pPrefab->~Prefab_t();	// It's kind of ... UB... but we don't have any other way.
+			std::destroy_at(pPrefab);	// Thanks to C++17 we can finally patch up this old game.
 
 			gpMetaGlobals->mres = MRES_SUPERCEDE;
 		}
