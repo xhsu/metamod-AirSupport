@@ -202,9 +202,9 @@ extern "C++" namespace Target
 				}
 
 				[[unlikely]]
-				if (!(iCounter % 512))
+				if (!(iCounter % 256))
 				{
-					co_await (gpGlobals->frametime * 2.f);
+					co_await (gpGlobals->frametime / 2.f);	// gurentee resume next frame.
 
 					if (!pTarget)
 						co_return;
@@ -212,26 +212,28 @@ extern "C++" namespace Target
 			}
 
 			[[unlikely]]
-			if (pTarget->pev->vuser2 == Vector::Zero() && pPlayer && pPlayer->IsAlive())
+			if (pTarget->pev->vuser2 == Vector::Zero())
 			{
-				// Try to get a temp spawn location above player.
-				Vector const vecSrc = pPlayer->GetGunPosition();
-				Vector const vecEnd { vecSrc.x, vecSrc.y, 8192.f };
-
-				g_engfuncs.pfnTraceLine(vecSrc, vecEnd, ignore_monsters | ignore_glass, nullptr, &tr);
-
-				if (Vector const vecSavedCandidate = tr.vecEndPos; g_engfuncs.pfnPointContents(vecSavedCandidate) == CONTENTS_SKY)
+				[[likely]]
+				if (pPlayer && pPlayer->IsAlive())
 				{
-					g_engfuncs.pfnTraceLine(vecSavedCandidate, pTarget->pev->vuser1, ignore_monsters | ignore_glass, nullptr, &tr);
+					// Try to get a temp spawn location above player.
+					Vector const vecSrc = pPlayer->GetGunPosition();
+					Vector const vecEnd { vecSrc.x, vecSrc.y, 8192.f };
+	
+					g_engfuncs.pfnTraceLine(vecSrc, vecEnd, ignore_monsters | ignore_glass, nullptr, &tr);
+	
+					if (Vector const vecSavedCandidate = tr.vecEndPos; g_engfuncs.pfnPointContents(vecSavedCandidate) == CONTENTS_SKY)
+					{
+						g_engfuncs.pfnTraceLine(vecSavedCandidate, pTarget->pev->vuser1, ignore_monsters | ignore_glass, nullptr, &tr);
+	
+						if (tr.flFraction > 0.99f)
+							pTarget->pev->vuser2 = vecSavedCandidate;
+					}
+				}
 
-					if (tr.flFraction > 0.99f)
-						pTarget->pev->vuser2 = vecSavedCandidate;
-				}
-				else
-				{
-					// Must have a break here, otherwise it would cause FS due to infinite loop.
-					co_await (gpGlobals->frametime * 2.f);
-				}
+				// Must have a break here, otherwise it would cause FS due to infinite loop.
+				co_await (gpGlobals->frametime * 2.f);
 			}
 		}
 

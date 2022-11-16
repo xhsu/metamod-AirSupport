@@ -23,6 +23,7 @@ META_RES OnClientCommand(CBasePlayer *pPlayer, const string &szCommand) noexcept
 	[[unlikely]]
 	if (szCommand == "takeradio" || szCommand == HUD::RADIO)
 	{
+		// Switch from knife to radio
 		if (auto const pWeapon = pPlayer->m_pActiveItem; pWeapon->m_iId == WEAPON_KNIFE)
 		{
 			if (pWeapon->pev->weapons == RADIO_KEY)
@@ -30,6 +31,8 @@ META_RES OnClientCommand(CBasePlayer *pPlayer, const string &szCommand) noexcept
 
 			TaskScheduler::Enroll(Weapon::Task_RadioDeploy((CBasePlayerWeapon *)pWeapon));
 		}
+
+		// Switch from anything to radio
 		else if (auto const pKnife = pPlayer->m_rgpPlayerItems[3])
 		{
 			pKnife->pev->weapons = RADIO_KEY;
@@ -40,6 +43,7 @@ META_RES OnClientCommand(CBasePlayer *pPlayer, const string &szCommand) noexcept
 	}
 	else if (szCommand == "weapon_knife")
 	{
+		// Switch from radio to knife
 		if (auto const pWeapon = pPlayer->m_pActiveItem; pWeapon->m_iId == WEAPON_KNIFE)
 		{
 			if (pWeapon->pev->weapons != RADIO_KEY || !pWeapon->CanHolster())
