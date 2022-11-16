@@ -83,7 +83,15 @@ int HamF_Item_Deploy(CBasePlayerItem *pItem) noexcept
 
 	[[unlikely]]
 	if (pev_valid(pThis->pev->euser1) != 2)
-		Target::Create(pThis);
+	{
+//		Target::Create(pThis);
+		auto pTarget = Prefab_t::Create<CDynamicTarget>(Classname::AIM, Vector::Zero());
+
+		pTarget->m_pRadio = pThis;
+		pTarget->m_pPlayer = pThis->m_pPlayer;
+
+		pThis->pev->euser1 = pTarget->edict();
+	}
 
 	pThis->m_iSwing = 0;
 	pThis->m_fMaxSpeed = KNIFE_MAX_SPEED;

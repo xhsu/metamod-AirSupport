@@ -160,7 +160,7 @@ export struct Prefab_t : public CBaseEntity
 	qboolean IsNetClient() noexcept override { return false; }
 	const char *TeamID() noexcept override { return ""; }
 	CBaseEntity *GetNextTarget() noexcept override { return g_pfnEntityGetNextTarget(this); }
-	void Think() noexcept final { pev->nextthink = 0.1f; m_Scheduler.Think(); }
+	void Think() noexcept final { m_Scheduler.Think(); pev->nextthink = 0.1f; }	// ensure the think can never be block by child classes.
 	void Touch(CBaseEntity *pOther) noexcept override { if (m_pfnTouch) (this->*m_pfnTouch)(pOther); }
 	void Use(CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType = USE_OFF, float value = 0.0f) noexcept override { if (m_pfnUse) (this->*m_pfnUse)(pActivator, pCaller, useType, value); }
 	void Blocked(CBaseEntity *pOther) noexcept override { if (m_pfnBlocked) (this->*m_pfnBlocked)(pOther); }
@@ -226,7 +226,7 @@ export struct Prefab_t : public CBaseEntity
 
 	// Have to entity have to be created like this.
 	template <typename T, size_t N>
-	static T *Create(const char (&szClassName)[N], const Vector& vecOrigin, const Vector& vecAngles) noexcept
+	static T *Create(const char (&szClassName)[N], const Vector& vecOrigin, const Vector& vecAngles = Vector::Zero()) noexcept
 	{
 		auto const pEdict = g_engfuncs.pfnCreateEntity();
 

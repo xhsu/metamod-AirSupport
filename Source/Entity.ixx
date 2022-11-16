@@ -3,6 +3,8 @@ export module Entity;
 export import CBase;
 export import Task;
 
+export import Prefab;
+
 export enum EAirSupportTypes
 {
 	AIR_STRIKE = 0,
@@ -65,4 +67,22 @@ export extern "C++" namespace FixedTarget
 export extern "C++" namespace Jet
 {
 	Task Task_Jet(EHANDLE<CBaseEntity> pEntity) noexcept;
+};
+
+export struct CDynamicTarget : public Prefab_t
+{
+	Task Task_Animation() noexcept;
+	Task Task_DeepEvaluation() noexcept;
+	Task Task_QuickEvaluation() noexcept;
+	Task Task_Remove() noexcept;
+	Task Task_Spawn() noexcept;
+
+	void Spawn() noexcept override;
+
+	EHANDLE<CBaseEntity> m_pTargeting{ nullptr };
+	EHANDLE<CBasePlayerWeapon> m_pRadio{ nullptr };
+	CBasePlayer *m_pPlayer{};
+	Vector m_vecLastAiming{};
+
+	static inline constexpr auto DETAIL_ANALYZE_KEY = 3658468ul;
 };

@@ -311,11 +311,11 @@ Task VisualEffects(const Vector vecOrigin, float const flRadius) noexcept	// The
 
 	for (int i = 0; i < 8; ++i)
 	{
-		auto const pFlame = Prefab_t::Create<CFlame>(Classname::CFLAME, vecOrigin, Vector::Zero());
+		auto const pFlame = Prefab_t::Create<CFlame>(Classname::CFLAME, vecOrigin);
 		pFlame->pev->velocity = get_spherical_coord(flRadius, UTIL_Random(15.0, 25.0), UTIL_Random(0.0, 359.9));
 	}
 
-	auto pSmoke = Prefab_t::Create<CSmoke>(Classname::CSMOKE, vecOrigin, Vector::Zero());
+	auto pSmoke = Prefab_t::Create<CSmoke>(Classname::CSMOKE, vecOrigin);
 	pSmoke->m_flRadius = flRadius * 0.2f;
 }
 

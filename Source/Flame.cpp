@@ -10,7 +10,7 @@ Task CFlame::Task_Animation() noexcept
 {
 	for (;;)
 	{
-		co_await gpGlobals->frametime;
+		co_await FLT_EPSILON;
 
 		pev->framerate = float(18.0 * gpGlobals->frametime);
 		pev->frame += pev->framerate;

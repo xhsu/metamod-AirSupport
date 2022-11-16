@@ -15,11 +15,11 @@ META_RES OnThink(CBaseEntity *pEntity) noexcept
 		Laser::Think(pEntity);
 		return MRES_HANDLED;
 	}
-	else if (pEntity->pev->classname == MAKE_STRING(Classname::AIM))
-	{
-		Target::Think(pEntity);
-		return MRES_HANDLED;
-	}
+	//else if (pEntity->pev->classname == MAKE_STRING(Classname::AIM))
+	//{
+	//	Target::Think(pEntity);
+	//	return MRES_HANDLED;
+	//}
 
 	return MRES_IGNORED;
 }

@@ -336,3 +336,202 @@ extern "C++" namespace FixedTarget
 		co_return;
 	}
 };
+
+Task CDynamicTarget::Task_Animation() noexcept
+{
+	for (;;)
+	{
+		if (m_pPlayer->m_pActiveItem != m_pRadio || m_pRadio->pev->weapons != RADIO_KEY)
+		{
+			co_await Models::v_radio::time::draw;	// the model will be hidden for this long, at least.
+			continue;
+		}
+
+		co_await (FLT_EPSILON * 2.f);
+
+		pev->framerate = float(Models::targetmdl::FPS * gpGlobals->frametime);
+		pev->frame += pev->framerate;
+		pev->animtime = gpGlobals->time;
+
+		[[unlikely]]
+		if (pev->frame < 0 || pev->frame >= 256)
+			pev->frame -= float((pev->frame / 256.0) * 256.0);	// model sequence is different from SPRITE, no matter now many frame you have, it will stretch/squeeze into 256.
+	}
+}
+
+Task CDynamicTarget::Task_DeepEvaluation() noexcept
+{
+	size_t iCounter = 0;
+	TraceResult tr{};
+
+	for (;;)
+	{
+		co_await(gpGlobals->frametime / 3.f);
+
+		if (m_pPlayer->m_pActiveItem != m_pRadio || m_pRadio->pev->weapons != RADIO_KEY)
+		{
+			co_await Models::v_radio::time::draw;	// the model will be hidden for this long, at least.
+			continue;
+		}
+
+		[[unlikely]]
+		if (pev->skin == Models::targetmdl::SKIN_GREEN)
+		{
+			co_return;	// It's done, stop current evaluation.
+		}
+
+		// Try to get a temp spawn location above player.
+		Vector const vecSrc = m_pPlayer->GetGunPosition();
+		Vector const vecEnd{ vecSrc.x, vecSrc.y, 8192.f };
+
+		g_engfuncs.pfnTraceLine(vecSrc, vecEnd, ignore_monsters | ignore_glass, nullptr, &tr);
+
+		if (Vector const vecSavedCandidate = tr.vecEndPos; g_engfuncs.pfnPointContents(vecSavedCandidate) == CONTENTS_SKY)
+		{
+			g_engfuncs.pfnTraceLine(vecSavedCandidate, pev->origin, ignore_monsters | ignore_glass, nullptr, &tr);
+
+			if (tr.flFraction > 0.99f)
+			{
+				co_await 0.1f;	// avoid red-green flashing.
+
+				pev->skin = Models::targetmdl::SKIN_GREEN;
+				co_return;
+			}
+		}
+
+		iCounter = 0;
+
+		for (const auto &vec : g_WaypointMgr.m_rgvecOrigins)
+		{
+			++iCounter;
+			g_engfuncs.pfnTraceLine(pev->origin, vec, ignore_monsters | ignore_glass, nullptr, &tr);
+
+			[[unlikely]]
+			if (tr.flFraction > 0.99f)
+			{
+				co_await 0.1f;	// avoid red-green flashing.
+
+				pev->skin = Models::targetmdl::SKIN_GREEN;
+				co_return;
+			}
+
+			[[unlikely]]
+			if (!(iCounter % 256))
+			{
+				co_await(gpGlobals->frametime / 3.f);	// gurentee resume next frame. div by 3 is to ensure priority
+			}
+		}
+	}
+}
+
+Task CDynamicTarget::Task_QuickEvaluation() noexcept
+{
+	for (;;)
+	{
+		if (m_pPlayer->m_pActiveItem != m_pRadio || m_pRadio->pev->weapons != RADIO_KEY)
+		{
+			co_await Models::v_radio::time::draw;	// the model will be hidden for this long, at least.
+			continue;
+		}
+
+		co_await FLT_EPSILON;
+
+		// Calc where does player aiming
+
+		g_engfuncs.pfnMakeVectors(m_pPlayer->pev->v_angle);
+
+		Vector const vecSrc = m_pPlayer->GetGunPosition();
+		Vector const vecEnd = vecSrc + gpGlobals->v_forward * 4096.f;
+
+		TraceResult tr{};
+		g_engfuncs.pfnTraceLine(vecSrc, vecEnd, dont_ignore_monsters, m_pPlayer->edict(), &tr);
+
+		m_pTargeting = tr.pHit;	// including null ent.
+
+		if (m_pTargeting)
+		{
+			pev->angles = Vector::Zero();	// facing up.
+			g_engfuncs.pfnSetOrigin(edict(), m_pTargeting->Center());	// attach to target.
+		}
+		else
+		{
+			g_engfuncs.pfnVecToAngles(tr.vecPlaneNormal, pev->angles);
+			pev->angles.x += 270.f;	// don't know why, but this is the deal.
+
+			g_engfuncs.pfnSetOrigin(edict(), tr.vecEndPos);
+		}
+
+		// Quick Evaluation
+
+		if ((pev->origin - m_vecLastAiming).LengthSquared() > 24.0 * 24.0)
+		{
+			// Remove old deep think
+			m_Scheduler.Delist(DETAIL_ANALYZE_KEY);
+
+			// Is it under sky?
+			g_engfuncs.pfnTraceLine(
+				pev->origin,
+				Vector(pev->origin.x, pev->origin.y, 8192),
+				ignore_monsters | ignore_glass,
+				nullptr, &tr
+			);
+
+			if (g_engfuncs.pfnPointContents(tr.vecEndPos) != CONTENTS_SKY)
+			{
+				// Start on deep analyze
+				m_Scheduler.Enroll(Task_DeepEvaluation(), DETAIL_ANALYZE_KEY);
+
+				pev->skin = Models::targetmdl::SKIN_RED;
+			}
+			else
+			{
+				pev->skin = Models::targetmdl::SKIN_GREEN;
+			}
+
+			m_vecLastAiming = pev->origin;
+		}
+	}
+}
+
+Task CDynamicTarget::Task_Remove() noexcept
+{
+	for (;;)
+	{
+		co_await gpGlobals->frametime;
+
+		if (!m_pPlayer->IsAlive()	// Including "disconnection", since client drop out will cause pev->deadflag == DEAD_DEAD
+			|| !m_pRadio
+			|| !(m_pPlayer->pev->weapons & (1 << WEAPON_NIL))	// for some reason, player no longer hold radio.
+			)
+		{
+			pev->flags |= FL_KILLME;
+			co_return;
+		}
+	}
+}
+
+Task CDynamicTarget::Task_Spawn() noexcept
+{
+	co_await (gpGlobals->frametime / 2.f);
+
+	g_engfuncs.pfnSetOrigin(edict(), m_pPlayer->pev->origin);
+	g_engfuncs.pfnSetModel(edict(), Models::TARGET);
+	g_engfuncs.pfnSetSize(edict(), Vector::Zero(), Vector::Zero());
+
+	pev->solid = SOLID_NOT;
+	pev->movetype = MOVETYPE_NOCLIP;
+	pev->effects |= EF_NODRAW;
+	pev->rendermode = kRenderTransAdd;
+	pev->renderfx = kRenderFxPulseFastWide;
+	pev->renderamt = 128;
+	pev->team = m_pPlayer->m_iTeam;
+
+	m_Scheduler.Enroll(Task_Animation());
+	m_Scheduler.Enroll(Task_QuickEvaluation());
+}
+
+void CDynamicTarget::Spawn() noexcept
+{
+	m_Scheduler.Enroll(Task_Spawn());	// Need an additional frame to ensure the required member gets filled.
+	m_Scheduler.Enroll(Task_Remove());
+}
