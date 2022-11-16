@@ -132,6 +132,7 @@ export namespace Sprite
 	inline constexpr char SMOKE_1[] = "sprites/gas_smoke1.spr";
 	inline constexpr char SMOKE_2[] = "sprites/wall_puff1.spr";
 	inline constexpr char BLACK_SMOKE[] = "sprites/black_smoke3.spr";	// MUST be used with TE_SMOKE or you can see the effect.
+	inline constexpr char PERSISTENT_SMOKE[] = "sprites/ballsmoke.spr";
 
 	inline constexpr char BEAM[] = "sprites/laserbeam.spr";
 	inline constexpr char AIM[] = "sprites/targetsign.spr";

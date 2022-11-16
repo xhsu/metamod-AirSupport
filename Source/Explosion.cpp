@@ -169,7 +169,7 @@ void ScreenEffects(const Vector &vecOrigin, float const flRadius, float const fl
 	}
 }
 
-Task VisualEffects(const Vector vecOrigin) noexcept	// The parameter must pass by copy. This is a coroutine.
+Task VisualEffects(const Vector vecOrigin, float const flRadius) noexcept	// The parameter must pass by copy. This is a coroutine.
 {
 	MsgBroadcast(SVC_TEMPENTITY);
 	WriteData(TE_SPRITE);
@@ -267,7 +267,12 @@ Task VisualEffects(const Vector vecOrigin) noexcept	// The parameter must pass b
 			UTIL_Random(8.f, 20.f),
 			0x40
 		);
+	}
 
+	co_await gpGlobals->frametime;
+
+	for (auto &&vecVelocity : rgvecVelocitys)
+	{
 		MsgBroadcast(SVC_TEMPENTITY);
 		WriteData(TE_SPRITE);
 		WriteData(vecOrigin + vecVelocity * UTIL_Random(200.f, 300.f));
@@ -307,8 +312,11 @@ Task VisualEffects(const Vector vecOrigin) noexcept	// The parameter must pass b
 	for (int i = 0; i < 8; ++i)
 	{
 		auto const pFlame = Prefab_t::Create<CFlame>(Classname::CFLAME, vecOrigin, Vector::Zero());
-		pFlame->pev->velocity = get_spherical_coord(750.0, UTIL_Random(15.0, 25.0), UTIL_Random(0.0, 359.9));
+		pFlame->pev->velocity = get_spherical_coord(flRadius, UTIL_Random(15.0, 25.0), UTIL_Random(0.0, 359.9));
 	}
+
+	auto pSmoke = Prefab_t::Create<CSmoke>(Classname::CSMOKE, vecOrigin, Vector::Zero());
+	pSmoke->m_flRadius = flRadius * 0.2f;
 }
 
 void Impact(CBasePlayer *pAttacker, CBaseEntity *pProjectile, float flDamage) noexcept
@@ -354,7 +362,7 @@ META_RES OnTouch(CBaseEntity *pEntity, CBaseEntity *pOther) noexcept
 		Impact(pPlayer, pEntity, 125.f);
 		RangeDamage(pPlayer, pEntity->pev->origin, 350.f, 275.f);
 		ScreenEffects(pEntity->pev->origin, 700.f, 12.f, 2048.f);
-		TaskScheduler::Enroll(VisualEffects(pEntity->pev->origin));
+		TaskScheduler::Enroll(VisualEffects(pEntity->pev->origin, 700.f));
 
 		pEntity->pev->flags |= FL_KILLME;
 	}

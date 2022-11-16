@@ -12,7 +12,7 @@ Task CFlame::Task_Animation() noexcept
 	{
 		co_await gpGlobals->frametime;
 
-		pev->framerate = float(30.0 * gpGlobals->frametime);
+		pev->framerate = float(18.0 * gpGlobals->frametime);
 		pev->frame += pev->framerate;
 		pev->animtime = gpGlobals->time;
 
@@ -130,13 +130,11 @@ void CFlame::Spawn() noexcept
 	m_iFlameSprIndex = UTIL_Random(0u, Sprite::FLAME.size() - 1);
 	m_iMaxFrame = Sprite::Frames::FLAME[m_iFlameSprIndex];
 
-	pev->nextthink = 0.1f;
-
 	pev->rendermode = kRenderTransAdd;
 	pev->renderamt = UTIL_Random(192.f, 255.f);
 	pev->frame = UTIL_Random<float>(0, m_iMaxFrame);
 
-	pev->solid = SOLID_NOT;
+	pev->solid = SOLID_TRIGGER;
 	pev->movetype = MOVETYPE_TOSS;
 	pev->gravity = 2.f;
 	pev->scale = UTIL_Random(0.6f, 0.85f);
@@ -152,9 +150,45 @@ void CFlame::Spawn() noexcept
 	g_engfuncs.pfnSetOrigin(edict(), tr.vecEndPos);	// pfnSetOrigin includes the abssize setting, restoring our hitbox.
 
 	m_Scheduler.Enroll(Task_Animation());
-	m_Scheduler.Enroll(Task_DetectGround());
 	m_Scheduler.Enroll(Task_EmitLight());
 	m_Scheduler.Enroll(Task_Remove());
+
+	SetTouch(&CFlame::Touch_AttachingSurface);
+}
+
+void CFlame::Touch_AttachingSurface(CBaseEntity *pOther) noexcept
+{
+	if (!pOther || ent_cast<int>(pOther) != 0)
+		return;
+
+	if (pev->waterlevel != 0)
+	{
+		pev->flags |= FL_KILLME;
+		return;
+	}
+
+	TraceResult tr{};
+	g_engfuncs.pfnTraceMonsterHull(edict(), pev->origin, pev->origin + pev->velocity.Normalize(), ignore_monsters | ignore_glass, nullptr, &tr);
+
+	if (tr.flFraction < 1.f)
+	{
+		MsgBroadcast(SVC_TEMPENTITY);
+		WriteData(TE_WORLDDECAL);
+		WriteData(tr.vecEndPos);
+		WriteData((byte)UTIL_GetRandomOne(Decal::SCORCH).m_Index);
+		MsgEnd();
+	}
+
+	pev->view_ofs = pev->origin + Vector(0, 0, 64.0 * pev->scale);
+
+	pev->solid = SOLID_TRIGGER;
+	pev->movetype = MOVETYPE_NONE;
+
+	g_engfuncs.pfnSetSize(edict(), Vector(-32, -32, -64) * pev->scale, Vector(32, 32, 64) * pev->scale);	// Set size is required if pev->solid changed.
+
+	m_Scheduler.Enroll(Task_EmitSmoke());
+
+	SetTouch(&CFlame::Touch_DealBurnDmg);
 }
 
 void CFlame::Touch_DealBurnDmg(CBaseEntity *pOther) noexcept

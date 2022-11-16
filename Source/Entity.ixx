@@ -21,6 +21,7 @@ export namespace Classname
 	inline constexpr char AIM[] = "aiming_pad";
 	inline constexpr char FIXED_TARGET[] = "info_fixed_target";
 	inline constexpr char CFLAME[] = "flame_test_entity";
+	inline constexpr char CSMOKE[] = "smoke_emitter";
 }
 
 export inline constexpr auto RADIO_KEY = 16486345;

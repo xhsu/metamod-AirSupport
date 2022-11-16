@@ -16,4 +16,10 @@ void OrpheuF_CleanUpMap(CHalfLifeMultiplay *pThis) noexcept
 
 	for (auto &&pEnt : FIND_ENTITY_BY_CLASSNAME(Classname::MISSILE))
 		pEnt->v.flags |= FL_KILLME;
+
+	for (auto &&pEnt : FIND_ENTITY_BY_CLASSNAME(Classname::CFLAME))
+		pEnt->v.flags |= FL_KILLME;
+
+	for (auto &&pEnt : FIND_ENTITY_BY_CLASSNAME(Classname::CSMOKE))
+		pEnt->v.flags |= FL_KILLME;
 }

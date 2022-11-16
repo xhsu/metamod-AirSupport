@@ -316,5 +316,8 @@
     <ClCompile Include="Source\Math.ixx">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Smoke.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

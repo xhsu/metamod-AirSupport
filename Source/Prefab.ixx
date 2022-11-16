@@ -246,6 +246,7 @@ export struct Prefab_t : public CBaseEntity
 		pEdict->v.origin = vecOrigin;
 
 		pPrefab->Spawn();
+		pPrefab->pev->nextthink = 0.1f;
 
 		return pPrefab;
 	}
