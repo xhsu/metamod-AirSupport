@@ -96,7 +96,7 @@ extern "C++" namespace Target
 		g_engfuncs.pfnSetModel(pTarget, Models::TARGET);
 		g_engfuncs.pfnSetSize(pTarget, Vector::Zero(), Vector::Zero());
 
-		pTarget->v.classname = MAKE_STRING(Classname::AIM);
+		pTarget->v.classname = MAKE_STRING(CDynamicTarget::CLASSNAME);
 		pTarget->v.solid = SOLID_NOT;
 		pTarget->v.movetype = MOVETYPE_NOCLIP;
 		pTarget->v.effects |= EF_NODRAW;
@@ -436,6 +436,10 @@ Task CDynamicTarget::Task_QuickEvaluation() noexcept
 
 		co_await TaskScheduler::NextFrame::Rank[0];
 
+		// Update team info so we can hide from proper player group.
+
+		pev->team = m_pPlayer->m_iTeam;
+
 		// Calc where does player aiming
 
 		g_engfuncs.pfnMakeVectors(m_pPlayer->pev->v_angle);
@@ -448,10 +452,12 @@ Task CDynamicTarget::Task_QuickEvaluation() noexcept
 
 		m_pTargeting = tr.pHit;	// including null ent.
 
-		if (m_pTargeting)
+		if (m_pTargeting && !m_pTargeting->IsBSPModel() && m_pTargeting->IsAlive())
 		{
 			pev->angles = Vector::Zero();	// facing up.
-			g_engfuncs.pfnSetOrigin(edict(), m_pTargeting->Center());	// attach to target.
+
+			Vector const vecCenter = m_pTargeting->Center();
+			g_engfuncs.pfnSetOrigin(edict(), Vector(vecCenter.x, vecCenter.y, m_pTargeting->pev->absmin.z + 1.f));	// attach to target.
 		}
 		else
 		{
@@ -499,6 +505,7 @@ Task CDynamicTarget::Task_Remove() noexcept
 	{
 		co_await gpGlobals->frametime;
 
+		[[unlikely]]
 		if (!m_pPlayer->IsAlive()	// Including "disconnection", since client drop out will cause pev->deadflag == DEAD_DEAD
 			|| !m_pRadio
 			|| !(m_pPlayer->pev->weapons & (1 << WEAPON_NIL))	// for some reason, player no longer hold radio.
@@ -510,10 +517,8 @@ Task CDynamicTarget::Task_Remove() noexcept
 	}
 }
 
-Task CDynamicTarget::Task_Spawn() noexcept
+void CDynamicTarget::Spawn() noexcept
 {
-	co_await (gpGlobals->frametime / 2.f);
-
 	g_engfuncs.pfnSetOrigin(edict(), m_pPlayer->pev->origin);
 	g_engfuncs.pfnSetModel(edict(), Models::TARGET);
 	g_engfuncs.pfnSetSize(edict(), Vector::Zero(), Vector::Zero());
@@ -528,10 +533,30 @@ Task CDynamicTarget::Task_Spawn() noexcept
 
 	m_Scheduler.Enroll(Task_Animation());
 	m_Scheduler.Enroll(Task_QuickEvaluation());
+	m_Scheduler.Enroll(Task_Remove());
 }
 
-void CDynamicTarget::Spawn() noexcept
+CDynamicTarget *CDynamicTarget::Create(CBasePlayer *pPlayer, CBasePlayerWeapon *pRadio) noexcept
 {
-	m_Scheduler.Enroll(Task_Spawn());	// Need an additional frame to ensure the required member gets filled.
-	m_Scheduler.Enroll(Task_Remove());
+	auto const pEdict = g_engfuncs.pfnCreateEntity();
+
+	assert(pEdict != nullptr);
+	assert(pEdict->pvPrivateData == nullptr);
+
+	auto const pPrefab = new(pEdict) CDynamicTarget;
+
+	pPrefab->pev = &pEdict->v;
+
+	assert(pPrefab->pev != nullptr);
+	assert(pEdict->pvPrivateData != nullptr);
+	assert(pEdict->v.pContainingEntity == pEdict);
+
+	pEdict->v.classname = MAKE_STRING(CDynamicTarget::CLASSNAME);
+
+	pPrefab->m_pPlayer = pPlayer;
+	pPrefab->m_pRadio = pRadio;
+	pPrefab->Spawn();
+	pPrefab->pev->nextthink = 0.1f;
+
+	return pPrefab;
 }

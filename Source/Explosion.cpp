@@ -309,14 +309,15 @@ Task VisualEffects(const Vector vecOrigin, float const flRadius) noexcept	// The
 
 	co_await gpGlobals->frametime;
 
+	auto pSmoke = Prefab_t::Create<CSmoke>(vecOrigin);
+	pSmoke->m_flRadius = flRadius * 0.2f;
+
 	for (int i = 0; i < 8; ++i)
 	{
-		auto const pFlame = Prefab_t::Create<CFlame>(Classname::CFLAME, vecOrigin);
+		auto const pFlame = Prefab_t::Create<CFlame>(vecOrigin);
 		pFlame->pev->velocity = get_spherical_coord(flRadius, UTIL_Random(15.0, 25.0), UTIL_Random(0.0, 359.9));
+		pSmoke->m_rgpFlamesDependent.emplace_back(pFlame);
 	}
-
-	auto pSmoke = Prefab_t::Create<CSmoke>(Classname::CSMOKE, vecOrigin);
-	pSmoke->m_flRadius = flRadius * 0.2f;
 }
 
 void Impact(CBasePlayer *pAttacker, CBaseEntity *pProjectile, float flDamage) noexcept

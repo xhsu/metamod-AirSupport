@@ -383,7 +383,7 @@ qboolean fw_AddToFullPack(entity_state_t *pState, int iEntIndex, edict_t *pEdict
 	gpMetaGlobals->mres = MRES_IGNORED;
 
 	[[unlikely]]
-	if (pEdict->v.classname == MAKE_STRING(Classname::AIM) || pEdict->v.classname == MAKE_STRING(Classname::FIXED_TARGET))
+	if (pEdict->v.classname == MAKE_STRING(CDynamicTarget::CLASSNAME) || pEdict->v.classname == MAKE_STRING(Classname::FIXED_TARGET))
 	{
 		auto const pClient = (CBasePlayer *)pClientSendTo->pvPrivateData;
 

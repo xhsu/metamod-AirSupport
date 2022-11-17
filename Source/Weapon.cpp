@@ -85,12 +85,7 @@ int HamF_Item_Deploy(CBasePlayerItem *pItem) noexcept
 	if (pev_valid(pThis->pev->euser1) != 2)
 	{
 //		Target::Create(pThis);
-		auto pTarget = Prefab_t::Create<CDynamicTarget>(Classname::AIM, Vector::Zero());
-
-		pTarget->m_pRadio = pThis;
-		pTarget->m_pPlayer = pThis->m_pPlayer;
-
-		pThis->pev->euser1 = pTarget->edict();
+		pThis->pev->euser1 = CDynamicTarget::Create(pThis->m_pPlayer, pThis)->edict();
 	}
 
 	pThis->m_iSwing = 0;

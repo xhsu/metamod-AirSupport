@@ -24,9 +24,29 @@ Task CSmoke::Task_EmitSmoke() noexcept
 
 Task CSmoke::Task_Remove() noexcept
 {
-	co_await 14.f;	// The maxium of CFlame lasts
+	for (;;)
+	{
+		co_await 0.1f;
 
-	pev->flags |= FL_KILLME;
+		bool bAnySurvived = false;
+
+		for (const auto &flame : m_rgpFlamesDependent)
+		{
+			[[likely]]
+			if (flame)
+			{
+				bAnySurvived = true;
+				break;
+			}
+		}
+
+		[[unlikely]]
+		if (!bAnySurvived)
+		{
+			pev->flags |= FL_KILLME;
+			co_return;
+		}
+	}
 }
 
 void CSmoke::Spawn() noexcept

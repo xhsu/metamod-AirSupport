@@ -225,8 +225,8 @@ export struct Prefab_t : public CBaseEntity
 	}
 
 	// Have to entity have to be created like this.
-	template <typename T, size_t N>
-	static T *Create(const char (&szClassName)[N], const Vector& vecOrigin, const Vector& vecAngles = Vector::Zero()) noexcept
+	template <typename T>
+	static T *Create(const Vector& vecOrigin = Vector::Zero(), const Vector& vecAngles = Vector::Zero()) noexcept
 	{
 		auto const pEdict = g_engfuncs.pfnCreateEntity();
 
@@ -241,7 +241,7 @@ export struct Prefab_t : public CBaseEntity
 		assert(pEdict->pvPrivateData != nullptr);
 		assert(pEdict->v.pContainingEntity == pEdict);
 
-		pEdict->v.classname = MAKE_STRING(szClassName);
+		pEdict->v.classname = MAKE_STRING(T::CLASSNAME);
 		pEdict->v.angles = vecAngles;
 		pEdict->v.origin = vecOrigin;
 

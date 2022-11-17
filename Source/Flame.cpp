@@ -1,3 +1,5 @@
+import <numbers>;
+
 import edict;
 import util;
 
@@ -12,7 +14,7 @@ Task CFlame::Task_Animation() noexcept
 	{
 		co_await TaskScheduler::NextFrame::Rank[0];
 
-		pev->framerate = float(18.0 * gpGlobals->frametime);
+		pev->framerate = float(10.0 * gpGlobals->frametime);
 		pev->frame += pev->framerate;
 		pev->animtime = gpGlobals->time;
 
@@ -150,6 +152,7 @@ void CFlame::Spawn() noexcept
 	g_engfuncs.pfnSetOrigin(edict(), tr.vecEndPos);	// pfnSetOrigin includes the abssize setting, restoring our hitbox.
 
 	m_Scheduler.Enroll(Task_Animation());
+	//m_Scheduler.Enroll(Task_DetectGround());
 	m_Scheduler.Enroll(Task_EmitLight());
 	m_Scheduler.Enroll(Task_Remove());
 
@@ -168,7 +171,9 @@ void CFlame::Touch_AttachingSurface(CBaseEntity *pOther) noexcept
 	}
 
 	TraceResult tr{};
-	g_engfuncs.pfnTraceMonsterHull(edict(), pev->origin, pev->origin + pev->velocity.Normalize(), ignore_monsters | ignore_glass, nullptr, &tr);
+	g_engfuncs.pfnTraceLine(pev->origin,
+		pev->origin + pev->velocity.Normalize() * 64 * std::numbers::sqrt3,	// for the edge case. the vertix-center dist of a cube is root 3.
+		ignore_monsters | ignore_glass, nullptr, &tr);
 
 	if (tr.flFraction < 1.f)
 	{

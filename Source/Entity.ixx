@@ -22,10 +22,7 @@ export namespace Classname
 	inline constexpr char MISSILE[] = "rpgrocket";
 	inline constexpr char FAE[] = "petrol_bomb";
 	inline constexpr char BEAM[] = "aiming_assist_beam";
-	inline constexpr char AIM[] = "aiming_pad";
 	inline constexpr char FIXED_TARGET[] = "info_fixed_target";
-	inline constexpr char CFLAME[] = "flame_test_entity";
-	inline constexpr char CSMOKE[] = "smoke_emitter";
 }
 
 export inline constexpr auto RADIO_KEY = 16486345;
@@ -78,13 +75,15 @@ export extern "C++" namespace Jet
 
 export struct CDynamicTarget : public Prefab_t
 {
+	static inline constexpr char CLASSNAME[] = "info_dynamic_target";
+
 	Task Task_Animation() noexcept;
 	Task Task_DeepEvaluation() noexcept;
 	Task Task_QuickEvaluation() noexcept;
 	Task Task_Remove() noexcept;
-	Task Task_Spawn() noexcept;
 
 	void Spawn() noexcept override;
+	static CDynamicTarget *Create(CBasePlayer *pPlayer, CBasePlayerWeapon *pRadio) noexcept;
 
 	EHANDLE<CBaseEntity> m_pTargeting{ nullptr };
 	EHANDLE<CBasePlayerWeapon> m_pRadio{ nullptr };

@@ -2,9 +2,9 @@ import <ranges>;
 
 import util;
 
+import Effects;
 import Entity;
 import GameRules;
-import Hook;
 
 void OrpheuF_CleanUpMap(CHalfLifeMultiplay *pThis) noexcept
 {
@@ -19,10 +19,10 @@ void OrpheuF_CleanUpMap(CHalfLifeMultiplay *pThis) noexcept
 	for (auto &&pEnt : FIND_ENTITY_BY_CLASSNAME(Classname::MISSILE))
 		pEnt->v.flags |= FL_KILLME;
 
-	for (auto &&pEnt : FIND_ENTITY_BY_CLASSNAME(Classname::CFLAME))
+	for (auto &&pEnt : FIND_ENTITY_BY_CLASSNAME(CFlame::CLASSNAME))
 		pEnt->v.flags |= FL_KILLME;
 
-	for (auto &&pEnt : FIND_ENTITY_BY_CLASSNAME(Classname::CSMOKE))
+	for (auto &&pEnt : FIND_ENTITY_BY_CLASSNAME(CSmoke::CLASSNAME))
 		pEnt->v.flags |= FL_KILLME;
 }
 
