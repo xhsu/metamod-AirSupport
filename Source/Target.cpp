@@ -456,7 +456,13 @@ Task CDynamicTarget::Task_QuickEvaluation() noexcept
 		TraceResult tr{};
 		UTIL_TraceLine(vecSrc, vecEnd, m_pPlayer->edict(), m_pPlayer->m_iTeam == TEAM_CT ? g_rgpCTs : g_rgpTers, &tr);
 
-		m_pTargeting = tr.pHit;	// including null ent.
+		if (pev_valid(tr.pHit) != 2 && m_flLastValidTracking < gpGlobals->time - 0.5f)	// Compensenting bad aiming
+			m_pTargeting = tr.pHit;
+		else if (pev_valid(tr.pHit) == 2)
+		{
+			m_pTargeting = tr.pHit;
+			m_flLastValidTracking = gpGlobals->time;
+		}
 
 		if (m_pTargeting && !m_pTargeting->IsBSPModel() && m_pTargeting->IsAlive())
 		{
@@ -706,7 +712,7 @@ void CFixedTarget::Spawn() noexcept
 	g_engfuncs.pfnSetSize(edict(), Vector::Zero(), Vector::Zero());
 
 	pev->solid = SOLID_NOT;
-	pev->movetype = MOVETYPE_NOCLIP;
+	pev->movetype = MOVETYPE_NONE;	// Fuck the useless MOVETYPE_FOLLOW
 	pev->rendermode = kRenderTransAdd;
 	pev->renderfx = kRenderFxDistort;
 	pev->renderamt = 0;

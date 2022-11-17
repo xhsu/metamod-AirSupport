@@ -52,6 +52,7 @@ export struct CDynamicTarget : public Prefab_t
 	EHANDLE<CBasePlayerWeapon> m_pRadio{ nullptr };
 	CBasePlayer *m_pPlayer{};
 	Vector m_vecLastAiming{};
+	float m_flLastValidTracking{};
 
 	static inline constexpr auto DETAIL_ANALYZE_KEY = 3658468ul;
 };
