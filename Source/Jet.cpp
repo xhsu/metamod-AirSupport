@@ -1,5 +1,6 @@
 import Entity;
 import Message;
+import Missile;
 import Resources;
 
 import UtlRandom;
@@ -9,8 +10,8 @@ extern "C++" namespace Jet
 	Task Task_Jet(EHANDLE<CBaseEntity> pJet) noexcept
 	{
 		auto pPlayer = EHANDLE<CBasePlayer>(pJet->pev->euser1);
-		auto pTarget = EHANDLE<CBaseEntity>(pJet->pev->euser2);
-		auto pMissile = EHANDLE<CBaseEntity>(nullptr);
+		auto pTarget = EHANDLE<CFixedTarget>(pJet->pev->euser2);
+		auto pMissile = EHANDLE<CPrecisionAirStrike>(nullptr);
 
 		//g_engfuncs.pfnEmitSound(pJet.Get(), CHAN_WEAPON, UTIL_GetRandomOne(Sounds::JET), VOL_NORM, ATTN_NONE, 0, UTIL_Random(92, 118));	// #INVESTIGATE
 		g_engfuncs.pfnClientCommand(pPlayer.Get(), "spk %s\n", UTIL_GetRandomOne(Sounds::JET));
@@ -40,8 +41,8 @@ extern "C++" namespace Jet
 
 			if (tr.flFraction > 0.99f)
 			{
-				pMissile = Missile::Create(pPlayer, pJet->pev->origin - Vector(0, 0, 2.5f), pTarget->pev->origin);
-				pTarget->pev->euser2 = pMissile.Get();	// pTarget now has a missile binding to it.
+				pMissile = CPrecisionAirStrike::Create(pPlayer, pJet->pev->origin - Vector(0, 0, 2.5f), pTarget->pev->origin);
+				pTarget->m_pMissile = pMissile;	// pTarget now has a missile binding to it.
 				break;
 			}
 

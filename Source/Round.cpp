@@ -5,18 +5,20 @@ import util;
 import Effects;
 import Entity;
 import GameRules;
+import Missile;
+import Entity;
 
 void OrpheuF_CleanUpMap(CHalfLifeMultiplay *pThis) noexcept
 {
 	g_pfnCleanUpMap(pThis);
 
-	for (auto &&pEnt : FIND_ENTITY_BY_CLASSNAME(Classname::FIXED_TARGET))
+	for (auto &&pEnt : FIND_ENTITY_BY_CLASSNAME(CFixedTarget::CLASSNAME))
 		pEnt->v.flags |= FL_KILLME;
 
 	for (auto &&pEnt : FIND_ENTITY_BY_CLASSNAME(Classname::JET))
 		pEnt->v.flags |= FL_KILLME;
 
-	for (auto &&pEnt : FIND_ENTITY_BY_CLASSNAME(Classname::MISSILE))
+	for (auto &&pEnt : FIND_ENTITY_BY_CLASSNAME(CPrecisionAirStrike::CLASSNAME))
 		pEnt->v.flags |= FL_KILLME;
 
 	for (auto &&pEnt : FIND_ENTITY_BY_CLASSNAME(CFlame::CLASSNAME))

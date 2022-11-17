@@ -345,30 +345,3 @@ void Impact(CBasePlayer *pAttacker, CBaseEntity *pProjectile, float flDamage) no
 	pOther->TraceAttack(pAttacker->pev, flDamage, gpGlobals->v_forward, &tr, DMG_BULLET);
 	g_pfnApplyMultiDamage(pProjectile->pev, pAttacker->pev);
 }
-
-META_RES OnTouch(CBaseEntity *pEntity, CBaseEntity *pOther) noexcept
-{
-	if (pEntity->pev->classname == MAKE_STRING(Classname::MISSILE))
-	{
-		if (g_engfuncs.pfnPointContents(pEntity->pev->origin) == CONTENTS_SKY)
-		{
-			g_engfuncs.pfnRemoveEntity(ent_cast<edict_t *>(pEntity->pev));
-			return MRES_HANDLED;
-		}
-
-		CBasePlayer *pPlayer = (CBasePlayer *)pEntity->pev->owner->pvPrivateData;
-
-		g_engfuncs.pfnEmitSound(ent_cast<edict_t *>(pEntity->pev), CHAN_WEAPON, UTIL_GetRandomOne(Sounds::EXPLOSION), VOL_NORM, 0.3f, 0, UTIL_Random(92, 116));
-
-		Impact(pPlayer, pEntity, 125.f);
-		RangeDamage(pPlayer, pEntity->pev->origin, 350.f, 275.f);
-		ScreenEffects(pEntity->pev->origin, 700.f, 12.f, 2048.f);
-		TaskScheduler::Enroll(VisualEffects(pEntity->pev->origin, 700.f));
-
-		pEntity->pev->flags |= FL_KILLME;
-	}
-
-// #UNDONE else if (!strcmp(szClassName, "petrol_bomb"))
-
-	return MRES_IGNORED;
-}

@@ -78,7 +78,7 @@ void DeployHooks(void) noexcept
 	UTIL_VirtualTableInjection(rgpfnCKnife, VFTIDX_ITEM_POSTFRAME, UTIL_CreateTrampoline(true, 0, &HamF_Item_PostFrame), (void **)&g_pfnItemPostFrame);
 //	UTIL_VirtualTableInjection(rgpfnCKnife, VFTIDX_WEAPON_PRIMARYATTACK, UTIL_CreateTrampoline(true, 0, &HamF_Weapon_PrimaryAttack), (void **)&g_pfnWeaponPrimaryAttack);
 //	UTIL_VirtualTableInjection(rgpfnCKnife, VFTIDX_WEAPON_SECONDARYATTACK, UTIL_CreateTrampoline(true, 0, &HamF_Weapon_SecondaryAttack), (void **)&g_pfnWeaponSecondaryAttack);
-	UTIL_VirtualTableInjection(rgpfnCKnife, VFTIDX_ITEM_CANHOLSTER, UTIL_CreateTrampoline(true, 0, &HamF_Item_CanHolster), (void **)&g_pfnItemCanHolster);
+//	UTIL_VirtualTableInjection(rgpfnCKnife, VFTIDX_ITEM_CANHOLSTER, UTIL_CreateTrampoline(true, 0, &HamF_Item_CanHolster), (void **)&g_pfnItemCanHolster);
 	UTIL_VirtualTableInjection(rgpfnCKnife, VFTIDX_ITEM_HOLSTER, UTIL_CreateTrampoline(true, 1, &HamF_Item_Holster), (void **)&g_pfnItemHolster);
 
 	g_pfnRadiusFlash = (fnRadiusFlash_t)UTIL_SearchPattern("mp.dll", RADIUS_FLASH_FN_PATTERN, 1);
@@ -188,20 +188,6 @@ int fw_Spawn(edict_t *pent) noexcept
 
 	g_bShouldPrecache = false;
 	return 0;
-}
-
-extern META_RES OnThink(CBaseEntity *pEntity) noexcept;
-void fw_Think_Post(edict_t *pent) noexcept
-{
-	gpMetaGlobals->mres = pev_valid(pent) == 2 ? OnThink((CBaseEntity *)pent->pvPrivateData) : MRES_IGNORED;
-	// post
-}
-
-extern META_RES OnTouch(CBaseEntity *pEntity, CBaseEntity *pOther) noexcept;
-void fw_Touch_Post(edict_t *pentTouched, edict_t *pentOther) noexcept
-{
-	gpMetaGlobals->mres = pev_valid(pentTouched) == 2 ? OnTouch((CBaseEntity *)pentTouched->pvPrivateData, (CBaseEntity *)pentOther->pvPrivateData) : MRES_IGNORED;
-	// post
 }
 
 extern META_RES OnClientCommand(CBasePlayer *pPlayer, const std::string &szCommand) noexcept;
@@ -383,7 +369,7 @@ qboolean fw_AddToFullPack(entity_state_t *pState, int iEntIndex, edict_t *pEdict
 	gpMetaGlobals->mres = MRES_IGNORED;
 
 	[[unlikely]]
-	if (pEdict->v.classname == MAKE_STRING(CDynamicTarget::CLASSNAME) || pEdict->v.classname == MAKE_STRING(Classname::FIXED_TARGET))
+	if (pEdict->v.classname == MAKE_STRING(CDynamicTarget::CLASSNAME) || pEdict->v.classname == MAKE_STRING(CFixedTarget::CLASSNAME))
 	{
 		auto const pClient = (CBasePlayer *)pClientSendTo->pvPrivateData;
 
@@ -504,9 +490,9 @@ inline constexpr DLL_FUNCTIONS gFunctionTable_Post =
 {
 	.pfnGameInit	= nullptr,
 	.pfnSpawn		= nullptr,
-	.pfnThink		= &fw_Think_Post,
+	.pfnThink		= nullptr,
 	.pfnUse			= nullptr,
-	.pfnTouch		= &fw_Touch_Post,
+	.pfnTouch		= nullptr,
 	.pfnBlocked		= nullptr,
 	.pfnKeyValue	= nullptr,
 	.pfnSave		= nullptr,

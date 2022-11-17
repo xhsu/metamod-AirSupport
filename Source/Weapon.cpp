@@ -7,6 +7,7 @@ import meta_api;
 
 import Entity;
 import Hook;
+import Missile;
 import Resources;
 import Task;
 
@@ -204,8 +205,8 @@ extern "C++" namespace Weapon
 
 	Task Task_RadioAccepted(EHANDLE<CBasePlayerWeapon> pThis) noexcept
 	{
-		EHANDLE<CBaseEntity> pTarget = pThis->pev->euser1;
-		EHANDLE<CBaseEntity> pFixedTarget = FixedTarget::Create(pTarget->pev->origin, pTarget->pev->angles, pThis->m_pPlayer);
+		EHANDLE<CDynamicTarget> pTarget = pThis->pev->euser1;
+		EHANDLE<CFixedTarget> pFixedTarget = CFixedTarget::Create(pTarget->pev->origin, pTarget->pev->angles, pThis->m_pPlayer, pTarget->m_pTargeting);
 
 		pTarget->pev->effects |= EF_NODRAW;
 
@@ -233,7 +234,7 @@ extern "C++" namespace Weapon
 
 		[[likely]]
 		if (pFixedTarget)
-			FixedTarget::Start(pFixedTarget);
+			pFixedTarget->Activate();
 		else
 			co_return;	// Round ended or something???
 

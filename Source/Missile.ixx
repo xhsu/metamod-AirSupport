@@ -1,0 +1,31 @@
+export module Missile;
+
+export import Prefab;
+
+export enum EAirSupportTypes
+{
+	AIR_STRIKE = 0,
+	CLUSTER_BOMB,
+	CARPET_BOMB,
+	GUNSHIP_STRIKE,
+	FUEL_AIR_BOMB,	// thermobaric weapon
+};
+
+export struct CPrecisionAirStrike : public Prefab_t
+{
+	static inline constexpr char CLASSNAME[] = "missile_precision";
+	static inline constexpr auto SPEED = 800.0;
+
+	~CPrecisionAirStrike() noexcept override;
+
+	Task Task_SFX() noexcept;
+	Task Task_Trail() noexcept;
+
+	void Spawn() noexcept override;
+	void Touch(CBaseEntity *pOther) noexcept override;
+
+	static CPrecisionAirStrike *Create(CBasePlayer *pPlayer, Vector const &vecOrigin, Vector const &vecTarget) noexcept;
+
+	Vector m_vecTarget{};
+	CBasePlayer *m_pPlayer{};
+};

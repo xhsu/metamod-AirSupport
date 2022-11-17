@@ -5,11 +5,12 @@ import util;
 
 import Beam;
 import Entity;
+import Missile;
 import Resources;
 import Waypoint;
 
 import UtlRandom;
-
+/*
 extern "C++" namespace Laser
 {
 	void Create(CBasePlayerWeapon *pWeapon) noexcept
@@ -253,7 +254,7 @@ extern "C++" namespace FixedTarget
 		g_engfuncs.pfnSetModel(pTarget, Models::TARGET);
 		g_engfuncs.pfnSetSize(pTarget, Vector::Zero(), Vector::Zero());
 
-		pTarget->v.classname = MAKE_STRING(Classname::FIXED_TARGET);
+		pTarget->v.classname = MAKE_STRING(CFixedTarget::CLASSNAME);
 		pTarget->v.solid = SOLID_NOT;
 		pTarget->v.movetype = MOVETYPE_NOCLIP;
 		pTarget->v.rendermode = kRenderTransAdd;
@@ -336,6 +337,11 @@ extern "C++" namespace FixedTarget
 		co_return;
 	}
 };
+*/
+//
+// CDynamicTarget
+// Representing the "only I can see" target model when player holding radio.
+//
 
 Task CDynamicTarget::Task_Animation() noexcept
 {
@@ -457,7 +463,7 @@ Task CDynamicTarget::Task_QuickEvaluation() noexcept
 			pev->angles = Vector::Zero();	// facing up.
 
 			Vector const vecCenter = m_pTargeting->Center();
-			g_engfuncs.pfnSetOrigin(edict(), Vector(vecCenter.x, vecCenter.y, m_pTargeting->pev->absmin.z + 1.f));	// attach to target.
+			g_engfuncs.pfnSetOrigin(edict(), Vector(vecCenter.x, vecCenter.y, m_pTargeting->pev->absmin.z + 1.0));	// attach to target.
 		}
 		else
 		{
@@ -555,6 +561,193 @@ CDynamicTarget *CDynamicTarget::Create(CBasePlayer *pPlayer, CBasePlayerWeapon *
 
 	pPrefab->m_pPlayer = pPlayer;
 	pPrefab->m_pRadio = pRadio;
+	pPrefab->Spawn();
+	pPrefab->pev->nextthink = 0.1f;
+
+	return pPrefab;
+}
+
+//
+// CFixedTarget
+//
+
+Task CFixedTarget::Task_PrepareJetSpawn() noexcept
+{
+	TraceResult tr{};
+	size_t iCounter = 0;
+
+	for (;;)
+	{
+		[[unlikely]]
+		if (m_vecJetSpawn != Vector::Zero())
+		{
+			co_return;	// Nothing to do here, mate.
+		}
+
+		iCounter = 0;
+
+		for (const auto &vec : g_WaypointMgr.m_rgvecOrigins)
+		{
+			++iCounter;
+			g_engfuncs.pfnTraceLine(pev->origin, vec, ignore_monsters | ignore_glass, nullptr, &tr);
+
+			[[unlikely]]
+			if (tr.flFraction > 0.99f)
+			{
+				m_vecJetSpawn = vec;
+				co_return;
+			}
+
+			[[unlikely]]
+			if (!(iCounter % 128))
+				co_await TaskScheduler::NextFrame::Rank[0];
+		}
+
+		co_await TaskScheduler::NextFrame::Rank[0];
+
+		g_engfuncs.pfnTraceLine(m_vecTempSpawn, Vector(m_vecTempSpawn.x, m_vecTempSpawn.y, 8192), ignore_monsters | ignore_glass, nullptr, &tr);
+		g_engfuncs.pfnTraceLine(pev->origin, tr.vecEndPos, ignore_monsters | ignore_glass, nullptr, &tr);
+
+		[[unlikely]]
+		if (tr.flFraction > 0.99f)
+		{
+			m_vecJetSpawn = tr.vecEndPos;
+			co_return;
+		}
+
+		g_engfuncs.pfnTraceLine(m_pPlayer->pev->origin, Vector(m_pPlayer->pev->origin.x, m_pPlayer->pev->origin.y, 8192), ignore_monsters | ignore_glass, nullptr, &tr);
+		g_engfuncs.pfnTraceLine(pev->origin, tr.vecEndPos, ignore_monsters | ignore_glass, nullptr, &tr);
+
+		[[unlikely]]
+		if (tr.flFraction > 0.99f)
+		{
+			m_vecJetSpawn = tr.vecEndPos;
+			co_return;
+		}
+
+		co_await TaskScheduler::NextFrame::Rank[0];
+	}
+}
+
+Task CFixedTarget::Task_RecruitJet() noexcept
+{
+	co_await TaskScheduler::NextFrame::Rank[1];	// one last chance.
+
+	if (m_vecJetSpawn == Vector::Zero())
+	{
+		g_engfuncs.pfnClientPrintf(m_pPlayer->edict(), print_center, "The pilot found nowhere to approach your location.");
+		pev->flags |= FL_KILLME;
+		co_return;
+	}
+
+	auto const pJet = g_engfuncs.pfnCreateNamedEntity(MAKE_STRING("info_target"));
+	auto const vecDir = Vector(pev->origin.x, pev->origin.y, m_vecJetSpawn.z) - m_vecJetSpawn;
+
+	g_engfuncs.pfnVecToAngles(vecDir, pJet->v.angles);
+	g_engfuncs.pfnSetOrigin(pJet, m_vecJetSpawn);
+	g_engfuncs.pfnSetModel(pJet, Models::PLANE[AIR_STRIKE]);
+	g_engfuncs.pfnSetSize(pJet, Vector::Zero(), Vector::Zero());
+
+	pJet->v.classname = MAKE_STRING(Classname::JET);
+	pJet->v.solid = SOLID_NOT;
+	pJet->v.movetype = MOVETYPE_NOCLIP;
+	pJet->v.velocity = vecDir.Normalize() * 4096;
+	pJet->v.euser1 = m_pPlayer->edict();	// pev->owner was not occupied, but just keep the usage sync with Laser type.
+	pJet->v.euser2 = edict();
+
+	TaskScheduler::Enroll(Jet::Task_Jet(pJet));
+
+	for (EHANDLE<CBaseEntity> pJetEntity = pJet;;)
+	{
+		[[unlikely]]
+		if (!pJetEntity)	// Jet found no way to launch missile
+		{
+			g_engfuncs.pfnClientPrintf(m_pPlayer->edict(), print_center, "The pilot have no clear sight.");
+			pev->flags |= FL_KILLME;
+			co_return;
+		}
+
+		[[unlikely]]
+		if (m_pMissile)	// Waiting for a missile binding to it.
+			break;
+
+		co_await TaskScheduler::NextFrame::Rank[1];
+	}
+
+	for (;;)
+	{
+		if (!m_pMissile)	// Missile entity despawned.
+		{
+			pev->flags |= FL_KILLME;	// So should this.
+			co_return;
+		}
+
+		co_await TaskScheduler::NextFrame::Rank[1];
+	}
+
+	co_return;
+}
+
+Task CFixedTarget::Task_UpdateOrigin() noexcept
+{
+	for (; m_pTargeting && m_pTargeting->IsAlive();)
+	{
+		Vector const vecCenter = m_pTargeting->Center();
+		g_engfuncs.pfnSetOrigin(edict(), Vector(vecCenter.x, vecCenter.y, m_pTargeting->pev->absmin.z + 1.0));
+
+		co_await TaskScheduler::NextFrame::Rank[1];
+	}
+}
+
+void CFixedTarget::Spawn() noexcept
+{
+	g_engfuncs.pfnSetOrigin(edict(), pev->origin);
+	g_engfuncs.pfnSetModel(edict(), Models::TARGET);
+	g_engfuncs.pfnSetSize(edict(), Vector::Zero(), Vector::Zero());
+
+	pev->solid = SOLID_NOT;
+	pev->movetype = MOVETYPE_NOCLIP;
+	pev->rendermode = kRenderTransAdd;
+	pev->renderfx = kRenderFxDistort;
+	pev->renderamt = 0;
+	pev->skin = Models::targetmdl::SKIN_BLUE;
+	pev->nextthink = 0.1f;
+	pev->team = m_pPlayer->m_iTeam;
+
+	m_vecTempSpawn = m_pPlayer->pev->origin + m_pPlayer->pev->view_ofs;
+
+	m_Scheduler.Enroll(Task_PrepareJetSpawn());
+	m_Scheduler.Enroll(Task_UpdateOrigin());
+}
+
+void CFixedTarget::Activate() noexcept
+{
+	[[likely]]
+	if (!m_Scheduler.Exist(RADIO_KEY))
+		m_Scheduler.Enroll(Task_RecruitJet(), RADIO_KEY);
+}
+
+CFixedTarget *CFixedTarget::Create(Vector const &vecOrigin, Vector const &vecAngles, CBasePlayer *const pPlayer, CBaseEntity *const pTarget) noexcept
+{
+	auto const pEdict = g_engfuncs.pfnCreateEntity();
+
+	assert(pEdict != nullptr);
+	assert(pEdict->pvPrivateData == nullptr);
+
+	auto const pPrefab = new(pEdict) CFixedTarget;
+
+	pPrefab->pev = &pEdict->v;
+
+	assert(pPrefab->pev != nullptr);
+	assert(pEdict->pvPrivateData != nullptr);
+	assert(pEdict->v.pContainingEntity == pEdict);
+
+	pEdict->v.classname = MAKE_STRING(CFixedTarget::CLASSNAME);
+	pEdict->v.angles = vecAngles;
+	pEdict->v.origin = vecOrigin;
+
+	pPrefab->m_pTargeting = pTarget;
+	pPrefab->m_pPlayer = pPlayer;
 	pPrefab->Spawn();
 	pPrefab->pev->nextthink = 0.1f;
 

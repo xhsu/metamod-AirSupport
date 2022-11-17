@@ -7,22 +7,11 @@ export import Task;
 
 export import Prefab;
 
-export enum EAirSupportTypes
-{
-	AIR_STRIKE = 0,
-	CLUSTER_BOMB,
-	CARPET_BOMB,
-	GUNSHIP_STRIKE,
-	FUEL_AIR_BOMB,	// thermobaric weapon
-};
-
 export namespace Classname
 {
 	inline constexpr char JET[] = "jet";
-	inline constexpr char MISSILE[] = "rpgrocket";
 	inline constexpr char FAE[] = "petrol_bomb";
 	inline constexpr char BEAM[] = "aiming_assist_beam";
-	inline constexpr char FIXED_TARGET[] = "info_fixed_target";
 }
 
 export inline constexpr auto RADIO_KEY = 16486345;
@@ -34,38 +23,12 @@ export inline std::vector<edict_t *> g_rgpTers = {};
 
 export extern "C++" Task Task_UpdateTeams(void) noexcept;
 
-export extern "C++" namespace Missile	// To allow module export a function in a .cpp file, it must be marked as [extern "C++"]
-{
-	extern edict_t *Create(CBasePlayer *pPlayer, Vector const &vecSpawnOrigin, Vector const &vecTargetOrigin) noexcept;
-	extern void Think(CBaseEntity *pEntity) noexcept;
-};
-
 export extern "C++" namespace Weapon
 {
 	extern Task Task_RadioDeploy(EHANDLE<CBasePlayerWeapon> pThis) noexcept;
 	extern Task Task_RadioRejected(EHANDLE<CBasePlayerWeapon> pThis) noexcept;
 	extern Task Task_RadioAccepted(EHANDLE<CBasePlayerWeapon> pThis) noexcept;
 	extern void OnRadioHolster(CBasePlayerWeapon *pThis) noexcept;
-};
-
-export extern "C++" namespace Laser
-{
-	extern void Create(CBasePlayerWeapon *pWeapon) noexcept;
-	extern void Think(CBaseEntity *pEntity) noexcept;
-};
-
-export extern "C++" namespace Target
-{
-	extern void Create(CBasePlayerWeapon *pWeapon) noexcept;
-	extern void Think(CBaseEntity *pEntity) noexcept;
-	extern Task Task_ScanJetSpawn(EHANDLE<CBaseEntity> pTarget) noexcept;
-};
-
-export extern "C++" namespace FixedTarget
-{
-	extern edict_t *Create(Vector const &vecOrigin, Vector const &vecAngles, CBasePlayer *const pPlayer) noexcept;
-	extern void Start(CBaseEntity *pTarget) noexcept;
-	extern Task Task_RecruitJet(EHANDLE<CBaseEntity> pEntity) noexcept;
 };
 
 export extern "C++" namespace Jet
@@ -91,4 +54,24 @@ export struct CDynamicTarget : public Prefab_t
 	Vector m_vecLastAiming{};
 
 	static inline constexpr auto DETAIL_ANALYZE_KEY = 3658468ul;
+};
+
+export struct CFixedTarget : public Prefab_t
+{
+	static inline constexpr char CLASSNAME[] = "info_fixed_target";
+
+	Task Task_PrepareJetSpawn() noexcept;
+	Task Task_RecruitJet() noexcept;
+	Task Task_UpdateOrigin() noexcept;
+
+	void Spawn() noexcept override;
+	void Activate() noexcept override;
+
+	static CFixedTarget *Create(Vector const &vecOrigin, Vector const &vecAngles, CBasePlayer *const pPlayer, CBaseEntity *const pTarget) noexcept;
+
+	CBasePlayer *m_pPlayer{};
+	Vector m_vecJetSpawn{};
+	Vector m_vecTempSpawn{};
+	EHANDLE<CBaseEntity> m_pMissile{ nullptr };
+	EHANDLE<CBaseEntity> m_pTargeting{ nullptr };
 };
