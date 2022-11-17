@@ -316,5 +316,8 @@
     <ClCompile Include="Source\Missile.ixx">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Localization.ixx">
+      <Filter>Source</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

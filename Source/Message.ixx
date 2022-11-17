@@ -169,7 +169,7 @@ struct Message_t final
 #endif
 
 	template <int iDest>
-	static void ManagedBegin(const Vector &vecOrigin, edict_t *pClient, const Tys&... args) noexcept
+	static void MarshalledBegin(const Vector &vecOrigin, edict_t *pClient, const Tys&... args) noexcept
 	{
 		assert(m_iMessageIndex > 0);
 
@@ -195,9 +195,36 @@ struct Message_t final
 		g_engfuncs.pfnMessageEnd();
 	}
 
-	static inline void Send(edict_t *pClient, const Tys&... args) noexcept { return ManagedBegin<MSG_ONE>(Vector::Zero(), pClient, args...); }
-	template <int _dest> static inline void Broadcast(const Tys&... args) noexcept { return ManagedBegin<_dest>(Vector::Zero(), nullptr, args...); }
-	template <int _dest> static inline void Region(const Vector &vecOrigin, const Tys&... args) noexcept { return ManagedBegin<_dest>(vecOrigin, nullptr, args...); }
+	template <int iDest, typename... Ts>
+	static void FreeBegin(const Vector &vecOrigin, edict_t *pClient, const Ts&... args) noexcept
+	{
+		assert(m_iMessageIndex > 0);
+
+		if constexpr (iDest == MSG_ONE || iDest == MSG_ONE_UNRELIABLE || iDest == MSG_INIT)
+			g_engfuncs.pfnMessageBegin(iDest, m_iMessageIndex, nullptr, pClient);
+		else if constexpr (iDest == MSG_ALL || iDest == MSG_BROADCAST || iDest == MSG_SPEC)
+			g_engfuncs.pfnMessageBegin(iDest, m_iMessageIndex);
+		else if constexpr (iDest == MSG_PAS || iDest == MSG_PAS_R || iDest == MSG_PVS || iDest == MSG_PVS_R)
+			g_engfuncs.pfnMessageBegin(iDest, m_iMessageIndex, vecOrigin);
+		//else
+		//	static_assert(std::_Always_false<This_t>, "Invalid message casting method!");	// #INVESTIGATE
+
+		auto const tplArgs = std::make_tuple(args...);
+
+		// No panic, this is a instant-called lambda function.
+		// De facto static_for.
+		[&]<size_t... I>(std::index_sequence<I...>) noexcept
+		{
+			(WriteData(std::get<I>(tplArgs)), ...);
+		}
+		(std::index_sequence_for<Ts...>{});
+
+		g_engfuncs.pfnMessageEnd();
+	}
+
+	static inline void Send(edict_t *pClient, const Tys&... args) noexcept { return MarshalledBegin<MSG_ONE>(Vector::Zero(), pClient, args...); }
+	template <int _dest> static inline void Broadcast(const Tys&... args) noexcept { return MarshalledBegin<_dest>(Vector::Zero(), nullptr, args...); }
+	template <int _dest> static inline void Region(const Vector &vecOrigin, const Tys&... args) noexcept { return MarshalledBegin<_dest>(vecOrigin, nullptr, args...); }
 
 	/* LUNA: clinet side stuff. #UNTESTED #UNDONE
 	static void Parse(void)

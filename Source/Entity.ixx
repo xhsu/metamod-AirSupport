@@ -63,6 +63,7 @@ export struct CFixedTarget : public Prefab_t
 
 	Task Task_PrepareJetSpawn() noexcept;
 	Task Task_RecruitJet() noexcept;
+	Task Task_TimeOut() noexcept;
 	Task Task_UpdateOrigin() noexcept;
 
 	void Spawn() noexcept override;

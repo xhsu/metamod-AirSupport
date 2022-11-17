@@ -67,6 +67,7 @@
       <AdditionalIncludeDirectories>..\fmt\include\;..\range-v3\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4530;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <WarningLevel>Level3</WarningLevel>
+      <AdditionalOptions>/Zc:char8_t- %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -93,6 +94,7 @@
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <ControlFlowGuard>Guard</ControlFlowGuard>
       <WarningLevel>Level3</WarningLevel>
+      <AdditionalOptions>/Zc:char8_t- %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -180,6 +182,7 @@
     <ClCompile Include="Source\GameRules.ixx" />
     <ClCompile Include="Source\Hook.ixx" />
     <ClCompile Include="Source\Jet.cpp" />
+    <ClCompile Include="Source\Localization.ixx" />
     <ClCompile Include="Source\Math.ixx" />
     <ClCompile Include="Source\Missile.cpp" />
     <ClCompile Include="Source\Missile.ixx" />
