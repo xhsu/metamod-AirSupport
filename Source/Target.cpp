@@ -105,6 +105,8 @@ Task CDynamicTarget::Task_DeepEvaluation() noexcept
 
 Task CDynamicTarget::Task_QuickEvaluation() noexcept
 {
+	TraceResult tr{};
+
 	for (;;)
 	{
 		if (m_pPlayer->m_pActiveItem != m_pRadio || m_pRadio->pev->weapons != RADIO_KEY)
@@ -112,8 +114,6 @@ Task CDynamicTarget::Task_QuickEvaluation() noexcept
 			co_await Models::v_radio::time::draw;	// the model will be hidden for this long, at least.
 			continue;
 		}
-
-		co_await TaskScheduler::NextFrame::Rank[0];
 
 		// Update team info so we can hide from proper player group.
 
@@ -125,11 +125,20 @@ Task CDynamicTarget::Task_QuickEvaluation() noexcept
 
 		Vector const vecSrc = m_pPlayer->GetGunPosition();
 		Vector const vecEnd = vecSrc + gpGlobals->v_forward * 4096.f;
+		UTIL_TraceLine(vecSrc, vecEnd, m_pPlayer->edict(), m_pPlayer->m_iTeam == TEAM_CT ? g_rgpCTs : g_rgpTers, &tr);	// Special traceline skipping all teammates.
 
-		TraceResult tr{};
-		UTIL_TraceLine(vecSrc, vecEnd, m_pPlayer->edict(), m_pPlayer->m_iTeam == TEAM_CT ? g_rgpCTs : g_rgpTers, &tr);
+		if (g_engfuncs.pfnPointContents(tr.vecEndPos) == CONTENTS_SKY)
+		{
+			// One cannot ask air support to 'hit the sky'
 
-		if (pev_valid(tr.pHit) != 2 && m_flLastValidTracking < gpGlobals->time - 0.5f)	// Compensenting bad aiming
+			m_Scheduler.Delist(DETAIL_ANALYZE_KEY);	// Stop evaluation now.
+			m_pTargeting = nullptr;
+
+			pev->skin = Models::targetmdl::SKIN_RED;
+			goto LAB_CONTINUE;	// there's no set origin.
+		}
+
+		if (pev_valid(tr.pHit) != 2 && m_flLastValidTracking < gpGlobals->time - 0.5f)	// Snapping: compensenting bad aiming
 			m_pTargeting = tr.pHit;
 		else if (pev_valid(tr.pHit) == 2)
 		{
@@ -142,7 +151,7 @@ Task CDynamicTarget::Task_QuickEvaluation() noexcept
 			pev->angles = Vector::Zero();	// facing up.
 
 			Vector const vecCenter = m_pTargeting->Center();
-			g_engfuncs.pfnSetOrigin(edict(), Vector(vecCenter.x, vecCenter.y, m_pTargeting->pev->absmin.z + 1.0));	// attach to target.
+			g_engfuncs.pfnSetOrigin(edict(), Vector(vecCenter.x, vecCenter.y, m_pTargeting->pev->absmin.z + 1.0));	// snap to target.
 		}
 		else
 		{
@@ -181,6 +190,9 @@ Task CDynamicTarget::Task_QuickEvaluation() noexcept
 
 			m_vecLastAiming = pev->origin;
 		}
+
+	LAB_CONTINUE:;
+		co_await TaskScheduler::NextFrame::Rank[0];
 	}
 }
 

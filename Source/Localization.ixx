@@ -1,7 +1,5 @@
 ﻿export module Localization;
 
-import eiface;
-
 export namespace Localization
 {
 	inline namespace Keys
