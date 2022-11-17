@@ -1,5 +1,6 @@
 export module Task;
 
+export import <array>;
 import <coroutine>;
 import <functional>;
 import <list>;
@@ -117,4 +118,20 @@ export namespace TaskScheduler
 	{
 		m_List.clear();
 	}
+};
+
+export namespace TaskScheduler::NextFrame
+{
+	inline constexpr array Rank{
+		std::numeric_limits<decltype(gpGlobals->time)>::epsilon(),
+		std::numeric_limits<decltype(gpGlobals->time)>::epsilon() * 2.f,
+		std::numeric_limits<decltype(gpGlobals->time)>::epsilon() * 3.f,
+		std::numeric_limits<decltype(gpGlobals->time)>::epsilon() * 4.f,
+		std::numeric_limits<decltype(gpGlobals->time)>::epsilon() * 5.f,
+		std::numeric_limits<decltype(gpGlobals->time)>::epsilon() * 6.f,
+		std::numeric_limits<decltype(gpGlobals->time)>::epsilon() * 7.f,
+		std::numeric_limits<decltype(gpGlobals->time)>::epsilon() * 8.f,
+		std::numeric_limits<decltype(gpGlobals->time)>::epsilon() * 9.f,
+		std::numeric_limits<decltype(gpGlobals->time)>::epsilon() * 10.f,
+	};
 };

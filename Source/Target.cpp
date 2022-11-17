@@ -347,7 +347,7 @@ Task CDynamicTarget::Task_Animation() noexcept
 			continue;
 		}
 
-		co_await (FLT_EPSILON * 2.f);
+		co_await TaskScheduler::NextFrame::Rank[1];	// behind coord update.
 
 		pev->framerate = float(Models::targetmdl::FPS * gpGlobals->frametime);
 		pev->frame += pev->framerate;
@@ -434,7 +434,7 @@ Task CDynamicTarget::Task_QuickEvaluation() noexcept
 			continue;
 		}
 
-		co_await FLT_EPSILON;
+		co_await TaskScheduler::NextFrame::Rank[0];
 
 		// Calc where does player aiming
 
@@ -444,7 +444,7 @@ Task CDynamicTarget::Task_QuickEvaluation() noexcept
 		Vector const vecEnd = vecSrc + gpGlobals->v_forward * 4096.f;
 
 		TraceResult tr{};
-		g_engfuncs.pfnTraceLine(vecSrc, vecEnd, dont_ignore_monsters, m_pPlayer->edict(), &tr);
+		UTIL_TraceLine(vecSrc, vecEnd, m_pPlayer->edict(), m_pPlayer->m_iTeam == TEAM_CT ? g_rgpCTs : g_rgpTers, &tr);
 
 		m_pTargeting = tr.pHit;	// including null ent.
 

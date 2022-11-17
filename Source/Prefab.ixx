@@ -251,7 +251,7 @@ export struct Prefab_t : public CBaseEntity
 		return pPrefab;
 	}
 
-	struct PrefabScheduler_t
+	struct PrefabScheduler_t final
 	{
 		list<Task> m_List{};
 

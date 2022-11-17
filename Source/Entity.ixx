@@ -1,5 +1,7 @@
 export module Entity;
 
+export import <vector>;
+
 export import CBase;
 export import Task;
 
@@ -29,6 +31,11 @@ export namespace Classname
 export inline constexpr auto RADIO_KEY = 16486345;
 export inline constexpr auto MISSILE_GROUPINFO = (1 << 10);
 export inline constexpr auto MISSILE_SOUND_CORO_KEY = 687286ul;
+
+export inline std::vector<edict_t *> g_rgpCTs = {};
+export inline std::vector<edict_t *> g_rgpTers = {};
+
+export extern "C++" Task Task_UpdateTeams(void) noexcept;
 
 export extern "C++" namespace Missile	// To allow module export a function in a .cpp file, it must be marked as [extern "C++"]
 {

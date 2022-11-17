@@ -2,6 +2,14 @@ export module GameRules;
 
 export import CBase;
 
+export enum ECounterStrikeTeam
+{
+	TEAM_UNASSIGNED = 0,
+	TEAM_TERRORIST,
+	TEAM_CT,
+	TEAM_SPECTATOR,
+};
+
 export class IVoiceGameMgrHelper
 {
 public:

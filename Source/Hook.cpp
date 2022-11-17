@@ -236,6 +236,8 @@ void fw_ServerActivate_Post(edict_t *pEdictList, int edictCount, int clientMax) 
 	g_engfuncs.pfnCvar_DirectSet(gcvarMaxSpeed, "9999.0");
 	g_engfuncs.pfnCvar_DirectSet(gcvarMaxVelocity, "9999.0");
 
+	TaskScheduler::Enroll(Task_UpdateTeams());
+
 	// This hook is very special, since it is actually delete-newed in each new game.
 	// Therefore we must hook it every time.
 	if (!g_pGameRules)

@@ -10,7 +10,7 @@ Task CFlame::Task_Animation() noexcept
 {
 	for (;;)
 	{
-		co_await FLT_EPSILON;
+		co_await TaskScheduler::NextFrame::Rank[0];
 
 		pev->framerate = float(18.0 * gpGlobals->frametime);
 		pev->frame += pev->framerate;
@@ -22,7 +22,7 @@ Task CFlame::Task_Animation() noexcept
 	}
 }
 
-Task CFlame::Task_DetectGround() noexcept
+Task CFlame::Task_DetectGround() noexcept	// Deprecated
 {
 	for (;;)
 	{
@@ -120,7 +120,7 @@ Task CFlame::Task_EmitSmoke() noexcept
 
 Task CFlame::Task_Remove() noexcept
 {
-	co_await UTIL_Random(8.f, 14.f);
+	co_await UTIL_Random(9.f, 14.f);
 
 	pev->flags |= FL_KILLME;
 }
