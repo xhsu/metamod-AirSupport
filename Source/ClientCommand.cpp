@@ -1,5 +1,4 @@
-#include <fmt/core.h>
-
+import <format>;
 import <string>;
 
 import meta_api;
@@ -70,7 +69,7 @@ META_RES OnClientCommand(CBasePlayer *pPlayer, const string &szCommand) noexcept
 		TraceResult tr{};
 		g_engfuncs.pfnTraceLine(vecSrc, vecEnd, ignore_monsters, pEdict, &tr);
 
-		g_engfuncs.pfnClientPrintf(pEdict, print_console, fmt::format("[AIMING AT]:\n\t{}\n\t{}\n\t{}\n", tr.vecEndPos.x, tr.vecEndPos.y, tr.vecEndPos.z).c_str());
+		g_engfuncs.pfnClientPrintf(pEdict, print_console, std::format("[AIMING AT]:\n\t{}\n\t{}\n\t{}\n", tr.vecEndPos.x, tr.vecEndPos.y, tr.vecEndPos.z).c_str());
 		return MRES_SUPERCEDE;
 	}
 	else if (szCommand == "scanjetspawn")

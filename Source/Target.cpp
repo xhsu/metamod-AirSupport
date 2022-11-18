@@ -18,6 +18,9 @@ import UtlRandom;
 
 Task CDynamicTarget::Task_Animation() noexcept
 {
+	// Consider this as initialization
+	m_LastAnimUpdate = std::chrono::high_resolution_clock::now();
+
 	for (;;)
 	{
 		if (m_pPlayer->m_pActiveItem != m_pRadio || m_pRadio->pev->weapons != RADIO_KEY)
@@ -28,13 +31,18 @@ Task CDynamicTarget::Task_Animation() noexcept
 
 		co_await TaskScheduler::NextFrame::Rank[1];	// behind coord update.
 
-		pev->framerate = float(Models::targetmdl::FPS * gpGlobals->frametime);
+		auto const CurTime = std::chrono::high_resolution_clock::now();
+		auto const flTimeDelta = std::chrono::duration_cast<std::chrono::nanoseconds>(CurTime - m_LastAnimUpdate).count() / 1'000'000'000.0;
+
+		pev->framerate = float(Models::targetmdl::FPS * flTimeDelta);
 		pev->frame += pev->framerate;
 		pev->animtime = gpGlobals->time;
 
 		[[unlikely]]
 		if (pev->frame < 0 || pev->frame >= 256)
 			pev->frame -= float((pev->frame / 256.0) * 256.0);	// model sequence is different from SPRITE, no matter now many frame you have, it will stretch/squeeze into 256.
+
+		m_LastAnimUpdate = CurTime;
 	}
 }
 
@@ -221,7 +229,7 @@ void CDynamicTarget::Spawn() noexcept
 
 	pev->solid = SOLID_NOT;
 	pev->movetype = MOVETYPE_NOCLIP;
-	pev->effects |= EF_NODRAW;
+	pev->effects |= EF_DIMLIGHT;	// #UNTESTED
 	pev->rendermode = kRenderTransAdd;
 	pev->renderfx = kRenderFxPulseFastWide;
 	pev->renderamt = 128;
@@ -276,10 +284,16 @@ Task CFixedTarget::Task_PrepareJetSpawn() noexcept
 
 		iCounter = 0;
 
+		if (m_pTargeting)
+		{
+			g_engfuncs.pfnTraceLine(pev->origin, Vector(pev->origin.x, pev->origin.y, 8192), ignore_monsters | ignore_glass, nullptr, &tr);
+			m_vecPosForJetSpawnTesting = (g_engfuncs.pfnPointContents(tr.vecEndPos) == CONTENTS_SKY) ? (tr.vecEndPos - Vector(0, 0, 16)) : pev->origin;
+		}
+
 		for (const auto &vec : g_WaypointMgr.m_rgvecOrigins)
 		{
 			++iCounter;
-			g_engfuncs.pfnTraceLine(pev->origin, vec, ignore_monsters | ignore_glass, nullptr, &tr);
+			g_engfuncs.pfnTraceLine(m_vecPosForJetSpawnTesting, vec, ignore_monsters | ignore_glass, nullptr, &tr);
 
 			[[unlikely]]
 			if (tr.flFraction > 0.99f)
@@ -295,24 +309,34 @@ Task CFixedTarget::Task_PrepareJetSpawn() noexcept
 
 		co_await TaskScheduler::NextFrame::Rank[0];
 
-		g_engfuncs.pfnTraceLine(m_vecTempSpawn, Vector(m_vecTempSpawn.x, m_vecTempSpawn.y, 8192), ignore_monsters | ignore_glass, nullptr, &tr);
-		g_engfuncs.pfnTraceLine(pev->origin, tr.vecEndPos, ignore_monsters | ignore_glass, nullptr, &tr);
+		// Additional attempt 1: from the pos when player called?
 
-		[[unlikely]]
-		if (tr.flFraction > 0.99f)
+		g_engfuncs.pfnTraceLine(m_vecPlayerPosWhenCalled, Vector(m_vecPlayerPosWhenCalled.x, m_vecPlayerPosWhenCalled.y, 8192), ignore_monsters | ignore_glass, nullptr, &tr);
+		if (g_engfuncs.pfnPointContents(tr.vecEndPos) == CONTENTS_SKY)
 		{
-			m_vecJetSpawn = tr.vecEndPos;
-			co_return;
+			g_engfuncs.pfnTraceLine(m_vecPosForJetSpawnTesting, tr.vecEndPos, ignore_monsters | ignore_glass, nullptr, &tr);
+
+			[[unlikely]]
+			if (tr.flFraction > 0.99f)
+			{
+				m_vecJetSpawn = tr.vecEndPos;
+				co_return;
+			}
 		}
 
-		g_engfuncs.pfnTraceLine(m_pPlayer->pev->origin, Vector(m_pPlayer->pev->origin.x, m_pPlayer->pev->origin.y, 8192), ignore_monsters | ignore_glass, nullptr, &tr);
-		g_engfuncs.pfnTraceLine(pev->origin, tr.vecEndPos, ignore_monsters | ignore_glass, nullptr, &tr);
+		// Additional attempt 2: from the current position of player?
 
-		[[unlikely]]
-		if (tr.flFraction > 0.99f)
+		g_engfuncs.pfnTraceLine(m_pPlayer->pev->origin, Vector(m_pPlayer->pev->origin.x, m_pPlayer->pev->origin.y, 8192), ignore_monsters | ignore_glass, nullptr, &tr);
+		if (g_engfuncs.pfnPointContents(tr.vecEndPos) == CONTENTS_SKY)
 		{
-			m_vecJetSpawn = tr.vecEndPos;
-			co_return;
+			g_engfuncs.pfnTraceLine(m_vecPosForJetSpawnTesting, tr.vecEndPos, ignore_monsters | ignore_glass, nullptr, &tr);
+
+			[[unlikely]]
+			if (tr.flFraction > 0.99f)
+			{
+				m_vecJetSpawn = tr.vecEndPos;
+				co_return;
+			}
 		}
 
 		co_await TaskScheduler::NextFrame::Rank[0];
@@ -406,6 +430,7 @@ void CFixedTarget::Spawn() noexcept
 
 	pev->solid = SOLID_NOT;
 	pev->movetype = MOVETYPE_NONE;	// Fuck the useless MOVETYPE_FOLLOW
+	pev->effects |= EF_DIMLIGHT;
 	pev->rendermode = kRenderTransAdd;
 	pev->renderfx = kRenderFxDistort;
 	pev->renderamt = 0;
@@ -413,7 +438,11 @@ void CFixedTarget::Spawn() noexcept
 	pev->nextthink = 0.1f;
 	pev->team = m_pPlayer->m_iTeam;
 
-	m_vecTempSpawn = m_pPlayer->pev->origin + m_pPlayer->pev->view_ofs;
+	m_vecPlayerPosWhenCalled = m_pPlayer->pev->origin;
+
+	TraceResult tr{};
+	g_engfuncs.pfnTraceLine(pev->origin, Vector(pev->origin.x, pev->origin.y, 8192), ignore_monsters | ignore_glass, nullptr, &tr);
+	m_vecPosForJetSpawnTesting = (g_engfuncs.pfnPointContents(tr.vecEndPos) == CONTENTS_SKY) ? (tr.vecEndPos - Vector(0, 0, 16)) : pev->origin;
 
 	m_Scheduler.Enroll(Task_PrepareJetSpawn());
 	m_Scheduler.Enroll(Task_TimeOut());

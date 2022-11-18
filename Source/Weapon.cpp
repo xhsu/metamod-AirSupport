@@ -1,6 +1,5 @@
-﻿#include <fmt/core.h>
-
-import <array>;
+﻿import <array>;
+import <format>;
 import <numbers>;
 
 import meta_api;
@@ -83,13 +82,6 @@ int HamF_Item_Deploy(CBasePlayerItem *pItem) noexcept
 {
 	auto const pThis = (CBasePlayerWeapon *)pItem;	// The actual class of this one is ... CKnife, but anyway.
 
-	[[unlikely]]
-	if (pev_valid(pThis->pev->euser1) != 2)
-	{
-//		Target::Create(pThis);
-		pThis->pev->euser1 = CDynamicTarget::Create(pThis->m_pPlayer, pThis)->edict();
-	}
-
 	pThis->m_iSwing = 0;
 	pThis->m_fMaxSpeed = KNIFE_MAX_SPEED;
 
@@ -108,8 +100,6 @@ int HamF_Item_Deploy(CBasePlayerItem *pItem) noexcept
 		return g_pfnDefaultDeploy(pThis, "models/shield/v_shield_knife.mdl", "models/shield/p_shield_knife.mdl", KNIFE_SHIELD_DRAW, "shieldknife", pThis->UseDecrement() != 0);
 	else
 		return g_pfnDefaultDeploy(pThis, "models/v_knife.mdl", "models/p_knife.mdl", KNIFE_DRAW, "knife", pThis->UseDecrement() != 0);
-
-	// #UNDONE clear AS_CARPET_BOMBING src origin
 }
 
 void HamF_Item_PostFrame(CBasePlayerItem *pItem) noexcept
@@ -172,7 +162,12 @@ extern "C++" namespace Weapon
 		RESUME_CHECK;
 
 		pThis->SendWeaponAnim((int)Models::v_radio::seq::idle, false);
-		pThis->pev->euser1->v.effects &= ~EF_NODRAW;
+
+		[[unlikely]]
+		if (pev_valid(pThis->pev->euser1))
+			pThis->pev->euser1->v.flags |= FL_KILLME;
+
+		pThis->pev->euser1 = CDynamicTarget::Create(pThis->m_pPlayer, pThis)->edict();
 	}
 
 	Task Task_RadioRejected(EHANDLE<CBasePlayerWeapon> pThis) noexcept
@@ -210,7 +205,7 @@ extern "C++" namespace Weapon
 		EHANDLE<CDynamicTarget> pTarget = pThis->pev->euser1;
 		EHANDLE<CFixedTarget> pFixedTarget = CFixedTarget::Create(pTarget->pev->origin, pTarget->pev->angles, pThis->m_pPlayer, pTarget->m_pTargeting);
 
-		pTarget->pev->effects |= EF_NODRAW;
+		pTarget->pev->flags |= FL_KILLME;
 
 		pThis->has_disconnected = false;	// BORROWED MEMBER: forbid holster.
 		pThis->SendWeaponAnim((int)Models::v_radio::seq::use);
@@ -287,7 +282,7 @@ extern "C++" namespace Weapon
 
 		[[likely]]
 		if (pThis->pev->euser1)
-			pThis->pev->euser1->v.effects |= EF_NODRAW;
+			pThis->pev->euser1->v.flags |= FL_KILLME;
 
 		// Resume shield protection
 		if (pThis->m_pPlayer->m_bOwnsShield)

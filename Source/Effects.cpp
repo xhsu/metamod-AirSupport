@@ -15,17 +15,25 @@ import UtlRandom;
 
 Task CFlame::Task_Animation() noexcept
 {
+	// Consider this as initialization
+	m_LastAnimUpdate = std::chrono::high_resolution_clock::now();
+
 	for (;;)
 	{
 		co_await TaskScheduler::NextFrame::Rank[0];
 
-		pev->framerate = float(10.0 * gpGlobals->frametime);
+		auto const CurTime = std::chrono::high_resolution_clock::now();
+		auto const flTimeDelta = std::chrono::duration_cast<std::chrono::nanoseconds>(CurTime - m_LastAnimUpdate).count() / 1'000'000'000.0;
+
+		pev->framerate = float(15.0 * flTimeDelta);
 		pev->frame += pev->framerate;
 		pev->animtime = gpGlobals->time;
 
 		[[unlikely]]
 		if (pev->frame < 0 || pev->frame >= m_iMaxFrame)
 			pev->frame -= float((pev->frame / m_iMaxFrame) * m_iMaxFrame);
+
+		m_LastAnimUpdate = CurTime;
 	}
 }
 

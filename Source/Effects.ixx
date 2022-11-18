@@ -1,5 +1,6 @@
 export module Effects;
 
+export import <chrono>;
 export import <deque>;
 export import <unordered_map>;
 
@@ -7,6 +8,7 @@ export import Prefab;
 
 using std::deque;
 using std::unordered_map;
+using std::chrono::high_resolution_clock;
 
 export struct CFlame : public Prefab_t
 {
@@ -33,6 +35,7 @@ export struct CFlame : public Prefab_t
 	short m_iFlameSprIndex{};
 	EHANDLE<CBasePlayer> m_pOwner{ nullptr };
 	unordered_map<int, float> m_rgflDamageInterval{};
+	high_resolution_clock::time_point m_LastAnimUpdate{};
 };
 
 export struct CSmoke : public Prefab_t

@@ -1,6 +1,7 @@
 export module Entity;
 
 export import <vector>;
+export import <chrono>;
 
 export import CBase;
 export import Task;
@@ -53,6 +54,7 @@ export struct CDynamicTarget : public Prefab_t
 	CBasePlayer *m_pPlayer{};
 	Vector m_vecLastAiming{};
 	float m_flLastValidTracking{};
+	std::chrono::high_resolution_clock::time_point m_LastAnimUpdate{};
 
 	static inline constexpr auto DETAIL_ANALYZE_KEY = 3658468ul;
 };
@@ -73,7 +75,8 @@ export struct CFixedTarget : public Prefab_t
 
 	CBasePlayer *m_pPlayer{};
 	Vector m_vecJetSpawn{};
-	Vector m_vecTempSpawn{};
+	Vector m_vecPlayerPosWhenCalled{};
+	Vector m_vecPosForJetSpawnTesting{};
 	EHANDLE<CBaseEntity> m_pMissile{ nullptr };
 	EHANDLE<CBaseEntity> m_pTargeting{ nullptr };
 };

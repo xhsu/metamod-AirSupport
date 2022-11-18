@@ -1,17 +1,16 @@
 #include <cassert>
 
-#include <fmt/core.h>
-
 import <cmath>;
 import <cstdint>;
 import <cstdio>;
 
 import <algorithm>;
 import <array>;
+import <filesystem>;
+import <format>;
+import <numbers>;
 import <span>;
 import <vector>;
-import <filesystem>;
-import <numbers>;
 
 import eiface;
 import progdefs;
@@ -58,7 +57,7 @@ Task Waypoint_Scan(void) noexcept
 				[[unlikely]]
 				if (!(iCounter % 2048))
 				{
-					g_engfuncs.pfnServerPrint(fmt::format("[Waypoint_Scan] {:.2f}% done. {} valid spawn point found.\n", (double)iCounter / (double)TOTAL_SCANS * 100.0, g_rgvecValidJetSpawn.size()).c_str());
+					g_engfuncs.pfnServerPrint(std::format("[Waypoint_Scan] {:.2f}% done. {} valid spawn point found.\n", (double)iCounter / (double)TOTAL_SCANS * 100.0, g_rgvecValidJetSpawn.size()).c_str());
 					co_await (gpGlobals->frametime * 0.5f);	// a.k.a. "next frame"
 				}
 
@@ -80,7 +79,7 @@ Task Waypoint_Scan(void) noexcept
 	auto const [itFirst, itLast] = std::ranges::unique(g_rgvecValidJetSpawn);
 	g_rgvecValidJetSpawn.erase(itFirst, itLast);
 
-	g_engfuncs.pfnServerPrint(fmt::format("[Waypoint_Scan] {} valid spawn point survived after de-duplication.\n", g_rgvecValidJetSpawn.size()).c_str());
+	g_engfuncs.pfnServerPrint(std::format("[Waypoint_Scan] {} valid spawn point survived after de-duplication.\n", g_rgvecValidJetSpawn.size()).c_str());
 	co_await (gpGlobals->frametime * 0.5f);
 
 	iCounter = 0;	// Got to use it later.
@@ -90,7 +89,7 @@ Task Waypoint_Scan(void) noexcept
 		[[unlikely]]
 		if (!(iCounter % 512))
 		{
-			g_engfuncs.pfnServerPrint(fmt::format("[Waypoint_Scan] {:.2f}% done. {} valid spawn point survived.\n", (double)std::distance(g_rgvecValidJetSpawn.begin(), it) / (double)g_rgvecValidJetSpawn.size() * 100.0, g_rgvecValidJetSpawn.size()).c_str());
+			g_engfuncs.pfnServerPrint(std::format("[Waypoint_Scan] {:.2f}% done. {} valid spawn point survived.\n", (double)std::distance(g_rgvecValidJetSpawn.begin(), it) / (double)g_rgvecValidJetSpawn.size() * 100.0, g_rgvecValidJetSpawn.size()).c_str());
 			co_await (gpGlobals->frametime * 0.5f);	// a.k.a. "next frame"
 		}
 
@@ -142,7 +141,7 @@ Task Waypoint_Scan(void) noexcept
 
 	char szGameDir[32]{};
 	g_engfuncs.pfnGetGameDir(szGameDir);
-	fs::path hBinFilePath = fmt::format("{}/addons/metamod/AirSupport/Waypoint/{}.bin", szGameDir, STRING(gpGlobals->mapname));
+	fs::path hBinFilePath = std::format("{}/addons/metamod/AirSupport/Waypoint/{}.bin", szGameDir, STRING(gpGlobals->mapname));
 
 	if (!fs::exists(hBinFilePath))
 		fs::create_directories(hBinFilePath.parent_path());
@@ -156,7 +155,7 @@ Task Waypoint_Scan(void) noexcept
 		fwrite(g_rgvecValidJetSpawn.data(), sizeof(Vector), g_rgvecValidJetSpawn.size(), f);
 
 		fclose(f);
-		g_engfuncs.pfnServerPrint(fmt::format("[Waypoint_Scan] {} spawn origin(s) saved to {}.\n", iCount, hBinFilePath.string()).c_str());
+		g_engfuncs.pfnServerPrint(std::format("[Waypoint_Scan] {} spawn origin(s) saved to {}.\n", iCount, hBinFilePath.string()).c_str());
 	}
 
 	g_WaypointMgr.m_bPointerOwnership = false;
@@ -172,7 +171,7 @@ void Waypoint_Read(void) noexcept
 
 	char szGameDir[32]{};
 	g_engfuncs.pfnGetGameDir(szGameDir);
-	fs::path hBinFilePath = fmt::format("{}/addons/metamod/AirSupport/Waypoint/{}.bin", szGameDir, STRING(gpGlobals->mapname));
+	fs::path hBinFilePath = std::format("{}/addons/metamod/AirSupport/Waypoint/{}.bin", szGameDir, STRING(gpGlobals->mapname));
 
 	if (auto f = fopen(hBinFilePath.string().c_str(), "rb"); f != nullptr)
 	{
@@ -203,7 +202,7 @@ void Waypoint_Read(void) noexcept
 		auto const iEndPos = ftell(f);
 		assert(iCurPos == iEndPos);
 #endif
-		g_engfuncs.pfnServerPrint(fmt::format("[Waypoint_Read] {} spawn origin(s) loaded.\n", g_WaypointMgr.m_iCount).c_str());
+		g_engfuncs.pfnServerPrint(std::format("[Waypoint_Read] {} spawn origin(s) loaded.\n", g_WaypointMgr.m_iCount).c_str());
 	}
 	else
 	{
