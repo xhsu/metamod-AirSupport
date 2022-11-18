@@ -25,7 +25,7 @@ Task CFlame::Task_Animation() noexcept
 		auto const CurTime = std::chrono::high_resolution_clock::now();
 		auto const flTimeDelta = std::chrono::duration_cast<std::chrono::nanoseconds>(CurTime - m_LastAnimUpdate).count() / 1'000'000'000.0;
 
-		pev->framerate = float(15.0 * flTimeDelta);
+		pev->framerate = float(30.0 * flTimeDelta);
 		pev->frame += pev->framerate;
 		pev->animtime = gpGlobals->time;
 

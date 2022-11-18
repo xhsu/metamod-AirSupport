@@ -596,7 +596,7 @@ int HookGameDLLNewFn(NEW_DLL_FUNCTIONS *pFunctionTable, int *interfaceVersion) n
 		return false;
 	}
 
-	memcpy(pFunctionTable, &gNewFunctionTable, sizeof(DLL_FUNCTIONS));
+	memcpy(pFunctionTable, &gNewFunctionTable, sizeof(NEW_DLL_FUNCTIONS));
 	return true;
 }
 
