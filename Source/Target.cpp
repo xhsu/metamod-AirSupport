@@ -242,20 +242,7 @@ void CDynamicTarget::Spawn() noexcept
 
 CDynamicTarget *CDynamicTarget::Create(CBasePlayer *pPlayer, CBasePlayerWeapon *pRadio) noexcept
 {
-	auto const pEdict = g_engfuncs.pfnCreateEntity();
-
-	assert(pEdict != nullptr);
-	assert(pEdict->pvPrivateData == nullptr);
-
-	auto const pPrefab = new(pEdict) CDynamicTarget;
-
-	pPrefab->pev = &pEdict->v;
-
-	assert(pPrefab->pev != nullptr);
-	assert(pEdict->pvPrivateData != nullptr);
-	assert(pEdict->v.pContainingEntity == pEdict);
-
-	pEdict->v.classname = MAKE_STRING(CDynamicTarget::CLASSNAME);
+	auto const [pEdict, pPrefab] = UTIL_CreateNamedPrefab<CDynamicTarget>();
 
 	pPrefab->m_pPlayer = pPlayer;
 	pPrefab->m_pRadio = pRadio;
@@ -458,20 +445,8 @@ void CFixedTarget::Activate() noexcept
 
 CFixedTarget *CFixedTarget::Create(Vector const &vecOrigin, Vector const &vecAngles, CBasePlayer *const pPlayer, CBaseEntity *const pTarget) noexcept
 {
-	auto const pEdict = g_engfuncs.pfnCreateEntity();
+	auto const [pEdict, pPrefab] = UTIL_CreateNamedPrefab<CFixedTarget>();
 
-	assert(pEdict != nullptr);
-	assert(pEdict->pvPrivateData == nullptr);
-
-	auto const pPrefab = new(pEdict) CFixedTarget;
-
-	pPrefab->pev = &pEdict->v;
-
-	assert(pPrefab->pev != nullptr);
-	assert(pEdict->pvPrivateData != nullptr);
-	assert(pEdict->v.pContainingEntity == pEdict);
-
-	pEdict->v.classname = MAKE_STRING(CFixedTarget::CLASSNAME);
 	pEdict->v.angles = vecAngles;
 	pEdict->v.origin = vecOrigin;
 

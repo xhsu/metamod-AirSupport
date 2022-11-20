@@ -18,6 +18,29 @@ export import Task;
 
 using std::list;
 
+export template <typename T>
+inline auto UTIL_CreateNamedPrefab() noexcept
+{
+	auto const pEdict = g_engfuncs.pfnCreateEntity();
+
+	assert(pEdict != nullptr);
+	assert(pEdict->pvPrivateData == nullptr);
+
+	auto const pMemBlock = g_engfuncs.pfnPvAllocEntPrivateData(pEdict, sizeof(T));	// allocate the memory from engine
+	new (pMemBlock) T{};	// "placement new"
+	auto const pPrefab = static_cast<T *>(pMemBlock);	// object lifetime started.
+
+	pPrefab->pev = &pEdict->v;
+
+	assert(pPrefab->pev != nullptr);
+	assert(pEdict->pvPrivateData != nullptr);
+	assert(pEdict->v.pContainingEntity == pEdict);
+
+	pEdict->v.classname = MAKE_STRING(T::CLASSNAME);
+
+	return std::make_pair(pEdict, pPrefab);
+}
+
 export struct Prefab_t : public CBaseEntity
 {
 	// Patch the loose end.
@@ -228,20 +251,8 @@ export struct Prefab_t : public CBaseEntity
 	template <typename T>
 	static T *Create(const Vector& vecOrigin = Vector::Zero(), const Vector& vecAngles = Vector::Zero()) noexcept
 	{
-		auto const pEdict = g_engfuncs.pfnCreateEntity();
+		auto const [pEdict, pPrefab] = UTIL_CreateNamedPrefab<T>();
 
-		assert(pEdict != nullptr);
-		assert(pEdict->pvPrivateData == nullptr);
-
-		auto const pPrefab = new(pEdict) T;
-
-		pPrefab->pev = &pEdict->v;
-
-		assert(pPrefab->pev != nullptr);
-		assert(pEdict->pvPrivateData != nullptr);
-		assert(pEdict->v.pContainingEntity == pEdict);
-
-		pEdict->v.classname = MAKE_STRING(T::CLASSNAME);
 		pEdict->v.angles = vecAngles;
 		pEdict->v.origin = vecOrigin;
 

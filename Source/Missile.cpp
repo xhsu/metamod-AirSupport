@@ -172,20 +172,8 @@ void CPrecisionAirStrike::Touch(CBaseEntity *pOther) noexcept
 
 CPrecisionAirStrike *CPrecisionAirStrike::Create(CBasePlayer *pPlayer, Vector const &vecOrigin, Vector const &vecTarget) noexcept
 {
-	auto const pEdict = g_engfuncs.pfnCreateEntity();
+	auto const [pEdict, pPrefab] = UTIL_CreateNamedPrefab<CPrecisionAirStrike>();
 
-	assert(pEdict != nullptr);
-	assert(pEdict->pvPrivateData == nullptr);
-
-	auto const pPrefab = new(pEdict) CPrecisionAirStrike;
-
-	pPrefab->pev = &pEdict->v;
-
-	assert(pPrefab->pev != nullptr);
-	assert(pEdict->pvPrivateData != nullptr);
-	assert(pEdict->v.pContainingEntity == pEdict);
-
-	pEdict->v.classname = MAKE_STRING(CPrecisionAirStrike::CLASSNAME);
 	pEdict->v.origin = vecOrigin;
 
 	pPrefab->m_pPlayer = pPlayer;

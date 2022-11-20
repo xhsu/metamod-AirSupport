@@ -206,6 +206,7 @@ extern "C++" namespace Weapon
 		EHANDLE<CFixedTarget> pFixedTarget = CFixedTarget::Create(pTarget->pev->origin, pTarget->pev->angles, pThis->m_pPlayer, pTarget->m_pTargeting);
 
 		pTarget->pev->flags |= FL_KILLME;
+		pThis->pev->euser1 = nullptr;
 
 		pThis->has_disconnected = false;	// BORROWED MEMBER: forbid holster.
 		pThis->SendWeaponAnim((int)Models::v_radio::seq::use);
@@ -282,7 +283,10 @@ extern "C++" namespace Weapon
 
 		[[likely]]
 		if (pThis->pev->euser1)
+		{
 			pThis->pev->euser1->v.flags |= FL_KILLME;
+			pThis->pev->euser1 = nullptr;
+		}
 
 		// Resume shield protection
 		if (pThis->m_pPlayer->m_bOwnsShield)

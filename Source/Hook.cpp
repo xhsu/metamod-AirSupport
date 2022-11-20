@@ -76,9 +76,9 @@ void DeployHooks(void) noexcept
 	UTIL_VirtualTableInjection(rgpfnCKnife, VFTIDX_ITEM_ADDTOPLAYER, &HamF_Item_AddToPlayer, (void **)&g_pfnItemAddToPlayer);
 	UTIL_VirtualTableInjection(rgpfnCKnife, VFTIDX_ITEM_DEPLOY, &HamF_Item_Deploy, (void **)&g_pfnItemDeploy);
 	UTIL_VirtualTableInjection(rgpfnCKnife, VFTIDX_ITEM_POSTFRAME, &HamF_Item_PostFrame, (void **)&g_pfnItemPostFrame);
-//	UTIL_VirtualTableInjection(rgpfnCKnife, VFTIDX_WEAPON_PRIMARYATTACK, UTIL_CreateTrampoline(true, 0, &HamF_Weapon_PrimaryAttack), (void **)&g_pfnWeaponPrimaryAttack);
-//	UTIL_VirtualTableInjection(rgpfnCKnife, VFTIDX_WEAPON_SECONDARYATTACK, UTIL_CreateTrampoline(true, 0, &HamF_Weapon_SecondaryAttack), (void **)&g_pfnWeaponSecondaryAttack);
-//	UTIL_VirtualTableInjection(rgpfnCKnife, VFTIDX_ITEM_CANHOLSTER, UTIL_CreateTrampoline(true, 0, &HamF_Item_CanHolster), (void **)&g_pfnItemCanHolster);
+//	UTIL_VirtualTableInjection(rgpfnCKnife, VFTIDX_WEAPON_PRIMARYATTACK, &HamF_Weapon_PrimaryAttack, (void **)&g_pfnWeaponPrimaryAttack);
+//	UTIL_VirtualTableInjection(rgpfnCKnife, VFTIDX_WEAPON_SECONDARYATTACK, &HamF_Weapon_SecondaryAttack, (void **)&g_pfnWeaponSecondaryAttack);
+//	UTIL_VirtualTableInjection(rgpfnCKnife, VFTIDX_ITEM_CANHOLSTER, &HamF_Item_CanHolster, (void **)&g_pfnItemCanHolster);
 	UTIL_VirtualTableInjection(rgpfnCKnife, VFTIDX_ITEM_HOLSTER, &HamF_Item_Holster, (void **)&g_pfnItemHolster);
 
 	g_pfnRadiusFlash = (fnRadiusFlash_t)UTIL_SearchPattern("mp.dll", RADIUS_FLASH_FN_PATTERN, 1);

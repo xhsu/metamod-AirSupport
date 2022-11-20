@@ -160,41 +160,7 @@ public:
 //		return NULL;
 //	}
 //
-//#ifdef _DEBUG
-//	void FunctionCheck(void *pFunction, char *name)
-//	{
-//		if (pFunction && !NAME_FOR_FUNCTION((unsigned long)(pFunction)))
-//			ALERT(at_error, "No EXPORT: %s:%s (%08lx)\n", STRING(pev->classname), name, (unsigned long)pFunction);
-//	}
-//
-//	BASEPTR ThinkSet(BASEPTR func, char *name)
-//	{
-//		m_pfnThink = func;
-//		FunctionCheck((void *)*((int *)((char *)this + (offsetof(CBaseEntity, m_pfnThink)))), name);
-//		return func;
-//	}
-//
-//	ENTITYFUNCPTR TouchSet(ENTITYFUNCPTR func, char *name)
-//	{
-//		m_pfnTouch = func;
-//		FunctionCheck((void *)*((int *)((char *)this + (offsetof(CBaseEntity, m_pfnTouch)))), name);
-//		return func;
-//	}
-//
-//	USEPTR UseSet(USEPTR func, char *name)
-//	{
-//		m_pfnUse = func;
-//		FunctionCheck((void *)*((int *)((char *)this + (offsetof(CBaseEntity, m_pfnUse)))), name);
-//		return func;
-//	}
-//
-//	ENTITYFUNCPTR BlockedSet(ENTITYFUNCPTR func, char *name)
-//	{
-//		m_pfnBlocked = func;
-//		FunctionCheck((void *)*((int *)((char *)this + (offsetof(CBaseEntity, m_pfnBlocked)))), name);
-//		return func;
-//	}
-//#endif
+
 //
 //	static CBaseEntity *Create(char *szName, const Vector &vecOrigin, const Vector &vecAngles, edict_t *pentOwner = NULL);
 //
@@ -202,52 +168,56 @@ public:
 	__forceinline int eoffset(void) const noexcept { return g_engfuncs.pfnEntOffsetOfPEntity(edict()); }
 	__forceinline short entindex(void) const noexcept { return g_engfuncs.pfnIndexOfEdict(edict()); }
 
-	// allow engine to allocate instance data
-	void *operator new(size_t iBlockSize, entvars_t *pevnew) noexcept { return g_engfuncs.pfnPvAllocEntPrivateData(ent_cast<edict_t *>(pevnew), iBlockSize); }
-	void *operator new(size_t iBlockSize, edict_t *pent) noexcept { return g_engfuncs.pfnPvAllocEntPrivateData(pent, iBlockSize); }
+	// LUNA: NEVER enable ANY of these override of 'new' 'delete' in modern C++.
+	// the original valve devs are quite toxic.
+	// 1. The constructor of your CBaseXXX will NEVER be called. They misunderstood what 'placement new' actually means, hence these sick'o operator new overrides coming from.
+	// 2. The destructor of your CBaseXXX will NEVER be called. These is due to the nature of C/C++ comp issue.
+	// These two a lethal enough for modern C++.
+	// Checkout my Prefab.ixx and use the UTIL_CreateNamedPrefab() function provided.
+	// Also, DO hook pfnOnFreeEntPrivateData() fn from NEW_FUNCTION_TABLE
 
-	// don't use this.
-#if _MSC_VER >= 1200 // only build this code if MSVC++ 6.0 or higher
-	void operator delete(void *pMem, entvars_t *pevnew) noexcept { pevnew->flags |= FL_KILLME; }
-#endif
+	//void *operator new(size_t iBlockSize, entvars_t *pevnew) noexcept { return g_engfuncs.pfnPvAllocEntPrivateData(ent_cast<edict_t *>(pevnew), iBlockSize); static_assert(false, "Read the comment above."); }
+	//void *operator new(size_t iBlockSize, edict_t *pent) noexcept { return g_engfuncs.pfnPvAllocEntPrivateData(pent, iBlockSize); static_assert(false, "Read the comment above."); }
+
+	//void operator delete(void *pMem, entvars_t *pevnew) noexcept { pevnew->flags |= FL_KILLME; static_assert(false, "Read the comment above."); }
 
 //public:
 //	static TYPEDESCRIPTION m_SaveData[];
 
 public:
-	entvars_t *pev;
-	CBaseEntity *m_pGoalEnt;
-	CBaseEntity *m_pLink;
-	void (CBaseEntity:: *m_pfnThink)(void);
-	void (CBaseEntity:: *m_pfnTouch)(CBaseEntity *pOther);
-	void (CBaseEntity:: *m_pfnUse)(CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value);
-	void (CBaseEntity:: *m_pfnBlocked)(CBaseEntity *pOther);
-	int current_ammo;
-	int currentammo;
-	int maxammo_buckshot;
-	int ammo_buckshot;
-	int maxammo_9mm;
-	int ammo_9mm;
-	int maxammo_556nato;
-	int ammo_556nato;
-	int maxammo_556natobox;
-	int ammo_556natobox;
-	int maxammo_762nato;
-	int ammo_762nato;
-	int maxammo_45acp;
-	int ammo_45acp;
-	int maxammo_50ae;
-	int ammo_50ae;
-	int maxammo_338mag;
-	int ammo_338mag;
-	int maxammo_57mm;
-	int ammo_57mm;
-	int maxammo_357sig;
-	int ammo_357sig;
-	float m_flStartThrow;
-	float m_flReleaseThrow;
-	int m_iSwing;
-	qboolean has_disconnected;
+	entvars_t *pev{};
+	CBaseEntity *m_pGoalEnt{};
+	CBaseEntity *m_pLink{};
+	void (CBaseEntity:: *m_pfnThink)(void) {};
+	void (CBaseEntity:: *m_pfnTouch)(CBaseEntity *pOther) {};
+	void (CBaseEntity:: *m_pfnUse)(CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value) {};
+	void (CBaseEntity:: *m_pfnBlocked)(CBaseEntity *pOther) {};
+	int current_ammo{};
+	int currentammo{};
+	int maxammo_buckshot{};
+	int ammo_buckshot{};
+	int maxammo_9mm{};
+	int ammo_9mm{};
+	int maxammo_556nato{};
+	int ammo_556nato{};
+	int maxammo_556natobox{};
+	int ammo_556natobox{};
+	int maxammo_762nato{};
+	int ammo_762nato{};
+	int maxammo_45acp{};
+	int ammo_45acp{};
+	int maxammo_50ae{};
+	int ammo_50ae{};
+	int maxammo_338mag{};
+	int ammo_338mag{};
+	int maxammo_57mm{};
+	int ammo_57mm{};
+	int maxammo_357sig{};
+	int ammo_357sig{};
+	float m_flStartThrow{};
+	float m_flReleaseThrow{};
+	int m_iSwing{};
+	qboolean has_disconnected{};
 };
 
 export template <typename T>
