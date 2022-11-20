@@ -116,7 +116,7 @@ Task CFlame::Task_EmitSmoke() noexcept
 		MsgPVS(SVC_TEMPENTITY, pev->view_ofs);
 		WriteData(TE_SMOKE);
 		WriteData(pev->view_ofs + vecNoise);
-		WriteData((short)Sprite::m_rgLibrary[Sprite::BLACK_SMOKE]);
+		WriteData((short)Sprite::m_rgLibrary[UTIL_GetRandomOne(Sprite::BLACK_SMOKE)]);
 		WriteData((byte)UTIL_Random(10, 20));	// (scale in 0.1's)
 		WriteData((byte)UTIL_Random(15, 20));	// (framerate)
 		MsgEnd();
