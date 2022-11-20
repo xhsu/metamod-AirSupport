@@ -52,7 +52,7 @@ enum EVShieldKnife
 inline constexpr float KNIFE_MAX_SPEED = 250.0f;
 inline constexpr float KNIFE_MAX_SPEED_SHIELD = 180.0f;
 
-int HamF_Item_AddToPlayer(CBasePlayerItem *pThis, CBasePlayer *pPlayer) noexcept
+qboolean __fastcall HamF_Item_AddToPlayer(CBasePlayerItem *pThis, int, CBasePlayer *pPlayer) noexcept
 {
 	g_pfnItemAddToPlayer(pThis, pPlayer);
 
@@ -78,7 +78,7 @@ int HamF_Item_AddToPlayer(CBasePlayerItem *pThis, CBasePlayer *pPlayer) noexcept
 	return true;
 }
 
-int HamF_Item_Deploy(CBasePlayerItem *pItem) noexcept
+qboolean __fastcall HamF_Item_Deploy(CBasePlayerItem *pItem, int) noexcept
 {
 	auto const pThis = (CBasePlayerWeapon *)pItem;	// The actual class of this one is ... CKnife, but anyway.
 
@@ -102,7 +102,7 @@ int HamF_Item_Deploy(CBasePlayerItem *pItem) noexcept
 		return g_pfnDefaultDeploy(pThis, "models/v_knife.mdl", "models/p_knife.mdl", KNIFE_DRAW, "knife", pThis->UseDecrement() != 0);
 }
 
-void HamF_Item_PostFrame(CBasePlayerItem *pItem) noexcept
+void __fastcall HamF_Item_PostFrame(CBasePlayerItem *pItem, int) noexcept
 {
 	auto const pThis = (CBasePlayerWeapon *)pItem;
 
@@ -119,15 +119,15 @@ void HamF_Item_PostFrame(CBasePlayerItem *pItem) noexcept
 	}
 }
 
-void HamF_Weapon_PrimaryAttack(CBasePlayerWeapon *pThis) noexcept { return g_pfnWeaponPrimaryAttack(pThis); }
-void HamF_Weapon_SecondaryAttack(CBasePlayerWeapon *pThis) noexcept { return g_pfnWeaponSecondaryAttack(pThis); }
+void __fastcall HamF_Weapon_PrimaryAttack(CBasePlayerWeapon *pThis, int) noexcept { return g_pfnWeaponPrimaryAttack(pThis); }
+void __fastcall HamF_Weapon_SecondaryAttack(CBasePlayerWeapon *pThis, int) noexcept { return g_pfnWeaponSecondaryAttack(pThis); }
 
-qboolean HamF_Item_CanHolster(CBasePlayerItem *pThis) noexcept
+qboolean __fastcall HamF_Item_CanHolster(CBasePlayerItem *pThis, int) noexcept
 {
 	return g_pfnItemCanHolster(pThis) & pThis->has_disconnected;
 }
 
-void HamF_Item_Holster(CBasePlayerItem *pThis, int skiplocal) noexcept
+void __fastcall HamF_Item_Holster(CBasePlayerItem *pThis, int, int skiplocal) noexcept
 {
 	if (pThis->pev->weapons == RADIO_KEY)
 		Weapon::OnRadioHolster((CBasePlayerWeapon *)pThis);
