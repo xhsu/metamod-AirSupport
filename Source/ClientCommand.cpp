@@ -3,9 +3,9 @@ import <string>;
 
 import meta_api;
 
-import Entity;
 import Hook;
 import Resources;
+import Weapon;
 
 using std::string;
 

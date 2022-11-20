@@ -3,10 +3,11 @@ import <ranges>;
 import util;
 
 import Effects;
-import Entity;
 import GameRules;
+import Jet;
 import Missile;
-import Entity;
+import Round;
+import Target;
 
 void OrpheuF_CleanUpMap(CHalfLifeMultiplay *pThis) noexcept
 {
@@ -15,7 +16,7 @@ void OrpheuF_CleanUpMap(CHalfLifeMultiplay *pThis) noexcept
 	for (auto &&pEnt : FIND_ENTITY_BY_CLASSNAME(CFixedTarget::CLASSNAME))
 		pEnt->v.flags |= FL_KILLME;
 
-	for (auto &&pEnt : FIND_ENTITY_BY_CLASSNAME(Classname::JET))
+	for (auto &&pEnt : FIND_ENTITY_BY_CLASSNAME(CJet::CLASSNAME))
 		pEnt->v.flags |= FL_KILLME;
 
 	for (auto &&pEnt : FIND_ENTITY_BY_CLASSNAME(CPrecisionAirStrike::CLASSNAME))

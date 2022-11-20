@@ -229,6 +229,9 @@ struct EHANDLE final
 	explicit EHANDLE(std::nullptr_t) noexcept {}
 	explicit EHANDLE(short iEntIndex) noexcept { if (iEntIndex > 0) Set(ent_cast<edict_t *>(iEntIndex)); }
 
+	EHANDLE(EHANDLE<T> const &rhs) noexcept : m_pent(rhs.m_pent), m_serialnumber(rhs.m_serialnumber) {}
+	EHANDLE<T> &operator=(EHANDLE<T> const &rhs) noexcept { m_pent = rhs.m_pent; m_serialnumber = rhs.m_serialnumber; return *this; }
+
 	inline edict_t *Get(void) const noexcept
 	{
 		if (pev_valid(m_pent) != 2)

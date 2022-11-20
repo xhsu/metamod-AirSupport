@@ -1,41 +1,8 @@
-export module Entity;
+export module Target;
 
-export import <vector>;
 export import <chrono>;
 
-export import CBase;
-export import Task;
-
 export import Prefab;
-
-export namespace Classname
-{
-	inline constexpr char JET[] = "jet";
-	inline constexpr char FAE[] = "petrol_bomb";
-	inline constexpr char BEAM[] = "aiming_assist_beam";
-}
-
-export inline constexpr auto RADIO_KEY = 16486345;
-export inline constexpr auto MISSILE_GROUPINFO = (1 << 10);
-export inline constexpr auto MISSILE_SOUND_CORO_KEY = 687286ul;
-
-export inline std::vector<edict_t *> g_rgpCTs = {};
-export inline std::vector<edict_t *> g_rgpTers = {};
-
-export extern "C++" Task Task_UpdateTeams(void) noexcept;
-
-export extern "C++" namespace Weapon
-{
-	extern Task Task_RadioDeploy(EHANDLE<CBasePlayerWeapon> pThis) noexcept;
-	extern Task Task_RadioRejected(EHANDLE<CBasePlayerWeapon> pThis) noexcept;
-	extern Task Task_RadioAccepted(EHANDLE<CBasePlayerWeapon> pThis) noexcept;
-	extern void OnRadioHolster(CBasePlayerWeapon *pThis) noexcept;
-};
-
-export extern "C++" namespace Jet
-{
-	Task Task_Jet(EHANDLE<CBaseEntity> pEntity) noexcept;
-};
 
 export struct CDynamicTarget : public Prefab_t
 {

@@ -9,12 +9,13 @@ import util;
 
 import UtlHook;
 
-import Entity;
 import GameRules;
 import Hook;
+import Jet;
 import Plugin;
-import Prefab;
+import Round;
 import Task;
+import Weapon;
 
 // Resources.cpp
 extern void Precache(void) noexcept;
@@ -348,14 +349,14 @@ LIB_SKIP:;
 
 int fw_CheckVisibility(const edict_t *entity, unsigned char *pset) noexcept
 {
-	if (entity->v.classname == MAKE_STRING(Classname::JET))
+	if (entity->v.classname == MAKE_STRING(CJet::CLASSNAME))
 	{
 		gpMetaGlobals->mres = MRES_SUPERCEDE;
 		return true;
 	}
 
 	gpMetaGlobals->mres = MRES_IGNORED;
-	return 0;
+	return false;
 	// pre
 }
 

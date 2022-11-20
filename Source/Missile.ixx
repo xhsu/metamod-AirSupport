@@ -11,6 +11,9 @@ export enum EAirSupportTypes
 	FUEL_AIR_BOMB,	// thermobaric weapon
 };
 
+export inline constexpr auto MISSILE_GROUPINFO = (1 << 10);
+export inline constexpr auto MISSILE_SOUND_CORO_KEY = 687286ul;
+
 export struct CPrecisionAirStrike : public Prefab_t
 {
 	static inline constexpr char CLASSNAME[] = "missile_precision";

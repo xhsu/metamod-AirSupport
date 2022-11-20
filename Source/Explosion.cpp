@@ -9,9 +9,7 @@ import shake;
 
 import UtlRandom;
 
-import CBase;
 import Effects;
-import Entity;
 import Hook;
 import Math;
 import Resources;

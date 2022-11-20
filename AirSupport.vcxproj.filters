@@ -259,7 +259,7 @@
     <ClCompile Include="Source\Explosion.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Entity.ixx">
+    <ClCompile Include="Source\Weapon.ixx">
       <Filter>Source</Filter>
     </ClCompile>
     <ClCompile Include="..\Hydrogenium\UtlRandom.ixx">
@@ -317,6 +317,15 @@
       <Filter>Source</Filter>
     </ClCompile>
     <ClCompile Include="Source\Localization.ixx">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Jet.ixx">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Target.ixx">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Round.ixx">
       <Filter>Source</Filter>
     </ClCompile>
   </ItemGroup>

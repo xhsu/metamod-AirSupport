@@ -3,11 +3,13 @@
 import progdefs;
 import util;
 
-import Entity;
+import Jet;
 import Localization;
-import Missile;
 import Resources;
+import Round;
+import Target;
 import Waypoint;
+import Weapon;
 
 import UtlRandom;
 
@@ -127,6 +129,11 @@ Task CDynamicTarget::Task_QuickEvaluation() noexcept
 
 		pev->team = m_pPlayer->m_iTeam;
 
+		if (m_pPlayer->pev->effects & EF_DIMLIGHT)	// The lit state will follow player flashlight
+			pev->effects |= EF_DIMLIGHT;
+		else
+			pev->effects &= ~EF_DIMLIGHT;
+
 		// Calc where does player aiming
 
 		g_engfuncs.pfnMakeVectors(m_pPlayer->pev->v_angle);
@@ -229,7 +236,6 @@ void CDynamicTarget::Spawn() noexcept
 
 	pev->solid = SOLID_NOT;
 	pev->movetype = MOVETYPE_NOCLIP;
-	pev->effects |= EF_DIMLIGHT;	// #UNTESTED
 	pev->rendermode = kRenderTransAdd;
 	pev->renderfx = kRenderFxPulseFastWide;
 	pev->renderamt = 128;
@@ -336,34 +342,19 @@ Task CFixedTarget::Task_RecruitJet() noexcept
 
 	if (m_vecJetSpawn == Vector::Zero())
 	{
-		gmsgTextMsg::FreeBegin<MSG_ONE>(Vector::Zero(), m_pPlayer->edict(), (byte)4, Localization::REJECT_NO_JET_SPAWN);
+		gmsgTextMsg::Send(m_pPlayer->edict(), (byte)4, Localization::REJECT_NO_JET_SPAWN);
 		pev->flags |= FL_KILLME;
 		co_return;
 	}
 
-	auto const pJet = g_engfuncs.pfnCreateNamedEntity(MAKE_STRING("info_target"));
-	auto const vecDir = Vector(pev->origin.x, pev->origin.y, m_vecJetSpawn.z) - m_vecJetSpawn;
+	EHANDLE<CJet> pJet = CJet::Create(m_pPlayer, this, m_vecJetSpawn);
 
-	g_engfuncs.pfnVecToAngles(vecDir, pJet->v.angles);
-	g_engfuncs.pfnSetOrigin(pJet, m_vecJetSpawn);
-	g_engfuncs.pfnSetModel(pJet, Models::PLANE[AIR_STRIKE]);
-	g_engfuncs.pfnSetSize(pJet, Vector::Zero(), Vector::Zero());
-
-	pJet->v.classname = MAKE_STRING(Classname::JET);
-	pJet->v.solid = SOLID_NOT;
-	pJet->v.movetype = MOVETYPE_NOCLIP;
-	pJet->v.velocity = vecDir.Normalize() * 4096;
-	pJet->v.euser1 = m_pPlayer->edict();	// pev->owner was not occupied, but just keep the usage sync with Laser type.
-	pJet->v.euser2 = edict();
-
-	TaskScheduler::Enroll(Jet::Task_Jet(pJet));
-
-	for (EHANDLE<CBaseEntity> pJetEntity = pJet;;)
+	for (;;)
 	{
 		[[unlikely]]
-		if (!pJetEntity)	// Jet found no way to launch missile
+		if (!pJet)	// Jet found no way to launch missile
 		{
-			gmsgTextMsg::FreeBegin<MSG_ONE>(Vector::Zero(), m_pPlayer->edict(), (byte)4, Localization::REJECT_NO_VALID_TRACELINE);
+			gmsgTextMsg::Send(m_pPlayer->edict(), (byte)4, Localization::REJECT_NO_VALID_TRACELINE);
 			pev->flags |= FL_KILLME;
 			co_return;
 		}

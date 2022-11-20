@@ -44,6 +44,11 @@ inline auto UTIL_CreateNamedPrefab() noexcept
 export struct Prefab_t : public CBaseEntity
 {
 	// Patch the loose end.
+	Prefab_t(void) noexcept = default;
+	Prefab_t(const Prefab_t &) noexcept = delete;
+	Prefab_t(Prefab_t &&) noexcept = delete;
+	Prefab_t &operator=(const Prefab_t &) noexcept = delete;
+	Prefab_t &operator=(Prefab_t &&) noexcept = delete;
 	virtual ~Prefab_t() noexcept = default;
 
 	// Define all missing function from our pure virtual class.

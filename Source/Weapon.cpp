@@ -4,12 +4,13 @@ import <numbers>;
 
 import meta_api;
 
-import Entity;
 import Hook;
 import Localization;
 import Missile;
 import Resources;
+import Target;
 import Task;
+import Weapon;
 
 import UtlHook;
 import UtlRandom;
