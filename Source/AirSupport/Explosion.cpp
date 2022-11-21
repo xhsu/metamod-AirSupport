@@ -343,3 +343,63 @@ void Impact(CBasePlayer *pAttacker, CBaseEntity *pProjectile, float flDamage) no
 	pOther->TraceAttack(pAttacker->pev, flDamage, gpGlobals->v_forward, &tr, DMG_BULLET);
 	g_pfnApplyMultiDamage(pProjectile->pev, pAttacker->pev);
 }
+
+Task ClusterBomb(Vector const vecOrigin, double const flMaxAbsHeight) noexcept
+{
+	auto const flStep = (flMaxAbsHeight - vecOrigin.z) / 12.0;
+
+	array const rgvecExplosiveOrigins{
+		vecOrigin + get_cylindrical_coord(UTIL_Random(10, 280), UTIL_Random(0.0, 359.9), UTIL_Random(0.0, flStep)),
+		vecOrigin + get_cylindrical_coord(UTIL_Random(10, 280), UTIL_Random(0.0, 359.9), UTIL_Random(0.0, flStep)),
+		vecOrigin + get_cylindrical_coord(UTIL_Random(10, 280), UTIL_Random(0.0, 359.9), UTIL_Random(0.0, flStep)),
+
+		vecOrigin + get_cylindrical_coord(UTIL_Random(10, 280), UTIL_Random(0.0, 359.9), UTIL_Random(flStep, flStep * 2)),
+		vecOrigin + get_cylindrical_coord(UTIL_Random(10, 280), UTIL_Random(0.0, 359.9), UTIL_Random(flStep, flStep * 2)),
+		vecOrigin + get_cylindrical_coord(UTIL_Random(10, 280), UTIL_Random(0.0, 359.9), UTIL_Random(flStep, flStep * 2)),
+
+		vecOrigin + get_cylindrical_coord(UTIL_Random(10, 280), UTIL_Random(0.0, 359.9), UTIL_Random(flStep * 2, flStep * 3)),
+		vecOrigin + get_cylindrical_coord(UTIL_Random(10, 280), UTIL_Random(0.0, 359.9), UTIL_Random(flStep * 2, flStep * 3)),
+		vecOrigin + get_cylindrical_coord(UTIL_Random(10, 280), UTIL_Random(0.0, 359.9), UTIL_Random(flStep * 2, flStep * 3)),
+
+		vecOrigin + get_cylindrical_coord(UTIL_Random(10, 280), UTIL_Random(0.0, 359.9), UTIL_Random(flStep * 3, flStep * 4)),
+		vecOrigin + get_cylindrical_coord(UTIL_Random(10, 280), UTIL_Random(0.0, 359.9), UTIL_Random(flStep * 3, flStep * 4)),
+		vecOrigin + get_cylindrical_coord(UTIL_Random(10, 280), UTIL_Random(0.0, 359.9), UTIL_Random(flStep * 3, flStep * 4)),
+
+		vecOrigin + get_cylindrical_coord(UTIL_Random(10, 280), UTIL_Random(0.0, 359.9), UTIL_Random(flStep * 4, flStep * 5)),
+		vecOrigin + get_cylindrical_coord(UTIL_Random(10, 280), UTIL_Random(0.0, 359.9), UTIL_Random(flStep * 4, flStep * 5)),
+		vecOrigin + get_cylindrical_coord(UTIL_Random(10, 280), UTIL_Random(0.0, 359.9), UTIL_Random(flStep * 4, flStep * 5)),
+
+		vecOrigin + get_cylindrical_coord(UTIL_Random(10, 280), UTIL_Random(0.0, 359.9), UTIL_Random(flStep * 5, flStep * 6)),
+		vecOrigin + get_cylindrical_coord(UTIL_Random(10, 280), UTIL_Random(0.0, 359.9), UTIL_Random(flStep * 5, flStep * 6)),
+		vecOrigin + get_cylindrical_coord(UTIL_Random(10, 280), UTIL_Random(0.0, 359.9), UTIL_Random(flStep * 5, flStep * 6)),
+
+		vecOrigin + get_cylindrical_coord(UTIL_Random(10, 280), UTIL_Random(0.0, 359.9), UTIL_Random(flStep * 6, flStep * 7)),
+		vecOrigin + get_cylindrical_coord(UTIL_Random(10, 280), UTIL_Random(0.0, 359.9), UTIL_Random(flStep * 6, flStep * 7)),
+		vecOrigin + get_cylindrical_coord(UTIL_Random(10, 280), UTIL_Random(0.0, 359.9), UTIL_Random(flStep * 6, flStep * 7)),
+
+		vecOrigin + get_cylindrical_coord(UTIL_Random(10, 280), UTIL_Random(0.0, 359.9), UTIL_Random(flStep * 7, flStep * 8)),
+		vecOrigin + get_cylindrical_coord(UTIL_Random(10, 280), UTIL_Random(0.0, 359.9), UTIL_Random(flStep * 7, flStep * 8)),
+		vecOrigin + get_cylindrical_coord(UTIL_Random(10, 280), UTIL_Random(0.0, 359.9), UTIL_Random(flStep * 7, flStep * 8)),
+
+		vecOrigin + get_cylindrical_coord(UTIL_Random(10, 280), UTIL_Random(0.0, 359.9), UTIL_Random(flStep * 8, flStep * 9)),
+		vecOrigin + get_cylindrical_coord(UTIL_Random(10, 280), UTIL_Random(0.0, 359.9), UTIL_Random(flStep * 8, flStep * 9)),
+		vecOrigin + get_cylindrical_coord(UTIL_Random(10, 280), UTIL_Random(0.0, 359.9), UTIL_Random(flStep * 8, flStep * 9)),
+
+		vecOrigin + get_cylindrical_coord(UTIL_Random(10, 280), UTIL_Random(0.0, 359.9), UTIL_Random(flStep * 9, flStep * 10)),
+		vecOrigin + get_cylindrical_coord(UTIL_Random(10, 280), UTIL_Random(0.0, 359.9), UTIL_Random(flStep * 9, flStep * 10)),
+		vecOrigin + get_cylindrical_coord(UTIL_Random(10, 280), UTIL_Random(0.0, 359.9), UTIL_Random(flStep * 9, flStep * 10)),
+	};
+
+	for (auto &&vec : rgvecExplosiveOrigins)
+	{
+		co_await UTIL_Random(0.08f, 0.11f);
+
+		MsgBroadcast(SVC_TEMPENTITY);
+		WriteData(TE_SPRITE);
+		WriteData(vec);
+		WriteData(Sprites::m_rgLibrary[Sprites::MINOR_EXPLO]);
+		WriteData((byte)UTIL_Random(5, 12));
+		WriteData((byte)UTIL_Random(128, 255));
+		MsgEnd();
+	}
+}

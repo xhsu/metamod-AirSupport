@@ -334,5 +334,11 @@
     <ClCompile Include="Source\AirSupport\Weapon.ixx">
       <Filter>Source\AirSupport</Filter>
     </ClCompile>
+    <ClCompile Include="Source\AirSupport\Menu.ixx">
+      <Filter>Source\AirSupport</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\AirSupport\Menu.cpp">
+      <Filter>Source\AirSupport</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

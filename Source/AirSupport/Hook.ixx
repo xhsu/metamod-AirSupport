@@ -82,6 +82,7 @@ export using gmsgWeaponAnim = Message_t<"WeapAnim", byte, byte>;	// actually no 
 export using gmsgWeaponList = Message_t<"WeaponList", const char*, byte, byte, byte, byte, byte, byte, byte, byte>;
 export using gmsgWeapPickup = Message_t<"WeapPickup", byte>;
 export using gmsgTextMsg = Message_t<"TextMsg", byte, const char *>;	// 4 args more actually, but whatever.
+export using gmsgShowMenu = Message_t<"ShowMenu", uint16_t, int8_t, byte, const char*>;
 
 export inline cvar_t *gcvarMaxSpeed = nullptr;
 export inline cvar_t *gcvarMaxVelocity = nullptr;

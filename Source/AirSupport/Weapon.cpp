@@ -6,6 +6,7 @@ import meta_api;
 
 import Hook;
 import Localization;
+import Menu;
 import Missile;
 import Resources;
 import Target;
@@ -110,13 +111,30 @@ void __fastcall HamF_Item_PostFrame(CBasePlayerItem *pItem, int) noexcept
 	if (pThis->pev->weapons != RADIO_KEY || !pThis->m_pPlayer || !pThis->m_pPlayer->IsAlive())
 		return g_pfnItemPostFrame(pThis);
 
-	[[unlikely]]
-	if (pThis->m_pPlayer->m_afButtonPressed & IN_ATTACK)
+	if (pThis->m_pPlayer->m_afButtonPressed & IN_ATTACK) [[unlikely]]
 	{
 		if (pThis->pev->euser1->v.skin != Models::targetmdl::SKIN_GREEN)
 			TaskScheduler::Enroll(Weapon::Task_RadioRejected(pThis));
 		else
 			TaskScheduler::Enroll(Weapon::Task_RadioAccepted(pThis));
+	}
+	else if (pThis->m_pPlayer->m_afButtonPressed & IN_ATTACK2) [[unlikely]]
+	{
+		auto const &iIndex = g_rgiAirSupportSelected[pThis->m_pPlayer->entindex()];
+
+		UTIL_ShowMenu(
+			pThis->m_pPlayer->edict(),
+			Menu::Key::AIRSUPPORT,
+			std::format(Menu::Text::AIRSUPPORT_TEMPLATE,
+				iIndex == AIR_STRIKE ? "\\d" : "\\w", iIndex == AIR_STRIKE ? " - Selected" : "",
+				iIndex == CLUSTER_BOMB ? "\\d" : "\\w", iIndex == CLUSTER_BOMB ? " - Selected" : "",
+				iIndex == CARPET_BOMB ? "\\d" : "\\w", iIndex == CARPET_BOMB ? " - Selected" : "",
+				iIndex == GUNSHIP_STRIKE ? "\\d" : "\\w", iIndex == GUNSHIP_STRIKE ? " - Selected" : "",
+				iIndex == FUEL_AIR_BOMB ? "\\d" : "\\w", iIndex == FUEL_AIR_BOMB ? " - Selected" : ""
+			)
+		);
+
+		pThis->m_pPlayer->m_iMenu = EMenu::Menu_AirSupport;
 	}
 }
 

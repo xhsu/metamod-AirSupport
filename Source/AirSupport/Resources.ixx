@@ -39,7 +39,7 @@ export namespace Models
 
 	inline constexpr char TARGET[] = "models/AirSupport/Test_001.mdl";
 
-	inline unordered_map<string, int> m_rgLibrary{};
+	inline unordered_map<string, short> m_rgLibrary{};
 
 	namespace v_radio
 	{
@@ -132,6 +132,7 @@ export namespace Sprites
 	inline constexpr char SMOKE_1[] = "sprites/gas_smoke1.spr";
 	inline constexpr char SMOKE_2[] = "sprites/wall_puff1.spr";
 	inline constexpr char PERSISTENT_SMOKE[] = "sprites/ballsmoke.spr";
+	inline constexpr char MINOR_EXPLO[] = "sprites/zerog-frag1.spr";
 
 	inline constexpr char BEAM[] = "sprites/laserbeam.spr";
 	inline constexpr char AIM[] = "sprites/targetsign.spr";
@@ -153,7 +154,7 @@ export namespace Sprites
 		"sprites/black_smoke4.spr",
 	};
 
-	inline unordered_map<string, int> m_rgLibrary{};
+	inline unordered_map<string, short> m_rgLibrary{};
 
 	namespace Frames
 	{

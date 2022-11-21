@@ -163,6 +163,7 @@ void RetrieveMessageHandles(void) noexcept
 	gmsgWeaponList::Retrieve();
 	gmsgWeapPickup::Retrieve();
 	gmsgTextMsg::Retrieve();
+	gmsgShowMenu::Retrieve();
 
 	gmsgWeaponAnim::m_iMessageIndex = SVC_WEAPONANIM;
 }

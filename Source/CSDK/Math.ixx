@@ -34,3 +34,16 @@ export inline auto get_spherical_coord(double radius, double inclination, double
 		radius * cos(inclination)
 	);
 };
+
+export inline auto get_cylindrical_coord(double radius, double azimuth, double height) noexcept
+{
+	radius = std::clamp(radius, 0.0, 8192.0);	// r ∈ [0, ∞)
+	azimuth = std::clamp(azimuth * std::numbers::pi / 180.0, 0.0, std::numbers::pi * 2.0);	// φ ∈ [0, 2π)
+	// z ∈ (-∞, +∞)
+
+	return Vector(
+		radius * cos(azimuth),
+		radius * sin(azimuth),
+		height
+	);
+}

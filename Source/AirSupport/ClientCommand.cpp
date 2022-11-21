@@ -4,6 +4,7 @@ import <string>;
 import meta_api;
 
 import Hook;
+import Menu;
 import Resources;
 import Weapon;
 
@@ -13,6 +14,8 @@ using std::string;
 extern Task Waypoint_Scan(void) noexcept;
 extern void Waypoint_Read(void) noexcept;
 //
+
+extern Task ClusterBomb(Vector const vecOrigin, double const flMaxAbsHeight) noexcept;
 
 META_RES OnClientCommand(CBasePlayer *pPlayer, const string &szCommand) noexcept
 {
@@ -91,6 +94,32 @@ META_RES OnClientCommand(CBasePlayer *pPlayer, const string &szCommand) noexcept
 	//
 	//	return MRES_SUPERCEDE;
 	//}
+	else if (szCommand == "menuselect" && pPlayer->m_iMenu > EMenu::Menu_LastItem)
+	{
+		if (auto const iSlot = std::atoi(g_engfuncs.pfnCmd_Argv(1)); iSlot > 0 && iSlot < 10)
+		{
+			OnMenuSelection(pPlayer, iSlot);
+			pPlayer->m_iMenu = EMenu::Menu_OFF;
+
+			return MRES_SUPERCEDE;
+		}
+	}
+	else if (szCommand == "test001")
+	{
+		g_engfuncs.pfnMakeVectors(pPlayer->pev->v_angle);
+
+		auto const vecSrc = pPlayer->GetGunPosition();
+		auto const vecEnd = vecSrc + gpGlobals->v_forward * 4096.f;
+
+		TraceResult tr{};
+		g_engfuncs.pfnTraceLine(vecSrc, vecEnd, ignore_monsters, pPlayer->edict(), &tr);
+
+		auto const vecOrigin = tr.vecEndPos;
+
+		g_engfuncs.pfnTraceLine(vecOrigin, Vector(vecOrigin.x, vecOrigin.y, 8192), ignore_monsters, nullptr, &tr);
+
+		TaskScheduler::Enroll(ClusterBomb(vecOrigin, tr.vecEndPos.z));
+	}
 
 	return MRES_IGNORED;
 }
