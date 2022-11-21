@@ -45,11 +45,11 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <OutDir>C:\Program Files (x86)\Steam\steamapps\common\Half-Life\czero\addons\metamod\dlls\</OutDir>
-    <IntDir>$(SolutionDir)Bin\$(Configuration)\</IntDir>
+    <IntDir>$(SolutionDir)Bin\$(ProjectName)-$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <OutDir>C:\Program Files (x86)\Steam\steamapps\common\Half-Life\czero\addons\metamod\dlls\</OutDir>
-    <IntDir>$(SolutionDir)Bin\$(Configuration)\</IntDir>
+    <IntDir>$(SolutionDir)Bin\$(ProjectName)-$(Configuration)\</IntDir>
     <RunCodeAnalysis>true</RunCodeAnalysis>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -57,8 +57,6 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;AIRSUPPORT_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <PrecompiledHeaderFile>Precompiled.hpp</PrecompiledHeaderFile>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <ScanSourceForModuleDependencies>true</ScanSourceForModuleDependencies>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
@@ -82,8 +80,6 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;NDEBUG;AIRSUPPORT_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <PrecompiledHeaderFile>Precompiled.hpp</PrecompiledHeaderFile>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <ScanSourceForModuleDependencies>true</ScanSourceForModuleDependencies>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
@@ -173,40 +169,40 @@
     <ClCompile Include="..\metamod-p\metamod\meta_api.ixx" />
     <ClCompile Include="..\metamod-p\metamod\mutil.ixx" />
     <ClCompile Include="..\metamod-p\metamod\plinfo.ixx" />
-    <ClCompile Include="Source\Beam.ixx" />
-    <ClCompile Include="Source\ClientCommand.cpp" />
-    <ClCompile Include="Source\Effects.ixx" />
-    <ClCompile Include="Source\Weapon.ixx" />
-    <ClCompile Include="Source\Effects.cpp" />
-    <ClCompile Include="Source\GameRules.ixx" />
-    <ClCompile Include="Source\Hook.ixx" />
-    <ClCompile Include="Source\Jet.cpp" />
-    <ClCompile Include="Source\Jet.ixx" />
-    <ClCompile Include="Source\Localization.ixx" />
-    <ClCompile Include="Source\Math.ixx" />
-    <ClCompile Include="Source\Missile.cpp" />
-    <ClCompile Include="Source\Missile.ixx" />
-    <ClCompile Include="Source\Prefab.ixx" />
-    <ClCompile Include="Source\Query.ixx" />
-    <ClCompile Include="Source\Resources.ixx" />
-    <ClCompile Include="Source\CBase.ixx" />
-    <ClCompile Include="Source\Message.ixx" />
-    <ClCompile Include="Source\Plugin.ixx" />
-    <ClCompile Include="Source\Resources.cpp" />
-    <ClCompile Include="Source\Hook.cpp" />
-    <ClCompile Include="Source\Plugin.cpp" />
-    <ClCompile Include="Source\Round.cpp" />
-    <ClCompile Include="Source\Round.ixx" />
-    <ClCompile Include="Source\Target.cpp" />
-    <ClCompile Include="Source\Target.ixx" />
-    <ClCompile Include="Source\Task.ixx" />
-    <ClCompile Include="Source\Explosion.cpp">
+    <ClCompile Include="Source\CSDK\Beam.ixx" />
+    <ClCompile Include="Source\AirSupport\ClientCommand.cpp" />
+    <ClCompile Include="Source\AirSupport\Effects.ixx" />
+    <ClCompile Include="Source\AirSupport\Weapon.ixx" />
+    <ClCompile Include="Source\AirSupport\Effects.cpp" />
+    <ClCompile Include="Source\CSDK\GameRules.ixx" />
+    <ClCompile Include="Source\AirSupport\Hook.ixx" />
+    <ClCompile Include="Source\AirSupport\Jet.cpp" />
+    <ClCompile Include="Source\AirSupport\Jet.ixx" />
+    <ClCompile Include="Source\AirSupport\Localization.ixx" />
+    <ClCompile Include="Source\CSDK\Math.ixx" />
+    <ClCompile Include="Source\AirSupport\Missile.cpp" />
+    <ClCompile Include="Source\AirSupport\Missile.ixx" />
+    <ClCompile Include="Source\CSDK\Prefab.ixx" />
+    <ClCompile Include="Source\CSDK\Query.ixx" />
+    <ClCompile Include="Source\AirSupport\Resources.ixx" />
+    <ClCompile Include="Source\CSDK\CBase.ixx" />
+    <ClCompile Include="Source\CSDK\Message.ixx" />
+    <ClCompile Include="Source\AirSupport\Plugin.ixx" />
+    <ClCompile Include="Source\AirSupport\Resources.cpp" />
+    <ClCompile Include="Source\AirSupport\Hook.cpp" />
+    <ClCompile Include="Source\AirSupport\Plugin.cpp" />
+    <ClCompile Include="Source\AirSupport\Round.cpp" />
+    <ClCompile Include="Source\AirSupport\Round.ixx" />
+    <ClCompile Include="Source\AirSupport\Target.cpp" />
+    <ClCompile Include="Source\AirSupport\Target.ixx" />
+    <ClCompile Include="Source\CSDK\Task.ixx" />
+    <ClCompile Include="Source\AirSupport\Explosion.cpp">
       <DisableSpecificWarnings Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">4244;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <DisableSpecificWarnings Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">4244;%(DisableSpecificWarnings)</DisableSpecificWarnings>
     </ClCompile>
-    <ClCompile Include="Source\Waypoint.cpp" />
-    <ClCompile Include="Source\Waypoint.ixx" />
-    <ClCompile Include="Source\Weapon.cpp" />
+    <ClCompile Include="Source\AirSupport\Waypoint.cpp" />
+    <ClCompile Include="Source\AirSupport\Waypoint.ixx" />
+    <ClCompile Include="Source\AirSupport\Weapon.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

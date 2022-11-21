@@ -29,11 +29,14 @@
     <Filter Include="MetaMod">
       <UniqueIdentifier>{f063fd23-245a-4deb-a437-4a04339fd9df}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source\AirSupport">
+      <UniqueIdentifier>{064c0d49-4f18-4aa2-8383-578fc4c21963}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\CSDK">
+      <UniqueIdentifier>{65756158-87ab-47bc-b3f3-0ea944cdfb8e}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Source\Plugin.cpp">
-      <Filter>Source</Filter>
-    </ClCompile>
     <ClCompile Include="..\metamod-p\hlsdk\cl_dll\hud_iface.ixx">
       <Filter>HLSDK\cl_dll</Filter>
     </ClCompile>
@@ -226,107 +229,110 @@
     <ClCompile Include="..\metamod-p\metamod\plinfo.ixx">
       <Filter>MetaMod</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Resources.cpp">
-      <Filter>Source</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Hook.cpp">
-      <Filter>Source</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Plugin.ixx">
-      <Filter>Source</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Message.ixx">
-      <Filter>Source</Filter>
-    </ClCompile>
     <ClCompile Include="..\Hydrogenium\UtlConcepts.ixx">
       <Filter>Hydrogenium</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\CBase.ixx">
-      <Filter>Source</Filter>
     </ClCompile>
     <ClCompile Include="..\metamod-p\hlsdk\dlls\activity.ixx">
       <Filter>HLSDK\dlls</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Resources.ixx">
-      <Filter>Source</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\ClientCommand.cpp">
-      <Filter>Source</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Hook.ixx">
-      <Filter>Source</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Explosion.cpp">
-      <Filter>Source</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Weapon.ixx">
-      <Filter>Source</Filter>
-    </ClCompile>
     <ClCompile Include="..\Hydrogenium\UtlRandom.ixx">
       <Filter>Hydrogenium</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Weapon.cpp">
-      <Filter>Source</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Task.ixx">
-      <Filter>Source</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Beam.ixx">
-      <Filter>Source</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Missile.cpp">
-      <Filter>Source</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Target.cpp">
-      <Filter>Source</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\GameRules.ixx">
-      <Filter>Source</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Round.cpp">
-      <Filter>Source</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Jet.cpp">
-      <Filter>Source</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Prefab.ixx">
-      <Filter>Source</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Waypoint.cpp">
-      <Filter>Source</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Waypoint.ixx">
-      <Filter>Source</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Query.ixx">
-      <Filter>Source</Filter>
     </ClCompile>
     <ClCompile Include="..\Hydrogenium\UtlFunction.ixx">
       <Filter>Hydrogenium</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Effects.cpp">
-      <Filter>Source</Filter>
+    <ClCompile Include="Source\CSDK\Beam.ixx">
+      <Filter>Source\CSDK</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Effects.ixx">
-      <Filter>Source</Filter>
+    <ClCompile Include="Source\CSDK\CBase.ixx">
+      <Filter>Source\CSDK</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Math.ixx">
-      <Filter>Source</Filter>
+    <ClCompile Include="Source\CSDK\Math.ixx">
+      <Filter>Source\CSDK</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Missile.ixx">
-      <Filter>Source</Filter>
+    <ClCompile Include="Source\CSDK\GameRules.ixx">
+      <Filter>Source\CSDK</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Localization.ixx">
-      <Filter>Source</Filter>
+    <ClCompile Include="Source\CSDK\Message.ixx">
+      <Filter>Source\CSDK</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Jet.ixx">
-      <Filter>Source</Filter>
+    <ClCompile Include="Source\CSDK\Prefab.ixx">
+      <Filter>Source\CSDK</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Target.ixx">
-      <Filter>Source</Filter>
+    <ClCompile Include="Source\CSDK\Query.ixx">
+      <Filter>Source\CSDK</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Round.ixx">
-      <Filter>Source</Filter>
+    <ClCompile Include="Source\CSDK\Task.ixx">
+      <Filter>Source\CSDK</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\AirSupport\ClientCommand.cpp">
+      <Filter>Source\AirSupport</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\AirSupport\Effects.cpp">
+      <Filter>Source\AirSupport</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\AirSupport\Effects.ixx">
+      <Filter>Source\AirSupport</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\AirSupport\Explosion.cpp">
+      <Filter>Source\AirSupport</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\AirSupport\Hook.cpp">
+      <Filter>Source\AirSupport</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\AirSupport\Hook.ixx">
+      <Filter>Source\AirSupport</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\AirSupport\Jet.cpp">
+      <Filter>Source\AirSupport</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\AirSupport\Jet.ixx">
+      <Filter>Source\AirSupport</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\AirSupport\Localization.ixx">
+      <Filter>Source\AirSupport</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\AirSupport\Missile.cpp">
+      <Filter>Source\AirSupport</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\AirSupport\Missile.ixx">
+      <Filter>Source\AirSupport</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\AirSupport\Plugin.cpp">
+      <Filter>Source\AirSupport</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\AirSupport\Plugin.ixx">
+      <Filter>Source\AirSupport</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\AirSupport\Resources.cpp">
+      <Filter>Source\AirSupport</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\AirSupport\Resources.ixx">
+      <Filter>Source\AirSupport</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\AirSupport\Round.cpp">
+      <Filter>Source\AirSupport</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\AirSupport\Round.ixx">
+      <Filter>Source\AirSupport</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\AirSupport\Target.cpp">
+      <Filter>Source\AirSupport</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\AirSupport\Target.ixx">
+      <Filter>Source\AirSupport</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\AirSupport\Waypoint.cpp">
+      <Filter>Source\AirSupport</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\AirSupport\Waypoint.ixx">
+      <Filter>Source\AirSupport</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\AirSupport\Weapon.cpp">
+      <Filter>Source\AirSupport</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\AirSupport\Weapon.ixx">
+      <Filter>Source\AirSupport</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

@@ -120,7 +120,7 @@ export namespace Sounds
 	};
 };
 
-export namespace Sprite
+export namespace Sprites
 {
 	inline constexpr char SMOKE[] = "sprites/exsmoke.spr";
 	inline constexpr char SMOKE2[] = "sprites/rockeexfire.spr";

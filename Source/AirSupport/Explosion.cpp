@@ -172,7 +172,7 @@ Task VisualEffects(const Vector vecOrigin, float const flRadius) noexcept	// The
 	MsgBroadcast(SVC_TEMPENTITY);
 	WriteData(TE_SPRITE);
 	WriteData(Vector(vecOrigin.x, vecOrigin.y, vecOrigin.z + 200.0));
-	WriteData((short)Sprite::m_rgLibrary[Sprite::ROCKET_EXPLO]);
+	WriteData((short)Sprites::m_rgLibrary[Sprites::ROCKET_EXPLO]);
 	WriteData((byte)20);
 	WriteData((byte)100);
 	MsgEnd();
@@ -180,7 +180,7 @@ Task VisualEffects(const Vector vecOrigin, float const flRadius) noexcept	// The
 	MsgBroadcast(SVC_TEMPENTITY);
 	WriteData(TE_SPRITE);
 	WriteData(Vector(vecOrigin.x, vecOrigin.y, vecOrigin.z + 70.0));
-	WriteData((short)Sprite::m_rgLibrary[Sprite::ROCKET_EXPLO2]);
+	WriteData((short)Sprites::m_rgLibrary[Sprites::ROCKET_EXPLO2]);
 	WriteData((byte)30);
 	WriteData((byte)255);
 	MsgEnd();
@@ -274,7 +274,7 @@ Task VisualEffects(const Vector vecOrigin, float const flRadius) noexcept	// The
 		MsgBroadcast(SVC_TEMPENTITY);
 		WriteData(TE_SPRITE);
 		WriteData(vecOrigin + vecVelocity * UTIL_Random(200.f, 300.f));
-		WriteData((short)Sprite::m_rgLibrary[Sprite::SMOKE]);
+		WriteData((short)Sprites::m_rgLibrary[Sprites::SMOKE]);
 		WriteData((byte)25);
 		WriteData((byte)225);
 		MsgEnd();
@@ -299,7 +299,7 @@ Task VisualEffects(const Vector vecOrigin, float const flRadius) noexcept	// The
 		MsgBroadcast(SVC_TEMPENTITY);
 		WriteData(TE_SPRITE);
 		WriteData(vecPeri);
-		WriteData((short)Sprite::m_rgLibrary[Sprite::SMOKE_2]);
+		WriteData((short)Sprites::m_rgLibrary[Sprites::SMOKE_2]);
 		WriteData((byte)50);
 		WriteData((byte)50);
 		MsgEnd();

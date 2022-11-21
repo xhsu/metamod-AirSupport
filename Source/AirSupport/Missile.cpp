@@ -60,7 +60,7 @@ Task CPrecisionAirStrike::Task_Trail() noexcept
 		MsgPVS(SVC_TEMPENTITY, vecOrigin);
 		WriteData(TE_SPRITE);
 		WriteData(vecOrigin);
-		WriteData((short)Sprite::m_rgLibrary[Sprite::FIRE2]);
+		WriteData((short)Sprites::m_rgLibrary[Sprites::FIRE2]);
 		WriteData((byte)3);
 		WriteData((byte)255);
 		MsgEnd();
@@ -72,15 +72,15 @@ Task CPrecisionAirStrike::Task_Trail() noexcept
 		switch (UTIL_Random(0, 2))
 		{
 		case 0:
-			WriteData((short)Sprite::m_rgLibrary[Sprite::SMOKE]);
+			WriteData((short)Sprites::m_rgLibrary[Sprites::SMOKE]);
 			break;
 
 		case 1:
-			WriteData((short)Sprite::m_rgLibrary[Sprite::SMOKE_1]);
+			WriteData((short)Sprites::m_rgLibrary[Sprites::SMOKE_1]);
 			break;
 
 		default:
-			WriteData((short)Sprite::m_rgLibrary[Sprite::SMOKE_2]);
+			WriteData((short)Sprites::m_rgLibrary[Sprites::SMOKE_2]);
 			break;
 		}
 
@@ -105,7 +105,7 @@ void CPrecisionAirStrike::Spawn() noexcept
 	MsgPVS(SVC_TEMPENTITY, pev->origin);
 	WriteData(TE_SPRITE);
 	WriteData(pev->origin);
-	WriteData((short)Sprite::m_rgLibrary[Sprite::FIRE]);
+	WriteData((short)Sprites::m_rgLibrary[Sprites::FIRE]);
 	WriteData((byte)5);
 	WriteData((byte)255);
 	MsgEnd();
@@ -115,7 +115,7 @@ void CPrecisionAirStrike::Spawn() noexcept
 	MsgBroadcast(SVC_TEMPENTITY);
 	WriteData(TE_BEAMFOLLOW);
 	WriteData(ent_cast<short>(pev));
-	WriteData((short)Sprite::m_rgLibrary[Sprite::SMOKE_TRAIL]);
+	WriteData((short)Sprites::m_rgLibrary[Sprites::SMOKE_TRAIL]);
 	WriteData((byte)10);
 	WriteData((byte)3);
 	WriteData((byte)255);
@@ -142,7 +142,7 @@ void CPrecisionAirStrike::Spawn() noexcept
 		MsgPVS(SVC_TEMPENTITY, vecPos);
 		WriteData(TE_SPRITE);
 		WriteData(vecPos);
-		WriteData((short)Sprite::m_rgLibrary[Sprite::SMOKE]);
+		WriteData((short)Sprites::m_rgLibrary[Sprites::SMOKE]);
 		WriteData((byte)10);
 		WriteData((byte)50);
 		MsgEnd();

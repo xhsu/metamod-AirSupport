@@ -116,7 +116,7 @@ Task CFlame::Task_EmitSmoke() noexcept
 		MsgPVS(SVC_TEMPENTITY, pev->view_ofs);
 		WriteData(TE_SMOKE);
 		WriteData(pev->view_ofs + vecNoise);
-		WriteData((short)Sprite::m_rgLibrary[UTIL_GetRandomOne(Sprite::BLACK_SMOKE)]);
+		WriteData((short)Sprites::m_rgLibrary[UTIL_GetRandomOne(Sprites::BLACK_SMOKE)]);
 		WriteData((byte)UTIL_Random(10, 20));	// (scale in 0.1's)
 		WriteData((byte)UTIL_Random(15, 20));	// (framerate)
 		MsgEnd();
@@ -142,8 +142,8 @@ Task CFlame::Task_Remove() noexcept
 
 void CFlame::Spawn() noexcept
 {
-	m_iFlameSprIndex = UTIL_Random(0u, Sprite::FLAME.size() - 1);
-	m_iMaxFrame = Sprite::Frames::FLAME[m_iFlameSprIndex];
+	m_iFlameSprIndex = UTIL_Random(0u, Sprites::FLAME.size() - 1);
+	m_iMaxFrame = Sprites::Frames::FLAME[m_iFlameSprIndex];
 
 	pev->rendermode = kRenderTransAdd;
 	pev->renderamt = UTIL_Random(192.f, 255.f);
@@ -154,7 +154,7 @@ void CFlame::Spawn() noexcept
 	pev->gravity = 2.f;
 	pev->scale = UTIL_Random(0.6f, 0.85f);
 
-	g_engfuncs.pfnSetModel(edict(), Sprite::FLAME[m_iFlameSprIndex]);
+	g_engfuncs.pfnSetModel(edict(), Sprites::FLAME[m_iFlameSprIndex]);
 	g_engfuncs.pfnSetSize(edict(), Vector(-32, -32, -64) * pev->scale, Vector(32, 32, 64) * pev->scale);	// it is still required for pfnTraceMonsterHull
 
 	// Doing this is to prevent spawning on slope and the spr just stuck and sink into ground.
@@ -246,7 +246,7 @@ Task CSmoke::Task_EmitSmoke() noexcept
 		MsgPVS(SVC_TEMPENTITY, pev->origin + vecNoise);
 		WriteData(TE_SPRITE);
 		WriteData(pev->origin + vecNoise);
-		WriteData((short)Sprite::m_rgLibrary[Sprite::PERSISTENT_SMOKE]);
+		WriteData((short)Sprites::m_rgLibrary[Sprites::PERSISTENT_SMOKE]);
 		WriteData((byte)UTIL_Random<short>(45, 55));
 		WriteData((byte)UTIL_Random<short>(40, 60));
 		MsgEnd();

@@ -44,27 +44,27 @@ void Precache(void) noexcept
 
 	// Sprite
 
-	Sprite::m_rgLibrary[Sprite::SMOKE] = g_engfuncs.pfnPrecacheModel(Sprite::SMOKE);
-	Sprite::m_rgLibrary[Sprite::SMOKE2] = g_engfuncs.pfnPrecacheModel(Sprite::SMOKE2);
-	Sprite::m_rgLibrary[Sprite::ROCKET_EXPLO] = g_engfuncs.pfnPrecacheModel(Sprite::ROCKET_EXPLO);
-	Sprite::m_rgLibrary[Sprite::ROCKET_EXPLO2] = g_engfuncs.pfnPrecacheModel(Sprite::ROCKET_EXPLO2);
-	Sprite::m_rgLibrary[Sprite::SMOKE_TRAIL] = g_engfuncs.pfnPrecacheModel(Sprite::SMOKE_TRAIL);
-	Sprite::m_rgLibrary[Sprite::FIRE] = g_engfuncs.pfnPrecacheModel(Sprite::FIRE);
-	Sprite::m_rgLibrary[Sprite::FIRE2] = g_engfuncs.pfnPrecacheModel(Sprite::FIRE2);
-	Sprite::m_rgLibrary[Sprite::SMOKE_1] = g_engfuncs.pfnPrecacheModel(Sprite::SMOKE_1);
-	Sprite::m_rgLibrary[Sprite::SMOKE_2] = g_engfuncs.pfnPrecacheModel(Sprite::SMOKE_2);
-	Sprite::m_rgLibrary[Sprite::PERSISTENT_SMOKE] = g_engfuncs.pfnPrecacheModel(Sprite::PERSISTENT_SMOKE);
+	Sprites::m_rgLibrary[Sprites::SMOKE] = g_engfuncs.pfnPrecacheModel(Sprites::SMOKE);
+	Sprites::m_rgLibrary[Sprites::SMOKE2] = g_engfuncs.pfnPrecacheModel(Sprites::SMOKE2);
+	Sprites::m_rgLibrary[Sprites::ROCKET_EXPLO] = g_engfuncs.pfnPrecacheModel(Sprites::ROCKET_EXPLO);
+	Sprites::m_rgLibrary[Sprites::ROCKET_EXPLO2] = g_engfuncs.pfnPrecacheModel(Sprites::ROCKET_EXPLO2);
+	Sprites::m_rgLibrary[Sprites::SMOKE_TRAIL] = g_engfuncs.pfnPrecacheModel(Sprites::SMOKE_TRAIL);
+	Sprites::m_rgLibrary[Sprites::FIRE] = g_engfuncs.pfnPrecacheModel(Sprites::FIRE);
+	Sprites::m_rgLibrary[Sprites::FIRE2] = g_engfuncs.pfnPrecacheModel(Sprites::FIRE2);
+	Sprites::m_rgLibrary[Sprites::SMOKE_1] = g_engfuncs.pfnPrecacheModel(Sprites::SMOKE_1);
+	Sprites::m_rgLibrary[Sprites::SMOKE_2] = g_engfuncs.pfnPrecacheModel(Sprites::SMOKE_2);
+	Sprites::m_rgLibrary[Sprites::PERSISTENT_SMOKE] = g_engfuncs.pfnPrecacheModel(Sprites::PERSISTENT_SMOKE);
 
-	Sprite::m_rgLibrary[Sprite::BEAM] = g_engfuncs.pfnPrecacheModel(Sprite::BEAM);
+	Sprites::m_rgLibrary[Sprites::BEAM] = g_engfuncs.pfnPrecacheModel(Sprites::BEAM);
 	//Sprite::m_rgLibrary[Sprite::AIM] = g_engfuncs.pfnPrecacheModel(Sprite::AIM);
 
-	Sprite::m_rgLibrary[Sprite::TRAIL] = g_engfuncs.pfnPrecacheModel(Sprite::TRAIL);
+	Sprites::m_rgLibrary[Sprites::TRAIL] = g_engfuncs.pfnPrecacheModel(Sprites::TRAIL);
 
-	for (auto &&psz : Sprite::FLAME)
-		Sprite::m_rgLibrary[psz] = g_engfuncs.pfnPrecacheModel(psz);
+	for (auto &&psz : Sprites::FLAME)
+		Sprites::m_rgLibrary[psz] = g_engfuncs.pfnPrecacheModel(psz);
 
-	for (auto &&psz : Sprite::BLACK_SMOKE)
-		Sprite::m_rgLibrary[psz] = g_engfuncs.pfnPrecacheModel(psz);
+	for (auto &&psz : Sprites::BLACK_SMOKE)
+		Sprites::m_rgLibrary[psz] = g_engfuncs.pfnPrecacheModel(psz);
 
 	// Decal
 

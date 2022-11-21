@@ -255,7 +255,7 @@ struct EHANDLE final
 	inline operator bool() const noexcept { return Get() != nullptr; }
 	inline operator T *() const noexcept { auto const pent = Get(); return pent ? (T *)pent->pvPrivateData : nullptr; }
 
-	inline T *operator = (T *pEntity) noexcept
+	inline T *operator= (T *pEntity) noexcept
 	{
 		if (pEntity)
 		{
@@ -272,7 +272,7 @@ struct EHANDLE final
 
 		return pEntity;
 	}
-	inline T *operator ->() const noexcept { auto const pent = Get(); return pent ? (T *)pent->pvPrivateData : nullptr; }
+	inline T *operator->() const noexcept { auto const pent = Get(); return pent ? (T *)pent->pvPrivateData : nullptr; }
 	inline T &operator*() const noexcept { return *(T *)Get()->pvPrivateData; }
 
 private:
@@ -969,7 +969,7 @@ public:
 	virtual void RoundRespawn(void) = 0;
 	virtual Vector GetAutoaimVector(float flDelta) = 0;
 	virtual void Blind(float flUntilTime, float flHoldTime, float flFadeTime, int iAlpha) = 0;
-	virtual void OnTouchingWeapon(CBasePlayerWeapon *pWeapon) = 0;
+	virtual void OnTouchingWeapon(CBasePlayerWeapon *pWeapon) = 0;	// Could be CBasePlayerWeapon or CWeaponBox. Weird.
 
 //public:
 //	void Pain(int hitgroup, bool hitkevlar) override;

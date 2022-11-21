@@ -18,7 +18,7 @@ Task CJet::Task_Jet() noexcept
 		MsgBroadcast(SVC_TEMPENTITY);
 		WriteData(TE_BEAMFOLLOW);
 		WriteData(iEntAtt);
-		WriteData((short)Sprite::m_rgLibrary[Sprite::TRAIL]);
+		WriteData((short)Sprites::m_rgLibrary[Sprites::TRAIL]);
 		WriteData((byte)4);		// life
 		WriteData((byte)10);	// width
 		WriteData((byte)255);	// r
