@@ -240,7 +240,8 @@ Task CDynamicTarget::Task_QuickEval_ClusterBomb() noexcept
 
 		Vector const vecSrc = m_pPlayer->GetGunPosition();
 		Vector const vecEnd = vecSrc + gpGlobals->v_forward * 4096.f;
-		g_engfuncs.pfnTraceMonsterHull(edict(), vecSrc, vecEnd, ignore_glass | ignore_monsters, nullptr, &tr);
+		//g_engfuncs.pfnTraceMonsterHull(edict(), vecSrc, vecEnd, ignore_glass | ignore_monsters, nullptr, &tr);
+		g_engfuncs.pfnTraceLine(vecSrc, vecEnd, ignore_glass | ignore_monsters, nullptr, &tr);
 
 		auto const flAngleLean = std::acos(DotProduct(Vector::Up(), tr.vecPlaneNormal)/* No div len required, both len are 1. */) / std::numbers::pi * 180.0;
 
@@ -248,6 +249,7 @@ Task CDynamicTarget::Task_QuickEval_ClusterBomb() noexcept
 		{
 			// Surface consider wall and no cluster bomb allow against wall.
 
+			pev->skin = Models::targetmdl::SKIN_RED;
 			goto LAB_CONTINUE;	// there's no set origin.
 		}
 

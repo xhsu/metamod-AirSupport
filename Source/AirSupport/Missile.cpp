@@ -244,16 +244,32 @@ Task CClusterBomb::Task_ClusterBomb() noexcept
 
 	size_t iCounter = 0;
 	TraceResult tr{};
-	Vector vecCenter{}, vecDir{};
+	auto const pFieldSmoke = Prefab_t::Create<CFieldSmoke>(m_vecTargetGround + Vector(0, 0, 24));
+
+	pFieldSmoke->m_flRadius = 280.f;
 
 	for (auto &&vec : m_rgvecExploOrigins)
 	{
-		vecCenter = Vector(m_vecTargetGround.x, m_vecTargetGround.y, vec.z);
-		vecDir = (vec - vecCenter).Normalize();
-		g_engfuncs.pfnTraceLine(vecCenter, vec + vecDir * 48, ignore_monsters | ignore_glass, nullptr, &tr);
+		// Is this near ground?
+		g_engfuncs.pfnTraceLine(vec, Vector(vec.x, vec.y, vec.z - 48.0), ignore_monsters | ignore_glass, nullptr, &tr);
 
 		if (tr.flFraction == 1.0)
-			g_engfuncs.pfnTraceLine(vec, Vector(vec.x, vec.y, vec.z - 48), ignore_monsters | ignore_glass, nullptr, &tr);
+		{
+			// Is this near a wall?
+			auto const vecCenter = Vector(m_vecTargetGround.x, m_vecTargetGround.y, vec.z);
+			auto const vecDir = (vec - vecCenter).Normalize();
+			g_engfuncs.pfnTraceLine(vecCenter, vec + vecDir * 48, ignore_monsters | ignore_glass, nullptr, &tr);
+		}
+		else
+		{
+			// If this is somewhere near gound, cause fire.
+			// But the fire should not be flying out, this is not 'burning debris'
+
+			auto const pFlame = Prefab_t::Create<CFlame>(vec);
+			pFlame->pev->velocity = Vector::Zero();
+
+			pFieldSmoke->m_rgpFlamesDependent.emplace_back(pFlame);
+		}
 
 		if (tr.flFraction < 1.f)
 			UTIL_Decal(tr.pHit, tr.vecEndPos, UTIL_GetRandomOne(Decal::SCORCH).m_Index);
@@ -279,7 +295,7 @@ Task CClusterBomb::Task_ClusterBomb() noexcept
 
 		co_await TaskScheduler::NextFrame::Rank[0];
 
-		RangeDamage(m_pPlayer, vec, 120.f, 90.f);
+		RangeDamage(m_pPlayer, vec, 120.f, 210.f);
 		ScreenEffects(vec, 180.f, 4.f, 256.f);
 
 		if (iCounter % 3 == 0)
@@ -341,7 +357,7 @@ void CClusterBomb::Spawn() noexcept
 		for (auto i = 0; i < (decltype(i))std::floor(flMax); ++i)
 		{
 			m_rgvecExploOrigins.emplace_back(
-				m_vecTargetGround + get_cylindrical_coord(UTIL_Random(10, 280), UTIL_Random(0.0, 359.9), UTIL_Random(fl, fl + flStep))
+				m_vecTargetGround + get_cylindrical_coord(UTIL_Random(10, 250), UTIL_Random(0.0, 359.9), UTIL_Random(fl, fl + flStep))
 			);
 		}
 	}
