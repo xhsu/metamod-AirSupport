@@ -1,5 +1,7 @@
 export module Missile;
 
+export import <vector>;
+
 export import Prefab;
 
 export inline constexpr auto MISSILE_GROUPINFO = (1 << 10);
@@ -22,4 +24,21 @@ export struct CPrecisionAirStrike : public Prefab_t
 
 	Vector m_vecTarget{};
 	CBasePlayer *m_pPlayer{};
+};
+
+export struct CClusterBomb : public Prefab_t
+{
+	static inline constexpr char CLASSNAME[] = "cluster_bomb";
+	static inline constexpr auto SPEED = 800.0;
+
+	Task Task_ClusterBomb() noexcept;
+
+	void Spawn() noexcept override;
+
+	static CClusterBomb *Create(CBasePlayer *pPlayer, Vector const &vecSpawn, Vector const &vecTargetOrigin) noexcept;
+
+	double m_flDetonationHeight{};
+	CBasePlayer *m_pPlayer{};
+	Vector m_vecTargetGround{};
+	std::vector<Vector> m_rgvecExploOrigins{};
 };

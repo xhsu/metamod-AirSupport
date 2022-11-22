@@ -2,6 +2,7 @@ export module Target;
 
 export import <chrono>;
 
+export import Menu;
 export import Prefab;
 
 export struct CDynamicTarget : public Prefab_t
@@ -46,4 +47,5 @@ export struct CFixedTarget : public Prefab_t
 	Vector m_vecPosForJetSpawnTesting{};
 	EHANDLE<CBaseEntity> m_pMissile{ nullptr };
 	EHANDLE<CBaseEntity> m_pTargeting{ nullptr };
+	EAirSupportTypes m_AirSupportType{ AIR_STRIKE };
 };

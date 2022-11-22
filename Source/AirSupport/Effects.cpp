@@ -1,3 +1,4 @@
+import <array>;
 import <numbers>;
 
 import edict;
@@ -8,6 +9,8 @@ import Math;
 import Resources;
 
 import UtlRandom;
+
+using std::array;
 
 //
 // CFlame
@@ -232,10 +235,10 @@ void CFlame::Touch_DealBurnDmg(CBaseEntity *pOther) noexcept
 }
 
 //
-// CSmoke
+// CFieldSmoke
 //
 
-Task CSmoke::Task_EmitSmoke() noexcept
+Task CFieldSmoke::Task_EmitSmoke() noexcept
 {
 	for (;;)
 	{
@@ -253,7 +256,7 @@ Task CSmoke::Task_EmitSmoke() noexcept
 	}
 }
 
-Task CSmoke::Task_Remove() noexcept
+Task CFieldSmoke::Task_Remove() noexcept
 {
 	for (;;)
 	{
@@ -280,7 +283,7 @@ Task CSmoke::Task_Remove() noexcept
 	}
 }
 
-void CSmoke::Spawn() noexcept
+void CFieldSmoke::Spawn() noexcept
 {
 	pev->movetype = MOVETYPE_NONE;
 	pev->solid = SOLID_NOT;
@@ -290,4 +293,66 @@ void CSmoke::Spawn() noexcept
 
 	m_Scheduler.Enroll(Task_EmitSmoke());
 	m_Scheduler.Enroll(Task_Remove());
+}
+
+//
+// CSmoke
+//
+
+Task CSmoke::Task_FadeOut() noexcept
+{
+	for (; pev->renderamt > 0;)
+	{
+		co_await TaskScheduler::NextFrame::Rank[0];
+
+		pev->renderamt -= 0.2f;
+		pev->angles.z += 0.075f;
+	}
+
+	pev->flags |= FL_KILLME;
+}
+
+void CSmoke::Spawn() noexcept
+{
+	const char *pszModel = nullptr;
+	array rgiValidFrame{ 0, 1 };
+
+	switch (UTIL_Random(0, 2))
+	{
+	case 0:
+		pszModel = Sprites::SMOKE;
+		rgiValidFrame = { 2, 6 };
+		break;
+
+	case 1:
+		pszModel = Sprites::SMOKE_1;
+		rgiValidFrame = { 7, 10 };
+		break;
+
+	default:
+		pszModel = Sprites::SMOKE_2;
+		rgiValidFrame = { 16, 24 };
+	}
+
+	pev->rendermode = kRenderTransAdd;
+	pev->renderamt = UTIL_Random(64.f, 128.f);
+	pev->frame = (float)UTIL_Random(rgiValidFrame[0], rgiValidFrame[1]);
+
+	pev->solid = SOLID_NOT;
+	pev->movetype = MOVETYPE_NOCLIP;
+	pev->gravity = 0;
+	pev->velocity = Vector(UTIL_Random(-96, 96), UTIL_Random(-96, 96), 0).Normalize() * 36;
+	pev->scale = UTIL_Random(3.f, 5.f);
+
+	g_engfuncs.pfnSetModel(edict(), pszModel);
+	g_engfuncs.pfnSetSize(edict(), Vector(-32, -32, -32) * pev->scale, Vector(32, 32, 32) * pev->scale);	// it is still required for pfnTraceMonsterHull
+
+	// Doing this is to prevent spawning on slope and the spr just stuck and sink into ground.
+	TraceResult tr{};
+	g_engfuncs.pfnTraceMonsterHull(edict(), Vector(pev->origin.x, pev->origin.y, pev->origin.z + 32.0), Vector(pev->origin.x, pev->origin.y, 8192), ignore_monsters | ignore_glass, nullptr, &tr);
+	g_engfuncs.pfnTraceMonsterHull(edict(), tr.vecEndPos, pev->origin, ignore_monsters | ignore_glass, nullptr, &tr);
+
+	g_engfuncs.pfnSetOrigin(edict(), tr.vecEndPos);	// pfnSetOrigin includes the abssize setting, restoring our hitbox.
+
+	m_Scheduler.Enroll(Task_FadeOut());
 }

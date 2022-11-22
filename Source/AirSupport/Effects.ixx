@@ -38,7 +38,7 @@ export struct CFlame : public Prefab_t
 	high_resolution_clock::time_point m_LastAnimUpdate{};
 };
 
-export struct CSmoke : public Prefab_t
+export struct CFieldSmoke : public Prefab_t
 {
 	static inline constexpr char CLASSNAME[] = "env_explo_field_smoke";
 
@@ -51,4 +51,19 @@ export struct CSmoke : public Prefab_t
 
 	float m_flRadius{ 650.f };
 	deque<EHANDLE<CFlame>> m_rgpFlamesDependent{};
+};
+
+export struct CSmoke : public Prefab_t
+{
+	// Info
+
+	static inline constexpr char CLASSNAME[] = "env_explo_smoke";
+
+	// Methods
+
+	Task Task_FadeOut() noexcept;
+
+	void Spawn() noexcept override;
+
+	// Members
 };

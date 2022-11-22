@@ -443,6 +443,7 @@ CFixedTarget *CFixedTarget::Create(Vector const &vecOrigin, Vector const &vecAng
 
 	pPrefab->m_pTargeting = pTarget;
 	pPrefab->m_pPlayer = pPlayer;
+	pPrefab->m_AirSupportType = g_rgiAirSupportSelected[pPlayer->entindex()];
 	pPrefab->Spawn();
 	pPrefab->pev->nextthink = 0.1f;
 

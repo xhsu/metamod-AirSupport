@@ -133,6 +133,7 @@ export namespace Sprites
 	inline constexpr char SMOKE_2[] = "sprites/wall_puff1.spr";
 	inline constexpr char PERSISTENT_SMOKE[] = "sprites/ballsmoke.spr";
 	inline constexpr char MINOR_EXPLO[] = "sprites/zerog-frag1.spr";
+	inline constexpr char AIRBURST[] = "sprites/fexplo1.spr";
 
 	inline constexpr char BEAM[] = "sprites/laserbeam.spr";
 	inline constexpr char AIM[] = "sprites/targetsign.spr";
