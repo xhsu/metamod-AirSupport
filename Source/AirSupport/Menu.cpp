@@ -1,5 +1,7 @@
 import Menu;
 import Missile;
+import Target;
+import Weapon;
 
 void UTIL_ShowMenu(edict_t *pPlayer, uint16_t bitsValidSlots, std::string szText) noexcept
 {
@@ -24,7 +26,15 @@ void OnMenuSelection(CBasePlayer *pPlayer, int iSlot) noexcept
 	{
 	case Menu_AirSupport:
 		if (iSlot >= 1 && iSlot <= 5)
+		{
 			g_rgiAirSupportSelected[pPlayer->entindex()] = EAirSupportTypes(iSlot - 1);
+			if (auto const &pWeapon = pPlayer->m_pActiveItem; pWeapon && pWeapon->m_iId == WEAPON_KNIFE && pWeapon->pev->weapons == RADIO_KEY)
+			{
+				if (EHANDLE<CDynamicTarget> pTarget = pWeapon->pev->euser1; pTarget)
+					pTarget->UpdateEvalMethod();
+			}
+		}
+		break;
 
 	default:
 		return;

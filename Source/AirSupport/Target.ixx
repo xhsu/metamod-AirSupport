@@ -11,8 +11,11 @@ export struct CDynamicTarget : public Prefab_t
 
 	Task Task_Animation() noexcept;
 	Task Task_DeepEvaluation() noexcept;
-	Task Task_QuickEvaluation() noexcept;
+	Task Task_QuickEval_AirStrike() noexcept;
+	Task Task_QuickEval_ClusterBomb() noexcept;
 	Task Task_Remove() noexcept;
+
+	void UpdateEvalMethod() noexcept;
 
 	void Spawn() noexcept override;
 	static CDynamicTarget *Create(CBasePlayer *pPlayer, CBasePlayerWeapon *pRadio) noexcept;
@@ -24,6 +27,7 @@ export struct CDynamicTarget : public Prefab_t
 	float m_flLastValidTracking{};
 	std::chrono::high_resolution_clock::time_point m_LastAnimUpdate{};
 
+	static inline constexpr auto QUICK_ANALYZE_KEY = 298457034ul;
 	static inline constexpr auto DETAIL_ANALYZE_KEY = 3658468ul;
 };
 

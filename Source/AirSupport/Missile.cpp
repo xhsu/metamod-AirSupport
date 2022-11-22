@@ -277,7 +277,7 @@ Task CClusterBomb::Task_ClusterBomb() noexcept
 		RangeDamage(m_pPlayer, vec, 120.f, 90.f);
 		ScreenEffects(vec, 180.f, 4.f, 256.f);
 
-		if (iCounter % 4 == 0)
+		if (iCounter % 3 == 0)
 		{
 			Prefab_t::Create<CSmoke>(vec, Vector(0, 0, UTIL_Random(0.0, 359.9)));
 		}
@@ -331,7 +331,7 @@ void CClusterBomb::Spawn() noexcept
 
 	m_rgvecExploOrigins.reserve(64);
 
-	for (double fl = 0, flMax = 10; fl < (flHeightDiff + flStep) && flMax >= 1.0; fl += flStep, flMax *= 0.65)
+	for (double fl = 0, flMax = 16; fl < (flHeightDiff + flStep) && flMax >= 1.0; fl += flStep, flMax *= 0.5)
 	{
 		for (auto i = 0; i < (decltype(i))std::floor(flMax); ++i)
 		{
@@ -347,7 +347,7 @@ void CClusterBomb::Spawn() noexcept
 		return;
 	}
 
-	m_flDetonationHeight = std::min<double>(m_vecTargetGround.z + flStep * 6, flMaxAbsHeight) - 2;
+	m_flDetonationHeight = std::min<double>(m_vecTargetGround.z + flStep * 5, flMaxAbsHeight) - 2;
 }
 
 CClusterBomb *CClusterBomb::Create(CBasePlayer *pPlayer, Vector const &vecSpawn, Vector const &vecTargetOrigin) noexcept

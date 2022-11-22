@@ -1,5 +1,7 @@
 #include <cassert>
 
+import <numbers>;
+
 import progdefs;
 import util;
 
@@ -113,7 +115,7 @@ Task CDynamicTarget::Task_DeepEvaluation() noexcept
 	}
 }
 
-Task CDynamicTarget::Task_QuickEvaluation() noexcept
+Task CDynamicTarget::Task_QuickEval_AirStrike() noexcept
 {
 	TraceResult tr{};
 
@@ -211,6 +213,72 @@ Task CDynamicTarget::Task_QuickEvaluation() noexcept
 	}
 }
 
+Task CDynamicTarget::Task_QuickEval_ClusterBomb() noexcept
+{
+	TraceResult tr{};
+
+	for (;;)
+	{
+		if (m_pPlayer->m_pActiveItem != m_pRadio || m_pRadio->pev->weapons != RADIO_KEY)
+		{
+			co_await Models::v_radio::time::draw;	// the model will be hidden for this long, at least.
+			continue;
+		}
+
+		// Update team info so we can hide from proper player group.
+
+		pev->team = m_pPlayer->m_iTeam;
+
+		if (m_pPlayer->pev->effects & EF_DIMLIGHT)	// The lit state will follow player flashlight
+			pev->effects |= EF_DIMLIGHT;
+		else
+			pev->effects &= ~EF_DIMLIGHT;
+
+		// Calc where does player aiming
+
+		g_engfuncs.pfnMakeVectors(m_pPlayer->pev->v_angle);
+
+		Vector const vecSrc = m_pPlayer->GetGunPosition();
+		Vector const vecEnd = vecSrc + gpGlobals->v_forward * 4096.f;
+		g_engfuncs.pfnTraceMonsterHull(edict(), vecSrc, vecEnd, ignore_glass | ignore_monsters, nullptr, &tr);
+
+		auto const flAngleLean = std::acos(DotProduct(Vector::Up(), tr.vecPlaneNormal)/* No div len required, both len are 1. */) / std::numbers::pi * 180.0;
+
+		if (flAngleLean > 50)
+		{
+			// Surface consider wall and no cluster bomb allow against wall.
+
+			goto LAB_CONTINUE;	// there's no set origin.
+		}
+
+		g_engfuncs.pfnVecToAngles(tr.vecPlaneNormal, pev->angles);
+		pev->angles.x += 270.f;	// don't know why, but this is the deal.
+
+		g_engfuncs.pfnSetOrigin(edict(), tr.vecEndPos);
+
+		// Quick Evaluation
+
+		// Is it under sky?
+		g_engfuncs.pfnTraceLine(
+			pev->origin,
+			Vector(pev->origin.x, pev->origin.y, 8192),
+			ignore_monsters | ignore_glass,
+			nullptr, &tr
+		);
+
+		// No deep evaluation on cluster bomb mode. The bomb has no propulsion or engine.
+		// It must be drop directly from sky.
+
+		pev->skin =
+			g_engfuncs.pfnPointContents(tr.vecEndPos) == CONTENTS_SKY ?
+			Models::targetmdl::SKIN_GREEN :
+			Models::targetmdl::SKIN_RED;
+
+	LAB_CONTINUE:;
+		co_await TaskScheduler::NextFrame::Rank[0];
+	}
+}
+
 Task CDynamicTarget::Task_Remove() noexcept
 {
 	for (;;)
@@ -228,6 +296,25 @@ Task CDynamicTarget::Task_Remove() noexcept
 	}
 }
 
+void CDynamicTarget::UpdateEvalMethod() noexcept
+{
+	m_Scheduler.Delist(QUICK_ANALYZE_KEY);
+
+	switch (g_rgiAirSupportSelected[m_pPlayer->entindex()])
+	{
+	default:
+	case AIR_STRIKE:
+		g_engfuncs.pfnSetSize(edict(), Vector::Zero(), Vector::Zero());
+		m_Scheduler.Enroll(Task_QuickEval_AirStrike(), QUICK_ANALYZE_KEY);
+		break;
+
+	case CLUSTER_BOMB:
+		g_engfuncs.pfnSetSize(edict(), Vector(-32, -32, 0), Vector(32, 32, 72));
+		m_Scheduler.Enroll(Task_QuickEval_ClusterBomb(), QUICK_ANALYZE_KEY);
+		break;
+	}
+}
+
 void CDynamicTarget::Spawn() noexcept
 {
 	g_engfuncs.pfnSetOrigin(edict(), m_pPlayer->pev->origin);
@@ -242,8 +329,9 @@ void CDynamicTarget::Spawn() noexcept
 	pev->team = m_pPlayer->m_iTeam;
 
 	m_Scheduler.Enroll(Task_Animation());
-	m_Scheduler.Enroll(Task_QuickEvaluation());
 	m_Scheduler.Enroll(Task_Remove());
+
+	UpdateEvalMethod();
 }
 
 CDynamicTarget *CDynamicTarget::Create(CBasePlayer *pPlayer, CBasePlayerWeapon *pRadio) noexcept
