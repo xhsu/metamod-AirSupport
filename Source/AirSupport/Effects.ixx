@@ -67,3 +67,17 @@ export struct CSmoke : public Prefab_t
 
 	// Members
 };
+
+export struct CDebris : public Prefab_t
+{
+	// Info
+
+	static inline constexpr char CLASSNAME[] = "debris_from_explo";
+
+	// Methods
+
+	Task Task_Debris() noexcept;
+
+	void Spawn() noexcept override;
+	void Touch(CBaseEntity *pOther) noexcept override;
+};

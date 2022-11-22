@@ -230,6 +230,11 @@ Task CClusterBomb::Task_ClusterBomb() noexcept
 	WriteData(ent_cast<short>(pev));
 	MsgEnd();
 
+	for (int i = 0; i < 8; ++i)
+	{
+		Prefab_t::Create<CDebris>(pev->origin);
+	}
+
 	co_await TaskScheduler::NextFrame::Rank[0];
 
 	RangeDamage(m_pPlayer, pev->origin, 180.f, 100.f);

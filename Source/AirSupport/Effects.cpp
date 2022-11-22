@@ -356,3 +356,51 @@ void CSmoke::Spawn() noexcept
 
 	m_Scheduler.Enroll(Task_FadeOut());
 }
+
+//
+// CDebris
+//
+
+Task CDebris::Task_Debris() noexcept
+{
+	for (; pev->renderamt > 0;)
+	{
+		co_await UTIL_Random(0.07f, 0.1f);
+
+		MsgPVS(SVC_TEMPENTITY, pev->origin);
+		WriteData(TE_SMOKE);
+		WriteData(pev->origin);
+		WriteData((short)Sprites::m_rgLibrary[UTIL_GetRandomOne(Sprites::BLACK_SMOKE)]);
+		WriteData((byte)UTIL_Random(5, 10));	// (scale in 0.1's)
+		WriteData((byte)UTIL_Random(15, 20));	// (framerate)
+		MsgEnd();
+
+		pev->renderamt -= 0.1f;
+	}
+
+	pev->flags |= FL_KILLME;
+}
+
+void CDebris::Spawn() noexcept
+{
+	pev->rendermode = kRenderTransAlpha;
+	pev->renderamt = UTIL_Random(192.f, 255.f);
+
+	pev->solid = SOLID_TRIGGER;
+	pev->movetype = MOVETYPE_TOSS;
+	pev->gravity = 1.f;
+	pev->velocity = get_spherical_coord(400, UTIL_Random(45, 135), UTIL_Random(0.0, 359.9));
+	pev->avelocity = { 400, UTIL_Random(-400.0, 400.0), 0 };
+
+	g_engfuncs.pfnSetOrigin(edict(), pev->origin);
+	g_engfuncs.pfnSetModel(edict(), Models::GIBS_WOOD);
+	g_engfuncs.pfnSetSize(edict(), Vector(-1, -1, -1), Vector(1, 1, 1));
+
+	m_Scheduler.Enroll(Task_Debris());
+}
+
+void CDebris::Touch(CBaseEntity *pOther) noexcept
+{
+	if (pOther->pev->solid == SOLID_BSP)
+		pev->flags |= FL_KILLME;
+}
