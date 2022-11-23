@@ -1,5 +1,6 @@
 #include <cassert>
 
+import <array>;
 import <numbers>;
 
 import progdefs;
@@ -29,7 +30,7 @@ extern "C++" namespace Laser
 		pBeam->SetFlags(BEAM_FSHADEOUT);	// fade out on rear end.
 		pBeam->PointsInit(pWeapon->m_pPlayer->pev->origin, pWeapon->m_pPlayer->GetGunPosition());
 
-		pBeam->pev->classname = MAKE_STRING("CarpetBombardIndicator");
+		pBeam->pev->classname = MAKE_STRING("CarpetBombardmentIndicator");
 		pBeam->pev->effects |= EF_NODRAW;
 		pBeam->pev->renderfx = kRenderFxNone;
 		pBeam->pev->nextthink = 0.1f;
@@ -70,6 +71,15 @@ extern "C++" namespace Laser
 // CDynamicTarget
 // Representing the "only I can see" target model when player holding radio.
 //
+
+CDynamicTarget::~CDynamicTarget() noexcept
+{
+	for (auto &&pBeam : m_rgpBeams)
+	{
+		if (pBeam)
+			pBeam->pev->flags |= FL_KILLME;
+	}
+}
 
 Task CDynamicTarget::Task_Animation() noexcept
 {
@@ -332,6 +342,140 @@ Task CDynamicTarget::Task_QuickEval_ClusterBomb() noexcept
 	}
 }
 
+Task CDynamicTarget::Task_QuickEval_CarpetBombardment() noexcept
+{
+	TraceResult tr{}, tr2{};
+
+	for (auto &&pBeam : m_rgpBeams)
+	{
+		co_await TaskScheduler::NextFrame::Rank[0];
+
+		pBeam = CBeam::BeamCreate(Sprites::BEAM, 32.f);
+
+		pBeam->SetFlags(BEAM_FSHADEOUT);	// fade out on rear end.
+		pBeam->PointsInit(pev->origin, Vector(0, 0, 32));
+
+		pBeam->pev->classname = MAKE_STRING("CarpetBombardmentIndicator");
+		pBeam->pev->renderfx = kRenderFxNone;
+		pBeam->pev->nextthink = 0.1f;
+		pBeam->pev->euser1 = m_pPlayer->edict();	// pev->owner gets occupied by 'starting ent'
+		pBeam->pev->team = m_pPlayer->m_iTeam;
+	}
+
+	for (;;)
+	{
+		[[unlikely]]
+		if (m_pPlayer->m_pActiveItem != m_pRadio || m_pRadio->pev->weapons != RADIO_KEY)
+		{
+			co_await Models::v_radio::time::draw;	// the model will be hidden for this long, at least.
+			continue;
+		}
+
+		co_await TaskScheduler::NextFrame::Rank[0];
+
+		// Update team info so we can hide from proper player group.
+
+		pev->team = m_pPlayer->m_iTeam;
+
+		if (m_pPlayer->pev->effects & EF_DIMLIGHT)	// The lit state will follow player flashlight
+			pev->effects |= EF_DIMLIGHT;
+		else
+			pev->effects &= ~EF_DIMLIGHT;
+
+		// Calc where does player aiming
+
+		g_engfuncs.pfnMakeVectors(m_pPlayer->pev->v_angle);
+
+		Vector const vecSrc = m_pPlayer->GetGunPosition();
+		Vector const vecEnd = vecSrc + gpGlobals->v_forward * 4096.f;
+		g_engfuncs.pfnTraceMonsterHull(edict(), vecSrc, vecEnd, ignore_glass | ignore_monsters, nullptr, &tr);
+		
+		// Is the location considered to be a wall?
+		if (auto const flAngleLean = std::acos(DotProduct(Vector::Up(), tr.vecPlaneNormal)/* No div len required, both len are 1. */) / std::numbers::pi * 180.0;
+			flAngleLean > 50)
+		{
+			// Surface consider wall and no carpet bombardment allow against wall.
+
+			pev->skin = Models::targetmdl::SKIN_RED;
+			continue;
+		}
+
+		Vector const vecAiming = tr.vecEndPos;
+		Vector const vecSurfNorm = tr.vecPlaneNormal;
+
+		// Is it under sky?
+		g_engfuncs.pfnTraceLine(
+			vecAiming,
+			Vector(vecAiming.x, vecAiming.y, 8192),
+			ignore_monsters | ignore_glass,
+			nullptr, &tr
+		);
+
+		if (g_engfuncs.pfnPointContents(tr.vecEndPos) != CONTENTS_SKY)
+		{
+			// Differ from other evaluation, this mode does not allow the target model appears under any roof.
+
+			pev->skin = Models::targetmdl::SKIN_RED;
+			continue;
+		}
+
+		Vector const vecDir = Vector((vecEnd - vecSrc).Normalize().Make2D(), 0).Normalize();
+		g_engfuncs.pfnTraceHull(
+			tr.vecEndPos - Vector(0, 0, 34),
+			tr.vecEndPos - Vector(0, 0, 34) + vecDir * (128.0 * 8.0),
+			ignore_glass | ignore_monsters,
+			head_hull,
+			nullptr, &tr2
+		);	// Using tr2 to avoid wiping sky pos data.
+
+		if (tr2.flFraction < 1)
+		{
+			// There are something in the sky, flying route not available.
+
+			pev->skin = Models::targetmdl::SKIN_RED;
+			continue;
+		}
+
+		// The aiming location is good to go.
+
+		g_engfuncs.pfnVecToAngles(vecSurfNorm, pev->angles);
+		pev->angles.x += 270.f;	// don't know why, but this is the deal.
+
+		g_engfuncs.pfnSetOrigin(edict(), vecAiming);
+		pev->skin = Models::targetmdl::SKIN_GREEN;
+
+		// Setup the locations of beams.
+
+		Vector const &vecForward = vecDir;
+		Vector const vecRight
+		{
+			vecForward.x * 0.0/*std::cos(270)*/ - vecForward.y * -1.0/*std::sin(270)*/,
+			vecForward.x * -1.0/*std::sin(270)*/ + vecForward.y * 0.0/*std::cos(270)*/,
+			0.0
+		};
+
+		for (double flFw = 0, flRt = -48; auto &&pBeam : m_rgpBeams)
+		{
+			pBeam->pev->origin = tr.vecEndPos + vecForward * flFw + vecRight * flRt;
+
+			g_engfuncs.pfnTraceLine(
+				pBeam->pev->origin,
+				Vector(pBeam->pev->origin.Make2D(), -8192.0),
+				ignore_glass | ignore_monsters,
+				nullptr, &tr2
+			);
+
+			pBeam->StartPos() = tr2.vecEndPos;
+			pBeam->EndPos() = tr2.vecEndPos + Vector(0, 0, 64);
+
+			if (flRt > 0)
+				flFw += 128;
+
+			flRt = -flRt;
+		}
+	}
+}
+
 Task CDynamicTarget::Task_Remove() noexcept
 {
 	for (;;)
@@ -353,17 +497,33 @@ void CDynamicTarget::UpdateEvalMethod() noexcept
 {
 	m_Scheduler.Delist(QUICK_ANALYZE_KEY);
 
+	for (auto &&pBeam : m_rgpBeams)
+	{
+		if (pBeam)
+			pBeam->pev->flags |= FL_KILLME;
+
+		pBeam = nullptr;
+	}
+
 	switch (g_rgiAirSupportSelected[m_pPlayer->entindex()])
 	{
 	default:
 	case AIR_STRIKE:
 		g_engfuncs.pfnSetSize(edict(), Vector::Zero(), Vector::Zero());
 		m_Scheduler.Enroll(Task_QuickEval_AirStrike(), QUICK_ANALYZE_KEY);
+		pev->body = 1;
 		break;
 
 	case CLUSTER_BOMB:
 		g_engfuncs.pfnSetSize(edict(), Vector(-32, -32, 0), Vector(32, 32, 72));
 		m_Scheduler.Enroll(Task_QuickEval_ClusterBomb(), QUICK_ANALYZE_KEY);
+		pev->body = 4;
+		break;
+
+	case CARPET_BOMB:
+		g_engfuncs.pfnSetSize(edict(), Vector::Zero(), Vector::Zero());
+		m_Scheduler.Enroll(Task_QuickEval_CarpetBombardment(), QUICK_ANALYZE_KEY);
+		pev->body = 2;
 		break;
 	}
 }

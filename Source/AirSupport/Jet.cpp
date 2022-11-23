@@ -85,7 +85,7 @@ Task CJet::Task_ClusterBomb() noexcept
 		MsgEnd();
 	}
 
-	for (double flCurDist = 0, flRecordDist = 99999; m_pTarget; flCurDist = (pev->origin - m_pTarget->pev->origin).LengthSquared())
+	for (double flCurDist = 0, flRecordDist = 99999; m_pTarget; flCurDist = (pev->origin.Make2D() - m_pTarget->pev->origin.Make2D()).LengthSquared())
 	{
 		if (flCurDist < flRecordDist)	// Jet is approaching
 			flCurDist = flRecordDist;

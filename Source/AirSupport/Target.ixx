@@ -1,18 +1,24 @@
 export module Target;
 
+export import <array>;
 export import <chrono>;
 
+export import Beam;
 export import Menu;
 export import Prefab;
 
 export struct CDynamicTarget : public Prefab_t
 {
 	static inline constexpr char CLASSNAME[] = "info_dynamic_target";
+	static inline constexpr size_t BEAM_COUNT = 16;
+
+	~CDynamicTarget() noexcept override;
 
 	Task Task_Animation() noexcept;
 	Task Task_DeepEvaluation() noexcept;
 	Task Task_QuickEval_AirStrike() noexcept;
 	Task Task_QuickEval_ClusterBomb() noexcept;
+	Task Task_QuickEval_CarpetBombardment() noexcept;
 	Task Task_Remove() noexcept;
 
 	void UpdateEvalMethod() noexcept;
@@ -26,6 +32,7 @@ export struct CDynamicTarget : public Prefab_t
 	Vector m_vecLastAiming{};
 	float m_flLastValidTracking{};
 	std::chrono::high_resolution_clock::time_point m_LastAnimUpdate{};
+	std::array<EHANDLE<CBeam>, BEAM_COUNT> m_rgpBeams{};
 
 	static inline constexpr auto QUICK_ANALYZE_KEY = 298457034ul;
 	static inline constexpr auto DETAIL_ANALYZE_KEY = 3658468ul;

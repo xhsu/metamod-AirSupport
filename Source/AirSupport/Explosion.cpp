@@ -27,7 +27,7 @@ float GetAmountOfPlayerVisible(const Vector& vecSrc, CBaseEntity *pEntity) noexc
 	static constexpr float topOfHead = 25.0f;
 	static constexpr float standFeet = 34.0f;
 	static constexpr float crouchFeet = 14.0f;
-	static constexpr float edgeOffset = 13.0f;
+	static constexpr double edgeOffset = 13.0;	// Compiler happyness.
 
 	static constexpr float damagePercentageChest = 0.40f;
 	static constexpr float damagePercentageHead = 0.20f;
