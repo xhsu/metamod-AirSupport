@@ -205,7 +205,7 @@ Task CClusterBomb::Task_ClusterBomb() noexcept
 	WriteData(TE_EXPLOSION);
 	WriteData(pev->origin);
 	WriteData(Sprites::m_rgLibrary[Sprites::AIRBURST]);
-	WriteData((byte)30);
+	WriteData((byte)35);
 	WriteData((byte)24);
 	WriteData(TE_EXPLFLAG_NONE);
 	MsgEnd();
@@ -244,9 +244,6 @@ Task CClusterBomb::Task_ClusterBomb() noexcept
 
 	size_t iCounter = 0;
 	TraceResult tr{};
-	auto const pFieldSmoke = Prefab_t::Create<CFieldSmoke>(m_vecTargetGround + Vector(0, 0, 24));
-
-	pFieldSmoke->m_flRadius = 280.f;
 
 	for (auto &&vec : m_rgvecExploOrigins)
 	{
@@ -267,30 +264,18 @@ Task CClusterBomb::Task_ClusterBomb() noexcept
 
 			auto const pFlame = Prefab_t::Create<CFlame>(vec);
 			pFlame->pev->velocity = Vector::Zero();
-
-			pFieldSmoke->m_rgpFlamesDependent.emplace_back(pFlame);
 		}
 
 		if (tr.flFraction < 1.f)
 			UTIL_Decal(tr.pHit, tr.vecEndPos, UTIL_GetRandomOne(Decal::SCORCH).m_Index);
 
 		MsgBroadcast(SVC_TEMPENTITY);
-		WriteData(TE_SPRITE);
+		WriteData(TE_EXPLOSION);
 		WriteData(vec);
 		WriteData(Sprites::m_rgLibrary[Sprites::MINOR_EXPLO]);
 		WriteData((byte)UTIL_Random(5, 15));
-		WriteData((byte)UTIL_Random(128, 255));
-		MsgEnd();
-
-		MsgBroadcast(SVC_TEMPENTITY);
-		WriteData(TE_DLIGHT);
-		WriteData(vec);
-		WriteData((byte)18);
-		WriteData((byte)255);
-		WriteData((byte)0);
-		WriteData((byte)0);
-		WriteData((byte)2);
-		WriteData((byte)0);
+		WriteData((byte)24);
+		WriteData(TE_EXPLFLAG_NONE);
 		MsgEnd();
 
 		co_await TaskScheduler::NextFrame::Rank[0];

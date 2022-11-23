@@ -305,8 +305,8 @@ Task CSmoke::Task_FadeOut() noexcept
 	{
 		co_await TaskScheduler::NextFrame::Rank[0];
 
-		pev->renderamt -= 0.2f;
-		pev->angles.z += 0.075f;
+		pev->renderamt -= 0.055f;
+		pev->angles.z += 0.07f;
 	}
 
 	pev->flags |= FL_KILLME;
@@ -341,7 +341,7 @@ void CSmoke::Spawn() noexcept
 	pev->solid = SOLID_NOT;
 	pev->movetype = MOVETYPE_NOCLIP;
 	pev->gravity = 0;
-	pev->velocity = Vector(UTIL_Random(-96, 96), UTIL_Random(-96, 96), 0).Normalize() * 36;
+	pev->velocity = Vector(UTIL_Random(-96, 96), UTIL_Random(-96, 96), 0).Normalize() * 12;
 	pev->scale = UTIL_Random(3.f, 5.f);
 
 	g_engfuncs.pfnSetModel(edict(), pszModel);
