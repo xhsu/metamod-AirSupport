@@ -20,6 +20,8 @@ export import customentity;	// Beam types & flags
 export import eiface;
 import util;
 
+export import CBase;
+
 
 /* stock Beam_SetType(const iBeamEntity, const iType)
 	return set_pev(iBeamEntity, pev_rendermode, (pev(iBeamEntity, pev_rendermode) & 0xF0) | iType & 0x0F); */
@@ -299,3 +301,179 @@ export inline void Beam_RelinkBeam(edict_t *pEdict) noexcept
 	g_engfuncs.pfnSetSize(pEdict, pEdict->v.mins, pEdict->v.maxs);
 	g_engfuncs.pfnSetOrigin(pEdict, pEdict->v.origin);
 }
+
+export inline constexpr auto SF_BEAM_STARTON = (1 << 0);
+export inline constexpr auto SF_BEAM_TOGGLE = (1 << 1);
+export inline constexpr auto SF_BEAM_RANDOM = (1 << 2);
+export inline constexpr auto SF_BEAM_RING = (1 << 3);
+export inline constexpr auto SF_BEAM_SPARKSTART = (1 << 4);
+export inline constexpr auto SF_BEAM_SPARKEND = (1 << 5);
+export inline constexpr auto SF_BEAM_DECALS = (1 << 6);
+export inline constexpr auto SF_BEAM_SHADEIN = (1 << 7);
+export inline constexpr auto SF_BEAM_SHADEOUT = (1 << 8);
+export inline constexpr auto SF_BEAM_TEMPORARY = (1 << 15);
+
+export class CBeam : public CBaseEntity
+{
+public:
+	void Spawn() noexcept override = 0;
+	void Precache() noexcept override = 0;
+	int ObjectCaps() noexcept override = 0;
+	Vector Center() noexcept override = 0;
+
+public:
+	void TriggerTouch(CBaseEntity *pOther) noexcept
+	{
+		if (pOther->pev->flags & (FL_CLIENT | FL_MONSTER))
+		{
+			if (pev->owner)
+			{
+				EHANDLE<CBaseEntity> pOwner = pev->owner;
+				pOwner->Use(pOther, this, USE_TOGGLE, 0);
+			}
+
+			g_engfuncs.pfnAlertMessage(at_console, "Firing targets!!!\n");
+		}
+	}
+
+	void SetType(int type) noexcept { pev->rendermode = (pev->rendermode & 0xF0) | (type & 0x0F); }
+	void SetFlags(int flags) noexcept { pev->rendermode = (pev->rendermode & 0x0F) | (flags & 0xF0); }
+	void SetStartEntity(int entityIndex) noexcept
+	{
+		pev->sequence = (entityIndex & 0x0FFF) | (pev->sequence & 0xF000);
+		pev->owner = ent_cast<edict_t *>(entityIndex);
+	}
+	void SetEndEntity(int entityIndex) noexcept
+	{
+		pev->skin = (entityIndex & 0x0FFF) | (pev->skin & 0xF000);
+		pev->aiment = ent_cast<edict_t *>(entityIndex);
+	}
+	void SetStartAttachment(int attachment) noexcept { pev->sequence = (pev->sequence & 0x0FFF) | ((attachment & 0xF) << 12); }
+	void SetEndAttachment(int attachment) noexcept { pev->skin = (pev->skin & 0x0FFF) | ((attachment & 0xF) << 12); }
+
+	int GetType() const noexcept { return pev->rendermode & 0x0F; }
+	int GetFlags() const noexcept { return pev->rendermode & 0xF0; }
+	int GetStartEntity() const noexcept { return pev->sequence & 0xFFF; }
+	int GetEndEntity() const noexcept { return pev->skin & 0xFFF; }
+	int GetStartAttachment() const noexcept { return (pev->sequence & 0xF000) >> 12; }
+	int GetEndAttachment() const noexcept { return (pev->skin & 0xF000) >> 12; }
+
+	Vector &StartPos() noexcept
+	{
+		if (GetType() == BEAM_ENTS)
+		{
+			edict_t *pent = ent_cast<edict_t *>(GetStartEntity());
+			return pent->v.origin;
+		}
+
+		return pev->origin;
+	}
+	Vector &EndPos() noexcept
+	{
+		int type = GetType();
+		if (type == BEAM_POINTS || type == BEAM_HOSE)
+		{
+			return pev->angles;
+		}
+
+		edict_t *pent = ent_cast<edict_t *>(GetEndEntity());
+		if (pent)
+		{
+			return pent->v.origin;
+		}
+
+		return pev->angles;
+	}
+
+	int &Texture() const noexcept { return pev->modelindex; }
+	Vector &Color() const noexcept { return pev->rendercolor; }
+	float &Width() const noexcept { return pev->scale; }
+	int &Noise() const noexcept { return pev->body; }
+	float &Brightness() const noexcept { return pev->renderamt; }
+	float &Frame() const noexcept { return pev->frame; }
+	float &ScrollRate() const noexcept { return pev->animtime; }
+
+	void RelinkBeam() noexcept
+	{
+		const Vector &startPos = StartPos();
+		const Vector &endPos = EndPos();
+
+		pev->mins.x = std::min(startPos.x, endPos.x);
+		pev->mins.y = std::min(startPos.y, endPos.y);
+		pev->mins.z = std::min(startPos.z, endPos.z);
+
+		pev->maxs.x = std::max(startPos.x, endPos.x);
+		pev->maxs.y = std::max(startPos.y, endPos.y);
+		pev->maxs.z = std::max(startPos.z, endPos.z);
+
+		pev->mins = pev->mins - pev->origin;
+		pev->maxs = pev->maxs - pev->origin;
+
+		g_engfuncs.pfnSetSize(edict(), pev->mins, pev->maxs);
+		g_engfuncs.pfnSetOrigin(edict(), pev->origin);
+	}
+	void BeamInit(const char *pSpriteName, float width) noexcept
+	{
+		pev->flags |= FL_CUSTOMENTITY;
+
+		Color() = { 255, 255, 255 };
+		Brightness() = 255;
+		Noise() = 0;
+		Frame() = 0;
+		ScrollRate() = 0;
+		pev->model = MAKE_STRING(pSpriteName);
+		Texture() = g_engfuncs.pfnModelIndex(pSpriteName);
+		Width() = width;
+
+		pev->skin = 0;
+		pev->sequence = 0;
+		pev->rendermode = 0;
+	}
+	void PointsInit(const Vector &start, const Vector &end) noexcept
+	{
+		SetType(BEAM_POINTS);
+		StartPos() = start;
+		EndPos() = end;
+		SetStartAttachment(0);
+		SetEndAttachment(0);
+		RelinkBeam();
+	}
+	void PointEntInit(const Vector &start, int endIndex) noexcept
+	{
+		SetType(BEAM_ENTPOINT);
+		StartPos() = start;
+		SetEndEntity(endIndex);
+		SetStartAttachment(0);
+		SetEndAttachment(0);
+		RelinkBeam();
+	}
+	void EntsInit(int startIndex, int endIndex) noexcept
+	{
+		SetType(BEAM_ENTS);
+		SetStartEntity(startIndex);
+		SetEndEntity(endIndex);
+		SetStartAttachment(0);
+		SetEndAttachment(0);
+		RelinkBeam();
+	}
+	void HoseInit(const Vector &start, const Vector &direction) noexcept
+	{
+		SetType(BEAM_HOSE);
+		StartPos() = start;
+		EndPos() = direction;
+		SetStartAttachment(0);
+		SetEndAttachment(0);
+		RelinkBeam();
+	}
+
+	static CBeam *BeamCreate(const char *pszSpriteName, float flWidth) noexcept
+	{
+		EHANDLE<CBeam> pEntity = g_engfuncs.pfnCreateNamedEntity(MAKE_STRING("beam"));
+
+		if (!pEntity)
+			return nullptr;
+
+		pEntity->BeamInit(pszSpriteName, flWidth);
+		return pEntity;
+	}
+};

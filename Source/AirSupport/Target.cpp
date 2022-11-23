@@ -5,6 +5,7 @@ import <numbers>;
 import progdefs;
 import util;
 
+import Beam;
 import Jet;
 import Localization;
 import Resources;
@@ -14,6 +15,56 @@ import Waypoint;
 import Weapon;
 
 import UtlRandom;
+
+//
+// Laser
+// 
+
+extern "C++" namespace Laser
+{
+	void Create(CBasePlayerWeapon *pWeapon) noexcept
+	{
+		auto const pBeam = CBeam::BeamCreate(Sprites::BEAM, 32.f);
+
+		pBeam->SetFlags(BEAM_FSHADEOUT);	// fade out on rear end.
+		pBeam->PointsInit(pWeapon->m_pPlayer->pev->origin, pWeapon->m_pPlayer->GetGunPosition());
+
+		pBeam->pev->classname = MAKE_STRING("CarpetBombardIndicator");
+		pBeam->pev->effects |= EF_NODRAW;
+		pBeam->pev->renderfx = kRenderFxNone;
+		pBeam->pev->nextthink = 0.1f;
+		pBeam->pev->euser1 = pWeapon->m_pPlayer->edict();	// pev->owner gets occupied by 'starting ent'
+		pBeam->pev->team = pWeapon->m_pPlayer->m_iTeam;
+	}
+
+	void Think(CBaseEntity *pEntity) noexcept
+	{
+		[[unlikely]]
+		if (pev_valid(pEntity->pev->euser1) != 2 || !((CBasePlayer *)pEntity->pev->euser1->pvPrivateData)->IsAlive())
+		{
+			pEntity->pev->flags |= FL_KILLME;
+			//pEntity->pev->euser2->v.flags |= FL_KILLME;
+			return;
+		}
+
+		pEntity->pev->nextthink = gpGlobals->time + 0.4f;
+
+		if (pEntity->pev->effects & EF_NODRAW)
+			return;
+
+		auto const pPlayer = (CBasePlayer *)pEntity->pev->euser1->pvPrivateData;
+		g_engfuncs.pfnMakeVectors(pPlayer->pev->v_angle);
+
+		Vector vecSrc = pPlayer->GetGunPosition();
+		Vector vecEnd = vecSrc + gpGlobals->v_forward * 4096.f;
+		TraceResult tr{};
+
+		g_engfuncs.pfnTraceLine(vecSrc, vecEnd, ignore_monsters, pEntity->pev->euser1, &tr);
+
+		Beam_SetStartPos(pEntity->pev, tr.vecEndPos);
+		Beam_SetEndPos(pEntity->pev, tr.vecEndPos + tr.vecPlaneNormal * 96);
+	}
+};
 
 //
 // CDynamicTarget
