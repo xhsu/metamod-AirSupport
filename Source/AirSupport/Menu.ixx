@@ -57,13 +57,13 @@ export namespace Menu
 		inline constexpr char AIRSUPPORT[] =
 			"\\yAir Support Selection\\w\n"
 			"\n"
-			"1. Precise air strike\n"
-			"2. Cluster bomb\n"
-			"3. Carpet bombardment\n"
-			"4. Gunship strike\n"
-			"5. Thermobaric weapon\n"
+			"\\r1\\w Precise air strike\n"
+			"\\r2\\w Cluster bomb\n"
+			"\\r3\\w Carpet bombardment\n"
+			"\\r4\\w Gunship strike\n"
+			"\\r5\\w Thermobaric weapon\n"
 			"\n"
-			"0. Exit\n"
+			"\\r0\\w Exit\n"
 			;
 
 		// #TODO move to localization somehow?

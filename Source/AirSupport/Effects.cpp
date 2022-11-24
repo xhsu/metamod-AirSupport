@@ -235,69 +235,33 @@ void CFlame::Touch_DealBurnDmg(CBaseEntity *pOther) noexcept
 }
 
 //
-// CFieldSmoke
-//
-
-Task CFieldSmoke::Task_EmitSmoke() noexcept
-{
-	for (;;)
-	{
-		co_await UTIL_Random(0.1f, 0.3f);
-
-		Vector const vecNoise = get_spherical_coord(m_flRadius, UTIL_Random(70.0, 80.0), UTIL_Random(0.0, 359.9));
-
-		MsgPVS(SVC_TEMPENTITY, pev->origin + vecNoise);
-		WriteData(TE_SPRITE);
-		WriteData(pev->origin + vecNoise);
-		WriteData((short)Sprites::m_rgLibrary[Sprites::PERSISTENT_SMOKE]);
-		WriteData((byte)UTIL_Random<short>(45, 55));
-		WriteData((byte)UTIL_Random<short>(40, 60));
-		MsgEnd();
-	}
-}
-
-Task CFieldSmoke::Task_Remove() noexcept
-{
-	for (;;)
-	{
-		co_await 0.1f;
-
-		bool bAnySurvived = false;
-
-		for (const auto &flame : m_rgpFlamesDependent)
-		{
-			[[likely]]
-			if (flame)
-			{
-				bAnySurvived = true;
-				break;
-			}
-		}
-
-		[[unlikely]]
-		if (!bAnySurvived)
-		{
-			pev->flags |= FL_KILLME;
-			co_return;
-		}
-	}
-}
-
-void CFieldSmoke::Spawn() noexcept
-{
-	pev->movetype = MOVETYPE_NONE;
-	pev->solid = SOLID_NOT;
-
-	g_engfuncs.pfnSetSize(edict(), Vector(-0.2, -0.2, -0.2), Vector(0.2, 0.2, 0.2));
-	g_engfuncs.pfnDropToFloor(edict());
-
-	m_Scheduler.Enroll(Task_EmitSmoke());
-	m_Scheduler.Enroll(Task_Remove());
-}
-
-//
 // CSmoke
 //
+
+Task CSmoke::Task_DriftColor(Vector const vecTargetColor) noexcept
+{
+	auto const vecDeltaColor = vecTargetColor - pev->rendercolor;
+	auto LastTime = std::chrono::high_resolution_clock::now();
+
+	for (; (pev->rendercolor - vecTargetColor).LengthSquared() > 1; )
+	{
+		co_await TaskScheduler::NextFrame::Rank[0];
+
+		auto const CurTime = std::chrono::high_resolution_clock::now();
+		auto const flTimeDelta = std::chrono::duration_cast<std::chrono::nanoseconds>(CurTime - LastTime).count() / 1'000'000'000.0;
+
+		pev->rendercolor += vecDeltaColor * flTimeDelta;
+
+		pev->rendercolor.x = std::clamp(pev->rendercolor.x, 0.f, 255.f);
+		pev->rendercolor.y = std::clamp(pev->rendercolor.y, 0.f, 255.f);
+		pev->rendercolor.z = std::clamp(pev->rendercolor.z, 0.f, 255.f);
+
+		LastTime = CurTime;
+	}
+
+	pev->rendercolor = vecTargetColor;
+	co_return;
+}
 
 Task CSmoke::Task_FadeOut() noexcept
 {
@@ -310,6 +274,31 @@ Task CSmoke::Task_FadeOut() noexcept
 	}
 
 	pev->flags |= FL_KILLME;
+}
+
+void CSmoke::LitByFlame() noexcept
+{
+	pev->rendercolor = Vector(
+		UTIL_Random(0xC3, 0xCD),	// r
+		UTIL_Random(0x3E, 0x46),	// g
+		UTIL_Random(0x05, 0x10)		// b
+	);
+
+	m_vecStartingLitClr = pev->rendercolor;
+	m_vecFlameClrToWhite = Vector(255, 255, 255) - pev->rendercolor;
+}
+
+void CSmoke::StartColorDrift(Vector const &vecTargetColor) noexcept
+{
+	m_Scheduler.Delist(DRIFT_COLOR_KEY);
+	m_Scheduler.Enroll(Task_DriftColor(vecTargetColor));
+}
+
+void CSmoke::DriftToWhite(double const flPercentage) noexcept
+{
+	StartColorDrift(
+		m_vecStartingLitClr + m_vecFlameClrToWhite * std::clamp(flPercentage, 0.0, 1.0)
+	);
 }
 
 void CSmoke::Spawn() noexcept
@@ -336,6 +325,7 @@ void CSmoke::Spawn() noexcept
 
 	pev->rendermode = kRenderTransAdd;
 	pev->renderamt = UTIL_Random(64.f, 128.f);
+	pev->rendercolor = Vector(255, 255, 255);
 	pev->frame = (float)UTIL_Random(rgiValidFrame[0], rgiValidFrame[1]);
 
 	pev->solid = SOLID_NOT;
@@ -355,6 +345,63 @@ void CSmoke::Spawn() noexcept
 	g_engfuncs.pfnSetOrigin(edict(), tr.vecEndPos);	// pfnSetOrigin includes the abssize setting, restoring our hitbox.
 
 	m_Scheduler.Enroll(Task_FadeOut());
+}
+
+//
+// CFieldSmoke
+// Renders the color of smoke with the color of flames.
+//
+
+Task CFieldSmoke::Task_AdjustSmokeColor() noexcept
+{
+	for (;;)
+	{
+		co_await TaskScheduler::NextFrame::Rank[0];
+
+		m_rgpFlames.remove_if([](EHANDLE<CFlame> const &flame) noexcept -> bool { return !flame; });
+		m_rgpSmokes.remove_if([](EHANDLE<CSmoke> const &smoke) noexcept -> bool { return !smoke; });
+
+		[[unlikely]]
+		if (auto const iNewCount = m_rgpFlames.size(); m_iLastFlames != iNewCount)
+		{
+			for (auto &&pSmoke : m_rgpSmokes)
+				pSmoke->DriftToWhite(1.0 - (double)iNewCount / (double)m_iTotalFlames);
+
+			m_iLastFlames = iNewCount;
+		}
+	}
+}
+
+Task CFieldSmoke::Task_Remove() noexcept
+{
+	for (;;)
+	{
+		co_await 0.1f;
+
+		[[unlikely]]
+		if (m_rgpFlames.empty())
+		{
+			co_await TaskScheduler::NextFrame::Rank[0];
+
+			pev->flags |= FL_KILLME;
+			co_return;
+		}
+	}
+}
+
+void CFieldSmoke::Spawn() noexcept
+{
+	pev->effects |= EF_NODRAW;
+
+	m_Scheduler.Enroll(Task_Remove());
+}
+
+void CFieldSmoke::Activate() noexcept
+{
+	m_iTotalFlames = m_rgpFlames.size();
+	m_iTotalSmokes = m_rgpSmokes.size();
+
+	m_Scheduler.Enroll(Task_AdjustSmokeColor());
 }
 
 //

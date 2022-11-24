@@ -746,6 +746,8 @@ void CFixedTarget::Spawn() noexcept
 	pev->renderamt = 0;
 	pev->skin = Models::targetmdl::SKIN_BLUE;
 	pev->body = m_pDynamicTarget->pev->body;
+	pev->sequence = m_pDynamicTarget->pev->sequence;
+	pev->frame = m_pDynamicTarget->pev->frame;
 	pev->nextthink = 0.1f;
 	pev->team = m_pPlayer->m_iTeam;
 

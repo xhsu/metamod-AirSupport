@@ -121,7 +121,7 @@ void CPrecisionAirStrike::Spawn() noexcept
 	MsgBroadcast(SVC_TEMPENTITY);
 	WriteData(TE_BEAMFOLLOW);
 	WriteData(ent_cast<short>(pev));
-	WriteData((short)Sprites::m_rgLibrary[Sprites::SMOKE_TRAIL]);
+	WriteData((short)Sprites::m_rgLibrary[Sprites::TRAIL]);
 	WriteData((byte)10);
 	WriteData((byte)3);
 	WriteData((byte)255);
@@ -316,7 +316,7 @@ void CClusterBomb::Spawn() noexcept
 	MsgBroadcast(SVC_TEMPENTITY);
 	WriteData(TE_BEAMFOLLOW);
 	WriteData(ent_cast<short>(pev));
-	WriteData((short)Sprites::m_rgLibrary[Sprites::SMOKE_TRAIL]);
+	WriteData((short)Sprites::m_rgLibrary[Sprites::TRAIL]);
 	WriteData((byte)20);
 	WriteData((byte)3);
 	WriteData((byte)255);
@@ -396,6 +396,7 @@ Task CCarpetBombardment::Task_Touch() noexcept
 
 	co_await TaskScheduler::NextFrame::Rank[0];
 
+	auto const pFieldSmoke = Prefab_t::Create<CFieldSmoke>();
 	auto const iFlameCount = UTIL_Random(1, 3);
 	for (int i = 0; i < iFlameCount; ++i)
 	{
@@ -403,8 +404,14 @@ Task CCarpetBombardment::Task_Touch() noexcept
 		pFlame->pev->velocity = get_spherical_coord(350.f, UTIL_Random(30.0, 45.0), UTIL_Random(0.0, 359.9));
 		pFlame->pev->gravity = 1.f;
 
-		Prefab_t::Create<CSmoke>(tr.vecEndPos + Vector(UTIL_Random(-96, 96), UTIL_Random(-96, 96), UTIL_Random(0, 72)));
+		auto const pSmoke = Prefab_t::Create<CSmoke>(tr.vecEndPos + Vector(UTIL_Random(-96, 96), UTIL_Random(-96, 96), UTIL_Random(0, 72)));
+		pSmoke->LitByFlame();
+
+		pFieldSmoke->EnrollFlame(pFlame);
+		pFieldSmoke->EnrollSmoke(pSmoke);
 	}
+
+	pFieldSmoke->Activate();
 
 	co_await TaskScheduler::NextFrame::Rank[0];
 

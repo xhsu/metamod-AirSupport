@@ -296,28 +296,38 @@ Task VisualEffects(const Vector vecOrigin, float const flRadius) noexcept	// The
 		get_spherical_coord(vecOrigin, qRotation, 128.f, UTIL_Random(85.f, 95.f), 315),
 	};
 
+	auto const pFieldSmoke = Prefab_t::Create<CFieldSmoke>();
+
 	for (auto &&vecPeri : rgvecPericoords)
 	{
-		MsgBroadcast(SVC_TEMPENTITY);
-		WriteData(TE_SPRITE);
-		WriteData(vecPeri);
-		WriteData((short)Sprites::m_rgLibrary[Sprites::SMOKE_2]);
-		WriteData((byte)50);
-		WriteData((byte)50);
-		MsgEnd();
+		//MsgBroadcast(SVC_TEMPENTITY);
+		//WriteData(TE_SPRITE);
+		//WriteData(vecPeri);
+		//WriteData((short)Sprites::m_rgLibrary[Sprites::SMOKE_2]);
+		//WriteData((byte)50);
+		//WriteData((byte)50);
+		//MsgEnd();
+
+		auto const pSmoke = Prefab_t::Create<CSmoke>(vecPeri);
+		pSmoke->LitByFlame();
+
+		pFieldSmoke->EnrollSmoke(pSmoke);
 	}
 
 	co_await gpGlobals->frametime;
 
-	auto pSmoke = Prefab_t::Create<CFieldSmoke>(vecOrigin);
-	pSmoke->m_flRadius = flRadius * 0.2f;
+	//auto pSmoke = Prefab_t::Create<CFieldSmoke>(vecOrigin);
+	//pSmoke->m_flRadius = flRadius * 0.2f;
 
 	for (int i = 0; i < 8; ++i)
 	{
 		auto const pFlame = Prefab_t::Create<CFlame>(vecOrigin);
-		pFlame->pev->velocity = get_spherical_coord(flRadius, UTIL_Random(15.0, 25.0), UTIL_Random(0.0, 359.9));
-		pSmoke->m_rgpFlamesDependent.emplace_back(pFlame);
+		pFlame->pev->velocity = get_spherical_coord(flRadius * 0.75, UTIL_Random(15.0, 25.0), UTIL_Random(0.0, 359.9));
+
+		pFieldSmoke->EnrollFlame(pFlame);
 	}
+
+	pFieldSmoke->Activate();
 }
 
 TraceResult Impact(CBasePlayer *pAttacker, CBaseEntity *pProjectile, float flDamage) noexcept

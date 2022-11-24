@@ -261,13 +261,13 @@ struct EHANDLE final
 	template <typename U>
 	inline bool Is(void) noexcept
 	{
-		if constexpr (std::is_base_of_v<U, T>)
+		if constexpr (std::is_base_of_v<U, T> || std::is_same_v<U, T>)
 		{
 			return true;
 		}
 		else
 		{
-			if (m_pent)
+			if (Get())
 			{
 				auto const p = static_cast<T *>(m_pent->pvPrivateData);
 				auto const p2 = dynamic_cast<U *>(p);
@@ -278,6 +278,42 @@ struct EHANDLE final
 			{
 				return false;
 			}
+		}
+	}
+	template <typename U>
+	__forceinline bool IsNot(void) noexcept { return !Is<U>(); }
+
+	template <typename U>
+	inline U *As(void) noexcept
+	{
+		if constexpr (std::is_same_v<U, T>)
+		{
+			if (Get())
+				return static_cast<T *>(m_pent->pvPrivateData);
+
+			return nullptr;
+		}
+		if constexpr (std::is_base_of_v<U, T>)
+		{
+			// case from derived class to base class.
+
+			if (Get())
+			{
+				auto const p = static_cast<T *>(m_pent->pvPrivateData);
+				return static_cast<U *>(p);
+			}
+
+			return nullptr;
+		}
+		else
+		{
+			if (Get())
+			{
+				auto const p = static_cast<T *>(m_pent->pvPrivateData);
+				return dynamic_cast<U *>(p);
+			}
+
+			return nullptr;
 		}
 	}
 

@@ -45,10 +45,8 @@ void Precache(void) noexcept
 	// Sprite
 
 	Sprites::m_rgLibrary[Sprites::SMOKE] = g_engfuncs.pfnPrecacheModel(Sprites::SMOKE);
-	Sprites::m_rgLibrary[Sprites::SMOKE2] = g_engfuncs.pfnPrecacheModel(Sprites::SMOKE2);
 	Sprites::m_rgLibrary[Sprites::ROCKET_EXPLO] = g_engfuncs.pfnPrecacheModel(Sprites::ROCKET_EXPLO);
 	Sprites::m_rgLibrary[Sprites::ROCKET_EXPLO2] = g_engfuncs.pfnPrecacheModel(Sprites::ROCKET_EXPLO2);
-	Sprites::m_rgLibrary[Sprites::SMOKE_TRAIL] = g_engfuncs.pfnPrecacheModel(Sprites::SMOKE_TRAIL);
 	Sprites::m_rgLibrary[Sprites::FIRE] = g_engfuncs.pfnPrecacheModel(Sprites::FIRE);
 	Sprites::m_rgLibrary[Sprites::FIRE2] = g_engfuncs.pfnPrecacheModel(Sprites::FIRE2);
 	Sprites::m_rgLibrary[Sprites::SMOKE_1] = g_engfuncs.pfnPrecacheModel(Sprites::SMOKE_1);
