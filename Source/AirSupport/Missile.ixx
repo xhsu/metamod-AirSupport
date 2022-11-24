@@ -48,6 +48,8 @@ export struct CCarpetBombardment : public Prefab_t
 {
 	static inline constexpr char CLASSNAME[] = "carpet_bombardment_per_charge";
 
+	Task Task_Touch() noexcept;
+
 	void Spawn() noexcept override;
 	void Touch(CBaseEntity *pOther) noexcept override;
 

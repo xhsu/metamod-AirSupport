@@ -320,7 +320,7 @@ Task VisualEffects(const Vector vecOrigin, float const flRadius) noexcept	// The
 	}
 }
 
-void Impact(CBasePlayer *pAttacker, CBaseEntity *pProjectile, float flDamage) noexcept
+TraceResult Impact(CBasePlayer *pAttacker, CBaseEntity *pProjectile, float flDamage) noexcept
 {
 	g_engfuncs.pfnMakeVectors(pProjectile->pev->angles);
 
@@ -328,20 +328,21 @@ void Impact(CBasePlayer *pAttacker, CBaseEntity *pProjectile, float flDamage) no
 	g_engfuncs.pfnTraceLine(pProjectile->pev->origin, pProjectile->pev->origin + gpGlobals->v_forward * 32.f, dont_ignore_monsters, ent_cast<edict_t *>(pProjectile->pev), &tr);
 
 	if (pev_valid(tr.pHit) != 2)
-		return;
+		return tr;
 
 	CBaseEntity *pOther = (CBaseEntity *)tr.pHit->pvPrivateData;
 
 	if (pOther->pev->takedamage == DAMAGE_NO)
-		return;
+		return tr;
 
 	if (pOther->IsPlayer())
 	{
 		auto const pVictim = (CBasePlayer *)pOther;
 		if (pVictim->IsAlive() && gcvarFriendlyFire->value < 1 && pVictim->m_iTeam == pAttacker->m_iTeam)
-			return;
+			return tr;
 	}
 
 	pOther->TraceAttack(pAttacker->pev, flDamage, gpGlobals->v_forward, &tr, DMG_BULLET);
 	g_pfnApplyMultiDamage(pProjectile->pev, pAttacker->pev);
+	return tr;
 }

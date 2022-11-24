@@ -16,7 +16,7 @@ using std::array;
 extern void RangeDamage(CBasePlayer *pAttacker, const Vector &vecOrigin, float const flRadius, float const flDamage) noexcept;
 extern void ScreenEffects(const Vector &vecOrigin, float const flRadius, float const flPunchMax, float const flKnockForce) noexcept;
 extern Task VisualEffects(const Vector vecOrigin, float const flRadius) noexcept;
-extern void Impact(CBasePlayer *pAttacker, CBaseEntity *pProjectile, float flDamage) noexcept;
+extern TraceResult Impact(CBasePlayer *pAttacker, CBaseEntity *pProjectile, float flDamage) noexcept;
 //
 
 //
@@ -168,7 +168,7 @@ void CPrecisionAirStrike::Touch(CBaseEntity *pOther) noexcept
 
 	g_engfuncs.pfnEmitSound(ent_cast<edict_t *>(pev), CHAN_WEAPON, UTIL_GetRandomOne(Sounds::EXPLOSION), VOL_NORM, 0.3f, 0, UTIL_Random(92, 116));
 
-	Impact(m_pPlayer, this, 125.f);
+	Impact(m_pPlayer, this, 500.f);
 	RangeDamage(m_pPlayer, pev->origin, 350.f, 275.f);
 	ScreenEffects(pev->origin, 700.f, 12.f, 2048.f);
 	TaskScheduler::Enroll(VisualEffects(pev->origin, 700.f));
@@ -374,20 +374,7 @@ CClusterBomb *CClusterBomb::Create(CBasePlayer *pPlayer, Vector const &vecSpawn,
 // CCarpetBombardment
 //
 
-void CCarpetBombardment::Spawn() noexcept
-{
-	g_engfuncs.pfnSetOrigin(edict(), pev->origin);
-	g_engfuncs.pfnSetModel(edict(), Models::PROJECTILE[CARPET_BOMBARDMENT]);
-	g_engfuncs.pfnSetSize(edict(), Vector(-2, -2, -2), Vector(2, 2, 2));
-
-	pev->owner = m_pPlayer->edict();
-	pev->solid = SOLID_BBOX;
-	pev->movetype = MOVETYPE_TOSS;
-	pev->velocity = Vector::Zero();	// No init speed needed. Gravity is good enough.
-	pev->gravity = 1.f;
-}
-
-void CCarpetBombardment::Touch(CBaseEntity *pOther) noexcept
+Task CCarpetBombardment::Task_Touch() noexcept
 {
 	MsgBroadcast(SVC_TEMPENTITY);
 	WriteData(TE_EXPLOSION);
@@ -398,7 +385,89 @@ void CCarpetBombardment::Touch(CBaseEntity *pOther) noexcept
 	WriteData(TE_EXPLFLAG_NONE);
 	MsgEnd();
 
+	co_await TaskScheduler::NextFrame::Rank[0];
+
+	auto const tr = Impact(m_pPlayer, this, 125.f);
+	RangeDamage(m_pPlayer, pev->origin, 250.f, 200.f);
+	ScreenEffects(pev->origin, 500.f, 15.f, 1024.f);
+
+	if (tr.pHit != nullptr)
+		UTIL_Decal(tr.pHit, tr.vecEndPos, UTIL_GetRandomOne(Decal::SCORCH).m_Index);
+
+	co_await TaskScheduler::NextFrame::Rank[0];
+
+	auto const iFlameCount = UTIL_Random(1, 3);
+	for (int i = 0; i < iFlameCount; ++i)
+	{
+		auto const pFlame = Prefab_t::Create<CFlame>(tr.vecEndPos + Vector(0, 0, 8));
+		pFlame->pev->velocity = get_spherical_coord(350.f, UTIL_Random(30.0, 45.0), UTIL_Random(0.0, 359.9));
+		pFlame->pev->gravity = 1.f;
+
+		Prefab_t::Create<CSmoke>(tr.vecEndPos + Vector(UTIL_Random(-96, 96), UTIL_Random(-96, 96), UTIL_Random(0, 72)));
+	}
+
+	co_await TaskScheduler::NextFrame::Rank[0];
+
+	static constexpr auto BreakModel = [](const Vector &vecOrigin, const Vector &vecScale, const Vector &vecVelocity, float flRandSpeedVar, short iModel, byte iCount, float flLife, byte bitsFlags) noexcept
+	{
+		MsgBroadcast(SVC_TEMPENTITY);
+		WriteData(TE_BREAKMODEL);
+		WriteData(vecOrigin);
+		WriteData(vecScale);
+		WriteData(vecVelocity);
+		WriteData(static_cast<byte>(flRandSpeedVar * 10.f));
+		WriteData(iModel);
+		WriteData(iCount);
+		WriteData(static_cast<byte>(flLife * 10.f));
+		WriteData(bitsFlags);
+		MsgEnd();
+	};
+
+	auto const qRotation = Quaternion::Rotate(Vector(0, 0, 1), tr.vecPlaneNormal);
+
+	array const rgvecVelocitys =
+	{
+		get_spherical_coord(Vector::Zero(), qRotation, 1.f, UTIL_Random(20.f, 30.f), 0),
+		get_spherical_coord(Vector::Zero(), qRotation, 1.f, UTIL_Random(20.f, 30.f), 120),
+		get_spherical_coord(Vector::Zero(), qRotation, 1.f, UTIL_Random(20.f, 30.f), 240),
+	};
+
+	for (auto &&vecVelocity : rgvecVelocitys)
+	{
+		auto const flScale = UTIL_Random(0.65f, 1.f);
+
+		BreakModel(
+			tr.vecEndPos, Vector(flScale, flScale, flScale), vecVelocity * UTIL_Random(300.f, 500.f),
+			UTIL_Random(0.8f, 2.f),
+			Models::m_rgLibrary[Models::GIBS_WALL_BROWN],
+			UTIL_Random(4, 12),
+			UTIL_Random(8.f, 20.f),
+			0x40
+		);
+
+		Prefab_t::Create<CDebris>(tr.vecEndPos)->pev->velocity = vecVelocity;
+		co_await TaskScheduler::NextFrame::Rank[0];
+	}
+
 	pev->flags |= FL_KILLME;
+}
+
+void CCarpetBombardment::Spawn() noexcept
+{
+	g_engfuncs.pfnSetOrigin(edict(), pev->origin);
+	g_engfuncs.pfnSetModel(edict(), Models::PROJECTILE[CARPET_BOMBARDMENT]);
+	g_engfuncs.pfnSetSize(edict(), Vector(-2, -2, -2), Vector(2, 2, 2));
+
+	pev->owner = m_pPlayer->edict();
+	pev->solid = SOLID_BBOX;
+	pev->movetype = MOVETYPE_TOSS;
+	pev->velocity = Vector::Zero();	// No init speed needed. Gravity is good enough.
+	pev->gravity = UTIL_Random(0.8f, 1.1f);
+}
+
+void CCarpetBombardment::Touch(CBaseEntity *pOther) noexcept
+{
+	m_Scheduler.Enroll(Task_Touch());
 
 	if (m_pCorrespondingBeacon)
 		m_pCorrespondingBeacon->pev->flags |= FL_KILLME;
