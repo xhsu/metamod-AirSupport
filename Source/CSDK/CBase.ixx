@@ -235,7 +235,7 @@ struct EHANDLE final
 
 	inline edict_t *Get(void) const noexcept
 	{
-		if (pev_valid(m_pent) != 2)
+		if (!m_pent || !m_pent->pvPrivateData || ent_cast<short>(m_pent) <= 0)
 			return nullptr;
 
 		if (m_pent->serialnumber != m_serialnumber)
@@ -247,10 +247,38 @@ struct EHANDLE final
 	{
 		m_pent = pent;
 
-		if (pev_valid(pent) == 2)
+		if (m_pent && m_pent->pvPrivateData && ent_cast<short>(m_pent) > 0)
 			m_serialnumber = m_pent->serialnumber;
 
 		return pent;
+	}
+	inline void Reset(void) noexcept
+	{
+		m_pent = nullptr;
+		m_serialnumber = 0;
+	}
+
+	template <typename U>
+	inline bool Is(void) noexcept
+	{
+		if constexpr (std::is_base_of_v<U, T>)
+		{
+			return true;
+		}
+		else
+		{
+			if (m_pent)
+			{
+				auto const p = static_cast<T *>(m_pent->pvPrivateData);
+				auto const p2 = dynamic_cast<U *>(p);
+
+				return p2 != nullptr;
+			}
+			else
+			{
+				return false;
+			}
+		}
 	}
 
 	inline operator bool() const noexcept { return Get() != nullptr; }
@@ -258,12 +286,10 @@ struct EHANDLE final
 
 	inline T *operator= (T *pEntity) noexcept
 	{
-		if (pEntity)
+		if (pEntity && ent_cast<short>(pEntity->pev) > 0 && ent_cast<T*>(pEntity->pev) == pEntity)
 		{
 			m_pent = ent_cast<edict_t *>(pEntity->pev);
-
-			if (pev_valid(m_pent) == 2)
-				m_serialnumber = m_pent->serialnumber;
+			m_serialnumber = m_pent->serialnumber;
 		}
 		else
 		{

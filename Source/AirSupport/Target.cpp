@@ -346,6 +346,9 @@ Task CDynamicTarget::Task_QuickEval_CarpetBombardment() noexcept
 {
 	TraceResult tr{}, tr2{};
 
+	// Set the skin to red in first few frame, in case player left click instantly.
+	pev->skin = Models::targetmdl::SKIN_RED;
+
 	for (auto &&pBeam : m_rgpBeams)
 	{
 		co_await TaskScheduler::NextFrame::Rank[0];
@@ -524,13 +527,13 @@ void CDynamicTarget::UpdateEvalMethod() noexcept
 		break;
 
 	case CLUSTER_BOMB:
-		g_engfuncs.pfnSetSize(edict(), Vector(-32, -32, 0), Vector(32, 32, 72));
+		g_engfuncs.pfnSetSize(edict(), Vector::Zero(), Vector::Zero());
 		m_Scheduler.Enroll(Task_QuickEval_ClusterBomb(), QUICK_ANALYZE_KEY);
 		pev->body = 4;
 		break;
 
 	case CARPET_BOMBARDMENT:
-		g_engfuncs.pfnSetSize(edict(), Vector::Zero(), Vector::Zero());
+		g_engfuncs.pfnSetSize(edict(), Vector(-32, -32, 0), Vector(32, 32, 72));
 		m_Scheduler.Enroll(Task_QuickEval_CarpetBombardment(), QUICK_ANALYZE_KEY);
 		pev->body = 2;
 		break;
