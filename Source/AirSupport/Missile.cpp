@@ -369,3 +369,52 @@ CClusterBomb *CClusterBomb::Create(CBasePlayer *pPlayer, Vector const &vecSpawn,
 
 	return pPrefab;
 }
+
+//
+// CCarpetBombardment
+//
+
+void CCarpetBombardment::Spawn() noexcept
+{
+	g_engfuncs.pfnSetOrigin(edict(), pev->origin);
+	g_engfuncs.pfnSetModel(edict(), Models::PROJECTILE[CARPET_BOMBARDMENT]);
+	g_engfuncs.pfnSetSize(edict(), Vector(-2, -2, -2), Vector(2, 2, 2));
+
+	pev->owner = m_pPlayer->edict();
+	pev->solid = SOLID_BBOX;
+	pev->movetype = MOVETYPE_TOSS;
+	pev->velocity = Vector::Zero();	// No init speed needed. Gravity is good enough.
+	pev->gravity = 1.f;
+}
+
+void CCarpetBombardment::Touch(CBaseEntity *pOther) noexcept
+{
+	MsgBroadcast(SVC_TEMPENTITY);
+	WriteData(TE_EXPLOSION);
+	WriteData(pev->origin + Vector(0, 0, 70));
+	WriteData(Sprites::m_rgLibrary[Sprites::CARPET_FRAGMENT_EXPLO]);
+	WriteData((byte)UTIL_Random(20, 30));
+	WriteData((byte)12);
+	WriteData(TE_EXPLFLAG_NONE);
+	MsgEnd();
+
+	pev->flags |= FL_KILLME;
+
+	if (m_pCorrespondingBeacon)
+		m_pCorrespondingBeacon->pev->flags |= FL_KILLME;
+}
+
+CCarpetBombardment *CCarpetBombardment::Create(CBasePlayer *pPlayer, Vector const &vecSpawn, CBeam *pBeacon) noexcept
+{
+	auto const [pEdict, pPrefab] = UTIL_CreateNamedPrefab<CCarpetBombardment>();
+
+	g_engfuncs.pfnVecToAngles(Vector::Down(), pEdict->v.angles);
+	pEdict->v.origin = vecSpawn;
+
+	pPrefab->m_pPlayer = pPlayer;
+	pPrefab->m_pCorrespondingBeacon = pBeacon;
+	pPrefab->Spawn();
+	pPrefab->pev->nextthink = 0.1f;
+
+	return pPrefab;
+}

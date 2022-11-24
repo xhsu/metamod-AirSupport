@@ -10,7 +10,7 @@ export enum EAirSupportTypes
 {
 	AIR_STRIKE = 0,
 	CLUSTER_BOMB,
-	CARPET_BOMB,
+	CARPET_BOMBARDMENT,
 	GUNSHIP_STRIKE,
 	FUEL_AIR_BOMB,	// thermobaric weapon
 };

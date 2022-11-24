@@ -10,7 +10,8 @@ export import Prefab;
 export struct CDynamicTarget : public Prefab_t
 {
 	static inline constexpr char CLASSNAME[] = "info_dynamic_target";
-	static inline constexpr size_t BEAM_COUNT = 16;
+	static inline constexpr size_t BEAM_COUNT = 8;
+	static inline constexpr double CARPET_BOMBARDMENT_INTERVAL = 350.0;
 
 	~CDynamicTarget() noexcept override;
 
@@ -50,7 +51,7 @@ export struct CFixedTarget : public Prefab_t
 	void Spawn() noexcept override;
 	void Activate() noexcept override;
 
-	static CFixedTarget *Create(Vector const &vecOrigin, Vector const &vecAngles, CBasePlayer *const pPlayer, CBaseEntity *const pTarget) noexcept;
+	static CFixedTarget *Create(CDynamicTarget *const pDynamicTarget) noexcept;
 
 	CBasePlayer *m_pPlayer{};
 	Vector m_vecJetSpawn{};
@@ -58,5 +59,7 @@ export struct CFixedTarget : public Prefab_t
 	Vector m_vecPosForJetSpawnTesting{};
 	EHANDLE<CBaseEntity> m_pMissile{ nullptr };
 	EHANDLE<CBaseEntity> m_pTargeting{ nullptr };
+	EHANDLE<CDynamicTarget> m_pDynamicTarget{ nullptr };	// Warning: only available in Spawn()!
 	EAirSupportTypes m_AirSupportType{ AIR_STRIKE };
+	decltype(CDynamicTarget::m_rgpBeams) m_rgpBeams{};
 };

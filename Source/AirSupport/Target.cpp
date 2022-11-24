@@ -357,6 +357,7 @@ Task CDynamicTarget::Task_QuickEval_CarpetBombardment() noexcept
 
 		pBeam->pev->classname = MAKE_STRING("CarpetBombardmentIndicator");
 		pBeam->pev->renderfx = kRenderFxNone;
+		pBeam->pev->effects |= EF_NODRAW;
 		pBeam->pev->nextthink = 0.1f;
 		pBeam->pev->euser1 = m_pPlayer->edict();	// pev->owner gets occupied by 'starting ent'
 		pBeam->pev->team = m_pPlayer->m_iTeam;
@@ -420,15 +421,14 @@ Task CDynamicTarget::Task_QuickEval_CarpetBombardment() noexcept
 		}
 
 		Vector const vecDir = Vector((vecEnd - vecSrc).Normalize().Make2D(), 0).Normalize();
-		g_engfuncs.pfnTraceHull(
-			tr.vecEndPos - Vector(0, 0, 34),
-			tr.vecEndPos - Vector(0, 0, 34) + vecDir * (128.0 * 8.0),
+		g_engfuncs.pfnTraceLine(
+			tr.vecEndPos - Vector(0, 0, 16),
+			tr.vecEndPos - Vector(0, 0, 16) + vecDir * (CARPET_BOMBARDMENT_INTERVAL * BEAM_COUNT / 2),
 			ignore_glass | ignore_monsters,
-			head_hull,
 			nullptr, &tr2
 		);	// Using tr2 to avoid wiping sky pos data.
 
-		if (tr2.flFraction < 1)
+		if (tr2.flFraction < 0.51 || tr2.fAllSolid)
 		{
 			// There are something in the sky, flying route not available.
 
@@ -453,10 +453,18 @@ Task CDynamicTarget::Task_QuickEval_CarpetBombardment() noexcept
 			vecForward.x * -1.0/*std::sin(270)*/ + vecForward.y * 0.0/*std::cos(270)*/,
 			0.0
 		};
+		auto const flMaxDistFwd = tr2.flFraction * (CARPET_BOMBARDMENT_INTERVAL * BEAM_COUNT / 2);
 
 		for (double flFw = 0, flRt = -48; auto &&pBeam : m_rgpBeams)
 		{
+			if (flFw > flMaxDistFwd)
+			{
+				pBeam->pev->effects |= EF_NODRAW;
+				goto LAB_CONTINUE;
+			}
+
 			pBeam->pev->origin = tr.vecEndPos + vecForward * flFw + vecRight * flRt;
+			pBeam->pev->effects &= ~EF_NODRAW;
 
 			g_engfuncs.pfnTraceLine(
 				pBeam->pev->origin,
@@ -468,8 +476,9 @@ Task CDynamicTarget::Task_QuickEval_CarpetBombardment() noexcept
 			pBeam->StartPos() = tr2.vecEndPos;
 			pBeam->EndPos() = tr2.vecEndPos + Vector(0, 0, 64);
 
+		LAB_CONTINUE:;
 			if (flRt > 0)
-				flFw += 128;
+				flFw += CARPET_BOMBARDMENT_INTERVAL;
 
 			flRt = -flRt;
 		}
@@ -520,7 +529,7 @@ void CDynamicTarget::UpdateEvalMethod() noexcept
 		pev->body = 4;
 		break;
 
-	case CARPET_BOMB:
+	case CARPET_BOMBARDMENT:
 		g_engfuncs.pfnSetSize(edict(), Vector::Zero(), Vector::Zero());
 		m_Scheduler.Enroll(Task_QuickEval_CarpetBombardment(), QUICK_ANALYZE_KEY);
 		pev->body = 2;
@@ -567,6 +576,25 @@ Task CFixedTarget::Task_PrepareJetSpawn() noexcept
 {
 	TraceResult tr{};
 	size_t iCounter = 0;
+
+	// The carpet bombardment is different from all others.
+
+	if (m_AirSupportType == CARPET_BOMBARDMENT)
+	{
+		co_await TaskScheduler::NextFrame::Rank[0];
+
+		auto const vecDir = Vector((m_rgpBeams[2]->pev->origin - m_rgpBeams[0]->pev->origin).Make2D(), 0).Normalize();
+
+		g_engfuncs.pfnTraceLine(
+			m_vecPosForJetSpawnTesting,
+			m_vecPosForJetSpawnTesting - vecDir * 8192.0,
+			ignore_glass | ignore_monsters,
+			nullptr, &tr
+		);
+
+		m_vecJetSpawn = tr.vecEndPos;
+		co_return;	// It's just that simple.
+	}
 
 	for (;;)
 	{
@@ -714,10 +742,13 @@ void CFixedTarget::Spawn() noexcept
 	pev->renderfx = kRenderFxDistort;
 	pev->renderamt = 0;
 	pev->skin = Models::targetmdl::SKIN_BLUE;
+	pev->body = m_pDynamicTarget->pev->body;
 	pev->nextthink = 0.1f;
 	pev->team = m_pPlayer->m_iTeam;
 
 	m_vecPlayerPosWhenCalled = m_pPlayer->pev->origin;
+	m_rgpBeams = m_pDynamicTarget->m_rgpBeams;
+	m_pDynamicTarget->m_rgpBeams.fill(nullptr);	// Transfer the ownership of these entities to the fixed targets.
 
 	TraceResult tr{};
 	g_engfuncs.pfnTraceLine(pev->origin, Vector(pev->origin.x, pev->origin.y, 8192), ignore_monsters | ignore_glass, nullptr, &tr);
@@ -735,16 +766,17 @@ void CFixedTarget::Activate() noexcept
 		m_Scheduler.Enroll(Task_RecruitJet(), RADIO_KEY);
 }
 
-CFixedTarget *CFixedTarget::Create(Vector const &vecOrigin, Vector const &vecAngles, CBasePlayer *const pPlayer, CBaseEntity *const pTarget) noexcept
+CFixedTarget *CFixedTarget::Create(CDynamicTarget *const pDynamicTarget) noexcept
 {
 	auto const [pEdict, pPrefab] = UTIL_CreateNamedPrefab<CFixedTarget>();
 
-	pEdict->v.angles = vecAngles;
-	pEdict->v.origin = vecOrigin;
+	pEdict->v.angles = pDynamicTarget->pev->angles;
+	pEdict->v.origin = pDynamicTarget->pev->origin;
 
-	pPrefab->m_pTargeting = pTarget;
-	pPrefab->m_pPlayer = pPlayer;
-	pPrefab->m_AirSupportType = g_rgiAirSupportSelected[pPlayer->entindex()];
+	pPrefab->m_pTargeting = pDynamicTarget->m_pTargeting;
+	pPrefab->m_pPlayer = pDynamicTarget->m_pPlayer;
+	pPrefab->m_pDynamicTarget = pDynamicTarget;
+	pPrefab->m_AirSupportType = g_rgiAirSupportSelected[pDynamicTarget->m_pPlayer->entindex()];
 	pPrefab->Spawn();
 	pPrefab->pev->nextthink = 0.1f;
 

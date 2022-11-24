@@ -128,7 +128,7 @@ void __fastcall HamF_Item_PostFrame(CBasePlayerItem *pItem, int) noexcept
 			std::format(Menu::Text::AIRSUPPORT_TEMPLATE,
 				iIndex == AIR_STRIKE ? "\\d" : "\\w", iIndex == AIR_STRIKE ? " - Selected" : "",
 				iIndex == CLUSTER_BOMB ? "\\d" : "\\w", iIndex == CLUSTER_BOMB ? " - Selected" : "",
-				iIndex == CARPET_BOMB ? "\\d" : "\\w", iIndex == CARPET_BOMB ? " - Selected" : "",
+				iIndex == CARPET_BOMBARDMENT ? "\\d" : "\\w", iIndex == CARPET_BOMBARDMENT ? " - Selected" : "",
 				iIndex == GUNSHIP_STRIKE ? "\\d" : "\\w", iIndex == GUNSHIP_STRIKE ? " - Selected" : "",
 				iIndex == FUEL_AIR_BOMB ? "\\d" : "\\w", iIndex == FUEL_AIR_BOMB ? " - Selected" : ""
 			)
@@ -222,7 +222,7 @@ extern "C++" namespace Weapon
 	Task Task_RadioAccepted(EHANDLE<CBasePlayerWeapon> pThis) noexcept
 	{
 		EHANDLE<CDynamicTarget> pTarget = pThis->pev->euser1;
-		EHANDLE<CFixedTarget> pFixedTarget = CFixedTarget::Create(pTarget->pev->origin, pTarget->pev->angles, pThis->m_pPlayer, pTarget->m_pTargeting);
+		EHANDLE<CFixedTarget> pFixedTarget = CFixedTarget::Create(pTarget);
 
 		pTarget->pev->flags |= FL_KILLME;
 		pThis->pev->euser1 = nullptr;

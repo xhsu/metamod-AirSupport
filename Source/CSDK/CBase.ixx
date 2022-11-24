@@ -227,7 +227,7 @@ struct EHANDLE final
 	EHANDLE(edict_t *pEdict) noexcept { Set(pEdict); }
 	EHANDLE(entvars_t *pev) noexcept { if (pev) Set(pev->pContainingEntity); }
 	EHANDLE(T *pEntity) noexcept : EHANDLE(pEntity->pev) {}
-	explicit EHANDLE(std::nullptr_t) noexcept : EHANDLE() {}
+	EHANDLE(std::nullptr_t) noexcept : EHANDLE() {}
 	explicit EHANDLE(short iEntIndex) noexcept { if (iEntIndex > 0) Set(ent_cast<edict_t *>(iEntIndex)); }
 
 	EHANDLE(EHANDLE<T> const &rhs) noexcept : m_pent(rhs.m_pent), m_serialnumber(rhs.m_serialnumber) {}
