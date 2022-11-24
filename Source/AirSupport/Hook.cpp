@@ -367,6 +367,22 @@ void fw_SetGroupMask_Post(int mask, int op) noexcept
 	// post
 }
 
+void fw_UpdateClientData_Post(const edict_t *ent, int sendweapons, clientdata_t *cd) noexcept
+{
+	gpMetaGlobals->mres = MRES_IGNORED;
+	// post
+
+	if (EHANDLE<CBasePlayer> pPlayer(ent->v.pContainingEntity);	// fuck the constness
+		cd->deadflag == DEAD_NO &&
+		cd->m_iId == WEAPON_KNIFE &&
+		pPlayer->m_pActiveItem &&
+		pPlayer->m_pActiveItem->pev->weapons == RADIO_KEY &&
+		pPlayer->m_flNextAttack <= 0)
+	{
+		cd->m_iId = WEAPON_NONE;	// remove client prediction.
+	}
+}
+
 qboolean fw_AddToFullPack(entity_state_t *pState, int iEntIndex, edict_t *pEdict, edict_t *pClientSendTo, qboolean cl_lw, qboolean bIsPlayer, unsigned char *pSet)
 {
 	gpMetaGlobals->mres = MRES_IGNORED;
@@ -541,7 +557,7 @@ inline constexpr DLL_FUNCTIONS gFunctionTable_Post =
 	.pfnPM_FindTextureType	= nullptr,
 
 	.pfnSetupVisibility	= nullptr,
-	.pfnUpdateClientData= nullptr,
+	.pfnUpdateClientData= &fw_UpdateClientData_Post,
 	.pfnAddToFullPack	= nullptr,
 	.pfnCreateBaseline	= nullptr,
 	.pfnRegisterEncoders= nullptr,

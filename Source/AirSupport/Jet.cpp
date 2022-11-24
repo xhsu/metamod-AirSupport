@@ -119,36 +119,36 @@ Task CJet::Task_CarpetBombardment() noexcept
 	co_await TaskScheduler::NextFrame::Rank[0];	// yield to Task_BeamAndSound();
 
 	TraceResult tr{};
-	std::array<double, CDynamicTarget::BEAM_COUNT> rgflRecDist{};
-	std::array<bool, CDynamicTarget::BEAM_COUNT> rgbBombLaunched{};
+	std::array<double, CDynamicTarget::BEACON_COUNT> rgflRecDist{};
+	std::array<bool, CDynamicTarget::BEACON_COUNT> rgbBombLaunched{};
 
 	[&] <size_t... I>(std::index_sequence<I...> &&) noexcept
 	{
 		((rgflRecDist[I] = std::numeric_limits<double>::max()), ...);
-		((rgbBombLaunched[I] = !!(m_pTarget->m_rgpBeams[I]->pev->effects & EF_NODRAW)), ...);
-	}(std::make_index_sequence<CDynamicTarget::BEAM_COUNT>{});
+		((rgbBombLaunched[I] = !!(m_pTarget->m_rgpBeacons[I]->pev->effects & EF_NODRAW)), ...);
+	}(std::make_index_sequence<CDynamicTarget::BEACON_COUNT>{});
 
 	for (;;)
 	{
-		for (int i = 0; i < CDynamicTarget::BEAM_COUNT; ++i)
+		for (int i = 0; i < CDynamicTarget::BEACON_COUNT; ++i)
 		{
 			if (rgbBombLaunched[i])
 				continue;
 
-			auto const flCurDist = (m_pTarget->m_rgpBeams[i]->EndPos().Make2D() - pev->origin.Make2D()).LengthSquared();
+			auto const flCurDist = (m_pTarget->m_rgpBeacons[i]->EndPos().Make2D() - pev->origin.Make2D()).LengthSquared();
 
 			if (flCurDist < rgflRecDist[i])
 				rgflRecDist[i] = flCurDist;
 			else
 			{
 				g_engfuncs.pfnTraceLine(
-					m_pTarget->m_rgpBeams[i]->EndPos(),
-					m_pTarget->m_rgpBeams[i]->EndPos() + Vector(0, 0, 4096),
+					m_pTarget->m_rgpBeacons[i]->EndPos(),
+					m_pTarget->m_rgpBeacons[i]->EndPos() + Vector(0, 0, 4096),
 					ignore_glass | ignore_monsters,
 					nullptr, &tr
 				);
 
-				m_pTarget->m_pMissile = CCarpetBombardment::Create(m_pPlayer, tr.vecEndPos, m_pTarget->m_rgpBeams[i]);
+				m_pTarget->m_pMissile = CCarpetBombardment::Create(m_pPlayer, tr.vecEndPos, m_pTarget->m_rgpBeacons[i]);
 				rgbBombLaunched[i] = true;
 			}
 		}
@@ -158,7 +158,7 @@ Task CJet::Task_CarpetBombardment() noexcept
 		auto const bDone = [&]<size_t... I>(std::index_sequence<I...> &&) noexcept -> bool
 		{
 			return (rgbBombLaunched[I] && ...);
-		}(std::make_index_sequence<CDynamicTarget::BEAM_COUNT>{});
+		}(std::make_index_sequence<CDynamicTarget::BEACON_COUNT>{});
 
 		if (bDone)
 			break;

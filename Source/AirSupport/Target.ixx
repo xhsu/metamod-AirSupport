@@ -10,7 +10,7 @@ export import Prefab;
 export struct CDynamicTarget : public Prefab_t
 {
 	static inline constexpr char CLASSNAME[] = "info_dynamic_target";
-	static inline constexpr size_t BEAM_COUNT = 8;
+	static inline constexpr size_t BEACON_COUNT = 8;
 	static inline constexpr double CARPET_BOMBARDMENT_INTERVAL = 350.0;
 
 	~CDynamicTarget() noexcept override;
@@ -23,6 +23,8 @@ export struct CDynamicTarget : public Prefab_t
 	Task Task_Remove() noexcept;
 
 	void UpdateEvalMethod() noexcept;
+	void EnableBeacons() noexcept;
+	void DisableBeacons() noexcept;
 
 	void Spawn() noexcept override;
 	static CDynamicTarget *Create(CBasePlayer *pPlayer, CBasePlayerWeapon *pRadio) noexcept;
@@ -33,7 +35,8 @@ export struct CDynamicTarget : public Prefab_t
 	Vector m_vecLastAiming{};
 	float m_flLastValidTracking{};
 	std::chrono::high_resolution_clock::time_point m_LastAnimUpdate{};
-	std::array<EHANDLE<CBeam>, BEAM_COUNT> m_rgpBeams{};
+	std::array<EHANDLE<CBeam>, BEACON_COUNT> m_rgpBeacons{};
+	bool m_bFreezed{};
 
 	static inline constexpr auto QUICK_ANALYZE_KEY = 298457034ul;
 	static inline constexpr auto DETAIL_ANALYZE_KEY = 3658468ul;
@@ -61,5 +64,5 @@ export struct CFixedTarget : public Prefab_t
 	EHANDLE<CBaseEntity> m_pTargeting{ nullptr };
 	EHANDLE<CDynamicTarget> m_pDynamicTarget{ nullptr };	// Warning: only available in Spawn()!
 	EAirSupportTypes m_AirSupportType{ AIR_STRIKE };
-	decltype(CDynamicTarget::m_rgpBeams) m_rgpBeams{};
+	decltype(CDynamicTarget::m_rgpBeacons) m_rgpBeacons{};
 };

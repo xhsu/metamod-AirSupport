@@ -74,7 +74,7 @@ extern "C++" namespace Laser
 
 CDynamicTarget::~CDynamicTarget() noexcept
 {
-	for (auto &&pBeam : m_rgpBeams)
+	for (auto &&pBeam : m_rgpBeacons)
 	{
 		if (pBeam)
 			pBeam->pev->flags |= FL_KILLME;
@@ -349,23 +349,6 @@ Task CDynamicTarget::Task_QuickEval_CarpetBombardment() noexcept
 	// Set the skin to red in first few frame, in case player left click instantly.
 	pev->skin = Models::targetmdl::SKIN_RED;
 
-	for (auto &&pBeam : m_rgpBeams)
-	{
-		co_await TaskScheduler::NextFrame::Rank[0];
-
-		pBeam = CBeam::BeamCreate(Sprites::BEAM, 32.f);
-
-		pBeam->SetFlags(BEAM_FSHADEOUT);	// fade out on rear end.
-		pBeam->PointsInit(pev->origin, Vector(0, 0, 32));
-
-		pBeam->pev->classname = MAKE_STRING("CarpetBombardmentIndicator");
-		pBeam->pev->renderfx = kRenderFxNone;
-		pBeam->pev->effects |= EF_NODRAW;
-		pBeam->pev->nextthink = 0.1f;
-		pBeam->pev->euser1 = m_pPlayer->edict();	// pev->owner gets occupied by 'starting ent'
-		pBeam->pev->team = m_pPlayer->m_iTeam;
-	}
-
 	for (;;)
 	{
 		[[unlikely]]
@@ -392,30 +375,43 @@ Task CDynamicTarget::Task_QuickEval_CarpetBombardment() noexcept
 
 		Vector const vecSrc = m_pPlayer->GetGunPosition();
 		Vector const vecEnd = vecSrc + gpGlobals->v_forward * 4096.f;
-		g_engfuncs.pfnTraceMonsterHull(edict(), vecSrc, vecEnd, ignore_glass | ignore_monsters, nullptr, &tr);
-		
-		// Is the location considered to be a wall?
-		if (auto const flAngleLean = std::acos(DotProduct(Vector::Up(), tr.vecPlaneNormal)/* No div len required, both len are 1. */) / std::numbers::pi * 180.0;
-			flAngleLean > 50)
-		{
-			// Surface consider wall and no carpet bombardment allow against wall.
 
-			pev->skin = Models::targetmdl::SKIN_RED;
-			continue;
+		if (!m_bFreezed)
+		{
+			g_engfuncs.pfnTraceMonsterHull(edict(), vecSrc, vecEnd, ignore_glass | ignore_monsters, nullptr, &tr);
+
+			// Is the location considered to be a wall?
+			// Only run this test while not freezed. otherwise it doesn't make sense.
+
+			if (auto const flAngleLean = std::acos(DotProduct(Vector::Up(), tr.vecPlaneNormal)/* No div len required, both len are 1. */) / std::numbers::pi * 180.0;
+				flAngleLean > 50)
+			{
+				// Surface consider wall and no carpet bombardment allow against wall.
+
+				pev->skin = Models::targetmdl::SKIN_RED;
+				continue;
+			}
 		}
+
+		// During freezed mode, we are only here to get a direction marker, we don't care about the situation of actual point.
+		else
+			g_engfuncs.pfnTraceLine(vecSrc, vecEnd, ignore_glass | ignore_monsters, nullptr, &tr);
 
 		Vector const vecAiming = tr.vecEndPos;
 		Vector const vecSurfNorm = tr.vecPlaneNormal;
+		Vector const &vecSrcForSkyTest = m_bFreezed ? pev->origin : vecAiming;
 
 		// Is it under sky?
 		g_engfuncs.pfnTraceLine(
-			vecAiming,
-			Vector(vecAiming.x, vecAiming.y, 8192),
+			vecSrcForSkyTest,
+			Vector(vecSrcForSkyTest.x, vecSrcForSkyTest.y, 8192),
 			ignore_monsters | ignore_glass,
 			nullptr, &tr
 		);
 
-		if (g_engfuncs.pfnPointContents(tr.vecEndPos) != CONTENTS_SKY)
+		Vector const &vecSkyBaseOrigin = tr.vecEndPos;
+
+		if (g_engfuncs.pfnPointContents(vecSkyBaseOrigin) != CONTENTS_SKY)
 		{
 			// Differ from other evaluation, this mode does not allow the target model appears under any roof.
 
@@ -423,10 +419,30 @@ Task CDynamicTarget::Task_QuickEval_CarpetBombardment() noexcept
 			continue;
 		}
 
-		Vector const vecDir = Vector((vecEnd - vecSrc).Normalize().Make2D(), 0).Normalize();
+		if (!m_bFreezed)
+		{
+			// Not pressing LMB, only the main target mdl will showed up.
+
+			g_engfuncs.pfnVecToAngles(vecSurfNorm, pev->angles);
+			pev->angles.x += 270.f;	// don't know why, but this is the deal.
+
+			g_engfuncs.pfnSetOrigin(edict(), vecAiming);
+			pev->skin = Models::targetmdl::SKIN_GREEN;
+
+			continue;
+		}
+
+		// From this line, consider m_bFreezed is true.
+
+		// Is flying route available?
+		Vector vecDir((vecAiming.Make2D() - pev->origin.Make2D()).Normalize(), 0);
+
+		if (vecDir == Vector::Zero())
+			vecDir = Vector::Forward();
+
 		g_engfuncs.pfnTraceLine(
-			tr.vecEndPos - Vector(0, 0, 16),
-			tr.vecEndPos - Vector(0, 0, 16) + vecDir * (CARPET_BOMBARDMENT_INTERVAL * BEAM_COUNT / 2),
+			vecSkyBaseOrigin - Vector(0, 0, 16),
+			vecSkyBaseOrigin - Vector(0, 0, 16) + vecDir * (CARPET_BOMBARDMENT_INTERVAL * BEACON_COUNT / 2),
 			ignore_glass | ignore_monsters,
 			nullptr, &tr2
 		);	// Using tr2 to avoid wiping sky pos data.
@@ -439,12 +455,8 @@ Task CDynamicTarget::Task_QuickEval_CarpetBombardment() noexcept
 			continue;
 		}
 
-		// The aiming location is good to go.
+		// The aiming direction is good to go.
 
-		g_engfuncs.pfnVecToAngles(vecSurfNorm, pev->angles);
-		pev->angles.x += 270.f;	// don't know why, but this is the deal.
-
-		g_engfuncs.pfnSetOrigin(edict(), vecAiming);
 		pev->skin = Models::targetmdl::SKIN_GREEN;
 
 		// Setup the locations of beams.
@@ -456,28 +468,28 @@ Task CDynamicTarget::Task_QuickEval_CarpetBombardment() noexcept
 			vecForward.x * -1.0/*std::sin(270)*/ + vecForward.y * 0.0/*std::cos(270)*/,
 			0.0
 		};
-		auto const flMaxDistFwd = tr2.flFraction * (CARPET_BOMBARDMENT_INTERVAL * BEAM_COUNT / 2);
+		auto const flMaxDistFwd = tr2.flFraction * (CARPET_BOMBARDMENT_INTERVAL * BEACON_COUNT / 2);
 
-		for (double flFw = 0, flRt = -48; auto &&pBeam : m_rgpBeams)
+		for (double flFw = 0, flRt = -48; auto &&pBeacon : m_rgpBeacons)
 		{
 			if (flFw > flMaxDistFwd)
 			{
-				pBeam->pev->effects |= EF_NODRAW;
+				pBeacon->pev->effects |= EF_NODRAW;
 				goto LAB_CONTINUE;
 			}
 
-			pBeam->pev->origin = tr.vecEndPos + vecForward * flFw + vecRight * flRt;
-			pBeam->pev->effects &= ~EF_NODRAW;
+			pBeacon->pev->origin = vecSkyBaseOrigin + vecForward * flFw + vecRight * flRt;
+			pBeacon->pev->effects &= ~EF_NODRAW;
 
 			g_engfuncs.pfnTraceLine(
-				pBeam->pev->origin,
-				Vector(pBeam->pev->origin.Make2D(), -8192.0),
+				pBeacon->pev->origin,
+				Vector(pBeacon->pev->origin.Make2D(), -8192.0),
 				ignore_glass | ignore_monsters,
 				nullptr, &tr2
 			);
 
-			pBeam->StartPos() = tr2.vecEndPos;
-			pBeam->EndPos() = tr2.vecEndPos + Vector(0, 0, 64);
+			pBeacon->StartPos() = tr2.vecEndPos;
+			pBeacon->EndPos() = tr2.vecEndPos + Vector(0, 0, 64);
 
 		LAB_CONTINUE:;
 			if (flRt > 0)
@@ -509,7 +521,7 @@ void CDynamicTarget::UpdateEvalMethod() noexcept
 {
 	m_Scheduler.Delist(QUICK_ANALYZE_KEY);
 
-	for (auto &&pBeam : m_rgpBeams)
+	for (auto &&pBeam : m_rgpBeacons)
 	{
 		if (pBeam)
 			pBeam->pev->flags |= FL_KILLME;
@@ -538,6 +550,35 @@ void CDynamicTarget::UpdateEvalMethod() noexcept
 		pev->body = 2;
 		break;
 	}
+}
+
+void CDynamicTarget::EnableBeacons() noexcept
+{
+	m_bFreezed = true;
+
+	for (auto &&pBeacon : m_rgpBeacons)
+	{
+		pBeacon = CBeam::BeamCreate(Sprites::BEAM, 32.f);
+
+		pBeacon->SetFlags(BEAM_FSHADEOUT);	// fade out on rear end.
+		pBeacon->PointsInit(pev->origin, Vector(0, 0, 32));
+
+		pBeacon->pev->classname = MAKE_STRING("Beacon");
+		pBeacon->pev->renderfx = kRenderFxNone;
+		pBeacon->pev->effects |= EF_NODRAW;
+		pBeacon->pev->nextthink = 0.1f;
+		pBeacon->pev->euser1 = m_pPlayer->edict();	// pev->owner gets occupied by 'starting ent'
+		pBeacon->pev->team = m_pPlayer->m_iTeam;
+	}
+}
+
+void CDynamicTarget::DisableBeacons() noexcept
+{
+	m_bFreezed = false;
+
+	for (auto &&pBeacon : m_rgpBeacons)
+		if (pBeacon) [[likely]]
+			pBeacon->pev->flags |= FL_KILLME;
 }
 
 void CDynamicTarget::Spawn() noexcept
@@ -586,7 +627,7 @@ Task CFixedTarget::Task_PrepareJetSpawn() noexcept
 	{
 		co_await TaskScheduler::NextFrame::Rank[0];
 
-		auto const vecDir = Vector((m_rgpBeams[2]->pev->origin - m_rgpBeams[0]->pev->origin).Make2D(), 0).Normalize();
+		auto const vecDir = Vector((m_rgpBeacons[2]->pev->origin - m_rgpBeacons[0]->pev->origin).Make2D(), 0).Normalize();
 
 		g_engfuncs.pfnTraceLine(
 			m_vecPosForJetSpawnTesting,
@@ -752,8 +793,8 @@ void CFixedTarget::Spawn() noexcept
 	pev->team = m_pPlayer->m_iTeam;
 
 	m_vecPlayerPosWhenCalled = m_pPlayer->pev->origin;
-	m_rgpBeams = m_pDynamicTarget->m_rgpBeams;
-	m_pDynamicTarget->m_rgpBeams.fill(nullptr);	// Transfer the ownership of these entities to the fixed targets.
+	m_rgpBeacons = m_pDynamicTarget->m_rgpBeacons;
+	m_pDynamicTarget->m_rgpBeacons.fill(nullptr);	// Transfer the ownership of these entities to the fixed targets.
 
 	TraceResult tr{};
 	g_engfuncs.pfnTraceLine(pev->origin, Vector(pev->origin.x, pev->origin.y, 8192), ignore_monsters | ignore_glass, nullptr, &tr);

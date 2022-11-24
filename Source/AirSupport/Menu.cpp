@@ -30,7 +30,7 @@ void OnMenuSelection(CBasePlayer *pPlayer, int iSlot) noexcept
 			g_rgiAirSupportSelected[pPlayer->entindex()] = EAirSupportTypes(iSlot - 1);
 			if (auto const &pWeapon = pPlayer->m_pActiveItem; pWeapon && pWeapon->m_iId == WEAPON_KNIFE && pWeapon->pev->weapons == RADIO_KEY)
 			{
-				if (EHANDLE<CDynamicTarget> pTarget = pWeapon->pev->euser1; pTarget)
+				if (EHANDLE<CDynamicTarget> pTarget = DYN_TARGET(pWeapon); pTarget)
 					pTarget->UpdateEvalMethod();
 			}
 		}
