@@ -42,6 +42,9 @@ void Precache(void) noexcept
 	for (auto &&psz : Sounds::JET)
 		g_engfuncs.pfnPrecacheSound(psz);
 
+	for (auto &&psz : Sounds::WHIZZ)
+		g_engfuncs.pfnPrecacheSound(psz);
+
 	// Sprite
 
 	Sprites::m_rgLibrary[Sprites::SMOKE] = g_engfuncs.pfnPrecacheModel(Sprites::SMOKE);
