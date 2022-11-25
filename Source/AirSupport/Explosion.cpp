@@ -3,6 +3,7 @@
 import <array>;
 import <numbers>;
 import <ranges>;
+import <vector>;
 
 import meta_api;
 import shake;
@@ -16,6 +17,7 @@ import Resources;
 import Task;
 
 using std::array;
+using std::vector;
 
 float GetAmountOfPlayerVisible(const Vector& vecSrc, CBaseEntity *pEntity) noexcept
 {
@@ -25,7 +27,7 @@ float GetAmountOfPlayerVisible(const Vector& vecSrc, CBaseEntity *pEntity) noexc
 	static constexpr float topOfHead = 25.0f;
 	static constexpr float standFeet = 34.0f;
 	static constexpr float crouchFeet = 14.0f;
-	static constexpr float edgeOffset = 13.0f;
+	static constexpr double edgeOffset = 13.0;	// Compiler happyness.
 
 	static constexpr float damagePercentageChest = 0.40f;
 	static constexpr float damagePercentageHead = 0.20f;
@@ -294,31 +296,41 @@ Task VisualEffects(const Vector vecOrigin, float const flRadius) noexcept	// The
 		get_spherical_coord(vecOrigin, qRotation, 128.f, UTIL_Random(85.f, 95.f), 315),
 	};
 
+	auto const pFieldSmoke = Prefab_t::Create<CFieldSmoke>();
+
 	for (auto &&vecPeri : rgvecPericoords)
 	{
-		MsgBroadcast(SVC_TEMPENTITY);
-		WriteData(TE_SPRITE);
-		WriteData(vecPeri);
-		WriteData((short)Sprites::m_rgLibrary[Sprites::SMOKE_2]);
-		WriteData((byte)50);
-		WriteData((byte)50);
-		MsgEnd();
+		//MsgBroadcast(SVC_TEMPENTITY);
+		//WriteData(TE_SPRITE);
+		//WriteData(vecPeri);
+		//WriteData((short)Sprites::m_rgLibrary[Sprites::SMOKE_2]);
+		//WriteData((byte)50);
+		//WriteData((byte)50);
+		//MsgEnd();
+
+		auto const pSmoke = Prefab_t::Create<CSmoke>(vecPeri);
+		pSmoke->LitByFlame();
+
+		pFieldSmoke->EnrollSmoke(pSmoke);
 	}
 
 	co_await gpGlobals->frametime;
 
-	auto pSmoke = Prefab_t::Create<CSmoke>(vecOrigin);
-	pSmoke->m_flRadius = flRadius * 0.2f;
+	//auto pSmoke = Prefab_t::Create<CFieldSmoke>(vecOrigin);
+	//pSmoke->m_flRadius = flRadius * 0.2f;
 
 	for (int i = 0; i < 8; ++i)
 	{
 		auto const pFlame = Prefab_t::Create<CFlame>(vecOrigin);
-		pFlame->pev->velocity = get_spherical_coord(flRadius, UTIL_Random(15.0, 25.0), UTIL_Random(0.0, 359.9));
-		pSmoke->m_rgpFlamesDependent.emplace_back(pFlame);
+		pFlame->pev->velocity = get_spherical_coord(flRadius * 0.75, UTIL_Random(15.0, 25.0), UTIL_Random(0.0, 359.9));
+
+		pFieldSmoke->EnrollFlame(pFlame);
 	}
+
+	pFieldSmoke->Activate();
 }
 
-void Impact(CBasePlayer *pAttacker, CBaseEntity *pProjectile, float flDamage) noexcept
+TraceResult Impact(CBasePlayer *pAttacker, CBaseEntity *pProjectile, float flDamage) noexcept
 {
 	g_engfuncs.pfnMakeVectors(pProjectile->pev->angles);
 
@@ -326,80 +338,21 @@ void Impact(CBasePlayer *pAttacker, CBaseEntity *pProjectile, float flDamage) no
 	g_engfuncs.pfnTraceLine(pProjectile->pev->origin, pProjectile->pev->origin + gpGlobals->v_forward * 32.f, dont_ignore_monsters, ent_cast<edict_t *>(pProjectile->pev), &tr);
 
 	if (pev_valid(tr.pHit) != 2)
-		return;
+		return tr;
 
 	CBaseEntity *pOther = (CBaseEntity *)tr.pHit->pvPrivateData;
 
 	if (pOther->pev->takedamage == DAMAGE_NO)
-		return;
+		return tr;
 
 	if (pOther->IsPlayer())
 	{
 		auto const pVictim = (CBasePlayer *)pOther;
 		if (pVictim->IsAlive() && gcvarFriendlyFire->value < 1 && pVictim->m_iTeam == pAttacker->m_iTeam)
-			return;
+			return tr;
 	}
 
 	pOther->TraceAttack(pAttacker->pev, flDamage, gpGlobals->v_forward, &tr, DMG_BULLET);
 	g_pfnApplyMultiDamage(pProjectile->pev, pAttacker->pev);
-}
-
-Task ClusterBomb(Vector const vecOrigin, double const flMaxAbsHeight) noexcept
-{
-	auto const flStep = (flMaxAbsHeight - vecOrigin.z) / 12.0;
-
-	array const rgvecExplosiveOrigins{
-		vecOrigin + get_cylindrical_coord(UTIL_Random(10, 280), UTIL_Random(0.0, 359.9), UTIL_Random(0.0, flStep)),
-		vecOrigin + get_cylindrical_coord(UTIL_Random(10, 280), UTIL_Random(0.0, 359.9), UTIL_Random(0.0, flStep)),
-		vecOrigin + get_cylindrical_coord(UTIL_Random(10, 280), UTIL_Random(0.0, 359.9), UTIL_Random(0.0, flStep)),
-
-		vecOrigin + get_cylindrical_coord(UTIL_Random(10, 280), UTIL_Random(0.0, 359.9), UTIL_Random(flStep, flStep * 2)),
-		vecOrigin + get_cylindrical_coord(UTIL_Random(10, 280), UTIL_Random(0.0, 359.9), UTIL_Random(flStep, flStep * 2)),
-		vecOrigin + get_cylindrical_coord(UTIL_Random(10, 280), UTIL_Random(0.0, 359.9), UTIL_Random(flStep, flStep * 2)),
-
-		vecOrigin + get_cylindrical_coord(UTIL_Random(10, 280), UTIL_Random(0.0, 359.9), UTIL_Random(flStep * 2, flStep * 3)),
-		vecOrigin + get_cylindrical_coord(UTIL_Random(10, 280), UTIL_Random(0.0, 359.9), UTIL_Random(flStep * 2, flStep * 3)),
-		vecOrigin + get_cylindrical_coord(UTIL_Random(10, 280), UTIL_Random(0.0, 359.9), UTIL_Random(flStep * 2, flStep * 3)),
-
-		vecOrigin + get_cylindrical_coord(UTIL_Random(10, 280), UTIL_Random(0.0, 359.9), UTIL_Random(flStep * 3, flStep * 4)),
-		vecOrigin + get_cylindrical_coord(UTIL_Random(10, 280), UTIL_Random(0.0, 359.9), UTIL_Random(flStep * 3, flStep * 4)),
-		vecOrigin + get_cylindrical_coord(UTIL_Random(10, 280), UTIL_Random(0.0, 359.9), UTIL_Random(flStep * 3, flStep * 4)),
-
-		vecOrigin + get_cylindrical_coord(UTIL_Random(10, 280), UTIL_Random(0.0, 359.9), UTIL_Random(flStep * 4, flStep * 5)),
-		vecOrigin + get_cylindrical_coord(UTIL_Random(10, 280), UTIL_Random(0.0, 359.9), UTIL_Random(flStep * 4, flStep * 5)),
-		vecOrigin + get_cylindrical_coord(UTIL_Random(10, 280), UTIL_Random(0.0, 359.9), UTIL_Random(flStep * 4, flStep * 5)),
-
-		vecOrigin + get_cylindrical_coord(UTIL_Random(10, 280), UTIL_Random(0.0, 359.9), UTIL_Random(flStep * 5, flStep * 6)),
-		vecOrigin + get_cylindrical_coord(UTIL_Random(10, 280), UTIL_Random(0.0, 359.9), UTIL_Random(flStep * 5, flStep * 6)),
-		vecOrigin + get_cylindrical_coord(UTIL_Random(10, 280), UTIL_Random(0.0, 359.9), UTIL_Random(flStep * 5, flStep * 6)),
-
-		vecOrigin + get_cylindrical_coord(UTIL_Random(10, 280), UTIL_Random(0.0, 359.9), UTIL_Random(flStep * 6, flStep * 7)),
-		vecOrigin + get_cylindrical_coord(UTIL_Random(10, 280), UTIL_Random(0.0, 359.9), UTIL_Random(flStep * 6, flStep * 7)),
-		vecOrigin + get_cylindrical_coord(UTIL_Random(10, 280), UTIL_Random(0.0, 359.9), UTIL_Random(flStep * 6, flStep * 7)),
-
-		vecOrigin + get_cylindrical_coord(UTIL_Random(10, 280), UTIL_Random(0.0, 359.9), UTIL_Random(flStep * 7, flStep * 8)),
-		vecOrigin + get_cylindrical_coord(UTIL_Random(10, 280), UTIL_Random(0.0, 359.9), UTIL_Random(flStep * 7, flStep * 8)),
-		vecOrigin + get_cylindrical_coord(UTIL_Random(10, 280), UTIL_Random(0.0, 359.9), UTIL_Random(flStep * 7, flStep * 8)),
-
-		vecOrigin + get_cylindrical_coord(UTIL_Random(10, 280), UTIL_Random(0.0, 359.9), UTIL_Random(flStep * 8, flStep * 9)),
-		vecOrigin + get_cylindrical_coord(UTIL_Random(10, 280), UTIL_Random(0.0, 359.9), UTIL_Random(flStep * 8, flStep * 9)),
-		vecOrigin + get_cylindrical_coord(UTIL_Random(10, 280), UTIL_Random(0.0, 359.9), UTIL_Random(flStep * 8, flStep * 9)),
-
-		vecOrigin + get_cylindrical_coord(UTIL_Random(10, 280), UTIL_Random(0.0, 359.9), UTIL_Random(flStep * 9, flStep * 10)),
-		vecOrigin + get_cylindrical_coord(UTIL_Random(10, 280), UTIL_Random(0.0, 359.9), UTIL_Random(flStep * 9, flStep * 10)),
-		vecOrigin + get_cylindrical_coord(UTIL_Random(10, 280), UTIL_Random(0.0, 359.9), UTIL_Random(flStep * 9, flStep * 10)),
-	};
-
-	for (auto &&vec : rgvecExplosiveOrigins)
-	{
-		co_await UTIL_Random(0.08f, 0.11f);
-
-		MsgBroadcast(SVC_TEMPENTITY);
-		WriteData(TE_SPRITE);
-		WriteData(vec);
-		WriteData(Sprites::m_rgLibrary[Sprites::MINOR_EXPLO]);
-		WriteData((byte)UTIL_Random(5, 12));
-		WriteData((byte)UTIL_Random(128, 255));
-		MsgEnd();
-	}
+	return tr;
 }

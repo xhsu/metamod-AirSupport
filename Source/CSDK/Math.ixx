@@ -1,6 +1,8 @@
 ﻿export module Math;
 
-import <algorithm>;
+export import <cmath>;
+
+export import <algorithm>;
 export import <numbers>;
 
 export import vector;

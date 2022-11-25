@@ -1,17 +1,30 @@
 export module Target;
 
+export import <array>;
 export import <chrono>;
 
+export import Beam;
+export import Menu;
 export import Prefab;
 
 export struct CDynamicTarget : public Prefab_t
 {
 	static inline constexpr char CLASSNAME[] = "info_dynamic_target";
+	static inline constexpr size_t BEACON_COUNT = 8;
+	static inline constexpr double CARPET_BOMBARDMENT_INTERVAL = 350.0;
+
+	~CDynamicTarget() noexcept override;
 
 	Task Task_Animation() noexcept;
 	Task Task_DeepEvaluation() noexcept;
-	Task Task_QuickEvaluation() noexcept;
+	Task Task_QuickEval_AirStrike() noexcept;
+	Task Task_QuickEval_ClusterBomb() noexcept;
+	Task Task_QuickEval_CarpetBombardment() noexcept;
 	Task Task_Remove() noexcept;
+
+	void UpdateEvalMethod() noexcept;
+	void EnableBeacons() noexcept;
+	void DisableBeacons() noexcept;
 
 	void Spawn() noexcept override;
 	static CDynamicTarget *Create(CBasePlayer *pPlayer, CBasePlayerWeapon *pRadio) noexcept;
@@ -22,7 +35,10 @@ export struct CDynamicTarget : public Prefab_t
 	Vector m_vecLastAiming{};
 	float m_flLastValidTracking{};
 	std::chrono::high_resolution_clock::time_point m_LastAnimUpdate{};
+	std::array<EHANDLE<CBeam>, BEACON_COUNT> m_rgpBeacons{};
+	bool m_bFreezed{};
 
+	static inline constexpr auto QUICK_ANALYZE_KEY = 298457034ul;
 	static inline constexpr auto DETAIL_ANALYZE_KEY = 3658468ul;
 };
 
@@ -38,7 +54,7 @@ export struct CFixedTarget : public Prefab_t
 	void Spawn() noexcept override;
 	void Activate() noexcept override;
 
-	static CFixedTarget *Create(Vector const &vecOrigin, Vector const &vecAngles, CBasePlayer *const pPlayer, CBaseEntity *const pTarget) noexcept;
+	static CFixedTarget *Create(CDynamicTarget *const pDynamicTarget) noexcept;
 
 	CBasePlayer *m_pPlayer{};
 	Vector m_vecJetSpawn{};
@@ -46,4 +62,7 @@ export struct CFixedTarget : public Prefab_t
 	Vector m_vecPosForJetSpawnTesting{};
 	EHANDLE<CBaseEntity> m_pMissile{ nullptr };
 	EHANDLE<CBaseEntity> m_pTargeting{ nullptr };
+	EHANDLE<CDynamicTarget> m_pDynamicTarget{ nullptr };	// Warning: only available in Spawn()!
+	EAirSupportTypes m_AirSupportType{ AIR_STRIKE };
+	decltype(CDynamicTarget::m_rgpBeacons) m_rgpBeacons{};
 };

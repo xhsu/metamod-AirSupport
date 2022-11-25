@@ -1,12 +1,12 @@
 export module Effects;
 
 export import <chrono>;
-export import <deque>;
+export import <list>;
 export import <unordered_map>;
 
 export import Prefab;
 
-using std::deque;
+using std::list;
 using std::unordered_map;
 using std::chrono::high_resolution_clock;
 
@@ -40,15 +40,59 @@ export struct CFlame : public Prefab_t
 
 export struct CSmoke : public Prefab_t
 {
-	static inline constexpr char CLASSNAME[] = "env_explo_field_smoke";
+	// Info
 
-	Task Task_EmitSmoke() noexcept;
-	Task Task_Remove() noexcept;
+	static inline constexpr char CLASSNAME[] = "env_explo_smoke";
+	static inline constexpr auto DRIFT_COLOR_KEY = 3896738ul;
+
+	// Methods
+
+	Task Task_DriftColor(Vector const vecTargetColor) noexcept;	// keep it internal, thanks.
+	Task Task_FadeOut() noexcept;
+
+	void LitByFlame() noexcept;
+	void StartColorDrift(Vector const &vecTargetColor) noexcept;
+	void DriftToWhite(double const flPercentage) noexcept;	// [0-1]
 
 	void Spawn() noexcept override;
 
 	// Members
 
-	float m_flRadius{ 650.f };
-	deque<EHANDLE<CFlame>> m_rgpFlamesDependent{};
+	Vector m_vecStartingLitClr{};
+	Vector m_vecFlameClrToWhite{};
+};
+
+export struct CFieldSmoke : public Prefab_t
+{
+	static inline constexpr char CLASSNAME[] = "env_explo_field_smoke";
+
+	Task Task_AdjustSmokeColor() noexcept;
+	Task Task_Remove() noexcept;
+
+	__forceinline void EnrollFlame(CFlame *pFlame) noexcept { m_rgpFlames.emplace_back(pFlame); }
+	__forceinline void EnrollSmoke(CSmoke *pSmoke) noexcept { m_rgpSmokes.emplace_back(pSmoke); }
+
+	void Spawn() noexcept override;
+	void Activate() noexcept override;	// All the initial res are enlisted.
+
+	// Members
+
+	list<EHANDLE<CFlame>> m_rgpFlames{};
+	list<EHANDLE<CSmoke>> m_rgpSmokes{};
+	size_t m_iTotalFlames{}, m_iLastFlames{};
+	size_t m_iTotalSmokes{}, m_iLastSmokes{};
+};
+
+export struct CDebris : public Prefab_t
+{
+	// Info
+
+	static inline constexpr char CLASSNAME[] = "debris_from_explo";
+
+	// Methods
+
+	Task Task_Debris() noexcept;
+
+	void Spawn() noexcept override;
+	void Touch(CBaseEntity *pOther) noexcept override;
 };

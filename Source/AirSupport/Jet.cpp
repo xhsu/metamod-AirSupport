@@ -1,4 +1,4 @@
-import Jet;
+﻿import Jet;
 import Menu;
 import Message;
 import Missile;
@@ -6,7 +6,7 @@ import Resources;
 
 import UtlRandom;
 
-Task CJet::Task_Jet() noexcept
+Task CJet::Task_BeamAndSound() noexcept
 {
 	//g_engfuncs.pfnEmitSound(pJet.Get(), CHAN_WEAPON, UTIL_GetRandomOne(Sounds::JET), VOL_NORM, ATTN_NONE, 0, UTIL_Random(92, 118));	// #INVESTIGATE
 	g_engfuncs.pfnClientCommand(m_pPlayer->edict(), "spk %s\n", UTIL_GetRandomOne(Sounds::JET));
@@ -28,6 +28,11 @@ Task CJet::Task_Jet() noexcept
 		WriteData((byte)255);	// brightness
 		MsgEnd();
 	}
+}
+
+Task CJet::Task_AirStrike() noexcept
+{
+	co_await TaskScheduler::NextFrame::Rank[0];	// yield to Task_BeamAndSound();
 
 	for (; m_pTarget;)
 	{
@@ -36,8 +41,9 @@ Task CJet::Task_Jet() noexcept
 
 		if (tr.flFraction > 0.99f)
 		{
-			m_pMissile = CPrecisionAirStrike::Create(m_pPlayer, pev->origin - Vector(0, 0, 2.5f), m_pTarget->pev->origin);
-			m_pTarget->m_pMissile = m_pMissile;	// pTarget now has a missile binding to it.
+			m_pTarget->m_pMissile =	// pTarget now has a missile binding to it.
+				CPrecisionAirStrike::Create(m_pPlayer, pev->origin - Vector(0, 0, 2.5f), m_pTarget->pev->origin);
+
 			break;
 		}
 
@@ -62,6 +68,120 @@ Task CJet::Task_Jet() noexcept
 	}
 }
 
+Task CJet::Task_ClusterBomb() noexcept
+{
+	co_await TaskScheduler::NextFrame::Rank[0];	// yield to Task_BeamAndSound();
+
+	for (double flCurDist = 0, flRecordDist = std::numeric_limits<double>::max(); m_pTarget; flCurDist = (pev->origin.Make2D() - m_pTarget->pev->origin.Make2D()).LengthSquared())
+	{
+		if (flCurDist < flRecordDist)	// Jet is approaching
+			flRecordDist = flCurDist;
+		else
+		{
+			TraceResult tr{};
+			g_engfuncs.pfnTraceLine(
+				m_pTarget->pev->origin,
+				Vector(m_pTarget->pev->origin.x, m_pTarget->pev->origin.y, 8192),
+				ignore_glass | ignore_monsters,
+				edict(),
+				&tr
+			);
+
+			m_pTarget->m_pMissile = // pTarget now has a missile binding to it.
+				CClusterBomb::Create(m_pPlayer, tr.vecEndPos - Vector(0, 0, 2.5), m_pTarget->pev->origin);
+
+			break;
+		}
+
+		co_await TaskScheduler::NextFrame::Rank[0];	// try it every other frame.
+	}
+
+	for (;;)
+	{
+		[[unlikely]]
+		if (!IsInWorld())
+		{
+			MsgBroadcast(SVC_TEMPENTITY);
+			WriteData(TE_KILLBEAM);
+			WriteData(entindex());
+			MsgEnd();
+
+			pev->flags |= FL_KILLME;
+			co_return;
+		}
+
+		co_await 0.1f;
+	}
+}
+
+Task CJet::Task_CarpetBombardment() noexcept
+{
+	co_await TaskScheduler::NextFrame::Rank[0];	// yield to Task_BeamAndSound();
+
+	TraceResult tr{};
+	std::array<double, CDynamicTarget::BEACON_COUNT> rgflRecDist{};
+	std::array<bool, CDynamicTarget::BEACON_COUNT> rgbBombLaunched{};
+
+	[&] <size_t... I>(std::index_sequence<I...> &&) noexcept
+	{
+		((rgflRecDist[I] = std::numeric_limits<double>::max()), ...);
+		((rgbBombLaunched[I] = !!(m_pTarget->m_rgpBeacons[I]->pev->effects & EF_NODRAW)), ...);
+	}(std::make_index_sequence<CDynamicTarget::BEACON_COUNT>{});
+
+	for (;;)
+	{
+		for (int i = 0; i < CDynamicTarget::BEACON_COUNT; ++i)
+		{
+			if (rgbBombLaunched[i])
+				continue;
+
+			auto const flCurDist = (m_pTarget->m_rgpBeacons[i]->EndPos().Make2D() - pev->origin.Make2D()).LengthSquared();
+
+			if (flCurDist < rgflRecDist[i])
+				rgflRecDist[i] = flCurDist;
+			else
+			{
+				g_engfuncs.pfnTraceLine(
+					m_pTarget->m_rgpBeacons[i]->EndPos(),
+					m_pTarget->m_rgpBeacons[i]->EndPos() + Vector(0, 0, 4096),
+					ignore_glass | ignore_monsters,
+					nullptr, &tr
+				);
+
+				m_pTarget->m_pMissile = CCarpetBombardment::Create(m_pPlayer, tr.vecEndPos, m_pTarget->m_rgpBeacons[i]);
+				rgbBombLaunched[i] = true;
+			}
+		}
+
+		co_await TaskScheduler::NextFrame::Rank[0];	// try it every other frame.
+
+		auto const bDone = [&]<size_t... I>(std::index_sequence<I...> &&) noexcept -> bool
+		{
+			return (rgbBombLaunched[I] && ...);
+		}(std::make_index_sequence<CDynamicTarget::BEACON_COUNT>{});
+
+		if (bDone)
+			break;
+	}
+
+	for (;;)
+	{
+		[[unlikely]]
+		if (!IsInWorld())
+		{
+			MsgBroadcast(SVC_TEMPENTITY);
+			WriteData(TE_KILLBEAM);
+			WriteData(entindex());
+			MsgEnd();
+
+			pev->flags |= FL_KILLME;
+			co_return;
+		}
+
+		co_await 0.1f;
+	}
+}
+
 void CJet::Spawn() noexcept
 {
 	auto const vecDir = Vector(m_pTarget->pev->origin.x, m_pTarget->pev->origin.y, pev->origin.z) - pev->origin;
@@ -73,10 +193,29 @@ void CJet::Spawn() noexcept
 
 	pev->solid = SOLID_NOT;
 	pev->movetype = MOVETYPE_NOCLIP;
-	pev->velocity = vecDir.Normalize() * 4096;
+	pev->velocity = vecDir.Normalize() * (m_AirSupportType == CARPET_BOMBARDMENT ? 2048 : 4096);
 	pev->effects |= EF_BRIGHTLIGHT;
 
-	m_Scheduler.Enroll(Task_Jet());
+	switch (m_AirSupportType)
+	{
+	default:
+		gmsgTextMsg::Send(m_pPlayer->edict(), 4, u8"抱歉, 這邊還沒做好- -");
+		[[fallthrough]];
+
+	case AIR_STRIKE:
+		m_Scheduler.Enroll(Task_AirStrike());
+		break;
+
+	case CLUSTER_BOMB:
+		m_Scheduler.Enroll(Task_ClusterBomb());
+		break;
+
+	case CARPET_BOMBARDMENT:
+		m_Scheduler.Enroll(Task_CarpetBombardment());
+		break;
+	}
+
+	m_Scheduler.Enroll(Task_BeamAndSound());
 }
 
 qboolean CJet::IsInWorld() noexcept
@@ -102,6 +241,7 @@ CJet *CJet::Create(CBasePlayer *pPlayer, CFixedTarget *pTarget, Vector const &ve
 
 	pPrefab->m_pPlayer = pPlayer;
 	pPrefab->m_pTarget = pTarget;
+	pPrefab->m_AirSupportType = pTarget->m_AirSupportType;
 	pPrefab->Spawn();
 	pPrefab->pev->nextthink = 0.1f;
 

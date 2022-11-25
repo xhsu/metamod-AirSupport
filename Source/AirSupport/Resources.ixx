@@ -123,16 +123,16 @@ export namespace Sounds
 export namespace Sprites
 {
 	inline constexpr char SMOKE[] = "sprites/exsmoke.spr";
-	inline constexpr char SMOKE2[] = "sprites/rockeexfire.spr";
 	inline constexpr char ROCKET_EXPLO[] = "sprites/rockeexplode.spr";
 	inline constexpr char ROCKET_EXPLO2[] = "sprites/zerogxplode-big1.spr";
-	inline constexpr char SMOKE_TRAIL[] = "sprites/tdm_smoke.spr";
 	inline constexpr char FIRE[] = "sprites/rockefire.spr";
 	inline constexpr char FIRE2[] = "sprites/hotglow.spr";
 	inline constexpr char SMOKE_1[] = "sprites/gas_smoke1.spr";
 	inline constexpr char SMOKE_2[] = "sprites/wall_puff1.spr";
 	inline constexpr char PERSISTENT_SMOKE[] = "sprites/ballsmoke.spr";
 	inline constexpr char MINOR_EXPLO[] = "sprites/zerog-frag1.spr";
+	inline constexpr char AIRBURST[] = "sprites/fexplo1.spr";
+	inline constexpr char CARPET_FRAGMENT_EXPLO[] = "sprites/m79grenadeex.spr";
 
 	inline constexpr char BEAM[] = "sprites/laserbeam.spr";
 	inline constexpr char AIM[] = "sprites/targetsign.spr";

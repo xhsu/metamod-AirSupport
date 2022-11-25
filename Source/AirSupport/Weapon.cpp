@@ -113,10 +113,33 @@ void __fastcall HamF_Item_PostFrame(CBasePlayerItem *pItem, int) noexcept
 
 	if (pThis->m_pPlayer->m_afButtonPressed & IN_ATTACK) [[unlikely]]
 	{
-		if (pThis->pev->euser1->v.skin != Models::targetmdl::SKIN_GREEN)
-			TaskScheduler::Enroll(Weapon::Task_RadioRejected(pThis));
+		if (g_rgiAirSupportSelected[pThis->m_pPlayer->entindex()] != CARPET_BOMBARDMENT)
+		{
+			if (DYN_TARGET(pThis)->v.skin != Models::targetmdl::SKIN_GREEN)
+				TaskScheduler::Enroll(Weapon::Task_RadioRejected(pThis));
+			else
+				TaskScheduler::Enroll(Weapon::Task_RadioAccepted(pThis));
+		}
 		else
-			TaskScheduler::Enroll(Weapon::Task_RadioAccepted(pThis));
+		{
+			auto const pTarget = (CDynamicTarget *)DYN_TARGET(pThis)->pvPrivateData;
+			pTarget->EnableBeacons();
+		}
+	}
+	else if (pThis->m_pPlayer->m_afButtonReleased & IN_ATTACK) [[unlikely]]
+	{
+		if (g_rgiAirSupportSelected[pThis->m_pPlayer->entindex()] == CARPET_BOMBARDMENT)
+		{
+			if (DYN_TARGET(pThis)->v.skin != Models::targetmdl::SKIN_GREEN)
+			{
+				TaskScheduler::Enroll(Weapon::Task_RadioRejected(pThis));
+
+				auto const pTarget = (CDynamicTarget *)DYN_TARGET(pThis)->pvPrivateData;
+				pTarget->DisableBeacons();
+			}
+			else
+				TaskScheduler::Enroll(Weapon::Task_RadioAccepted(pThis));
+		}
 	}
 	else if (pThis->m_pPlayer->m_afButtonPressed & IN_ATTACK2) [[unlikely]]
 	{
@@ -128,9 +151,9 @@ void __fastcall HamF_Item_PostFrame(CBasePlayerItem *pItem, int) noexcept
 			std::format(Menu::Text::AIRSUPPORT_TEMPLATE,
 				iIndex == AIR_STRIKE ? "\\d" : "\\w", iIndex == AIR_STRIKE ? " - Selected" : "",
 				iIndex == CLUSTER_BOMB ? "\\d" : "\\w", iIndex == CLUSTER_BOMB ? " - Selected" : "",
-				iIndex == CARPET_BOMB ? "\\d" : "\\w", iIndex == CARPET_BOMB ? " - Selected" : "",
-				iIndex == GUNSHIP_STRIKE ? "\\d" : "\\w", iIndex == GUNSHIP_STRIKE ? " - Selected" : "",
-				iIndex == FUEL_AIR_BOMB ? "\\d" : "\\w", iIndex == FUEL_AIR_BOMB ? " - Selected" : ""
+				iIndex == CARPET_BOMBARDMENT ? "\\d" : "\\w", iIndex == CARPET_BOMBARDMENT ? " - Selected" : "",
+				iIndex == GUNSHIP_STRIKE ? "\\d" : "\\r", iIndex == GUNSHIP_STRIKE ? " - Selected" : "",
+				iIndex == FUEL_AIR_BOMB ? "\\d" : "\\r", iIndex == FUEL_AIR_BOMB ? " - Selected" : ""
 			)
 		);
 
@@ -183,10 +206,10 @@ extern "C++" namespace Weapon
 		pThis->SendWeaponAnim((int)Models::v_radio::seq::idle, false);
 
 		[[unlikely]]
-		if (pev_valid(pThis->pev->euser1))
-			pThis->pev->euser1->v.flags |= FL_KILLME;
+		if (DYN_TARGET(pThis))
+			DYN_TARGET(pThis)->v.flags |= FL_KILLME;
 
-		pThis->pev->euser1 = CDynamicTarget::Create(pThis->m_pPlayer, pThis)->edict();
+		DYN_TARGET(pThis) = CDynamicTarget::Create(pThis->m_pPlayer, pThis)->edict();
 	}
 
 	Task Task_RadioRejected(EHANDLE<CBasePlayerWeapon> pThis) noexcept
@@ -221,11 +244,11 @@ extern "C++" namespace Weapon
 
 	Task Task_RadioAccepted(EHANDLE<CBasePlayerWeapon> pThis) noexcept
 	{
-		EHANDLE<CDynamicTarget> pTarget = pThis->pev->euser1;
-		EHANDLE<CFixedTarget> pFixedTarget = CFixedTarget::Create(pTarget->pev->origin, pTarget->pev->angles, pThis->m_pPlayer, pTarget->m_pTargeting);
+		EHANDLE<CDynamicTarget> pTarget = DYN_TARGET(pThis);
+		EHANDLE<CFixedTarget> pFixedTarget = CFixedTarget::Create(pTarget);
 
+		DYN_TARGET(pThis) = nullptr;
 		pTarget->pev->flags |= FL_KILLME;
-		pThis->pev->euser1 = nullptr;
 
 		pThis->has_disconnected = false;	// BORROWED MEMBER: forbid holster.
 		pThis->SendWeaponAnim((int)Models::v_radio::seq::use);
@@ -301,10 +324,10 @@ extern "C++" namespace Weapon
 		pThis->m_pPlayer->m_iHideHUD &= ~HIDEHUD_CROSSHAIR;	// #TODO use CurWeapon to fix crosshair?
 
 		[[likely]]
-		if (pThis->pev->euser1)
+		if (DYN_TARGET(pThis))
 		{
-			pThis->pev->euser1->v.flags |= FL_KILLME;
-			pThis->pev->euser1 = nullptr;
+			DYN_TARGET(pThis)->v.flags |= FL_KILLME;
+			DYN_TARGET(pThis) = nullptr;
 		}
 
 		// Resume shield protection

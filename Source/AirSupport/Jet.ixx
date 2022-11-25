@@ -1,13 +1,16 @@
 export module Jet;
 
-export import Missile;
+export import Menu;
 export import Target;
 
 export struct CJet : public Prefab_t
 {
 	static inline constexpr char CLASSNAME[] = "jet_of_regular_airstrike";
 
-	Task Task_Jet() noexcept;
+	Task Task_BeamAndSound() noexcept;
+	Task Task_AirStrike() noexcept;
+	Task Task_ClusterBomb() noexcept;
+	Task Task_CarpetBombardment() noexcept;
 
 	void Spawn() noexcept override;
 	qboolean IsInWorld() noexcept override;
@@ -16,5 +19,5 @@ export struct CJet : public Prefab_t
 
 	CBasePlayer *m_pPlayer{};
 	EHANDLE<CFixedTarget> m_pTarget{ nullptr };
-	EHANDLE<CPrecisionAirStrike> m_pMissile{ nullptr };
+	EAirSupportTypes m_AirSupportType{ AIR_STRIKE };
 };

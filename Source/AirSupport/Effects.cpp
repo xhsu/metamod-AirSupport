@@ -1,3 +1,4 @@
+import <array>;
 import <numbers>;
 
 import edict;
@@ -8,6 +9,8 @@ import Math;
 import Resources;
 
 import UtlRandom;
+
+using std::array;
 
 //
 // CFlame
@@ -235,59 +238,216 @@ void CFlame::Touch_DealBurnDmg(CBaseEntity *pOther) noexcept
 // CSmoke
 //
 
-Task CSmoke::Task_EmitSmoke() noexcept
+Task CSmoke::Task_DriftColor(Vector const vecTargetColor) noexcept
+{
+	auto const vecDeltaColor = vecTargetColor - pev->rendercolor;
+	auto LastTime = std::chrono::high_resolution_clock::now();
+
+	for (; (pev->rendercolor - vecTargetColor).LengthSquared() > 1; )
+	{
+		co_await TaskScheduler::NextFrame::Rank[0];
+
+		auto const CurTime = std::chrono::high_resolution_clock::now();
+		auto const flTimeDelta = std::chrono::duration_cast<std::chrono::nanoseconds>(CurTime - LastTime).count() / 1'000'000'000.0;
+
+		pev->rendercolor += vecDeltaColor * flTimeDelta;
+
+		pev->rendercolor.x = std::clamp(pev->rendercolor.x, 0.f, 255.f);
+		pev->rendercolor.y = std::clamp(pev->rendercolor.y, 0.f, 255.f);
+		pev->rendercolor.z = std::clamp(pev->rendercolor.z, 0.f, 255.f);
+
+		LastTime = CurTime;
+	}
+
+	pev->rendercolor = vecTargetColor;
+	co_return;
+}
+
+Task CSmoke::Task_FadeOut() noexcept
+{
+	for (; pev->renderamt > 0;)
+	{
+		co_await TaskScheduler::NextFrame::Rank[0];
+
+		pev->renderamt -= 0.055f;
+		pev->angles.z += 0.07f;
+	}
+
+	pev->flags |= FL_KILLME;
+}
+
+void CSmoke::LitByFlame() noexcept
+{
+	pev->rendercolor = Vector(
+		UTIL_Random(0xC3, 0xCD),	// r
+		UTIL_Random(0x3E, 0x46),	// g
+		UTIL_Random(0x05, 0x10)		// b
+	);
+
+	m_vecStartingLitClr = pev->rendercolor;
+	m_vecFlameClrToWhite = Vector(255, 255, 255) - pev->rendercolor;
+}
+
+void CSmoke::StartColorDrift(Vector const &vecTargetColor) noexcept
+{
+	m_Scheduler.Delist(DRIFT_COLOR_KEY);
+	m_Scheduler.Enroll(Task_DriftColor(vecTargetColor));
+}
+
+void CSmoke::DriftToWhite(double const flPercentage) noexcept
+{
+	StartColorDrift(
+		m_vecStartingLitClr + m_vecFlameClrToWhite * std::clamp(flPercentage, 0.0, 1.0)
+	);
+}
+
+void CSmoke::Spawn() noexcept
+{
+	const char *pszModel = nullptr;
+	array rgiValidFrame{ 0, 1 };
+
+	switch (UTIL_Random(0, 2))
+	{
+	case 0:
+		pszModel = Sprites::SMOKE;
+		rgiValidFrame = { 2, 6 };
+		break;
+
+	case 1:
+		pszModel = Sprites::SMOKE_1;
+		rgiValidFrame = { 7, 10 };
+		break;
+
+	default:
+		pszModel = Sprites::SMOKE_2;
+		rgiValidFrame = { 16, 24 };
+	}
+
+	pev->rendermode = kRenderTransAdd;
+	pev->renderamt = UTIL_Random(64.f, 128.f);
+	pev->rendercolor = Vector(255, 255, 255);
+	pev->frame = (float)UTIL_Random(rgiValidFrame[0], rgiValidFrame[1]);
+
+	pev->solid = SOLID_NOT;
+	pev->movetype = MOVETYPE_NOCLIP;
+	pev->gravity = 0;
+	pev->velocity = Vector(UTIL_Random(-96, 96), UTIL_Random(-96, 96), 0).Normalize() * 12;
+	pev->scale = UTIL_Random(3.f, 5.f);
+
+	g_engfuncs.pfnSetModel(edict(), pszModel);
+	g_engfuncs.pfnSetSize(edict(), Vector(-32, -32, -32) * pev->scale, Vector(32, 32, 32) * pev->scale);	// it is still required for pfnTraceMonsterHull
+
+	// Doing this is to prevent spawning on slope and the spr just stuck and sink into ground.
+	TraceResult tr{};
+	g_engfuncs.pfnTraceMonsterHull(edict(), Vector(pev->origin.x, pev->origin.y, pev->origin.z + 32.0), Vector(pev->origin.x, pev->origin.y, 8192), ignore_monsters | ignore_glass, nullptr, &tr);
+	g_engfuncs.pfnTraceMonsterHull(edict(), tr.vecEndPos, pev->origin, ignore_monsters | ignore_glass, nullptr, &tr);
+
+	g_engfuncs.pfnSetOrigin(edict(), tr.vecEndPos);	// pfnSetOrigin includes the abssize setting, restoring our hitbox.
+
+	m_Scheduler.Enroll(Task_FadeOut());
+}
+
+//
+// CFieldSmoke
+// Renders the color of smoke with the color of flames.
+//
+
+Task CFieldSmoke::Task_AdjustSmokeColor() noexcept
 {
 	for (;;)
 	{
-		co_await UTIL_Random(0.1f, 0.3f);
+		co_await TaskScheduler::NextFrame::Rank[0];
 
-		Vector const vecNoise = get_spherical_coord(m_flRadius, UTIL_Random(70.0, 80.0), UTIL_Random(0.0, 359.9));
+		m_rgpFlames.remove_if([](EHANDLE<CFlame> const &flame) noexcept -> bool { return !flame; });
+		m_rgpSmokes.remove_if([](EHANDLE<CSmoke> const &smoke) noexcept -> bool { return !smoke; });
 
-		MsgPVS(SVC_TEMPENTITY, pev->origin + vecNoise);
-		WriteData(TE_SPRITE);
-		WriteData(pev->origin + vecNoise);
-		WriteData((short)Sprites::m_rgLibrary[Sprites::PERSISTENT_SMOKE]);
-		WriteData((byte)UTIL_Random<short>(45, 55));
-		WriteData((byte)UTIL_Random<short>(40, 60));
-		MsgEnd();
+		[[unlikely]]
+		if (auto const iNewCount = m_rgpFlames.size(); m_iLastFlames != iNewCount)
+		{
+			for (auto &&pSmoke : m_rgpSmokes)
+				pSmoke->DriftToWhite(1.0 - (double)iNewCount / (double)m_iTotalFlames);
+
+			m_iLastFlames = iNewCount;
+		}
 	}
 }
 
-Task CSmoke::Task_Remove() noexcept
+Task CFieldSmoke::Task_Remove() noexcept
 {
 	for (;;)
 	{
 		co_await 0.1f;
 
-		bool bAnySurvived = false;
-
-		for (const auto &flame : m_rgpFlamesDependent)
-		{
-			[[likely]]
-			if (flame)
-			{
-				bAnySurvived = true;
-				break;
-			}
-		}
-
 		[[unlikely]]
-		if (!bAnySurvived)
+		if (m_rgpFlames.empty())
 		{
+			co_await TaskScheduler::NextFrame::Rank[0];
+
 			pev->flags |= FL_KILLME;
 			co_return;
 		}
 	}
 }
 
-void CSmoke::Spawn() noexcept
+void CFieldSmoke::Spawn() noexcept
 {
-	pev->movetype = MOVETYPE_NONE;
-	pev->solid = SOLID_NOT;
+	pev->effects |= EF_NODRAW;
 
-	g_engfuncs.pfnSetSize(edict(), Vector(-0.2, -0.2, -0.2), Vector(0.2, 0.2, 0.2));
-	g_engfuncs.pfnDropToFloor(edict());
-
-	m_Scheduler.Enroll(Task_EmitSmoke());
 	m_Scheduler.Enroll(Task_Remove());
+}
+
+void CFieldSmoke::Activate() noexcept
+{
+	m_iTotalFlames = m_rgpFlames.size();
+	m_iTotalSmokes = m_rgpSmokes.size();
+
+	m_Scheduler.Enroll(Task_AdjustSmokeColor());
+}
+
+//
+// CDebris
+//
+
+Task CDebris::Task_Debris() noexcept
+{
+	for (; pev->renderamt > 0;)
+	{
+		co_await UTIL_Random(0.07f, 0.1f);
+
+		MsgPVS(SVC_TEMPENTITY, pev->origin);
+		WriteData(TE_SMOKE);
+		WriteData(pev->origin);
+		WriteData((short)Sprites::m_rgLibrary[UTIL_GetRandomOne(Sprites::BLACK_SMOKE)]);
+		WriteData((byte)UTIL_Random(5, 10));	// (scale in 0.1's)
+		WriteData((byte)UTIL_Random(15, 20));	// (framerate)
+		MsgEnd();
+
+		pev->renderamt -= 0.1f;
+	}
+
+	pev->flags |= FL_KILLME;
+}
+
+void CDebris::Spawn() noexcept
+{
+	pev->rendermode = kRenderTransAlpha;
+	pev->renderamt = UTIL_Random(192.f, 255.f);
+
+	pev->solid = SOLID_TRIGGER;
+	pev->movetype = MOVETYPE_TOSS;
+	pev->gravity = 1.f;
+	pev->velocity = get_spherical_coord(400, UTIL_Random(45, 135), UTIL_Random(0.0, 359.9));
+	pev->avelocity = { 400, UTIL_Random(-400.0, 400.0), 0 };
+
+	g_engfuncs.pfnSetOrigin(edict(), pev->origin);
+	g_engfuncs.pfnSetModel(edict(), Models::GIBS_WOOD);
+	g_engfuncs.pfnSetSize(edict(), Vector(-1, -1, -1), Vector(1, 1, 1));
+
+	m_Scheduler.Enroll(Task_Debris());
+}
+
+void CDebris::Touch(CBaseEntity *pOther) noexcept
+{
+	if (pOther->pev->solid == SOLID_BSP)
+		pev->flags |= FL_KILLME;
 }
