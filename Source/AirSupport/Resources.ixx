@@ -118,6 +118,15 @@ export namespace Sounds
 		"airsupport/jet/jet_short_11.wav",
 		"airsupport/jet/jet_short_12.wav",
 	};
+
+	inline constexpr array WHIZZ =
+	{
+		"misc/whizz1.wav",
+		"misc/whizz2.wav",
+		"misc/whizz3.wav",
+		"misc/whizz4.wav",
+		"misc/whizz5.wav",
+	};
 };
 
 export namespace Sprites

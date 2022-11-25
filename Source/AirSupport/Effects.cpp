@@ -1,5 +1,6 @@
 import <array>;
 import <numbers>;
+import <ranges>;
 
 import edict;
 import util;
@@ -450,4 +451,62 @@ void CDebris::Touch(CBaseEntity *pOther) noexcept
 {
 	if (pOther->pev->solid == SOLID_BSP)
 		pev->flags |= FL_KILLME;
+}
+
+struct CBullet : public Prefab_t
+{
+	Task Task_Whizz() noexcept;
+
+	void Spawn() noexcept override;
+
+	CBasePlayer *m_pPlayer{};
+};
+
+Task CBullet::Task_Whizz() noexcept
+{
+	for (;;)
+	{
+		co_await TaskScheduler::NextFrame::Rank[0];
+
+		for (auto &&pEdict :
+			std::views::iota(1, gpGlobals->maxClients) |
+			std::views::transform([](int idx) noexcept { return g_engfuncs.pfnPEntityOfEntIndex(idx); }) |
+			std::views::filter([](edict_t *pEdict) noexcept { return pEdict != nullptr && pEdict->pvPrivateData != nullptr; }) |
+
+			// Only player who is alive.
+			std::views::filter([](edict_t *pEdict) noexcept { return pEdict->v.deadflag == DEAD_NO && pEdict->v.takedamage != DAMAGE_NO; }) |
+
+			// Too far from us.
+			std::views::filter([&](edict_t *pEdict) noexcept { return (pEdict->v.origin - pev->origin).LengthSquared() < (120.0 * 120.0); }) |
+
+			// Can't be the one who shoots the bullet.
+			std::views::filter([&](edict_t *pEdict) noexcept { return pEdict != pev->owner; })
+			)
+		{
+			g_engfuncs.pfnClientCommand(pEdict, "spk %s\n", UTIL_GetRandomOne(Sounds::WHIZZ));
+		}
+	}
+}
+
+void CBullet::Spawn() noexcept
+{
+	pev->owner = m_pPlayer->edict();
+	pev->solid = SOLID_TRIGGER;
+	pev->movetype = MOVETYPE_FLY;
+
+	g_engfuncs.pfnSetModel(edict(), "models/rshell.mdl");
+	g_engfuncs.pfnSetOrigin(edict(), pev->origin);
+	g_engfuncs.pfnSetSize(edict(), Vector(-0.1, -0.1, -0.1), Vector(0.1, 0.1, 0.1));
+
+	MsgBroadcast(SVC_TEMPENTITY);
+	WriteData(TE_BEAMFOLLOW);
+	WriteData(ent_cast<short>(pev));
+	WriteData(Sprites::m_rgLibrary[Sprites::TRAIL]);
+	WriteData((byte)1);
+	WriteData((byte)1);
+	WriteData((byte)255);
+	WriteData((byte)200);
+	WriteData((byte)120);
+	WriteData((byte)30);
+	MsgEnd();
 }
