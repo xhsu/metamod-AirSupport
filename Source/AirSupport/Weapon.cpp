@@ -154,7 +154,7 @@ void __fastcall HamF_Item_PostFrame(CBasePlayerItem *pItem, int) noexcept
 				iIndex == AIR_STRIKE ? "\\d" : "\\w", iIndex == AIR_STRIKE ? " - Selected" : "",
 				iIndex == CLUSTER_BOMB ? "\\d" : "\\w", iIndex == CLUSTER_BOMB ? " - Selected" : "",
 				iIndex == CARPET_BOMBARDMENT ? "\\d" : "\\w", iIndex == CARPET_BOMBARDMENT ? " - Selected" : "",
-				iIndex == GUNSHIP_STRIKE ? "\\d" : "\\r", iIndex == GUNSHIP_STRIKE ? " - Selected" : "",
+				iIndex == GUNSHIP_STRIKE ? "\\d" : "\\w", iIndex == GUNSHIP_STRIKE ? " - Selected" : "",
 				iIndex == FUEL_AIR_BOMB ? "\\d" : "\\r", iIndex == FUEL_AIR_BOMB ? " - Selected" : ""
 			)
 		);
@@ -165,11 +165,7 @@ void __fastcall HamF_Item_PostFrame(CBasePlayerItem *pItem, int) noexcept
 	{
 		g_engfuncs.pfnMakeVectors(pThis->m_pPlayer->pev->v_angle);
 
-		Prefab_t::Create<CBullet>(
-			pThis->m_pPlayer->GetGunPosition() + gpGlobals->v_forward * 64.0,
-			gpGlobals->v_forward * 2048,
-			pThis->m_pPlayer
-		);
+		UTIL_ExplodeModel(pThis->m_pPlayer->GetGunPosition() + gpGlobals->v_forward * 256, UTIL_Random() ? -200.f : 200.f, Models::m_rgLibrary[Models::GIBS_WALL_BROWN], 5, 3.f);
 	}
 }
 

@@ -487,6 +487,33 @@ void CSpark::Spawn() noexcept
 // CGunshotSmoke
 //
 
+Task CGunshotSmoke::Task_Animation() noexcept
+{
+	// Consider this as initialization
+	m_LastAnimUpdate = std::chrono::high_resolution_clock::now();
+
+	for (;;)
+	{
+		co_await TaskScheduler::NextFrame::Rank[0];
+
+		auto const CurTime = std::chrono::high_resolution_clock::now();
+		auto const flTimeDelta = std::chrono::duration_cast<std::chrono::nanoseconds>(CurTime - m_LastAnimUpdate).count() / 1'000'000'000.0;
+
+		pev->framerate = float(FPS * flTimeDelta);
+		pev->frame += pev->framerate;
+		pev->animtime = gpGlobals->time;
+
+		[[unlikely]]
+		if (pev->frame < 0 || pev->frame >= Sprites::Frames::WALL_PUFF)
+		{
+			pev->flags |= FL_KILLME;	// the WALL_PUFF spr is not cycling.
+			co_return;
+		}
+
+		m_LastAnimUpdate = CurTime;
+	}
+}
+
 Task CGunshotSmoke::Task_FadeOut() noexcept
 {
 	for (; pev->renderamt > 0;)
@@ -502,38 +529,18 @@ Task CGunshotSmoke::Task_FadeOut() noexcept
 
 void CGunshotSmoke::Spawn() noexcept
 {
-	const char *pszModel = nullptr;
-	array rgiValidFrame{ 0, 1 };
-
-	switch (UTIL_Random(0, 2))
-	{
-	case 0:
-		pszModel = Sprites::SMOKE;
-		rgiValidFrame = { 2, 6 };
-		break;
-
-	case 1:
-		pszModel = Sprites::SMOKE_1;
-		rgiValidFrame = { 7, 10 };
-		break;
-
-	default:
-		pszModel = Sprites::SMOKE_2;
-		rgiValidFrame = { 16, 24 };
-	}
-
 	pev->rendermode = kRenderTransAdd;
-	pev->renderamt = UTIL_Random(64.f, 128.f);
+	pev->renderamt = 96.f;
 	pev->rendercolor = Vector(255, 255, 255);
-	pev->frame = (float)UTIL_Random(rgiValidFrame[0], rgiValidFrame[1]);
+	pev->frame = 0;
 
 	pev->solid = SOLID_NOT;
 	pev->movetype = MOVETYPE_NOCLIP;
 	pev->gravity = 0;
-	pev->velocity = Vector(UTIL_Random(-96, 96), UTIL_Random(-96, 96), 0).Normalize() * 12;
-	pev->scale = UTIL_Random(0.4f, 0.6f);
+	pev->velocity = Vector(UTIL_Random(-96, 96), UTIL_Random(-96, 96), 0).Normalize() * 1024;
+	pev->scale = 1;
 
-	g_engfuncs.pfnSetModel(edict(), pszModel);
+	g_engfuncs.pfnSetModel(edict(), UTIL_GetRandomOne(Sprites::WALL_PUFF));
 	g_engfuncs.pfnSetSize(edict(), Vector(-36, -36, -36) * pev->scale, Vector(36, 36, 36) * pev->scale);	// it is still required for pfnTraceMonsterHull
 
 	// Doing this is to prevent spawning on slope and the spr just stuck and sink into ground.
@@ -549,6 +556,7 @@ void CGunshotSmoke::Spawn() noexcept
 
 	g_engfuncs.pfnSetOrigin(edict(), tr.vecEndPos);	// pfnSetOrigin includes the abssize setting, restoring our hitbox.
 
+	m_Scheduler.Enroll(Task_Animation());
 	m_Scheduler.Enroll(Task_FadeOut());
 }
 

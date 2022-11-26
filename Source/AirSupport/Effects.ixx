@@ -122,7 +122,9 @@ export struct CSpark : public Prefab_t
 export struct CGunshotSmoke : public Prefab_t
 {
 	static inline constexpr char CLASSNAME[] = "env_gunshot_smoke";
+	static inline constexpr double FPS = 30.0;
 
+	Task Task_Animation() noexcept;
 	Task Task_FadeOut() noexcept;
 
 	void Spawn() noexcept override;
@@ -130,4 +132,5 @@ export struct CGunshotSmoke : public Prefab_t
 	static CGunshotSmoke *Create(const TraceResult &tr) noexcept;
 
 	TraceResult m_tr{};
+	high_resolution_clock::time_point m_LastAnimUpdate{};
 };

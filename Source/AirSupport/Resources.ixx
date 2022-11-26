@@ -16,7 +16,7 @@ export namespace Models
 	{
 		"models/AirSupport/F22.mdl",
 		"models/AirSupport/F18.mdl",
-		"models/AirSupport/F18.mdl",
+		"models/AirSupport/B-1B.mdl",
 		"models/AirSupport/AC130.mdl",
 		"models/AirSupport/F18.mdl",
 	};
@@ -129,6 +129,56 @@ export namespace Sounds
 		"misc/whizz4.wav",
 		"misc/whizz5.wav",
 	};
+
+	namespace Gunship
+	{
+		inline constexpr array AC130_AMBIENT =
+		{
+			"airsupport/airgunship/ac130_01.wav",
+			"airsupport/airgunship/ac130_02.wav",
+			"airsupport/airgunship/ac130_03.wav",
+			"airsupport/airgunship/ac130_06.wav",
+		};
+		inline constexpr array AC130_DEPARTURE =
+		{
+			"airsupport/airgunship/ac130_04.wav",
+			"airsupport/airgunship/ac130_05.wav",
+		};
+		inline constexpr char AC130_IS_IN_AIR[] = "airsupport/radio/ns_1mc_use_ac130_02.wav";
+		inline constexpr char UAV_IS_ONLINE[] = "airsupport/radio/ns_1mc_use_uav_01.wav";
+		inline constexpr array KILL_CONFIRMED =
+		{
+			"airsupport/radio/ns_gst_inform_killfirm_generic_02_R.wav",
+			"airsupport/radio/ns_gst_inform_killfirm_generic_04_R.wav",
+			"airsupport/radio/ns_gst_inform_killfirm_generic_05_R.wav",
+		};
+		inline constexpr char NOISE_PILOT[] = "airsupport/radio/radio_pilot.wav";
+		inline constexpr array AC130_FIRE_25MM =
+		{
+			"airsupport/airgunship/ac130_fire_01.wav",
+			"airsupport/airgunship/ac130_fire_02.wav",
+			"airsupport/airgunship/ac130_fire_03.wav",
+			"airsupport/airgunship/ac130_fire_04.wav",
+		};
+		inline constexpr array AC130_FIRE_40MM =
+		{
+			"airsupport/airgunship/ac130_fire_05.wav",
+			"airsupport/airgunship/ac130_fire_06.wav",
+		};
+		inline constexpr char AC130_FIRE_125MM[] = "airsupport/airgunship/ac130_fire_07.wav";
+		inline constexpr array AC130_RELOAD =
+		{
+			"airsupport/airgunship/ac130_reloading_01.wav",
+			"airsupport/airgunship/ac130_reloading_02.wav",
+			"airsupport/airgunship/ac130_reloading_03.wav",
+		};
+	}
+
+	namespace Length::Gunship
+	{
+		inline constexpr array AC130_RELOAD = { 2.2f, 4.2f, 3.2f };
+		inline constexpr array AC130_DEPARTURE = { 6.2f, 6.2f };
+	}
 };
 
 export namespace Sprites
@@ -166,11 +216,20 @@ export namespace Sprites
 		"sprites/black_smoke4.spr",
 	};
 
+	inline constexpr array WALL_PUFF =
+	{
+		"sprites/wall_puff1.spr",
+		"sprites/wall_puff2.spr",
+		"sprites/wall_puff3.spr",
+		"sprites/wall_puff4.spr",
+	};
+
 	inline unordered_map<string, short> m_rgLibrary{};
 
 	namespace Frames
 	{
 		inline constexpr array FLAME = { 17, 16, 16 };
+		inline constexpr auto WALL_PUFF = 30;
 	};
 
 	static_assert(FLAME.size() == Frames::FLAME.size());

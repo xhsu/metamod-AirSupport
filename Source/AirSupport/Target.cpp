@@ -638,6 +638,9 @@ Task CFixedTarget::Task_Gunship() noexcept
 	Vector vecSkyPos{ -8192.0, -8192.0, -8192.0, };
 	TraceResult tr{};
 
+	// Its lifetime is depending on us, so we are on control.
+	Prefab_t::Create<CGunship>(m_pPlayer, this);
+
 	for (;;)
 	{
 		// Lie flat on the surface we are on.
@@ -649,57 +652,7 @@ Task CFixedTarget::Task_Gunship() noexcept
 
 		pev->angles.x += 270.f;
 
-		if (m_pTargeting)
-		{
-			//
-			// Aiming something
-			//
-
-			[[unlikely]]
-			if (!m_pTargeting->IsAlive())
-			{
-				m_pTargeting = nullptr;
-				continue;
-			}
-
-			// Instead of our own position. This is because of the drifting VFX under this mode.
-			Vector const &vecAimingPos = m_pTargeting->pev->origin;
-
-			// Is the old sky pos not good anymore?
-			g_engfuncs.pfnTraceLine(vecSkyPos, vecAimingPos, ignore_monsters | ignore_glass, nullptr, &tr);
-
-			if (tr.flFraction < 1 || tr.fAllSolid || tr.fStartSolid)
-			{
-				// Theoratically CFixedTarget should follow the m_pTargeting.
-				g_engfuncs.pfnTraceLine(vecAimingPos, Vector(vecAimingPos.x, vecAimingPos.y, 8192.0), ignore_monsters | ignore_glass, nullptr, &tr);
-
-				if (g_engfuncs.pfnPointContents(tr.vecEndPos) != CONTENTS_SKY)	// This guy runs into shelter.
-				{
-					m_pTargeting = nullptr;
-					continue;
-				}
-
-				// okay, this skypos is now the new AC-130 location.
-				vecSkyPos = Vector(tr.vecEndPos.x, tr.vecEndPos.y, tr.vecEndPos.z - 1.0);
-
-				// Rest for 1 frame.
-				co_await TaskScheduler::NextFrame::Rank[0];
-			}
-
-			Vector const vecTargetLocation =
-				m_pTargeting->IsPlayer() ?
-				UTIL_GetHeadPosition(m_pTargeting.Get()) :
-				m_pTargeting->Center();
-
-			Prefab_t::Create<CBullet>(
-				vecSkyPos,
-				(vecTargetLocation - vecSkyPos).Normalize() * CBullet::AC130_BULLET_SPEED,
-				m_pPlayer
-			);
-
-			co_await 0.2f;	// firerate.
-		}
-		else
+		if (!m_pTargeting)
 		{
 			//
 			// attempt to find a new target.
@@ -736,10 +689,10 @@ Task CFixedTarget::Task_Gunship() noexcept
 
 			if (!vecCandidates.empty() && (vecCandidates.front()->pev->origin - pev->origin).Make2D().LengthSquared() < (GUNSHIP_NEXT_TARGET_RADIUS * GUNSHIP_NEXT_TARGET_RADIUS))
 				m_pTargeting = vecCandidates.front();
-
-			// Rest.
-			co_await 0.1f;
 		}
+
+		// Rest.
+		co_await 0.05f;
 	}
 }
 
