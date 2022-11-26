@@ -1,6 +1,7 @@
 ﻿#include <cassert>
 
 import <array>;
+import <ranges>;
 
 import Effects;
 import Math;
@@ -120,8 +121,8 @@ void CPrecisionAirStrike::Spawn() noexcept
 
 	MsgBroadcast(SVC_TEMPENTITY);
 	WriteData(TE_BEAMFOLLOW);
-	WriteData(ent_cast<short>(pev));
-	WriteData((short)Sprites::m_rgLibrary[Sprites::TRAIL]);
+	WriteData(entindex());
+	WriteData(Sprites::m_rgLibrary[Sprites::TRAIL]);
 	WriteData((byte)10);
 	WriteData((byte)3);
 	WriteData((byte)255);
@@ -315,8 +316,8 @@ void CClusterBomb::Spawn() noexcept
 
 	MsgBroadcast(SVC_TEMPENTITY);
 	WriteData(TE_BEAMFOLLOW);
-	WriteData(ent_cast<short>(pev));
-	WriteData((short)Sprites::m_rgLibrary[Sprites::TRAIL]);
+	WriteData(entindex());
+	WriteData(Sprites::m_rgLibrary[Sprites::TRAIL]);
 	WriteData((byte)20);
 	WriteData((byte)3);
 	WriteData((byte)255);
@@ -415,21 +416,6 @@ Task CCarpetBombardment::Task_Touch() noexcept
 
 	co_await TaskScheduler::NextFrame::Rank[0];
 
-	static constexpr auto BreakModel = [](const Vector &vecOrigin, const Vector &vecScale, const Vector &vecVelocity, float flRandSpeedVar, short iModel, byte iCount, float flLife, byte bitsFlags) noexcept
-	{
-		MsgBroadcast(SVC_TEMPENTITY);
-		WriteData(TE_BREAKMODEL);
-		WriteData(vecOrigin);
-		WriteData(vecScale);
-		WriteData(vecVelocity);
-		WriteData(static_cast<byte>(flRandSpeedVar * 10.f));
-		WriteData(iModel);
-		WriteData(iCount);
-		WriteData(static_cast<byte>(flLife * 10.f));
-		WriteData(bitsFlags);
-		MsgEnd();
-	};
-
 	auto const qRotation = Quaternion::Rotate(Vector(0, 0, 1), tr.vecPlaneNormal);
 
 	array const rgvecVelocitys =
@@ -443,7 +429,7 @@ Task CCarpetBombardment::Task_Touch() noexcept
 	{
 		auto const flScale = UTIL_Random(0.65f, 1.f);
 
-		BreakModel(
+		UTIL_BreakModel(
 			tr.vecEndPos, Vector(flScale, flScale, flScale), vecVelocity * UTIL_Random(300.f, 500.f),
 			UTIL_Random(0.8f, 2.f),
 			Models::m_rgLibrary[Models::GIBS_WALL_BROWN],
@@ -489,6 +475,147 @@ CCarpetBombardment *CCarpetBombardment::Create(CBasePlayer *pPlayer, Vector cons
 
 	pPrefab->m_pPlayer = pPlayer;
 	pPrefab->m_pCorrespondingBeacon = pBeacon;
+	pPrefab->Spawn();
+	pPrefab->pev->nextthink = 0.1f;
+
+	return pPrefab;
+}
+
+//
+// CBullet
+//
+
+Task CBullet::Task_Touch() noexcept
+{
+	TraceResult tr{};
+	g_engfuncs.pfnTraceLine(m_vecLastTraceSrc, pev->origin + pev->velocity, dont_ignore_monsters, edict(), &tr);
+
+	if (tr.pHit && tr.pHit->v.solid == SOLID_BSP)
+		UTIL_Decal(tr.pHit, tr.vecEndPos, UTIL_GetRandomOne(Decal::GUNSHOT).m_Index);
+
+	if (tr.pHit && tr.pHit->v.takedamage != DAMAGE_NO)
+	{
+		EHANDLE<CBaseEntity> pVictim = tr.pHit;
+
+		g_pfnClearMultiDamage();
+		pVictim->TraceAttack(m_pShooter->pev, 100.f, pev->velocity.Normalize(), &tr, DMG_BULLET);
+		g_pfnApplyMultiDamage(pev, m_pShooter->pev);
+
+		pev->flags |= FL_KILLME;
+		co_return;
+	}
+
+	Vector vecAngles{};
+	g_engfuncs.pfnVecToAngles(tr.vecPlaneNormal, vecAngles);
+	vecAngles.x += 270.f;	// it seems like all MDL requires a += 270 shift.
+
+	Prefab_t::Create<CSpark>(tr.vecEndPos, vecAngles);
+	Prefab_t::Create<CGunshotSmoke>(tr);
+
+	co_await TaskScheduler::NextFrame::Rank[1];
+
+	auto const flScale = UTIL_Random(0.05f, 0.075f);
+	UTIL_BreakModel(
+		tr.vecEndPos, Vector(flScale, flScale, flScale), tr.vecPlaneNormal * UTIL_Random(75, 100),
+		UTIL_Random(0.8f, 1.2f),
+		Models::m_rgLibrary[Models::GIBS_WALL_BROWN],
+		UTIL_Random(4, 12),
+		UTIL_Random(8.f, 12.f),
+		0x40
+	);
+
+	MsgBroadcast(SVC_TEMPENTITY);
+	WriteData(TE_GUNSHOT);
+	WriteData(tr.vecEndPos);
+	MsgEnd();
+
+	pev->flags |= FL_KILLME;
+}
+
+Task CBullet::Task_Fly() noexcept
+{
+	TraceResult tr{};
+
+	for (;;)
+	{
+		co_await TaskScheduler::NextFrame::Rank[0];
+
+		for (auto &&pEdict :
+			std::views::iota(1, gpGlobals->maxClients) |
+			std::views::transform([](int idx) noexcept { return g_engfuncs.pfnPEntityOfEntIndex(idx); }) |
+			std::views::filter([](edict_t *pEdict) noexcept { return pEdict != nullptr && pEdict->pvPrivateData != nullptr; }) |
+
+			// Only player who is alive.
+			std::views::filter([](edict_t *pEdict) noexcept { return pEdict->v.deadflag == DEAD_NO && pEdict->v.takedamage != DAMAGE_NO; }) |
+
+			// Too far from us.
+			std::views::filter([&](edict_t *pEdict) noexcept { return (pEdict->v.origin - pev->origin).LengthSquared() < (WHIZZ_RADIUS * WHIZZ_RADIUS); }) |
+
+			// Can't be the one who shoots the bullet.
+			std::views::filter([&](edict_t *pEdict) noexcept { return pEdict != pev->owner; })
+			)
+		{
+			g_engfuncs.pfnClientCommand(pEdict, "spk %s\n", UTIL_GetRandomOne(Sounds::WHIZZ));
+		}
+
+		g_engfuncs.pfnTraceLine(m_vecLastTraceSrc, pev->origin, dont_ignore_monsters, edict(), &tr);
+
+		if (tr.pHit && tr.pHit->v.takedamage != DAMAGE_NO)
+		{
+			EHANDLE<CBaseEntity> pVictim = tr.pHit;
+
+			g_pfnClearMultiDamage();
+			pVictim->TraceAttack(m_pShooter->pev, 100.f, pev->velocity.Normalize(), &tr, DMG_BULLET);
+			g_pfnApplyMultiDamage(pev, m_pShooter->pev);
+		}
+
+		m_vecLastTraceSrc = pev->origin;
+	}
+}
+
+void CBullet::Spawn() noexcept
+{
+	pev->solid = SOLID_TRIGGER;
+	pev->movetype = MOVETYPE_FLY;
+	pev->gravity = 0;
+
+	g_engfuncs.pfnSetModel(edict(), "models/rshell.mdl");
+	g_engfuncs.pfnSetOrigin(edict(), pev->origin);
+	g_engfuncs.pfnSetSize(edict(), Vector(-0.1, -0.1, -0.1), Vector(0.1, 0.1, 0.1));
+
+	MsgBroadcast(SVC_TEMPENTITY);
+	WriteData(TE_BEAMFOLLOW);
+	WriteData(entindex());
+	WriteData(Sprites::m_rgLibrary[Sprites::TRAIL]);
+	WriteData((byte)1);
+	WriteData((byte)1);
+	WriteData((byte)255);
+	WriteData((byte)200);
+	WriteData((byte)120);
+	WriteData((byte)UTIL_Random(192, 255));
+	MsgEnd();
+
+	m_Scheduler.Enroll(Task_Fly());
+}
+
+void CBullet::Touch(CBaseEntity *pOther) noexcept
+{
+	pev->movetype = MOVETYPE_NONE;
+	pev->solid = SOLID_NOT;
+
+	m_Scheduler.Enroll(Task_Touch());
+}
+
+CBullet *CBullet::Create(Vector const &vecOrigin, Vector const &vecVelocity, CBasePlayer *pShooter) noexcept
+{
+	auto const [pEdict, pPrefab] = UTIL_CreateNamedPrefab<CBullet>();
+
+	g_engfuncs.pfnVecToAngles(vecVelocity, pEdict->v.angles);
+	pEdict->v.origin = vecOrigin;
+	pEdict->v.velocity = vecVelocity;
+
+	pPrefab->m_pShooter = pShooter;
+	pPrefab->m_vecLastTraceSrc = vecOrigin;
 	pPrefab->Spawn();
 	pPrefab->pev->nextthink = 0.1f;
 

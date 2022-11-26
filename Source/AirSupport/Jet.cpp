@@ -6,6 +6,10 @@ import Resources;
 
 import UtlRandom;
 
+//
+// CJet
+//
+
 Task CJet::Task_BeamAndSound() noexcept
 {
 	//g_engfuncs.pfnEmitSound(pJet.Get(), CHAN_WEAPON, UTIL_GetRandomOne(Sounds::JET), VOL_NORM, ATTN_NONE, 0, UTIL_Random(92, 118));	// #INVESTIGATE
@@ -242,6 +246,93 @@ CJet *CJet::Create(CBasePlayer *pPlayer, CFixedTarget *pTarget, Vector const &ve
 	pPrefab->m_pPlayer = pPlayer;
 	pPrefab->m_pTarget = pTarget;
 	pPrefab->m_AirSupportType = pTarget->m_AirSupportType;
+	pPrefab->Spawn();
+	pPrefab->pev->nextthink = 0.1f;
+
+	return pPrefab;
+}
+
+//
+// CGunship
+//
+
+Task CGunship::Task_Gunship() noexcept
+{
+	for (;;)
+	{
+		if (!m_pTarget || !m_pTarget->m_pTargeting)
+		{
+			co_await 0.1f;
+			continue;
+		}
+
+		//
+		// Aiming something
+		//
+
+		[[unlikely]]
+		if (!m_pTarget->m_pTargeting->IsAlive())
+		{
+			m_pTarget->m_pTargeting = nullptr;
+			co_await 0.1f;
+			continue;
+		}
+
+		// Instead of our own position. This is because of the drifting VFX under this mode.
+		Vector const &vecAimingPos = m_pTarget->m_pTargeting->pev->origin;
+
+		// Is the old sky pos not good anymore?
+		g_engfuncs.pfnTraceLine(vecSkyPos, vecAimingPos, ignore_monsters | ignore_glass, nullptr, &tr);
+
+		if (tr.flFraction < 1 || tr.fAllSolid || tr.fStartSolid)
+		{
+			// Theoratically CFixedTarget should follow the m_pTargeting.
+			g_engfuncs.pfnTraceLine(vecAimingPos, Vector(vecAimingPos.x, vecAimingPos.y, 8192.0), ignore_monsters | ignore_glass, nullptr, &tr);
+
+			if (g_engfuncs.pfnPointContents(tr.vecEndPos) != CONTENTS_SKY)	// This guy runs into shelter.
+			{
+				m_pTarget->m_pTargeting = nullptr;
+				continue;
+			}
+
+			// okay, this skypos is now the new AC-130 location.
+			vecSkyPos = Vector(tr.vecEndPos.x, tr.vecEndPos.y, tr.vecEndPos.z - 1.0);
+
+			// Rest for 1 frame.
+			co_await TaskScheduler::NextFrame::Rank[0];
+		}
+
+		Vector const vecTargetLocation =
+			m_pTarget->m_pTargeting->IsPlayer() ?
+			UTIL_GetHeadPosition(m_pTarget->m_pTargeting.Get()) :
+			m_pTarget->m_pTargeting->Center();
+
+		Prefab_t::Create<CBullet>(
+			vecSkyPos,
+			(vecTargetLocation - vecSkyPos).Normalize() * CBullet::AC130_BULLET_SPEED,
+			m_pPlayer
+		);
+
+		co_await 0.2f;	// firerate.
+	}
+}
+
+void CGunship::Spawn() noexcept
+{
+	pev->solid = SOLID_NOT;
+	pev->movetype = MOVETYPE_NONE;
+	pev->gravity = 0;
+	pev->effects = EF_NODRAW;
+}
+
+CGunship *CGunship::Create(CBasePlayer *pPlayer, CFixedTarget *pTarget, Vector const &vecOrigin) noexcept
+{
+	auto const [pEdict, pPrefab] = UTIL_CreateNamedPrefab<CGunship>();
+
+	pEdict->v.origin = vecOrigin;
+
+	pPrefab->m_pPlayer = pPlayer;
+	pPrefab->m_pTarget = pTarget;
 	pPrefab->Spawn();
 	pPrefab->pev->nextthink = 0.1f;
 

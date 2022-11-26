@@ -45,7 +45,11 @@ export struct CDynamicTarget : public Prefab_t
 export struct CFixedTarget : public Prefab_t
 {
 	static inline constexpr char CLASSNAME[] = "info_fixed_target";
+	static inline constexpr auto TIMEOUT_TASK_KEY = 64396365ul;
+	static inline constexpr auto GUNSHIP_NEXT_TARGET_RADIUS = 500.0;
 
+	Task Task_BeaconFx() noexcept;
+	Task Task_Gunship() noexcept;
 	Task Task_PrepareJetSpawn() noexcept;
 	Task Task_RecruitJet() noexcept;
 	Task Task_TimeOut() noexcept;

@@ -21,3 +21,17 @@ export struct CJet : public Prefab_t
 	EHANDLE<CFixedTarget> m_pTarget{ nullptr };
 	EAirSupportTypes m_AirSupportType{ AIR_STRIKE };
 };
+
+export struct CGunship : public Prefab_t
+{
+	static inline constexpr char CLASSNAME[] = "gunship";
+
+	Task Task_Gunship() noexcept;
+
+	void Spawn() noexcept override;
+
+	static CGunship *Create(CBasePlayer *pPlayer, CFixedTarget *pTarget, Vector const &vecOrigin) noexcept;
+
+	CBasePlayer *m_pPlayer{};
+	EHANDLE<CFixedTarget> m_pTarget{};
+};

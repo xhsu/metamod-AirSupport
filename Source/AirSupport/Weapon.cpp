@@ -18,6 +18,8 @@ import UtlRandom;
 
 using std::array;
 
+import Effects;
+
 enum EWeaponState
 {
 	WPNSTATE_USP_SILENCED = (1 << 0),
@@ -158,6 +160,16 @@ void __fastcall HamF_Item_PostFrame(CBasePlayerItem *pItem, int) noexcept
 		);
 
 		pThis->m_pPlayer->m_iMenu = EMenu::Menu_AirSupport;
+	}
+	else if (pThis->m_pPlayer->m_afButtonPressed & IN_USE) [[unlikely]]
+	{
+		g_engfuncs.pfnMakeVectors(pThis->m_pPlayer->pev->v_angle);
+
+		Prefab_t::Create<CBullet>(
+			pThis->m_pPlayer->GetGunPosition() + gpGlobals->v_forward * 64.0,
+			gpGlobals->v_forward * 2048,
+			pThis->m_pPlayer
+		);
 	}
 }
 

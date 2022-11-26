@@ -19,6 +19,8 @@ void Precache(void) noexcept
 
 	Models::m_rgLibrary[Models::TARGET] = g_engfuncs.pfnPrecacheModel(Models::TARGET);
 
+	Models::m_rgLibrary[Models::SPARK] = g_engfuncs.pfnPrecacheModel(Models::SPARK);
+
 	// Sounds
 
 	for (auto &&psz : Sounds::RADIO)
@@ -58,6 +60,7 @@ void Precache(void) noexcept
 	Sprites::m_rgLibrary[Sprites::MINOR_EXPLO] = g_engfuncs.pfnPrecacheModel(Sprites::MINOR_EXPLO);
 	Sprites::m_rgLibrary[Sprites::AIRBURST] = g_engfuncs.pfnPrecacheModel(Sprites::AIRBURST);
 	Sprites::m_rgLibrary[Sprites::CARPET_FRAGMENT_EXPLO] = g_engfuncs.pfnPrecacheModel(Sprites::CARPET_FRAGMENT_EXPLO);
+	Sprites::m_rgLibrary[Sprites::SHOCKWAVE] = g_engfuncs.pfnPrecacheModel(Sprites::SHOCKWAVE);
 
 	Sprites::m_rgLibrary[Sprites::BEAM] = g_engfuncs.pfnPrecacheModel(Sprites::BEAM);
 	//Sprite::m_rgLibrary[Sprite::AIM] = g_engfuncs.pfnPrecacheModel(Sprite::AIM);

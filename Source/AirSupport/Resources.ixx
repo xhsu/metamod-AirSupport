@@ -39,6 +39,8 @@ export namespace Models
 
 	inline constexpr char TARGET[] = "models/AirSupport/Test_001.mdl";
 
+	inline constexpr char SPARK[] = "models/AirSupport/m_flash1.mdl";
+
 	inline unordered_map<string, short> m_rgLibrary{};
 
 	namespace v_radio
@@ -85,7 +87,7 @@ export namespace Sounds
 	inline constexpr char REJECTING[] = "airsupport/radio/radio_negative.wav";
 	inline constexpr char NOISE[] = "weapons/RADIO/radio_use.wav";
 
-	inline constexpr char TRAVEL[] = "weapons/law_travel.wav";
+	inline constexpr char TRAVEL[] = "weapons/missile_travel_06.wav";
 
 	inline constexpr char AMBIENT_FIRE[] = "ambience/fire_loop_1.wav";
 
@@ -142,6 +144,7 @@ export namespace Sprites
 	inline constexpr char MINOR_EXPLO[] = "sprites/zerog-frag1.spr";
 	inline constexpr char AIRBURST[] = "sprites/fexplo1.spr";
 	inline constexpr char CARPET_FRAGMENT_EXPLO[] = "sprites/m79grenadeex.spr";
+	inline constexpr char SHOCKWAVE[] = "sprites/shockwave.spr";
 
 	inline constexpr char BEAM[] = "sprites/laserbeam.spr";
 	inline constexpr char AIM[] = "sprites/targetsign.spr";

@@ -226,21 +226,6 @@ Task VisualEffects(const Vector vecOrigin, float const flRadius) noexcept	// The
 	if (g_engfuncs.pfnPointContents(vecOrigin) == CONTENTS_WATER)
 		co_return;
 
-	static constexpr auto BreakModel = [](const Vector &vecOrigin, const Vector &vecScale, const Vector &vecVelocity, float flRandSpeedVar, short iModel, byte iCount, float flLife, byte bitsFlags) noexcept
-	{
-		MsgBroadcast(SVC_TEMPENTITY);
-		WriteData(TE_BREAKMODEL);
-		WriteData(vecOrigin);
-		WriteData(vecScale);
-		WriteData(vecVelocity);
-		WriteData(static_cast<byte>(flRandSpeedVar * 10.f));
-		WriteData(iModel);
-		WriteData(iCount);
-		WriteData(static_cast<byte>(flLife * 10.f));
-		WriteData(bitsFlags);
-		MsgEnd();
-	};
-
 	auto const qRotation = Quaternion::Rotate(Vector(0, 0, 1), tr.vecPlaneNormal);
 
 	array const rgvecVelocitys =
@@ -259,7 +244,7 @@ Task VisualEffects(const Vector vecOrigin, float const flRadius) noexcept	// The
 	{
 		auto const flScale = UTIL_Random(0.65f, 1.f);
 
-		BreakModel(
+		UTIL_BreakModel(
 			vecOrigin, Vector(flScale, flScale, flScale), vecVelocity * UTIL_Random(300.f, 500.f),
 			UTIL_Random(0.8f, 2.f),
 			Models::m_rgLibrary[Models::GIBS_WALL_BROWN],
