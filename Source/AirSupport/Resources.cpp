@@ -13,8 +13,8 @@ void Precache(void) noexcept
 	Models::m_rgLibrary[Models::V_RADIO] = g_engfuncs.pfnPrecacheModel(Models::V_RADIO);
 	Models::m_rgLibrary[Models::P_RADIO] = g_engfuncs.pfnPrecacheModel(Models::P_RADIO);
 
-	Models::m_rgLibrary[Models::GIBS_BRICK] = g_engfuncs.pfnPrecacheModel(Models::GIBS_BRICK);
-	Models::m_rgLibrary[Models::GIBS_WALL_BROWN] = g_engfuncs.pfnPrecacheModel(Models::GIBS_WALL_BROWN);
+	Models::m_rgLibrary[Models::GIBS_CONCRETE] = g_engfuncs.pfnPrecacheModel(Models::GIBS_CONCRETE);
+	Models::m_rgLibrary[Models::GIBS_METAL] = g_engfuncs.pfnPrecacheModel(Models::GIBS_METAL);
 	Models::m_rgLibrary[Models::GIBS_WOOD] = g_engfuncs.pfnPrecacheModel(Models::GIBS_WOOD);
 
 	Models::m_rgLibrary[Models::TARGET] = g_engfuncs.pfnPrecacheModel(Models::TARGET);

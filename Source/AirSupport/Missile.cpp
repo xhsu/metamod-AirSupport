@@ -236,6 +236,14 @@ Task CClusterBomb::Task_ClusterBomb() noexcept
 		Prefab_t::Create<CDebris>(pev->origin);
 	}
 
+	UTIL_ExplodeModel(
+		pev->origin,
+		UTIL_Random(-300.f, 300.f),
+		Models::m_rgLibrary[Models::GIBS_METAL],
+		UTIL_Random(16, 24),
+		UTIL_Random(8.f, 12.f)
+	);
+
 	co_await TaskScheduler::NextFrame::Rank[0];
 
 	RangeDamage(m_pPlayer, pev->origin, 180.f, 100.f);
@@ -432,7 +440,7 @@ Task CCarpetBombardment::Task_Touch() noexcept
 		UTIL_BreakModel(
 			tr.vecEndPos, Vector(flScale, flScale, flScale), vecVelocity * UTIL_Random(300.f, 500.f),
 			UTIL_Random(0.8f, 2.f),
-			Models::m_rgLibrary[Models::GIBS_WALL_BROWN],
+			Models::m_rgLibrary[Models::GIBS_CONCRETE],
 			UTIL_Random(4, 12),
 			UTIL_Random(8.f, 20.f),
 			0x40
@@ -518,7 +526,7 @@ Task CBullet::Task_Touch() noexcept
 	UTIL_BreakModel(
 		tr.vecEndPos, Vector(flScale, flScale, flScale), tr.vecPlaneNormal * UTIL_Random(75, 100),
 		UTIL_Random(0.8f, 1.2f),
-		Models::m_rgLibrary[Models::GIBS_WALL_BROWN],
+		Models::m_rgLibrary[Models::GIBS_CONCRETE],
 		UTIL_Random(4, 12),
 		UTIL_Random(8.f, 12.f),
 		0x40

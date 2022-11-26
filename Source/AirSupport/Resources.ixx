@@ -33,9 +33,9 @@ export namespace Models
 	inline constexpr char V_RADIO[] = "models/AirSupport/v_radio.mdl";
 	inline constexpr char P_RADIO[] = "models/AirSupport/p_radio.mdl";
 
-	inline constexpr char GIBS_WALL_BROWN[] = "models/gibs_wallbrown.mdl";
+	inline constexpr char GIBS_CONCRETE[] = "models/gibs_wallbrown.mdl";
+	inline constexpr char GIBS_METAL[] = "models/gibs_stairsmetal.mdl";
 	inline constexpr char GIBS_WOOD[] = "models/gibs_woodplank.mdl";
-	inline constexpr char GIBS_BRICK[] = "models/gibs_brickred.mdl";
 
 	inline constexpr char TARGET[] = "models/AirSupport/Test_001.mdl";
 

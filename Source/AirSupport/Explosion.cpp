@@ -247,7 +247,7 @@ Task VisualEffects(const Vector vecOrigin, float const flRadius) noexcept	// The
 		UTIL_BreakModel(
 			vecOrigin, Vector(flScale, flScale, flScale), vecVelocity * UTIL_Random(300.f, 500.f),
 			UTIL_Random(0.8f, 2.f),
-			Models::m_rgLibrary[Models::GIBS_WALL_BROWN],
+			Models::m_rgLibrary[Models::GIBS_CONCRETE],
 			UTIL_Random(4, 12),
 			UTIL_Random(8.f, 20.f),
 			0x40

@@ -165,7 +165,7 @@ void __fastcall HamF_Item_PostFrame(CBasePlayerItem *pItem, int) noexcept
 	{
 		g_engfuncs.pfnMakeVectors(pThis->m_pPlayer->pev->v_angle);
 
-		UTIL_ExplodeModel(pThis->m_pPlayer->GetGunPosition() + gpGlobals->v_forward * 256, UTIL_Random() ? -200.f : 200.f, Models::m_rgLibrary[Models::GIBS_WALL_BROWN], 5, 3.f);
+		UTIL_ExplodeModel(pThis->m_pPlayer->GetGunPosition() + gpGlobals->v_forward * 256, UTIL_Random() ? -200.f : 200.f, Models::m_rgLibrary[Models::GIBS_CONCRETE], 5, 3.f);
 	}
 }
 
