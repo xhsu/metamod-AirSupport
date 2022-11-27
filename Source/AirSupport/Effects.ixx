@@ -129,8 +129,9 @@ export struct CDebris : public Prefab_t
 export struct CSparkMdl : public Prefab_t
 {
 	static inline constexpr char CLASSNAME[] = "3d_spark_of_gunshot";
+	static inline constexpr auto HOLD_TIME = 0.07f;
 
-	Task Task_FadeOut() noexcept;
+	Task Task_Remove() noexcept;
 
 	void Spawn() noexcept override;
 };
@@ -169,7 +170,7 @@ export struct CSparkSpr : public Prefab_t
 {
 	static inline constexpr char CLASSNAME[] = "env_spark_spr";
 	static inline constexpr auto MAX_FRAME = 4;
-	static inline constexpr auto HOLD_TIME = 0.1f;
+	static inline constexpr auto HOLD_TIME = 0.07f;
 
 	Task Task_Remove() noexcept;
 

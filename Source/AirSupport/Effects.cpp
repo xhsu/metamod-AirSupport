@@ -517,12 +517,9 @@ void CDebris::Touch(CBaseEntity *pOther) noexcept
 // CSpark
 //
 
-Task CSparkMdl::Task_FadeOut() noexcept
+Task CSparkMdl::Task_Remove() noexcept
 {
-	for (; pev->renderamt > 0; pev->renderamt -= 10.f)
-	{
-		co_await TaskScheduler::NextFrame::Rank[0];
-	}
+	co_await HOLD_TIME;
 
 	pev->flags |= FL_KILLME;
 }
@@ -541,7 +538,7 @@ void CSparkMdl::Spawn() noexcept
 	g_engfuncs.pfnSetOrigin(edict(), pev->origin);
 	g_engfuncs.pfnSetSize(edict(), Vector::Zero(), Vector::Zero());
 
-	m_Scheduler.Enroll(Task_FadeOut());
+	m_Scheduler.Enroll(Task_Remove());
 }
 
 //
@@ -594,7 +591,7 @@ void CGunshotSmoke::Spawn() noexcept
 
 	pev->rendermode = kRenderTransAlpha;
 	pev->renderamt = UTIL_Random(128.f, 192.f);	// Alpha?
-	pev->rendercolor = Vector(flLightness, flLightness, flLightness);	// Color. Cannot be 0x000000
+	pev->rendercolor = Vector(0xD1, 0xC5, 0x9F);	// Color. Cannot be 0x000000
 	pev->frame = 0;
 
 	pev->solid = SOLID_NOT;
@@ -720,4 +717,3 @@ void CSparkSpr::Spawn() noexcept
 
 	m_Scheduler.Enroll(Task_Remove());
 }
-

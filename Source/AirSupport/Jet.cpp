@@ -333,14 +333,21 @@ Task CGunship::Task_Gunship() noexcept
 			pEnemy->IsPlayer() ?
 			UTIL_GetHeadPosition(pEnemy.Get()) : pEnemy->Center();	// Sometimes aiming the head is not a good option - the bullet needs to fly to there and it's very likely to miss it.
 
-		// This is not the exact time. The exact time must be calced by (origin + vel * t), but the t is what we required here.
-		auto const flEstimateTime = (vecTargetLocation - pev->origin).Length() / CBullet::AC130_BULLET_SPEED;
+		Vector const vecDir = (vecTargetLocation + pEnemy->pev->velocity * CBullet::AC130_BULLET_EXPECTED_TRAVEL_TIME) - pev->origin;
+
+		/* This is not the exact time. The exact time must be calced by (origin + vel * t), but the t is what we required here. */
+		//auto const flEstimateTime = (vecTargetLocation - pev->origin).Length() / CBullet::AC130_BULLET_SPEED;
+		auto const flSpeed = vecDir.Length() / CBullet::AC130_BULLET_EXPECTED_TRAVEL_TIME;
 
 		Prefab_t::Create<CBullet>(
 			pev->origin,
-			((vecTargetLocation + pEnemy->pev->velocity * flEstimateTime) - pev->origin).Normalize() * CBullet::AC130_BULLET_SPEED,	// with position prediction
+			/* with position prediction */
+			//((vecTargetLocation + pEnemy->pev->velocity * flEstimateTime) - pev->origin).Normalize() * CBullet::AC130_BULLET_SPEED,
+			vecDir.Normalize() * flSpeed,
 			m_pPlayer
 		);
+
+		//gmsgTextMsg::Send(m_pPlayer->edict(), 3, std::format("{}", flSpeed).c_str());
 
 		g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, UTIL_GetRandomOne(Sounds::Gunship::AC130_FIRE_25MM), VOL_NORM, ATTN_NONE, 0, UTIL_Random(92, 116));
 		co_await 0.2f;	// firerate.

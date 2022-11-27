@@ -88,7 +88,7 @@ export namespace Sounds
 	inline constexpr char REJECTING[] = "airsupport/radio/radio_negative.wav";
 	inline constexpr char NOISE[] = "weapons/RADIO/radio_use.wav";
 
-	inline constexpr char TRAVEL[] = "weapons/missile_travel_06.wav";
+	inline constexpr char TRAVEL[] = "weapons/missile_travel_07.wav";
 
 	inline constexpr char AMBIENT_FIRE[] = "ambience/fire_loop_1.wav";
 

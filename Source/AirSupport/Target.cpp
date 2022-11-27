@@ -605,7 +605,7 @@ Task CDynamicTarget::Task_QuickEval_Gunship() noexcept
 		{
 			// Reselect target.
 
-			if (m_pTargeting != pFixedTarget->m_pTargeting)
+			if (m_pTargeting != pFixedTarget->m_pTargeting && m_pTargeting->IsAlive() && m_pTargeting->pev->takedamage != DAMAGE_NO)
 			{
 				if (flLastAttackingVoice < gpGlobals->time)
 				{

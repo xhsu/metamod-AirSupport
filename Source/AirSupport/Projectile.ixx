@@ -62,6 +62,7 @@ export struct CBullet : public Prefab_t
 {
 	static inline constexpr char CLASSNAME[] = "gunship_bullet";
 	static inline constexpr double AC130_BULLET_SPEED = 4096;
+	static inline constexpr double AC130_BULLET_EXPECTED_TRAVEL_TIME = 0.12;
 	static inline constexpr double WHIZZ_RADIUS = 2 * 39.37;	// 2 meter.
 
 	Task Task_Touch() noexcept;
