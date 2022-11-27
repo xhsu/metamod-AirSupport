@@ -35,6 +35,7 @@ export namespace Models
 
 	inline constexpr char GIBS_CONCRETE[] = "models/gibs_wallbrown.mdl";
 	inline constexpr char GIBS_METAL[] = "models/gibs_stairsmetal.mdl";
+	inline constexpr char GIBS_RUBBLE[] = "models/gibs_rubble.mdl";
 	inline constexpr char GIBS_WOOD[] = "models/gibs_woodplank.mdl";
 
 	inline constexpr char TARGET[] = "models/AirSupport/Test_001.mdl";
@@ -103,6 +104,16 @@ export namespace Sounds
 		"airsupport/explode/explode_near_4.wav",
 		"airsupport/explode/explode_near_5.wav",
 		"airsupport/explode/explode_near_6.wav",
+		"airsupport/explode/explode_near_7.wav",
+		"airsupport/explode/explode_near_8.wav",
+	};
+
+	inline constexpr array EXPLOSION_SHORT =
+	{
+		"airsupport/explode/m67_detonate_01.wav",
+		"airsupport/explode/m67_detonate_02.wav",
+		"airsupport/explode/m67_detonate_03.wav",
+		"airsupport/explode/m67_detonate_04.wav",
 	};
 
 	inline constexpr array JET =
@@ -128,6 +139,15 @@ export namespace Sounds
 		"misc/whizz3.wav",
 		"misc/whizz4.wav",
 		"misc/whizz5.wav",
+	};
+
+	inline constexpr array BOMBER =
+	{
+		"airsupport/bomber/b1b_01.wav",
+		"airsupport/bomber/b1b_02.wav",
+		"airsupport/bomber/b1b_03.wav",
+		"airsupport/bomber/b1b_04.wav",
+		"airsupport/bomber/b1b_05.wav",
 	};
 
 	namespace Gunship
@@ -172,6 +192,7 @@ export namespace Sounds
 			"airsupport/airgunship/ac130_reloading_02.wav",
 			"airsupport/airgunship/ac130_reloading_03.wav",
 		};
+		inline constexpr char RESELECT_TARGET[] = "airsupport/radio/radio_attacking.wav";
 	}
 
 	namespace Length::Gunship
@@ -192,12 +213,14 @@ export namespace Sprites
 	inline constexpr char SMOKE_2[] = "sprites/wall_puff1.spr";
 	inline constexpr char PERSISTENT_SMOKE[] = "sprites/ballsmoke.spr";
 	inline constexpr char MINOR_EXPLO[] = "sprites/zerog-frag1.spr";
-	inline constexpr char AIRBURST[] = "sprites/fexplo1.spr";
+	inline constexpr char AIRBURST[] = "sprites/exploeffect1.spr";
 	inline constexpr char CARPET_FRAGMENT_EXPLO[] = "sprites/m79grenadeex.spr";
 	inline constexpr char SHOCKWAVE[] = "sprites/shockwave.spr";
+	inline constexpr char SPARK[] = "sprites/metal_sparks1.spr";
+	inline constexpr char LIFTED_DUST[] = "sprites/smoke_loop.spr";
+	inline constexpr char GROUNDED_DUST[] = "sprites/bettyspr2.spr";
 
 	inline constexpr char BEAM[] = "sprites/laserbeam.spr";
-	inline constexpr char AIM[] = "sprites/targetsign.spr";
 
 	inline constexpr char TRAIL[] = "sprites/smoke.spr";
 

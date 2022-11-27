@@ -12,12 +12,13 @@ import Beam;
 import Effects;
 import Jet;
 import Localization;
-import Missile;
+import Projectile;
 import Resources;
 import Round;
 import Target;
 import Waypoint;
 import Weapon;
+import Math;
 
 import UtlRandom;
 
@@ -207,7 +208,7 @@ Task CDynamicTarget::Task_QuickEval_AirStrike() noexcept
 
 		Vector const vecSrc = m_pPlayer->GetGunPosition();
 		Vector const vecEnd = vecSrc + gpGlobals->v_forward * 4096.f;
-		UTIL_TraceLine(vecSrc, vecEnd, m_pPlayer->edict(), m_pPlayer->m_iTeam == TEAM_CT ? g_rgpCTs : g_rgpTers, &tr);	// Special traceline skipping all teammates.
+		UTIL_TraceLine(vecSrc, vecEnd, m_pPlayer->edict(), m_pPlayer->m_iTeam == TEAM_CT ? g_rgpPlayersOfCT : g_rgpPlayersOfTerrorist, &tr);	// Special traceline skipping all teammates.
 
 		if (g_engfuncs.pfnPointContents(tr.vecEndPos) == CONTENTS_SKY)
 		{
@@ -504,6 +505,124 @@ Task CDynamicTarget::Task_QuickEval_CarpetBombardment() noexcept
 	}
 }
 
+Task CDynamicTarget::Task_QuickEval_Gunship() noexcept
+{
+	TraceResult tr{};
+	EHANDLE<CFixedTarget> pFixedTarget{};
+	float flLastAttackingVoice{};
+
+	// We have no variable storing CFixedTarget. Have to search like this.
+	for (auto &&pEntity :
+		FIND_ENTITY_BY_CLASSNAME(CFixedTarget::CLASSNAME) |
+		std::views::transform([](edict_t *pEdict) noexcept { return (CFixedTarget *)pEdict->pvPrivateData; }) |
+		std::views::filter([&](CFixedTarget *pEntity) noexcept { return pEntity->m_pPlayer == m_pPlayer && pEntity->m_AirSupportType == GUNSHIP_STRIKE; })
+		)
+	{
+		pFixedTarget = pEntity;
+		break;	// Only one instance can exist globally.
+	}
+
+	for (;;)
+	{
+		if (m_pPlayer->m_pActiveItem != m_pRadio || m_pRadio->pev->weapons != RADIO_KEY)
+		{
+			co_await Models::v_radio::time::draw;	// the model will be hidden for this long, at least.
+			continue;
+		}
+
+		co_await TaskScheduler::NextFrame::Rank[0];
+
+		// Update team info so we can hide from proper player group.
+
+		pev->team = m_pPlayer->m_iTeam;
+
+		if (m_pPlayer->pev->effects & EF_DIMLIGHT)	// The lit state will follow player flashlight
+			pev->effects |= EF_DIMLIGHT;
+		else
+			pev->effects &= ~EF_DIMLIGHT;
+
+		// Calc where does player aiming
+
+		g_engfuncs.pfnMakeVectors(m_pPlayer->pev->v_angle);
+
+		Vector const vecSrc = m_pPlayer->GetGunPosition();
+		Vector const vecEnd = vecSrc + gpGlobals->v_forward * 4096.f;
+		UTIL_TraceLine(vecSrc, vecEnd, m_pPlayer->edict(), m_pPlayer->m_iTeam == TEAM_CT ? g_rgpPlayersOfCT : g_rgpPlayersOfTerrorist, &tr);	// Special traceline skipping all teammates.
+
+		if (g_engfuncs.pfnPointContents(tr.vecEndPos) == CONTENTS_SKY)
+		{
+			// One cannot ask air support to 'hit the sky'
+
+			m_Scheduler.Delist(DETAIL_ANALYZE_KEY);	// Stop evaluation now.
+			m_pTargeting = nullptr;
+
+			pev->skin = Models::targetmdl::SKIN_RED;
+			continue;	// there's no set origin.
+		}
+
+		if (pev_valid(tr.pHit) != 2 && m_flLastValidTracking < gpGlobals->time - 0.5f)	// Snapping: compensenting bad aiming
+			m_pTargeting = tr.pHit;
+		else if (pev_valid(tr.pHit) == 2)
+		{
+			m_pTargeting = tr.pHit;
+			m_flLastValidTracking = gpGlobals->time;
+		}
+
+		if (m_pTargeting && !m_pTargeting->IsBSPModel() && m_pTargeting->IsAlive())
+		{
+			pev->angles = Vector::Zero();	// facing up.
+
+			Vector const vecCenter = m_pTargeting->Center();
+			g_engfuncs.pfnSetOrigin(edict(), Vector(vecCenter.x, vecCenter.y, m_pTargeting->pev->absmin.z + 1.0));	// snap to target.
+		}
+		else
+		{
+			g_engfuncs.pfnVecToAngles(tr.vecPlaneNormal, pev->angles);
+			pev->angles.x += 270.f;	// don't know why, but this is the deal.
+
+			g_engfuncs.pfnSetOrigin(edict(), tr.vecEndPos);
+		}
+
+		// Quick Evaluation (color determination)
+
+		g_engfuncs.pfnTraceLine(
+			pev->origin,
+			Vector(pev->origin.x, pev->origin.y, 8192),
+			ignore_monsters | ignore_glass,
+			nullptr, &tr
+		);
+
+		// Is it under sky?
+		bool const bUnderSky = g_engfuncs.pfnPointContents(tr.vecEndPos) == CONTENTS_SKY;
+
+		// It's purely depend on whether the target is under sky.
+		// Hence no deep analysis required.
+		pev->skin =
+			(bUnderSky && !CGunship::s_bInstanceExists) ?
+			Models::targetmdl::SKIN_GREEN : Models::targetmdl::SKIN_RED;
+
+		if (bUnderSky && pFixedTarget && m_pTargeting)
+		{
+			// Reselect target.
+
+			if (m_pTargeting != pFixedTarget->m_pTargeting)
+			{
+				if (flLastAttackingVoice < gpGlobals->time)
+				{
+					flLastAttackingVoice = gpGlobals->time + 1.f;
+					g_engfuncs.pfnEmitSound(m_pRadio.Get(), CHAN_STATIC, Sounds::Gunship::RESELECT_TARGET, VOL_NORM, ATTN_STATIC, 0, PITCH_NORM);
+					gmsgTextMsg::Send(m_pPlayer->edict(), 4, Localization::GUNSHIP_RESELECT_TARGET);
+				}
+
+				pFixedTarget->m_pTargeting = m_pTargeting;
+				pev->effects |= EF_NODRAW;
+			}
+		}
+		else
+			pev->effects &= ~EF_NODRAW;
+	}
+}
+
 Task CDynamicTarget::Task_Remove() noexcept
 {
 	for (;;)
@@ -533,25 +652,29 @@ void CDynamicTarget::UpdateEvalMethod() noexcept
 		pBeam = nullptr;
 	}
 
+	pev->body = g_rgiAirSupportSelected[m_pPlayer->entindex()];
+
 	switch (g_rgiAirSupportSelected[m_pPlayer->entindex()])
 	{
 	default:
 	case AIR_STRIKE:
 		g_engfuncs.pfnSetSize(edict(), Vector::Zero(), Vector::Zero());
 		m_Scheduler.Enroll(Task_QuickEval_AirStrike(), QUICK_ANALYZE_KEY);
-		pev->body = 1;
 		break;
 
 	case CLUSTER_BOMB:
 		g_engfuncs.pfnSetSize(edict(), Vector::Zero(), Vector::Zero());
 		m_Scheduler.Enroll(Task_QuickEval_ClusterBomb(), QUICK_ANALYZE_KEY);
-		pev->body = 4;
 		break;
 
 	case CARPET_BOMBARDMENT:
 		g_engfuncs.pfnSetSize(edict(), Vector(-32, -32, 0), Vector(32, 32, 72));
 		m_Scheduler.Enroll(Task_QuickEval_CarpetBombardment(), QUICK_ANALYZE_KEY);
-		pev->body = 2;
+		break;
+
+	case GUNSHIP_STRIKE:
+		g_engfuncs.pfnSetSize(edict(), Vector::Zero(), Vector::Zero());
+		m_Scheduler.Enroll(Task_QuickEval_Gunship(), QUICK_ANALYZE_KEY);
 		break;
 	}
 }
@@ -835,9 +958,18 @@ Task CFixedTarget::Task_RecruitJet() noexcept
 
 Task CFixedTarget::Task_TimeOut() noexcept
 {
-	co_await 10.f;
+	switch (m_AirSupportType)
+	{
+	case GUNSHIP_STRIKE:
+		co_await 15.f;
+		gmsgTextMsg::Send(m_pPlayer->edict(), (byte)4, Localization::GUNSHIP_DESPAWNING);
+		break;
 
-	gmsgTextMsg::FreeBegin<MSG_ONE>(Vector::Zero(), m_pPlayer->edict(), (byte)4, Localization::REJECT_TIME_OUT);
+	default:
+		co_await 10.f;
+		gmsgTextMsg::Send(m_pPlayer->edict(), (byte)4, Localization::REJECT_TIME_OUT);
+		break;
+	}
 
 	pev->flags |= FL_KILLME;
 }

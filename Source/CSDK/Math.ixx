@@ -49,3 +49,39 @@ export inline auto get_cylindrical_coord(double radius, double azimuth, double h
 		height
 	);
 }
+
+export inline auto quat_slerp(Quaternion const &qSrc, Quaternion qDest, double t) noexcept
+{
+	static constexpr double epsilon = 0.0001;
+
+	double p{}, q{};
+
+	auto cosTheta = qSrc.a * qDest.a + qSrc.b * qDest.b + qSrc.c * qDest.c + qSrc.d * qDest.d;
+
+	if (cosTheta < 0.0)
+	{
+		qDest = Quaternion(-qDest.a, -qDest.b, -qDest.c, -qDest.d);
+		cosTheta = -cosTheta;
+	}
+
+	if ((1.0 - abs(cosTheta)) > epsilon)
+	{
+		auto const theta = acos(cosTheta);
+		auto const sinTheta = sin(theta);
+
+		q = sin((1 - t) * theta) / sinTheta;
+		p = sin(t * theta) / sinTheta;
+	}
+	else
+	{
+		q = 1 - t;
+		p = t;
+	}
+
+	return Quaternion(
+		(q * qSrc.a) + (p * qDest.a),
+		(q * qSrc.b) + (p * qDest.b),
+		(q * qSrc.c) + (p * qDest.c),
+		(q * qSrc.d) + (p * qDest.d)
+	);
+}

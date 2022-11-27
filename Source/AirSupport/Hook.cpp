@@ -263,6 +263,24 @@ void fw_ServerActivate_Post(edict_t *pEdictList, int edictCount, int clientMax) 
 	}
 }
 
+void fw_ServerDeactivate_Post(void) noexcept
+{
+	// Precache should be done across on every map change.
+	g_bShouldPrecache = true;
+
+	// CGameRules class is re-install every map change. Hence we should re-hook it everytime.
+	g_pGameRules = nullptr;
+
+	// Remove ALL existing tasks.
+	TaskScheduler::Clear();
+	
+	/************ Regular Re-zero Actions ************/
+
+	g_rgiAirSupportSelected.fill(AIR_STRIKE);
+	g_rgpPlayersOfCT.clear();
+	g_rgpPlayersOfTerrorist.clear();
+}
+
 void fw_PlayerPostThink(edict_t *pEntity) noexcept
 {
 	gpMetaGlobals->mres = MRES_IGNORED;
@@ -534,7 +552,7 @@ inline constexpr DLL_FUNCTIONS gFunctionTable_Post =
 	.pfnClientCommand		= nullptr,
 	.pfnClientUserInfoChanged= nullptr,
 	.pfnServerActivate		= &fw_ServerActivate_Post,
-	.pfnServerDeactivate	= []() noexcept { g_bShouldPrecache = true; g_pGameRules = nullptr; TaskScheduler::Clear(); },
+	.pfnServerDeactivate	= &fw_ServerDeactivate_Post,
 
 	.pfnPlayerPreThink	= nullptr,
 	.pfnPlayerPostThink	= nullptr,

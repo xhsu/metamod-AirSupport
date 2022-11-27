@@ -5,7 +5,7 @@ import util;
 import Effects;
 import GameRules;
 import Jet;
-import Missile;
+import Projectile;
 import Round;
 import Target;
 
@@ -13,7 +13,31 @@ void OrpheuF_CleanUpMap(CHalfLifeMultiplay *pThis) noexcept
 {
 	g_pfnCleanUpMap(pThis);
 
+	for (auto &&pEnt : FIND_ENTITY_BY_CLASSNAME(CBullet::CLASSNAME))
+		pEnt->v.flags |= FL_KILLME;
+
+	for (auto &&pEnt : FIND_ENTITY_BY_CLASSNAME(CCarpetBombardment::CLASSNAME))
+		pEnt->v.flags |= FL_KILLME;
+
+	for (auto &&pEnt : FIND_ENTITY_BY_CLASSNAME(CClusterBomb::CLASSNAME))
+		pEnt->v.flags |= FL_KILLME;
+
+	for (auto &&pEnt : FIND_ENTITY_BY_CLASSNAME(CDebris::CLASSNAME))
+		pEnt->v.flags |= FL_KILLME;
+
+	// CDynamicTarget does not required to be clear up
+
+	// CFieldSmoke does not required to be clear up
+
 	for (auto &&pEnt : FIND_ENTITY_BY_CLASSNAME(CFixedTarget::CLASSNAME))
+		pEnt->v.flags |= FL_KILLME;
+
+	for (auto &&pEnt : FIND_ENTITY_BY_CLASSNAME(CFlame::CLASSNAME))
+		pEnt->v.flags |= FL_KILLME;
+
+	// CGunship does not required to be clear up
+
+	for (auto &&pEnt : FIND_ENTITY_BY_CLASSNAME(CGunshotSmoke::CLASSNAME))
 		pEnt->v.flags |= FL_KILLME;
 
 	for (auto &&pEnt : FIND_ENTITY_BY_CLASSNAME(CJet::CLASSNAME))
@@ -22,16 +46,10 @@ void OrpheuF_CleanUpMap(CHalfLifeMultiplay *pThis) noexcept
 	for (auto &&pEnt : FIND_ENTITY_BY_CLASSNAME(CPrecisionAirStrike::CLASSNAME))
 		pEnt->v.flags |= FL_KILLME;
 
-	for (auto &&pEnt : FIND_ENTITY_BY_CLASSNAME(CFlame::CLASSNAME))
-		pEnt->v.flags |= FL_KILLME;
-
-	for (auto &&pEnt : FIND_ENTITY_BY_CLASSNAME(CFieldSmoke::CLASSNAME))
-		pEnt->v.flags |= FL_KILLME;
-
 	for (auto &&pEnt : FIND_ENTITY_BY_CLASSNAME(CSmoke::CLASSNAME))
 		pEnt->v.flags |= FL_KILLME;
 
-	for (auto &&pEnt : FIND_ENTITY_BY_CLASSNAME(CClusterBomb::CLASSNAME))
+	for (auto &&pEnt : FIND_ENTITY_BY_CLASSNAME(CSparkMdl::CLASSNAME))
 		pEnt->v.flags |= FL_KILLME;
 }
 
@@ -41,8 +59,8 @@ Task Task_UpdateTeams(void) noexcept
 	{
 		co_await 0.1f;
 
-		g_rgpCTs.clear();
-		g_rgpTers.clear();
+		g_rgpPlayersOfCT.clear();
+		g_rgpPlayersOfTerrorist.clear();
 
 		for (auto &&pPlayer :
 			std::views::iota(1, gpGlobals->maxClients) |
@@ -55,11 +73,11 @@ Task Task_UpdateTeams(void) noexcept
 			switch (pPlayer->m_iTeam)
 			{
 			case TEAM_TERRORIST:
-				g_rgpTers.emplace_back(pPlayer->edict());
+				g_rgpPlayersOfTerrorist.emplace_back(pPlayer->edict());
 				break;
 
 			case TEAM_CT:
-				g_rgpCTs.emplace_back(pPlayer->edict());
+				g_rgpPlayersOfCT.emplace_back(pPlayer->edict());
 				break;
 
 			default:

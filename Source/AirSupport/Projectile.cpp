@@ -6,7 +6,7 @@ import <ranges>;
 import Effects;
 import Math;
 import Menu;
-import Missile;
+import Projectile;
 import Resources;
 
 import UtlRandom;
@@ -30,15 +30,6 @@ CPrecisionAirStrike::~CPrecisionAirStrike() noexcept
 	WriteData(TE_KILLBEAM);
 	WriteData(ent_cast<short>(pev));
 	MsgEnd();
-}
-
-Task CPrecisionAirStrike::Task_SFX() noexcept
-{
-	for (;;)
-	{
-		g_engfuncs.pfnEmitSound(edict(), CHAN_WEAPON, Sounds::TRAVEL, VOL_NORM, ATTN_NORM, 0, UTIL_Random(94, 112));
-		co_await 1.f;
-	}
 }
 
 Task CPrecisionAirStrike::Task_Trail() noexcept
@@ -155,7 +146,8 @@ void CPrecisionAirStrike::Spawn() noexcept
 		MsgEnd();
 	}
 
-	m_Scheduler.Enroll(Task_SFX());
+	g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, Sounds::TRAVEL, VOL_NORM, ATTN_NORM, 0, UTIL_Random(94, 112));
+
 	m_Scheduler.Enroll(Task_Trail());
 }
 
@@ -167,7 +159,8 @@ void CPrecisionAirStrike::Touch(CBaseEntity *pOther) noexcept
 		return;
 	}
 
-	g_engfuncs.pfnEmitSound(ent_cast<edict_t *>(pev), CHAN_WEAPON, UTIL_GetRandomOne(Sounds::EXPLOSION), VOL_NORM, 0.3f, 0, UTIL_Random(92, 116));
+	g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, Sounds::TRAVEL, VOL_NORM, ATTN_NORM, SND_STOP, UTIL_Random(94, 112));
+	g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, UTIL_GetRandomOne(Sounds::EXPLOSION), VOL_NORM, 0.3f, 0, UTIL_Random(92, 116));
 
 	Impact(m_pPlayer, this, 500.f);
 	RangeDamage(m_pPlayer, pev->origin, 350.f, 275.f);
@@ -207,7 +200,7 @@ Task CClusterBomb::Task_ClusterBomb() noexcept
 	WriteData(pev->origin);
 	WriteData(Sprites::m_rgLibrary[Sprites::AIRBURST]);
 	WriteData((byte)35);
-	WriteData((byte)24);
+	WriteData((byte)12);
 	WriteData(TE_EXPLFLAG_NONE);
 	MsgEnd();
 
@@ -238,7 +231,7 @@ Task CClusterBomb::Task_ClusterBomb() noexcept
 
 	UTIL_ExplodeModel(
 		pev->origin,
-		UTIL_Random(-300.f, 300.f),
+		UTIL_Random() ? -750.f : 750.f,
 		Models::m_rgLibrary[Models::GIBS_METAL],
 		UTIL_Random(16, 24),
 		UTIL_Random(8.f, 12.f)
@@ -294,7 +287,7 @@ Task CClusterBomb::Task_ClusterBomb() noexcept
 
 		if (iCounter % 3 == 0)
 		{
-			Prefab_t::Create<CSmoke>(vec, Vector(0, 0, UTIL_Random(0.0, 359.9)));
+			Prefab_t::Create<CFloatingDust>(vec, Vector(0, 0, UTIL_Random(0.0, 359.9)));
 		}
 
 		++iCounter;
@@ -391,8 +384,10 @@ Task CCarpetBombardment::Task_Touch() noexcept
 	WriteData(Sprites::m_rgLibrary[Sprites::CARPET_FRAGMENT_EXPLO]);
 	WriteData((byte)UTIL_Random(20, 30));
 	WriteData((byte)12);
-	WriteData(TE_EXPLFLAG_NONE);
+	WriteData(TE_EXPLFLAG_NOSOUND);
 	MsgEnd();
+
+	g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, UTIL_GetRandomOne(Sounds::EXPLOSION_SHORT), VOL_NORM, 0.3f, 0, UTIL_Random(92, 116));
 
 	co_await TaskScheduler::NextFrame::Rank[0];
 
@@ -517,17 +512,17 @@ Task CBullet::Task_Touch() noexcept
 	g_engfuncs.pfnVecToAngles(tr.vecPlaneNormal, vecAngles);
 	vecAngles.x += 270.f;	// it seems like all MDL requires a += 270 shift.
 
-	Prefab_t::Create<CSpark>(tr.vecEndPos, vecAngles);
+	Prefab_t::Create<CSparkMdl>(tr.vecEndPos, vecAngles);
+	Prefab_t::Create<CGroundedDust>(tr.vecEndPos);
 	Prefab_t::Create<CGunshotSmoke>(tr);
 
 	co_await TaskScheduler::NextFrame::Rank[1];
 
-	auto const flScale = UTIL_Random(0.05f, 0.075f);
 	UTIL_BreakModel(
-		tr.vecEndPos, Vector(flScale, flScale, flScale), tr.vecPlaneNormal * UTIL_Random(75, 100),
+		tr.vecEndPos, Vector(1, 1, 1) /* Invalid Arg? */, tr.vecPlaneNormal * UTIL_Random(75, 100),
 		UTIL_Random(0.8f, 1.2f),
 		Models::m_rgLibrary[Models::GIBS_CONCRETE],
-		UTIL_Random(4, 12),
+		UTIL_Random(4, 8),
 		UTIL_Random(8.f, 12.f),
 		0x40
 	);
@@ -536,6 +531,8 @@ Task CBullet::Task_Touch() noexcept
 	WriteData(TE_GUNSHOT);
 	WriteData(tr.vecEndPos);
 	MsgEnd();
+
+	Prefab_t::Create<CSparkSpr>(tr.vecEndPos);
 
 	pev->flags |= FL_KILLME;
 }

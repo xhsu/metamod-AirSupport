@@ -1,7 +1,7 @@
 ﻿import Jet;
 import Menu;
 import Message;
-import Missile;
+import Projectile;
 import Resources;
 
 import UtlRandom;
@@ -12,8 +12,17 @@ import UtlRandom;
 
 Task CJet::Task_BeamAndSound() noexcept
 {
-	//g_engfuncs.pfnEmitSound(pJet.Get(), CHAN_WEAPON, UTIL_GetRandomOne(Sounds::JET), VOL_NORM, ATTN_NONE, 0, UTIL_Random(92, 118));	// #INVESTIGATE
-	g_engfuncs.pfnClientCommand(m_pPlayer->edict(), "spk %s\n", UTIL_GetRandomOne(Sounds::JET));
+	switch (m_AirSupportType)
+	{
+	case CARPET_BOMBARDMENT:
+		g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, Sounds::BOMBER[m_iFlyingSoundIndex], VOL_NORM, ATTN_NONE, 0, UTIL_Random(92, 118));
+		break;
+
+	default:
+		g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, Sounds::JET[m_iFlyingSoundIndex], VOL_NORM, ATTN_NONE, 0, UTIL_Random(92, 118));
+		break;
+	}
+
 	co_await 0.01f;
 
 	for (auto i = 0x1000; i <= 0x4000; i += 0x1000)
@@ -208,14 +217,17 @@ void CJet::Spawn() noexcept
 
 	case AIR_STRIKE:
 		m_Scheduler.Enroll(Task_AirStrike());
+		m_iFlyingSoundIndex = UTIL_Random(0u, Sounds::JET.size() - 1);
 		break;
 
 	case CLUSTER_BOMB:
 		m_Scheduler.Enroll(Task_ClusterBomb());
+		m_iFlyingSoundIndex = UTIL_Random(0u, Sounds::JET.size() - 1);
 		break;
 
 	case CARPET_BOMBARDMENT:
 		m_Scheduler.Enroll(Task_CarpetBombardment());
+		m_iFlyingSoundIndex = UTIL_Random(0u, Sounds::BOMBER.size() - 1);
 		break;
 
 	case GUNSHIP_STRIKE:
@@ -262,10 +274,8 @@ CJet *CJet::Create(CBasePlayer *pPlayer, CFixedTarget *pTarget, Vector const &ve
 
 Task CGunship::Task_Gunship() noexcept
 {
-	EHANDLE<CBasePlayerItem> pRadio = m_pPlayer->m_rgpPlayerItems[3];
-
-	g_engfuncs.pfnEmitSound(pRadio.Get(), CHAN_STATIC, Sounds::Gunship::NOISE_PILOT, VOL_NORM, ATTN_STATIC, 0, PITCH_NORM);
-	g_engfuncs.pfnEmitSound(pRadio.Get(), CHAN_STATIC, Sounds::Gunship::AC130_IS_IN_AIR, VOL_NORM, ATTN_STATIC, 0, UTIL_Random(92, 108));
+	g_engfuncs.pfnEmitSound(m_pPlayer->edict(), CHAN_STATIC, Sounds::Gunship::NOISE_PILOT, VOL_NORM, ATTN_STATIC, 0, PITCH_NORM);
+	g_engfuncs.pfnEmitSound(m_pPlayer->edict(), CHAN_STATIC, Sounds::Gunship::AC130_IS_IN_AIR, VOL_NORM, ATTN_STATIC, 0, UTIL_Random(92, 108));
 	g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, Sounds::Gunship::AC130_AMBIENT[m_iAmbientSoundIndex], VOL_NORM, ATTN_NONE, 0, UTIL_Random(92, 108));
 
 	co_await TaskScheduler::NextFrame::Rank[1];
@@ -288,16 +298,10 @@ Task CGunship::Task_Gunship() noexcept
 
 		if (!pEnemy->IsAlive())
 		{
-			g_engfuncs.pfnEmitSound(pRadio.Get(), CHAN_STATIC, UTIL_GetRandomOne(Sounds::Gunship::KILL_CONFIRMED), VOL_NORM, ATTN_STATIC, 0, UTIL_Random(92, 108));
+			g_engfuncs.pfnEmitSound(m_pPlayer->edict(), CHAN_STATIC, UTIL_GetRandomOne(Sounds::Gunship::KILL_CONFIRMED), VOL_NORM, ATTN_STATIC, 0, UTIL_Random(92, 108));
 
 			pEnemy = nullptr;	// Only after we set it to null will the CFixedTarget to find another target.
 			co_await 0.1f;
-
-			// "Reloading"
-			//m_iReloadSoundIndex = UTIL_Random(0u, Sounds::Gunship::AC130_RELOAD.size() - 1);
-			//g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, Sounds::Gunship::AC130_RELOAD[m_iReloadSoundIndex], VOL_NORM, ATTN_NONE, 0, UTIL_Random(92, 116));
-
-			//co_await Sounds::Length::Gunship::AC130_RELOAD[m_iReloadSoundIndex];
 			continue;
 		}
 
@@ -329,9 +333,12 @@ Task CGunship::Task_Gunship() noexcept
 			pEnemy->IsPlayer() ?
 			UTIL_GetHeadPosition(pEnemy.Get()) : pEnemy->Center();	// Sometimes aiming the head is not a good option - the bullet needs to fly to there and it's very likely to miss it.
 
+		// This is not the exact time. The exact time must be calced by (origin + vel * t), but the t is what we required here.
+		auto const flEstimateTime = (vecTargetLocation - pev->origin).Length() / CBullet::AC130_BULLET_SPEED;
+
 		Prefab_t::Create<CBullet>(
 			pev->origin,
-			(vecTargetLocation - pev->origin).Normalize() * CBullet::AC130_BULLET_SPEED,
+			((vecTargetLocation + pEnemy->pev->velocity * flEstimateTime) - pev->origin).Normalize() * CBullet::AC130_BULLET_SPEED,	// with position prediction
 			m_pPlayer
 		);
 
@@ -349,7 +356,7 @@ Task CGunship::Task_Gunship() noexcept
 	co_await Sounds::Length::Gunship::AC130_DEPARTURE[m_iDepartureSoundIndex];
 
 	// Stop the radio background noise
-	g_engfuncs.pfnEmitSound(pRadio.Get(), CHAN_STATIC, Sounds::Gunship::NOISE_PILOT, VOL_NORM, ATTN_STATIC, SND_STOP, PITCH_NORM);
+	g_engfuncs.pfnEmitSound(m_pPlayer->edict(), CHAN_STATIC, Sounds::Gunship::NOISE_PILOT, VOL_NORM, ATTN_STATIC, SND_STOP, PITCH_NORM);
 
 	// Die with CFixedTarget
 	pev->flags |= FL_KILLME;
@@ -362,6 +369,7 @@ void CGunship::Spawn() noexcept
 	pev->gravity = 0;
 	pev->effects = EF_NODRAW;
 
+	s_bInstanceExists = true;
 	m_iAmbientSoundIndex = UTIL_Random(0u, Sounds::Gunship::AC130_AMBIENT.size() - 1);
 	m_iDepartureSoundIndex = UTIL_Random(0u, Sounds::Gunship::AC130_DEPARTURE.size() - 1);
 	m_iReloadSoundIndex = UTIL_Random(0u, Sounds::Gunship::AC130_RELOAD.size() - 1);

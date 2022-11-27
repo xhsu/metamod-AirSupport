@@ -292,10 +292,10 @@
     <ClCompile Include="Source\AirSupport\Localization.ixx">
       <Filter>Source\AirSupport</Filter>
     </ClCompile>
-    <ClCompile Include="Source\AirSupport\Missile.cpp">
+    <ClCompile Include="Source\AirSupport\Projectile.cpp">
       <Filter>Source\AirSupport</Filter>
     </ClCompile>
-    <ClCompile Include="Source\AirSupport\Missile.ixx">
+    <ClCompile Include="Source\AirSupport\Projectile.ixx">
       <Filter>Source\AirSupport</Filter>
     </ClCompile>
     <ClCompile Include="Source\AirSupport\Plugin.cpp">

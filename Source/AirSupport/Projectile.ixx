@@ -1,4 +1,4 @@
-export module Missile;
+export module Projectile;
 
 export import <vector>;
 
@@ -15,7 +15,6 @@ export struct CPrecisionAirStrike : public Prefab_t
 
 	~CPrecisionAirStrike() noexcept override;
 
-	Task Task_SFX() noexcept;
 	Task Task_Trail() noexcept;
 
 	void Spawn() noexcept override;

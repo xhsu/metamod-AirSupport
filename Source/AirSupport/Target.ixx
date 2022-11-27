@@ -20,6 +20,7 @@ export struct CDynamicTarget : public Prefab_t
 	Task Task_QuickEval_AirStrike() noexcept;
 	Task Task_QuickEval_ClusterBomb() noexcept;
 	Task Task_QuickEval_CarpetBombardment() noexcept;
+	Task Task_QuickEval_Gunship() noexcept;
 	Task Task_Remove() noexcept;
 
 	void UpdateEvalMethod() noexcept;
@@ -36,7 +37,7 @@ export struct CDynamicTarget : public Prefab_t
 	float m_flLastValidTracking{};
 	std::chrono::high_resolution_clock::time_point m_LastAnimUpdate{};
 	std::array<EHANDLE<CBeam>, BEACON_COUNT> m_rgpBeacons{};
-	bool m_bFreezed{};
+	bool m_bFreezed{};	// Use enable/disable beacons instead.
 
 	static inline constexpr auto QUICK_ANALYZE_KEY = 298457034ul;
 	static inline constexpr auto DETAIL_ANALYZE_KEY = 3658468ul;

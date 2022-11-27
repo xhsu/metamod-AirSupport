@@ -7,6 +7,8 @@ export import <unordered_map>;
 
 export import Prefab;
 
+import UtlRandom;
+
 using std::array;
 using std::list;
 using std::unordered_map;
@@ -75,6 +77,20 @@ export struct CSmoke : public Prefab_t
 	Vector m_vecFlameClrToWhite{};
 };
 
+export struct CFloatingDust : public Prefab_t
+{
+	static inline constexpr char CLASSNAME[] = "env_smoke_2";
+	static inline constexpr double FPS = 18.0;
+	static inline constexpr float MAX_FRAME = 40.f;
+
+	Task Task_Animation() noexcept;
+	Task Task_FadeOut() noexcept;
+
+	void Spawn() noexcept override;
+
+	high_resolution_clock::time_point m_LastAnimUpdate{};
+};
+
 export struct CFieldSmoke : public Prefab_t
 {
 	static inline constexpr char CLASSNAME[] = "env_explo_field_smoke";
@@ -110,7 +126,7 @@ export struct CDebris : public Prefab_t
 	void Touch(CBaseEntity *pOther) noexcept override;
 };
 
-export struct CSpark : public Prefab_t
+export struct CSparkMdl : public Prefab_t
 {
 	static inline constexpr char CLASSNAME[] = "3d_spark_of_gunshot";
 
@@ -133,4 +149,29 @@ export struct CGunshotSmoke : public Prefab_t
 
 	TraceResult m_tr{};
 	high_resolution_clock::time_point m_LastAnimUpdate{};
+};
+
+export struct CGroundedDust : public Prefab_t
+{
+	static inline constexpr char CLASSNAME[] = "env_smoke_grounded_dust";
+	static inline constexpr double FPS = 12.0;
+	static inline constexpr float MAX_FRAME = 25.f;
+
+	Task Task_Animation() noexcept;
+	Task Task_FadeOut() noexcept;
+
+	void Spawn() noexcept override;
+
+	high_resolution_clock::time_point m_LastAnimUpdate{};
+};
+
+export struct CSparkSpr : public Prefab_t
+{
+	static inline constexpr char CLASSNAME[] = "env_spark_spr";
+	static inline constexpr auto MAX_FRAME = 4;
+	static inline constexpr auto HOLD_TIME = 0.1f;
+
+	Task Task_Remove() noexcept;
+
+	void Spawn() noexcept override;
 };

@@ -5,9 +5,10 @@ import <numbers>;
 import meta_api;
 
 import Hook;
+import Jet;
 import Localization;
 import Menu;
-import Missile;
+import Projectile;
 import Resources;
 import Target;
 import Task;
@@ -115,22 +116,37 @@ void __fastcall HamF_Item_PostFrame(CBasePlayerItem *pItem, int) noexcept
 
 	if (pThis->m_pPlayer->m_afButtonPressed & IN_ATTACK) [[unlikely]]
 	{
-		if (g_rgiAirSupportSelected[pThis->m_pPlayer->entindex()] != CARPET_BOMBARDMENT)
+		switch (g_rgiAirSupportSelected[pThis->m_pPlayer->entindex()])
 		{
-			if (DYN_TARGET(pThis)->v.skin != Models::targetmdl::SKIN_GREEN)
-				TaskScheduler::Enroll(Weapon::Task_RadioRejected(pThis));
-			else
-				TaskScheduler::Enroll(Weapon::Task_RadioAccepted(pThis));
-		}
-		else
+		case CARPET_BOMBARDMENT:
 		{
 			auto const pTarget = (CDynamicTarget *)DYN_TARGET(pThis)->pvPrivateData;
 			pTarget->EnableBeacons();
+			break;
+		}
+
+		case GUNSHIP_STRIKE:
+			if (CGunship::s_bInstanceExists)
+			{
+				gmsgTextMsg::Send(pThis->m_pPlayer->edict(), 4, Localization::GUNSHIP_ENTITY_MUTUALLY_EXCLUSIVE);
+				return;
+			}
+
+			[[fallthrough]];
+
+		default:
+			TaskScheduler::Enroll(
+				(DYN_TARGET(pThis)->v.skin == Models::targetmdl::SKIN_GREEN) ?
+				Weapon::Task_RadioAccepted(pThis) : Weapon::Task_RadioRejected(pThis)
+			);
+			break;
 		}
 	}
 	else if (pThis->m_pPlayer->m_afButtonReleased & IN_ATTACK) [[unlikely]]
 	{
-		if (g_rgiAirSupportSelected[pThis->m_pPlayer->entindex()] == CARPET_BOMBARDMENT)
+		switch (g_rgiAirSupportSelected[pThis->m_pPlayer->entindex()])
+		{
+		case CARPET_BOMBARDMENT:
 		{
 			if (DYN_TARGET(pThis)->v.skin != Models::targetmdl::SKIN_GREEN)
 			{
@@ -141,6 +157,11 @@ void __fastcall HamF_Item_PostFrame(CBasePlayerItem *pItem, int) noexcept
 			}
 			else
 				TaskScheduler::Enroll(Weapon::Task_RadioAccepted(pThis));
+		}
+			break;
+
+		default:
+			break;
 		}
 	}
 	else if (pThis->m_pPlayer->m_afButtonPressed & IN_ATTACK2) [[unlikely]]
@@ -165,7 +186,11 @@ void __fastcall HamF_Item_PostFrame(CBasePlayerItem *pItem, int) noexcept
 	{
 		g_engfuncs.pfnMakeVectors(pThis->m_pPlayer->pev->v_angle);
 
-		UTIL_ExplodeModel(pThis->m_pPlayer->GetGunPosition() + gpGlobals->v_forward * 256, UTIL_Random() ? -200.f : 200.f, Models::m_rgLibrary[Models::GIBS_CONCRETE], 5, 3.f);
+		Prefab_t::Create<CBullet>(
+			pThis->m_pPlayer->GetGunPosition() + gpGlobals->v_forward * 64.0,
+			gpGlobals->v_forward * 2048,
+			pThis->m_pPlayer
+		);
 	}
 }
 
