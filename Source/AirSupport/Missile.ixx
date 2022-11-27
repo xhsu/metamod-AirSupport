@@ -58,3 +58,21 @@ export struct CCarpetBombardment : public Prefab_t
 	CBasePlayer *m_pPlayer{};
 	EHANDLE<CBeam> m_pCorrespondingBeacon{ nullptr };
 };
+
+export struct CBullet : public Prefab_t
+{
+	static inline constexpr char CLASSNAME[] = "gunship_bullet";
+	static inline constexpr double AC130_BULLET_SPEED = 4096;
+	static inline constexpr double WHIZZ_RADIUS = 2 * 39.37;	// 2 meter.
+
+	Task Task_Touch() noexcept;
+	Task Task_Fly() noexcept;
+
+	void Spawn() noexcept override;
+	void Touch(CBaseEntity *pOther) noexcept override;
+
+	static CBullet *Create(Vector const &vecOrigin, Vector const &vecVelocity, CBasePlayer *pShooter) noexcept;
+
+	CBasePlayer *m_pShooter{};
+	Vector m_vecLastTraceSrc{};
+};

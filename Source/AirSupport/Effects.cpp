@@ -1,6 +1,5 @@
 import <array>;
 import <numbers>;
-import <ranges>;
 
 import edict;
 import util;
@@ -246,7 +245,7 @@ Task CSmoke::Task_DriftColor(Vector const vecTargetColor) noexcept
 
 	for (; (pev->rendercolor - vecTargetColor).LengthSquared() > 1; )
 	{
-		co_await TaskScheduler::NextFrame::Rank[0];
+		co_await TaskScheduler::NextFrame::Rank[1];
 
 		auto const CurTime = std::chrono::high_resolution_clock::now();
 		auto const flTimeDelta = std::chrono::duration_cast<std::chrono::nanoseconds>(CurTime - LastTime).count() / 1'000'000'000.0;
@@ -453,60 +452,123 @@ void CDebris::Touch(CBaseEntity *pOther) noexcept
 		pev->flags |= FL_KILLME;
 }
 
-struct CBullet : public Prefab_t
+//
+// CSpark
+//
+
+Task CSpark::Task_FadeOut() noexcept
 {
-	Task Task_Whizz() noexcept;
+	for (; pev->renderamt > 0; pev->renderamt -= 10.f)
+	{
+		co_await TaskScheduler::NextFrame::Rank[0];
+	}
 
-	void Spawn() noexcept override;
+	pev->flags |= FL_KILLME;
+}
 
-	CBasePlayer *m_pPlayer{};
-};
-
-Task CBullet::Task_Whizz() noexcept
+void CSpark::Spawn() noexcept
 {
+	pev->solid = SOLID_NOT;
+	pev->movetype = MOVETYPE_NONE;
+	pev->gravity = 0;
+	pev->rendermode = kRenderTransAdd;
+	pev->renderfx = kRenderFxNone;
+	pev->renderamt = UTIL_Random(192.f, 255.f);
+	pev->body = UTIL_Random(0, 1);
+
+	g_engfuncs.pfnSetModel(edict(), Models::SPARK);
+	g_engfuncs.pfnSetOrigin(edict(), pev->origin);
+	g_engfuncs.pfnSetSize(edict(), Vector::Zero(), Vector::Zero());
+
+	m_Scheduler.Enroll(Task_FadeOut());
+}
+
+//
+// CGunshotSmoke
+//
+
+Task CGunshotSmoke::Task_Animation() noexcept
+{
+	// Consider this as initialization
+	m_LastAnimUpdate = std::chrono::high_resolution_clock::now();
+
 	for (;;)
 	{
 		co_await TaskScheduler::NextFrame::Rank[0];
 
-		for (auto &&pEdict :
-			std::views::iota(1, gpGlobals->maxClients) |
-			std::views::transform([](int idx) noexcept { return g_engfuncs.pfnPEntityOfEntIndex(idx); }) |
-			std::views::filter([](edict_t *pEdict) noexcept { return pEdict != nullptr && pEdict->pvPrivateData != nullptr; }) |
+		auto const CurTime = std::chrono::high_resolution_clock::now();
+		auto const flTimeDelta = std::chrono::duration_cast<std::chrono::nanoseconds>(CurTime - m_LastAnimUpdate).count() / 1'000'000'000.0;
 
-			// Only player who is alive.
-			std::views::filter([](edict_t *pEdict) noexcept { return pEdict->v.deadflag == DEAD_NO && pEdict->v.takedamage != DAMAGE_NO; }) |
+		pev->framerate = float(FPS * flTimeDelta);
+		pev->frame += pev->framerate;
+		pev->animtime = gpGlobals->time;
 
-			// Too far from us.
-			std::views::filter([&](edict_t *pEdict) noexcept { return (pEdict->v.origin - pev->origin).LengthSquared() < (120.0 * 120.0); }) |
-
-			// Can't be the one who shoots the bullet.
-			std::views::filter([&](edict_t *pEdict) noexcept { return pEdict != pev->owner; })
-			)
+		[[unlikely]]
+		if (pev->frame < 0 || pev->frame >= Sprites::Frames::WALL_PUFF)
 		{
-			g_engfuncs.pfnClientCommand(pEdict, "spk %s\n", UTIL_GetRandomOne(Sounds::WHIZZ));
+			pev->flags |= FL_KILLME;	// the WALL_PUFF spr is not cycling.
+			co_return;
 		}
+
+		m_LastAnimUpdate = CurTime;
 	}
 }
 
-void CBullet::Spawn() noexcept
+Task CGunshotSmoke::Task_FadeOut() noexcept
 {
-	pev->owner = m_pPlayer->edict();
-	pev->solid = SOLID_TRIGGER;
-	pev->movetype = MOVETYPE_FLY;
+	for (; pev->renderamt > 0;)
+	{
+		co_await TaskScheduler::NextFrame::Rank[0];
 
-	g_engfuncs.pfnSetModel(edict(), "models/rshell.mdl");
-	g_engfuncs.pfnSetOrigin(edict(), pev->origin);
-	g_engfuncs.pfnSetSize(edict(), Vector(-0.1, -0.1, -0.1), Vector(0.1, 0.1, 0.1));
+		pev->renderamt -= 1.f;
+		pev->angles.z += 0.07f;
+	}
 
-	MsgBroadcast(SVC_TEMPENTITY);
-	WriteData(TE_BEAMFOLLOW);
-	WriteData(ent_cast<short>(pev));
-	WriteData(Sprites::m_rgLibrary[Sprites::TRAIL]);
-	WriteData((byte)1);
-	WriteData((byte)1);
-	WriteData((byte)255);
-	WriteData((byte)200);
-	WriteData((byte)120);
-	WriteData((byte)30);
-	MsgEnd();
+	pev->flags |= FL_KILLME;
+}
+
+void CGunshotSmoke::Spawn() noexcept
+{
+	pev->rendermode = kRenderTransAdd;
+	pev->renderamt = 96.f;
+	pev->rendercolor = Vector(255, 255, 255);
+	pev->frame = 0;
+
+	pev->solid = SOLID_NOT;
+	pev->movetype = MOVETYPE_NOCLIP;
+	pev->gravity = 0;
+	pev->velocity = Vector(UTIL_Random(-96, 96), UTIL_Random(-96, 96), 0).Normalize() * 1024;
+	pev->scale = 1;
+
+	g_engfuncs.pfnSetModel(edict(), UTIL_GetRandomOne(Sprites::WALL_PUFF));
+	g_engfuncs.pfnSetSize(edict(), Vector(-36, -36, -36) * pev->scale, Vector(36, 36, 36) * pev->scale);	// it is still required for pfnTraceMonsterHull
+
+	// Doing this is to prevent spawning on slope and the spr just stuck and sink into ground.
+	TraceResult tr{};
+	g_engfuncs.pfnTraceMonsterHull(edict(), m_tr.vecEndPos, m_tr.vecEndPos + m_tr.vecPlaneNormal * 512, ignore_monsters | ignore_glass, nullptr, &tr);
+	g_engfuncs.pfnTraceMonsterHull(edict(), tr.vecEndPos, tr.vecEndPos - m_tr.vecPlaneNormal * 512, ignore_monsters | ignore_glass, nullptr, &tr);
+
+	Vector const vecDir = CrossProduct(tr.vecPlaneNormal,
+		(tr.vecPlaneNormal - Vector::Up()).LengthSquared() < std::numeric_limits<float>::epsilon() ? Vector::Forward() : Vector::Up()	// #INVESTIGATE why will consteval fail here?
+	);
+
+	pev->velocity = vecDir * UTIL_Random(12.0, 18.0);
+
+	g_engfuncs.pfnSetOrigin(edict(), tr.vecEndPos);	// pfnSetOrigin includes the abssize setting, restoring our hitbox.
+
+	m_Scheduler.Enroll(Task_Animation());
+	m_Scheduler.Enroll(Task_FadeOut());
+}
+
+CGunshotSmoke *CGunshotSmoke::Create(const TraceResult &tr) noexcept
+{
+	auto const [pEdict, pPrefab] = UTIL_CreateNamedPrefab<CGunshotSmoke>();
+
+	pEdict->v.origin = tr.vecEndPos;
+
+	pPrefab->m_tr = tr;
+	pPrefab->Spawn();
+	pPrefab->pev->nextthink = 0.1f;
+
+	return pPrefab;
 }

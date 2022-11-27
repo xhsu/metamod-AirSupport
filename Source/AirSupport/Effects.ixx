@@ -1,14 +1,27 @@
 export module Effects;
 
+export import <array>;
 export import <chrono>;
 export import <list>;
 export import <unordered_map>;
 
 export import Prefab;
 
+using std::array;
 using std::list;
 using std::unordered_map;
 using std::chrono::high_resolution_clock;
+
+export namespace Color
+{
+	inline constexpr array Team
+	{
+		color24{0xFF, 0xA0, 0x00},	// TEAM_UNASSIGNED
+		color24{0xD8, 0x51, 0x50},	// TEAM_TERRORIST
+		color24{0xAD, 0xC9, 0xEB},	// TEAM_CT
+		color24{0xC0, 0xC0, 0xC0},	// TEAM_SPECTATOR
+	};
+};
 
 export struct CFlame : public Prefab_t
 {
@@ -95,4 +108,29 @@ export struct CDebris : public Prefab_t
 
 	void Spawn() noexcept override;
 	void Touch(CBaseEntity *pOther) noexcept override;
+};
+
+export struct CSpark : public Prefab_t
+{
+	static inline constexpr char CLASSNAME[] = "3d_spark_of_gunshot";
+
+	Task Task_FadeOut() noexcept;
+
+	void Spawn() noexcept override;
+};
+
+export struct CGunshotSmoke : public Prefab_t
+{
+	static inline constexpr char CLASSNAME[] = "env_gunshot_smoke";
+	static inline constexpr double FPS = 30.0;
+
+	Task Task_Animation() noexcept;
+	Task Task_FadeOut() noexcept;
+
+	void Spawn() noexcept override;
+
+	static CGunshotSmoke *Create(const TraceResult &tr) noexcept;
+
+	TraceResult m_tr{};
+	high_resolution_clock::time_point m_LastAnimUpdate{};
 };

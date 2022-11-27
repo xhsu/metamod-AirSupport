@@ -2,13 +2,17 @@
 
 import <array>;
 import <numbers>;
+import <ranges>;
+import <vector>;
 
 import progdefs;
 import util;
 
 import Beam;
+import Effects;
 import Jet;
 import Localization;
+import Missile;
 import Resources;
 import Round;
 import Target;
@@ -616,6 +620,82 @@ CDynamicTarget *CDynamicTarget::Create(CBasePlayer *pPlayer, CBasePlayerWeapon *
 // CFixedTarget
 //
 
+Task CFixedTarget::Task_BeaconFx() noexcept
+{
+	for (;;)
+	{
+		co_await 1.f;
+
+		if (m_pTargeting && m_pTargeting->IsAlive())
+			continue;
+
+		UTIL_Shockwave(pev->origin, GUNSHIP_NEXT_TARGET_RADIUS, Sprites::m_rgLibrary[Sprites::SHOCKWAVE], 0, 0, 1.f, 6.f, 0, Color::Team[pev->team], 192, 0);
+	}
+}
+
+Task CFixedTarget::Task_Gunship() noexcept
+{
+	Vector vecSkyPos{ -8192.0, -8192.0, -8192.0, };
+	TraceResult tr{};
+
+	// Its lifetime is depending on us, so we are on control.
+	Prefab_t::Create<CGunship>(m_pPlayer, this);
+
+	for (;;)
+	{
+		// Lie flat on the surface we are on.
+		g_engfuncs.pfnTraceLine(pev->origin, Vector(pev->origin.Make2D(), pev->origin.z - 96.0), ignore_monsters | ignore_glass, nullptr, &tr);
+		g_engfuncs.pfnVecToAngles(
+			tr.vecPlaneNormal == Vector::Zero() ? Vector::Up() : tr.vecPlaneNormal,
+			pev->angles
+		);
+
+		pev->angles.x += 270.f;
+
+		if (!m_pTargeting)
+		{
+			//
+			// attempt to find a new target.
+			//
+
+			const auto fnUnderSky = [&](CBasePlayer *pPlayer) noexcept -> bool
+			{
+				g_engfuncs.pfnTraceLine(pPlayer->pev->origin, Vector(pPlayer->pev->origin.Make2D(), 8192.0), ignore_glass | ignore_monsters, nullptr, &tr);
+				return g_engfuncs.pfnPointContents(tr.vecEndPos) == CONTENTS_SKY;
+			};
+
+			auto vecCandidates =
+				// Any human player must belong to [1, 32]
+				std::views::iota(1, gpGlobals->maxClients) |
+
+				// Skip invalid player ent.
+				std::views::transform([](int idx) noexcept { auto const pEdict = g_engfuncs.pfnPEntityOfEntIndex(idx); return pEdict ? (CBasePlayer *)pEdict->pvPrivateData : nullptr; }) |
+				std::views::filter([](CBasePlayer *pPlayer) noexcept { return pPlayer != nullptr; }) |
+
+				// Only player who is alive, and connected. Disconnected player will be marked as DEAD_DEAD therefore filtered.
+				std::views::filter([](CBasePlayer *pPlayer) noexcept { return pPlayer->pev->deadflag == DEAD_NO && pPlayer->pev->takedamage != DAMAGE_NO; }) |
+
+				// Don't select your teammate!
+				std::views::filter([&](CBasePlayer *pPlayer) noexcept { return pPlayer->m_iTeam != pev->team; }) |
+
+				// Must exposed under sky.
+				std::views::filter(fnUnderSky) |
+
+				// Store them in a vector.
+				std::ranges::to<std::vector>();
+
+			// Select the closest player. The height doesn't matter, as long as they are exposed under sky.
+			std::ranges::sort(vecCandidates, std::less{}, [&](CBasePlayer *pPlayer) noexcept { return (pPlayer->pev->origin - pev->origin).Make2D().LengthSquared(); });
+
+			if (!vecCandidates.empty() && (vecCandidates.front()->pev->origin - pev->origin).Make2D().LengthSquared() < (GUNSHIP_NEXT_TARGET_RADIUS * GUNSHIP_NEXT_TARGET_RADIUS))
+				m_pTargeting = vecCandidates.front();
+		}
+
+		// Rest.
+		co_await 0.05f;
+	}
+}
+
 Task CFixedTarget::Task_PrepareJetSpawn() noexcept
 {
 	TraceResult tr{};
@@ -764,12 +844,18 @@ Task CFixedTarget::Task_TimeOut() noexcept
 
 Task CFixedTarget::Task_UpdateOrigin() noexcept
 {
-	for (; m_pTargeting && m_pTargeting->IsAlive();)
+	for (;;)
 	{
-		Vector const vecCenter = m_pTargeting->Center();
-		g_engfuncs.pfnSetOrigin(edict(), Vector(vecCenter.x, vecCenter.y, m_pTargeting->pev->absmin.z + 1.0));
-
 		co_await TaskScheduler::NextFrame::Rank[1];
+
+		if (!m_pTargeting || !m_pTargeting->IsAlive())
+			continue;
+
+		Vector const vecTargetCenter = m_pTargeting->Center();
+		Vector const vecIdealPos = Vector(vecTargetCenter.x, vecTargetCenter.y, m_pTargeting->pev->absmin.z + 1.0);
+		Vector const vecDelta = vecIdealPos - pev->origin;
+
+		g_engfuncs.pfnSetOrigin(edict(), pev->origin + vecDelta * std::min(1.f, gpGlobals->frametime * 2.f));	// The drift distance cannot surplus the entire delta value (1.0f)
 	}
 }
 
@@ -801,15 +887,29 @@ void CFixedTarget::Spawn() noexcept
 	m_vecPosForJetSpawnTesting = (g_engfuncs.pfnPointContents(tr.vecEndPos) == CONTENTS_SKY) ? (tr.vecEndPos - Vector(0, 0, 16)) : pev->origin;
 
 	m_Scheduler.Enroll(Task_PrepareJetSpawn());
-	m_Scheduler.Enroll(Task_TimeOut());
+	m_Scheduler.Enroll(Task_TimeOut(), TIMEOUT_TASK_KEY);
 	m_Scheduler.Enroll(Task_UpdateOrigin());
 }
 
 void CFixedTarget::Activate() noexcept
 {
-	[[likely]]
-	if (!m_Scheduler.Exist(RADIO_KEY))
-		m_Scheduler.Enroll(Task_RecruitJet(), RADIO_KEY);
+	switch (m_AirSupportType)
+	{
+	case GUNSHIP_STRIKE:
+		//m_Scheduler.Delist(TIMEOUT_TASK_KEY);
+
+		[[likely]]
+		if (!m_Scheduler.Exist(RADIO_KEY))
+			m_Scheduler.Enroll(Task_Gunship(), RADIO_KEY);
+			m_Scheduler.Enroll(Task_BeaconFx(), RADIO_KEY);
+		break;
+
+	default:
+		[[likely]]
+		if (!m_Scheduler.Exist(RADIO_KEY))
+			m_Scheduler.Enroll(Task_RecruitJet(), RADIO_KEY);
+		break;
+	}
 }
 
 CFixedTarget *CFixedTarget::Create(CDynamicTarget *const pDynamicTarget) noexcept

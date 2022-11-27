@@ -6,6 +6,10 @@ import Resources;
 
 import UtlRandom;
 
+//
+// CJet
+//
+
 Task CJet::Task_BeamAndSound() noexcept
 {
 	//g_engfuncs.pfnEmitSound(pJet.Get(), CHAN_WEAPON, UTIL_GetRandomOne(Sounds::JET), VOL_NORM, ATTN_NONE, 0, UTIL_Random(92, 118));	// #INVESTIGATE
@@ -188,7 +192,7 @@ void CJet::Spawn() noexcept
 
 	g_engfuncs.pfnVecToAngles(vecDir, pev->angles);
 	g_engfuncs.pfnSetOrigin(edict(), pev->origin);
-	g_engfuncs.pfnSetModel(edict(), Models::PLANE[AIR_STRIKE]);
+	g_engfuncs.pfnSetModel(edict(), Models::PLANE[m_AirSupportType]);
 	g_engfuncs.pfnSetSize(edict(), Vector::Zero(), Vector::Zero());
 
 	pev->solid = SOLID_NOT;
@@ -212,6 +216,10 @@ void CJet::Spawn() noexcept
 
 	case CARPET_BOMBARDMENT:
 		m_Scheduler.Enroll(Task_CarpetBombardment());
+		break;
+
+	case GUNSHIP_STRIKE:
+		gmsgTextMsg::Send(m_pPlayer->edict(), 4, u8"你不應該看到這則信息 - 請聯絡作者");
 		break;
 	}
 
@@ -242,6 +250,133 @@ CJet *CJet::Create(CBasePlayer *pPlayer, CFixedTarget *pTarget, Vector const &ve
 	pPrefab->m_pPlayer = pPlayer;
 	pPrefab->m_pTarget = pTarget;
 	pPrefab->m_AirSupportType = pTarget->m_AirSupportType;
+	pPrefab->Spawn();
+	pPrefab->pev->nextthink = 0.1f;
+
+	return pPrefab;
+}
+
+//
+// CGunship
+//
+
+Task CGunship::Task_Gunship() noexcept
+{
+	EHANDLE<CBasePlayerItem> pRadio = m_pPlayer->m_rgpPlayerItems[3];
+
+	g_engfuncs.pfnEmitSound(pRadio.Get(), CHAN_STATIC, Sounds::Gunship::NOISE_PILOT, VOL_NORM, ATTN_STATIC, 0, PITCH_NORM);
+	g_engfuncs.pfnEmitSound(pRadio.Get(), CHAN_STATIC, Sounds::Gunship::AC130_IS_IN_AIR, VOL_NORM, ATTN_STATIC, 0, UTIL_Random(92, 108));
+	g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, Sounds::Gunship::AC130_AMBIENT[m_iAmbientSoundIndex], VOL_NORM, ATTN_NONE, 0, UTIL_Random(92, 108));
+
+	co_await TaskScheduler::NextFrame::Rank[1];
+
+	for (TraceResult tr{}; m_pTarget;)
+	{
+		auto &pEnemy = m_pTarget->m_pTargeting;
+
+		// Hand the control back to CFixedTarget if nothing gets locked.
+
+		if (!pEnemy)
+		{
+			co_await 0.1f;
+			continue;
+		}
+
+		//
+		// Aiming something
+		//
+
+		if (!pEnemy->IsAlive())
+		{
+			g_engfuncs.pfnEmitSound(pRadio.Get(), CHAN_STATIC, UTIL_GetRandomOne(Sounds::Gunship::KILL_CONFIRMED), VOL_NORM, ATTN_STATIC, 0, UTIL_Random(92, 108));
+
+			pEnemy = nullptr;	// Only after we set it to null will the CFixedTarget to find another target.
+			co_await 0.1f;
+
+			// "Reloading"
+			//m_iReloadSoundIndex = UTIL_Random(0u, Sounds::Gunship::AC130_RELOAD.size() - 1);
+			//g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, Sounds::Gunship::AC130_RELOAD[m_iReloadSoundIndex], VOL_NORM, ATTN_NONE, 0, UTIL_Random(92, 116));
+
+			//co_await Sounds::Length::Gunship::AC130_RELOAD[m_iReloadSoundIndex];
+			continue;
+		}
+
+		// Instead of our own position. This is because of the drifting VFX under this mode.
+		Vector const &vecAimingPos = pEnemy->pev->origin;
+
+		// Is the old sky pos not good anymore?
+		g_engfuncs.pfnTraceLine(pev->origin, vecAimingPos, ignore_monsters | ignore_glass, nullptr, &tr);
+
+		if (tr.flFraction < 1 || tr.fAllSolid || tr.fStartSolid)
+		{
+			// Theoratically CFixedTarget should follow the m_pTargeting. But due to the drifting vfx, it's not accurate.
+			g_engfuncs.pfnTraceLine(vecAimingPos, Vector(vecAimingPos.x, vecAimingPos.y, 8192.0), ignore_monsters | ignore_glass, nullptr, &tr);
+
+			if (g_engfuncs.pfnPointContents(tr.vecEndPos) != CONTENTS_SKY)	// This guy runs into shelter.
+			{
+				pEnemy = nullptr;
+				continue;
+			}
+
+			// okay, we are moving to a new location.
+			g_engfuncs.pfnSetOrigin(edict(), Vector(tr.vecEndPos.x, tr.vecEndPos.y, tr.vecEndPos.z - 1.0));
+
+			// Rest for 1 frame.
+			co_await TaskScheduler::NextFrame::Rank[0];
+		}
+
+		Vector const vecTargetLocation =
+			pEnemy->IsPlayer() ?
+			UTIL_GetHeadPosition(pEnemy.Get()) : pEnemy->Center();	// Sometimes aiming the head is not a good option - the bullet needs to fly to there and it's very likely to miss it.
+
+		Prefab_t::Create<CBullet>(
+			pev->origin,
+			(vecTargetLocation - pev->origin).Normalize() * CBullet::AC130_BULLET_SPEED,
+			m_pPlayer
+		);
+
+		g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, UTIL_GetRandomOne(Sounds::Gunship::AC130_FIRE_25MM), VOL_NORM, ATTN_NONE, 0, UTIL_Random(92, 116));
+		co_await 0.2f;	// firerate.
+	}
+
+	// "Reloading"
+	g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, Sounds::Gunship::AC130_RELOAD[m_iReloadSoundIndex], VOL_NORM, ATTN_NONE, 0, UTIL_Random(92, 116));
+	co_await Sounds::Length::Gunship::AC130_RELOAD[m_iReloadSoundIndex];
+
+	// Randomly select another SFX as AC130 moving out, with fadeout fx. Stop the old one first.
+	g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, Sounds::Gunship::AC130_AMBIENT[m_iAmbientSoundIndex], VOL_NORM, ATTN_NONE, SND_STOP, UTIL_Random(92, 108));
+	g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, Sounds::Gunship::AC130_DEPARTURE[m_iDepartureSoundIndex], VOL_NORM, ATTN_NONE, 0, UTIL_Random(92, 108));
+	co_await Sounds::Length::Gunship::AC130_DEPARTURE[m_iDepartureSoundIndex];
+
+	// Stop the radio background noise
+	g_engfuncs.pfnEmitSound(pRadio.Get(), CHAN_STATIC, Sounds::Gunship::NOISE_PILOT, VOL_NORM, ATTN_STATIC, SND_STOP, PITCH_NORM);
+
+	// Die with CFixedTarget
+	pev->flags |= FL_KILLME;
+}
+
+void CGunship::Spawn() noexcept
+{
+	pev->solid = SOLID_NOT;
+	pev->movetype = MOVETYPE_NONE;
+	pev->gravity = 0;
+	pev->effects = EF_NODRAW;
+
+	m_iAmbientSoundIndex = UTIL_Random(0u, Sounds::Gunship::AC130_AMBIENT.size() - 1);
+	m_iDepartureSoundIndex = UTIL_Random(0u, Sounds::Gunship::AC130_DEPARTURE.size() - 1);
+	m_iReloadSoundIndex = UTIL_Random(0u, Sounds::Gunship::AC130_RELOAD.size() - 1);
+
+	m_Scheduler.Enroll(Task_Gunship());
+}
+
+CGunship *CGunship::Create(CBasePlayer *pPlayer, CFixedTarget *pTarget) noexcept
+{
+	auto const [pEdict, pPrefab] = UTIL_CreateNamedPrefab<CGunship>();
+
+	pEdict->v.origin = Vector(8192, 8192, 8192);	// pending on the first run auto correction
+
+	pPrefab->m_pPlayer = pPlayer;
+	pPrefab->m_pTarget = pTarget;
 	pPrefab->Spawn();
 	pPrefab->pev->nextthink = 0.1f;
 

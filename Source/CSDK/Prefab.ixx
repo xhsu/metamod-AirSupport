@@ -253,7 +253,7 @@ export struct Prefab_t : public CBaseEntity
 	}
 
 	// Have to entity have to be created like this.
-	template <typename T>
+	template <typename T> requires (!requires{ T::Create(); })
 	static T *Create(const Vector& vecOrigin = Vector::Zero(), const Vector& vecAngles = Vector::Zero()) noexcept
 	{
 		auto const [pEdict, pPrefab] = UTIL_CreateNamedPrefab<T>();
@@ -265,6 +265,15 @@ export struct Prefab_t : public CBaseEntity
 		pPrefab->pev->nextthink = 0.1f;
 
 		return pPrefab;
+	}
+
+	// Forwarding all arguments to the Create() of that class.
+	template <typename T, typename... Tys>
+	static __forceinline T *Create(Tys&&... args)
+		noexcept(noexcept(T::Create(std::forward<Tys>(args)...)))
+		requires(requires{ { T::Create(std::forward<Tys>(args)...) } -> std::same_as<T *>; })
+	{
+		return T::Create(std::forward<Tys>(args)...);
 	}
 
 	struct PrefabScheduler_t final
