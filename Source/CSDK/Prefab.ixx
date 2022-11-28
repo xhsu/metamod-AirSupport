@@ -64,7 +64,7 @@ export struct Prefab_t : public CBaseEntity
 	// Setup the object->object collision box (pev->mins / pev->maxs is the object->world collision box)
 	void SetObjectCollisionBox() noexcept override
 	{
-		if (pev->solid == SOLID_BSP && (pev->angles.x || pev->angles.y || pev->angles.z))
+		if (pev->solid == SOLID_BSP && (pev->angles.pitch || pev->angles.yaw || pev->angles.roll))
 		{
 			// expand for rotation
 			double max, v;
@@ -254,7 +254,7 @@ export struct Prefab_t : public CBaseEntity
 
 	// Have to entity have to be created like this.
 	template <typename T> requires (!requires{ T::Create(); })
-	static T *Create(const Vector& vecOrigin = Vector::Zero(), const Vector& vecAngles = Vector::Zero()) noexcept
+	static T *Create(const Vector& vecOrigin = Vector::Zero(), const Angles& vecAngles = Angles()) noexcept
 	{
 		auto const [pEdict, pPrefab] = UTIL_CreateNamedPrefab<T>();
 

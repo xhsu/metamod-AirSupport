@@ -10,8 +10,8 @@ export import Prefab;
 export struct CDynamicTarget : public Prefab_t
 {
 	static inline constexpr char CLASSNAME[] = "info_dynamic_target";
-	static inline constexpr size_t BEACON_COUNT = 8;
-	static inline constexpr double CARPET_BOMBARDMENT_INTERVAL = 350.0;
+	static inline constexpr size_t BEACON_COUNT = 12;
+	static inline constexpr double CARPET_BOMBARDMENT_INTERVAL = 250.0;
 
 	~CDynamicTarget() noexcept override;
 

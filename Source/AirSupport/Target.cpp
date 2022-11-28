@@ -231,7 +231,7 @@ Task CDynamicTarget::Task_QuickEval_AirStrike() noexcept
 
 		if (m_pTargeting && !m_pTargeting->IsBSPModel() && m_pTargeting->IsAlive())
 		{
-			pev->angles = Vector::Zero();	// facing up.
+			pev->angles = Angles();	// facing up.
 
 			Vector const vecCenter = m_pTargeting->Center();
 			g_engfuncs.pfnSetOrigin(edict(), Vector(vecCenter.x, vecCenter.y, m_pTargeting->pev->absmin.z + 1.0));	// snap to target.
@@ -239,7 +239,7 @@ Task CDynamicTarget::Task_QuickEval_AirStrike() noexcept
 		else
 		{
 			g_engfuncs.pfnVecToAngles(tr.vecPlaneNormal, pev->angles);
-			pev->angles.x += 270.f;	// don't know why, but this is the deal.
+			pev->angles.pitch += 270.f;	// don't know why, but this is the deal.
 
 			g_engfuncs.pfnSetOrigin(edict(), tr.vecEndPos);
 		}
@@ -320,7 +320,7 @@ Task CDynamicTarget::Task_QuickEval_ClusterBomb() noexcept
 		}
 
 		g_engfuncs.pfnVecToAngles(tr.vecPlaneNormal, pev->angles);
-		pev->angles.x += 270.f;	// don't know why, but this is the deal.
+		pev->angles.pitch += 270.f;	// don't know why, but this is the deal.
 
 		g_engfuncs.pfnSetOrigin(edict(), tr.vecEndPos);
 
@@ -429,7 +429,7 @@ Task CDynamicTarget::Task_QuickEval_CarpetBombardment() noexcept
 			// Not pressing LMB, only the main target mdl will showed up.
 
 			g_engfuncs.pfnVecToAngles(vecSurfNorm, pev->angles);
-			pev->angles.x += 270.f;	// don't know why, but this is the deal.
+			pev->angles.pitch += 270.f;	// don't know why, but this is the deal.
 
 			g_engfuncs.pfnSetOrigin(edict(), vecAiming);
 			pev->skin = Models::targetmdl::SKIN_GREEN;
@@ -570,7 +570,7 @@ Task CDynamicTarget::Task_QuickEval_Gunship() noexcept
 
 		if (m_pTargeting && !m_pTargeting->IsBSPModel() && m_pTargeting->IsAlive())
 		{
-			pev->angles = Vector::Zero();	// facing up.
+			pev->angles = Angles();	// facing up.
 
 			Vector const vecCenter = m_pTargeting->Center();
 			g_engfuncs.pfnSetOrigin(edict(), Vector(vecCenter.x, vecCenter.y, m_pTargeting->pev->absmin.z + 1.0));	// snap to target.
@@ -578,7 +578,7 @@ Task CDynamicTarget::Task_QuickEval_Gunship() noexcept
 		else
 		{
 			g_engfuncs.pfnVecToAngles(tr.vecPlaneNormal, pev->angles);
-			pev->angles.x += 270.f;	// don't know why, but this is the deal.
+			pev->angles.pitch += 270.f;	// don't know why, but this is the deal.
 
 			g_engfuncs.pfnSetOrigin(edict(), tr.vecEndPos);
 		}
@@ -773,7 +773,7 @@ Task CFixedTarget::Task_Gunship() noexcept
 			pev->angles
 		);
 
-		pev->angles.x += 270.f;
+		pev->angles.pitch += 270.f;
 
 		if (!m_pTargeting)
 		{

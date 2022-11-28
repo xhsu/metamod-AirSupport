@@ -154,7 +154,7 @@ void ScreenEffects(const Vector &vecOrigin, float const flRadius, float const fl
 		);
 
 		float const flPunch = flPunchMax * flModifer;
-		pPlayer->pev->punchangle += Vector(
+		pPlayer->pev->punchangle += Angles(
 			flPunch * (UTIL_Random() ? 1.0 : -1.0),
 			flPunch * (UTIL_Random() ? 1.0 : -1.0),
 			flPunch * (UTIL_Random() ? 1.0 : -1.0)
@@ -215,7 +215,7 @@ Task VisualEffects(const Vector vecOrigin, float const flRadius) noexcept	// The
 		auto pEdict = g_engfuncs.pfnCreateNamedEntity(MAKE_STRING("spark_shower"));
 		g_engfuncs.pfnSetOrigin(pEdict, vecOrigin);
 		g_engfuncs.pfnVecToAngles(tr.vecPlaneNormal, pEdict->v.angles);
-		pEdict->v.angles.x += 270.f;	// don't know why, but this is the deal.
+		pEdict->v.angles.pitch += 270.f;	// don't know why, but this is the deal.
 
 		pEdict->v.absmin = vecOrigin - Vector(1, 1, 1);
 		pEdict->v.absmax = vecOrigin + Vector(1, 1, 1);

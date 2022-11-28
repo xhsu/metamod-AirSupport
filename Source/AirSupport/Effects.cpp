@@ -1,5 +1,6 @@
 import <array>;
 import <numbers>;
+import <ranges>;
 
 import edict;
 import util;
@@ -270,7 +271,7 @@ Task CSmoke::Task_FadeOut() noexcept
 		co_await TaskScheduler::NextFrame::Rank[0];
 
 		pev->renderamt -= 0.055f;
-		pev->angles.z += 0.07f;
+		pev->angles.roll += 0.07f;
 	}
 
 	pev->flags |= FL_KILLME;
@@ -382,7 +383,7 @@ Task CFloatingDust::Task_FadeOut() noexcept
 		co_await TaskScheduler::NextFrame::Rank[0];
 
 		pev->renderamt -= 0.07f;
-		pev->angles.z += 0.07f;
+		pev->angles.roll += 0.07f;
 	}
 
 	pev->flags |= FL_KILLME;
@@ -403,6 +404,7 @@ void CFloatingDust::Spawn() noexcept
 
 	g_engfuncs.pfnSetModel(edict(), Sprites::LIFTED_DUST);
 	g_engfuncs.pfnSetOrigin(edict(), pev->origin);	// pfnSetOrigin includes the abssize setting, restoring our hitbox.
+	g_engfuncs.pfnSetSize(edict(), Vector(-128, -128, -128) * pev->scale, Vector(128, 128, 128) * pev->scale);
 
 	m_Scheduler.Enroll(Task_Animation());
 	m_Scheduler.Enroll(Task_FadeOut());
@@ -579,7 +581,7 @@ Task CGunshotSmoke::Task_FadeOut() noexcept
 		co_await TaskScheduler::NextFrame::Rank[0];
 
 		//pev->renderamt -= 1.5f;
-		pev->angles.z += 0.07f;
+		pev->angles.roll += 0.07f;
 	}
 
 	pev->flags |= FL_KILLME;
@@ -710,10 +712,99 @@ void CSparkSpr::Spawn() noexcept
 	pev->solid = SOLID_NOT;
 	pev->movetype = MOVETYPE_NONE;
 	pev->gravity = 0;
-	pev->scale = UTIL_Random(0.35f, 0.55f);
+	pev->scale = UTIL_Random(0.35f, 0.45f);
 
 	g_engfuncs.pfnSetModel(edict(), Sprites::SPARK);
 	g_engfuncs.pfnSetOrigin(edict(), pev->origin);	// pfnSetOrigin includes the abssize setting, restoring our hitbox.
 
 	m_Scheduler.Enroll(Task_Remove());
+}
+
+//
+// PlayerCough
+//
+
+inline constexpr auto COUGH_TASK_KEY = 2534968ul;
+
+[[nodiscard]]
+bool UTIL_AnySmokeNear(Vector const &vecSrc) noexcept
+{
+	for (auto &&pSmoke :
+		FIND_ENTITY_IN_SPHERE(vecSrc, float(32.0 * std::numbers::sqrt3)) |
+		std::views::filter([](edict_t *pEdcit) noexcept { return pEdcit->v.classname == MAKE_STRING(CSmoke::CLASSNAME); })
+		)
+	{
+		// Any CSmoke entity near the head?
+
+		if (pSmoke->v.renderamt < 32)
+			continue;
+
+		return true;
+	}
+
+	for (auto &&pFloatingDust :
+		FIND_ENTITY_IN_SPHERE(vecSrc, float(128.0 * std::numbers::sqrt3)) |
+		std::views::filter([](edict_t *pEdcit) noexcept { return pEdcit->v.classname == MAKE_STRING(CFloatingDust::CLASSNAME); })
+		)
+	{
+		// Any CFloatingDust entity near the head?
+
+		if (pFloatingDust->v.renderamt < 32)
+			continue;
+
+		return true;
+	}
+
+	for (auto &&pFlame :
+		FIND_ENTITY_IN_SPHERE(vecSrc, float(128.0 * std::numbers::sqrt3)) |
+		std::views::filter([](edict_t *pEdcit) noexcept { return pEdcit->v.classname == MAKE_STRING(CFlame::CLASSNAME); })
+		)
+	{
+		// Any CFlame entity near the head?
+
+		return true;
+	}
+
+	return false;
+}
+
+Task Task_PlayerCough(CBasePlayer *pPlayer) noexcept
+{
+	for (auto flEndTime = gpGlobals->time + UTIL_Random(3.f, 6.f); flEndTime > gpGlobals->time;)
+	{
+		co_await UTIL_Random(2.f, 3.f);
+
+		if (UTIL_AnySmokeNear(pPlayer->EyePosition()))
+			flEndTime = gpGlobals->time + UTIL_Random(3.f, 6.f);
+
+		g_engfuncs.pfnEmitSound(pPlayer->edict(), CHAN_STATIC, UTIL_GetRandomOne(Sounds::PLAYER_COUGH), VOL_NORM, ATTN_STATIC, 0, UTIL_Random(92, 116));
+	}
+}
+
+Task Task_StartCough() noexcept
+{
+	co_await 0.1f;
+
+	for (;;)
+	{
+		for (CBasePlayer *pPlayer :
+			std::views::iota(1, gpGlobals->maxClients) |
+			std::views::transform([](int idx) noexcept { auto const pent = g_engfuncs.pfnPEntityOfEntIndex(idx); return pent ? (CBasePlayer *)pent->pvPrivateData : nullptr; }) |
+			std::views::filter([](void *p) noexcept { return p != nullptr; }) |
+
+			// Only player who is alive.
+			std::views::filter([](CBasePlayer *pPlayer) noexcept { return pPlayer->pev->deadflag == DEAD_NO && pPlayer->pev->takedamage != DAMAGE_NO; })
+			)
+		{
+			co_await 0.05f;
+
+			if (!UTIL_AnySmokeNear(pPlayer->EyePosition()))
+				continue;
+
+			if (auto const iKey = COUGH_TASK_KEY + pPlayer->entindex(); !TaskScheduler::Exist(iKey))
+				TaskScheduler::Enroll(Task_PlayerCough(pPlayer), iKey);
+		}
+
+		co_await 0.1f;
+	}
 }

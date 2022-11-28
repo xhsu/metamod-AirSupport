@@ -1,6 +1,7 @@
 export module Beam;
 
 import <algorithm>;
+import <bit>;
 
 /* AMX Mod X
 *    Beam entities include by KORD_12.7.
@@ -37,7 +38,7 @@ export inline void Beam_SetStartPos(entvars_t *pev, const Vector &vecSrc) noexce
 
 /* stock Beam_SetEndPos(const iBeamEntity, const Float: flVecEnd[3])
 	return set_pev(iBeamEntity, pev_angles, flVecEnd); */
-export inline void Beam_SetEndPos(entvars_t *pev, const Vector &vecEnd) noexcept { pev->angles = vecEnd; }
+export inline void Beam_SetEndPos(entvars_t *pev, const Vector &vecEnd) noexcept { pev->angles = *reinterpret_cast<const Angles*>(&vecEnd); }
 
 /* #define Beam_SetStartEntity(%0,%1) \
 	set_pev(%0, pev_sequence, (%1 & 0x0FFF) | ((pev(%0, pev_sequence) & 0xF000) << 12)); \
@@ -168,7 +169,7 @@ export inline Vector &Beam_GetEndPos(entvars_t *pev) noexcept
 	{
 	case BEAM_POINTS:
 	case BEAM_HOSE:
-		return pev->angles;
+		return *reinterpret_cast<Vector *>(&pev->angles);
 
 	default:
 		auto const iEndEnt = Beam_GetEndEntity(pev);
@@ -176,7 +177,7 @@ export inline Vector &Beam_GetEndPos(entvars_t *pev) noexcept
 		if (auto const pevEndEnt = ent_cast<entvars_t *>(iEndEnt); pev_valid(pevEndEnt) == 2)
 			return pevEndEnt->origin;
 
-		return pev->angles;
+		return *reinterpret_cast<Vector *>(&pev->angles);
 	}
 }
 
@@ -373,7 +374,7 @@ public:
 		int type = GetType();
 		if (type == BEAM_POINTS || type == BEAM_HOSE)
 		{
-			return pev->angles;
+			return *reinterpret_cast<Vector *>(&pev->angles);
 		}
 
 		edict_t *pent = ent_cast<edict_t *>(GetEndEntity());
@@ -382,7 +383,7 @@ public:
 			return pent->v.origin;
 		}
 
-		return pev->angles;
+		return *reinterpret_cast<Vector *>(&pev->angles);
 	}
 
 	int &Texture() const noexcept { return pev->modelindex; }

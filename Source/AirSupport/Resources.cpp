@@ -1,3 +1,5 @@
+import <algorithm>;
+
 import Resources;
 
 void Precache(void) noexcept
@@ -39,20 +41,15 @@ void Precache(void) noexcept
 	g_engfuncs.pfnPrecacheSound(Sounds::PLAYER_EAR_RINGING);
 	g_engfuncs.pfnPrecacheSound(Sounds::PLAYER_HEARTBEAT);
 
-	for (auto &&psz : Sounds::EXPLOSION)
-		g_engfuncs.pfnPrecacheSound(psz);
+	std::ranges::for_each(Sounds::PLAYER_COUGH, g_engfuncs.pfnPrecacheSound);
 
-	for (auto &&psz : Sounds::EXPLOSION_SHORT)
-		g_engfuncs.pfnPrecacheSound(psz);
+	std::ranges::for_each(Sounds::EXPLOSION, g_engfuncs.pfnPrecacheSound);
+	std::ranges::for_each(Sounds::EXPLOSION_SHORT, g_engfuncs.pfnPrecacheSound);
+	std::ranges::for_each(Sounds::JET, g_engfuncs.pfnPrecacheSound);
+	std::ranges::for_each(Sounds::WHIZZ, g_engfuncs.pfnPrecacheSound);
+	std::ranges::for_each(Sounds::BOMBER, g_engfuncs.pfnPrecacheSound);
 
-	for (auto &&psz : Sounds::JET)
-		g_engfuncs.pfnPrecacheSound(psz);
-
-	for (auto &&psz : Sounds::WHIZZ)
-		g_engfuncs.pfnPrecacheSound(psz);
-
-	for (auto &&psz : Sounds::BOMBER)
-		g_engfuncs.pfnPrecacheSound(psz);
+	g_engfuncs.pfnPrecacheSound(Sounds::CLUSTER_BOMB_DROP);
 
 	// namespace Gunship
 	{

@@ -38,17 +38,17 @@ Task CPrecisionAirStrike::Task_Trail() noexcept
 	{
 		co_await gpGlobals->frametime;
 
-		pev->angles += Vector(
+		pev->angles += Angles(
 			UTIL_Random(-0.35f, 0.35f),
 			UTIL_Random(-0.35f, 0.35f),
 			UTIL_Random(-0.35f, 0.35f)
 		);
 
 		// GoldSrc Mystery #1: The fucking v_angle and angles.
-		g_engfuncs.pfnMakeVectors(Vector(
-			-pev->angles.x,
-			pev->angles.y,
-			pev->angles.z)
+		g_engfuncs.pfnMakeVectors(Angles(
+			-pev->angles.pitch,
+			pev->angles.yaw,
+			pev->angles.roll)
 		);
 
 		pev->velocity = gpGlobals->v_forward * SPEED;
@@ -146,7 +146,7 @@ void CPrecisionAirStrike::Spawn() noexcept
 		MsgEnd();
 	}
 
-	g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, Sounds::TRAVEL, VOL_NORM, ATTN_NORM, 0, UTIL_Random(94, 112));
+	g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, Sounds::TRAVEL, VOL_NORM, 0.3f, 0, UTIL_Random(94, 112));
 
 	m_Scheduler.Enroll(Task_Trail());
 }
@@ -159,7 +159,7 @@ void CPrecisionAirStrike::Touch(CBaseEntity *pOther) noexcept
 		return;
 	}
 
-	g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, Sounds::TRAVEL, VOL_NORM, ATTN_NORM, SND_STOP, UTIL_Random(94, 112));
+	g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, Sounds::TRAVEL, VOL_NORM, 0.3f, SND_STOP, UTIL_Random(94, 112));
 	g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, UTIL_GetRandomOne(Sounds::EXPLOSION), VOL_NORM, 0.3f, 0, UTIL_Random(92, 116));
 
 	Impact(m_pPlayer, this, 500.f);
@@ -218,6 +218,8 @@ Task CClusterBomb::Task_ClusterBomb() noexcept
 	pev->solid = SOLID_NOT;
 	pev->movetype = MOVETYPE_NONE;
 	pev->effects = EF_NODRAW;
+
+	g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, Sounds::CLUSTER_BOMB_DROP, VOL_NORM, 0, SND_STOP, UTIL_Random(92, 112));
 
 	MsgBroadcast(SVC_TEMPENTITY);
 	WriteData(TE_KILLBEAM);
@@ -287,7 +289,7 @@ Task CClusterBomb::Task_ClusterBomb() noexcept
 
 		if (iCounter % 3 == 0)
 		{
-			Prefab_t::Create<CFloatingDust>(vec, Vector(0, 0, UTIL_Random(0.0, 359.9)));
+			Prefab_t::Create<CFloatingDust>(vec, Angles(0, 0, UTIL_Random(0.0, 359.9)));
 		}
 
 		++iCounter;
@@ -326,6 +328,8 @@ void CClusterBomb::Spawn() noexcept
 	WriteData((byte)255);
 	WriteData((byte)255);
 	MsgEnd();
+
+	g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, Sounds::CLUSTER_BOMB_DROP, VOL_NORM, 0, 0, UTIL_Random(92, 112));
 
 	m_Scheduler.Enroll(Task_ClusterBomb());
 	// Calculate everything, including all those detonation spots and where is the first detonation.
@@ -508,9 +512,9 @@ Task CBullet::Task_Touch() noexcept
 		co_return;
 	}
 
-	Vector vecAngles{};
+	Angles vecAngles{};
 	g_engfuncs.pfnVecToAngles(tr.vecPlaneNormal, vecAngles);
-	vecAngles.x += 270.f;	// it seems like all MDL requires a += 270 shift.
+	vecAngles.pitch += 270.f;	// it seems like all MDL requires a += 270 shift.
 
 	Prefab_t::Create<CSparkMdl>(tr.vecEndPos, vecAngles);
 	Prefab_t::Create<CGroundedDust>(tr.vecEndPos);
@@ -625,4 +629,46 @@ CBullet *CBullet::Create(Vector const &vecOrigin, Vector const &vecVelocity, CBa
 	pPrefab->pev->nextthink = 0.1f;
 
 	return pPrefab;
+}
+
+//
+// CFuelAirExplosive
+//
+
+struct CFuelAirExplosive : public Prefab_t
+{
+	void Spawn() noexcept override;
+
+	CBasePlayer *m_pPlayer{};
+};
+
+void CFuelAirExplosive::Spawn() noexcept
+{
+	g_engfuncs.pfnSetOrigin(edict(), pev->origin);
+	g_engfuncs.pfnSetModel(edict(), Models::PROJECTILE[FUEL_AIR_BOMB]);
+	g_engfuncs.pfnSetSize(edict(), Vector(-2, -2, -2), Vector(2, 2, 2));
+
+	pev->owner = m_pPlayer->edict();
+	pev->solid = SOLID_BBOX;
+	pev->movetype = MOVETYPE_TOSS;
+	pev->velocity = Vector::Zero();
+	pev->gravity = 1.f;
+
+	pev->effects = EF_DIMLIGHT;
+
+	// This is just a bomb drop. No energy post-apply onto the projectile, therefore no complex VFX.
+
+	MsgBroadcast(SVC_TEMPENTITY);
+	WriteData(TE_BEAMFOLLOW);
+	WriteData(entindex());
+	WriteData(Sprites::m_rgLibrary[Sprites::TRAIL]);
+	WriteData((byte)20);
+	WriteData((byte)3);
+	WriteData((byte)255);
+	WriteData((byte)255);
+	WriteData((byte)255);
+	WriteData((byte)255);
+	MsgEnd();
+
+	g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, Sounds::CLUSTER_BOMB_DROP, VOL_NORM, 0, 0, UTIL_Random(92, 112));
 }

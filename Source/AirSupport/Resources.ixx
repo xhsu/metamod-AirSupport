@@ -88,13 +88,24 @@ export namespace Sounds
 	inline constexpr char REJECTING[] = "airsupport/radio/radio_negative.wav";
 	inline constexpr char NOISE[] = "weapons/RADIO/radio_use.wav";
 
-	inline constexpr char TRAVEL[] = "weapons/missile_travel_07.wav";
+	inline constexpr char TRAVEL[] = "weapons/cruise_missile_travel_02.wav";
 
 	inline constexpr char AMBIENT_FIRE[] = "ambience/fire_loop_1.wav";
 
 	inline constexpr char PLAYER_BREATHE[] = "misc/breathe.wav";
 	inline constexpr char PLAYER_EAR_RINGING[] = "misc/earring.wav";
 	inline constexpr char PLAYER_HEARTBEAT[] = "misc/heartbeat.wav";
+
+	inline constexpr array PLAYER_COUGH =
+	{
+		"misc/cough1.wav",
+		"misc/cough2.wav",
+		"misc/cough3.wav",
+		"misc/cough4.wav",
+		"misc/cough5.wav",
+		"misc/cough6.wav",
+		"misc/cough7.wav",
+	};
 
 	inline constexpr array EXPLOSION =
 	{
@@ -149,6 +160,8 @@ export namespace Sounds
 		"airsupport/bomber/b1b_04.wav",
 		"airsupport/bomber/b1b_05.wav",
 	};
+
+	inline constexpr char CLUSTER_BOMB_DROP[] = "weapons/missile_travel_01.wav";
 
 	namespace Gunship
 	{

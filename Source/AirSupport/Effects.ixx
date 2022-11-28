@@ -79,7 +79,7 @@ export struct CSmoke : public Prefab_t
 
 export struct CFloatingDust : public Prefab_t
 {
-	static inline constexpr char CLASSNAME[] = "env_smoke_2";
+	static inline constexpr char CLASSNAME[] = "env_floating_dust";
 	static inline constexpr double FPS = 18.0;
 	static inline constexpr float MAX_FRAME = 40.f;
 
@@ -176,3 +176,5 @@ export struct CSparkSpr : public Prefab_t
 
 	void Spawn() noexcept override;
 };
+
+export extern "C++" Task Task_StartCough() noexcept;
