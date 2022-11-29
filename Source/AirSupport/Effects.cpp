@@ -741,6 +741,17 @@ bool UTIL_AnySmokeNear(Vector const &vecSrc) noexcept
 		return true;
 	}
 
+	for (auto &&pFlame :
+		FIND_ENTITY_IN_SPHERE(vecSrc, float(128.0 * std::numbers::sqrt3)) |
+		std::views::filter([](edict_t *pEdcit) noexcept { return pEdcit->v.classname == MAKE_STRING(CFuelAirCloud::CLASSNAME); })
+		)
+	{
+		// Any CFuelAirCloud entity near the head?
+		// It's quite toxic so the transparency doesn't matter.
+
+		return true;
+	}
+
 	return false;
 }
 
@@ -937,7 +948,7 @@ Task CFuelAirCloud::Task_Ignite(void) noexcept
 	co_await 0.1f;
 
 	if (!UTIL_Random(0, 4))
-		Prefab_t::Create<CSmoke>(pev->origin + Vector::Up() * UTIL_Random(-64.f, 64.f), Angles(0, 0, UTIL_Random(0, 360)));
+		Prefab_t::Create<CSmoke>(pev->origin + Vector(0, 0, UTIL_Random(-64.0, 64.0)), Angles(0, 0, UTIL_Random(0, 360)));
 }
 
 void CFuelAirCloud::Spawn() noexcept
