@@ -406,7 +406,6 @@ Task CCarpetBombardment::Task_Touch() noexcept
 
 	co_await TaskScheduler::NextFrame::Rank[0];
 
-	auto const pFieldSmoke = Prefab_t::Create<CFieldSmoke>();
 	auto const iFlameCount = UTIL_Random(1, 3);
 	for (int i = 0; i < iFlameCount; ++i)
 	{
@@ -415,13 +414,8 @@ Task CCarpetBombardment::Task_Touch() noexcept
 		pFlame->pev->gravity = 1.f;
 
 		auto const pSmoke = Prefab_t::Create<CSmoke>(tr.vecEndPos + Vector(UTIL_Random(-96, 96), UTIL_Random(-96, 96), UTIL_Random(0, 72)));
-		pSmoke->LitByFlame();
-
-		pFieldSmoke->EnrollFlame(pFlame);
-		pFieldSmoke->EnrollSmoke(pSmoke);
+		pSmoke->LitByFlame(false);
 	}
-
-	pFieldSmoke->Activate();
 
 	co_await TaskScheduler::NextFrame::Rank[0];
 

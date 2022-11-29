@@ -277,28 +277,54 @@ Task CSmoke::Task_FadeOut() noexcept
 	pev->flags |= FL_KILLME;
 }
 
-void CSmoke::LitByFlame() noexcept
+Task CSmoke::Task_ReflectingFlame() noexcept
 {
-	pev->rendercolor = Vector(
-		UTIL_Random(0xC3, 0xCD),	// r
-		UTIL_Random(0x3E, 0x46),	// g
-		UTIL_Random(0x05, 0x10)		// b
-	);
+	static constexpr auto SEARCH_RADIUS = 192.0;
 
-	m_vecStartingLitClr = pev->rendercolor;
-	m_vecFlameClrToWhite = Vector(255, 255, 255) - pev->rendercolor;
+	TraceResult tr{};
+	double flPercentage{}, flContribution{};
+
+	for (;;)
+	{
+		co_await 0.05f;
+
+		flPercentage = 0;
+		g_engfuncs.pfnTraceLine(pev->origin, Vector(pev->origin.x, pev->origin.y, -8192.0), ignore_glass | ignore_monsters, nullptr, &tr);
+
+		for (edict_t *pEdict : FIND_ENTITY_IN_SPHERE(tr.vecEndPos, (float)SEARCH_RADIUS))
+		{
+			flContribution = 0;
+
+			if (pEdict->v.classname == MAKE_STRING(CFlame::CLASSNAME))
+				flContribution = std::clamp(1.0 - (pEdict->v.origin - tr.vecEndPos).Length() / SEARCH_RADIUS, 0.0, 0.4);
+			else if (pEdict->v.classname == MAKE_STRING(CFuelAirCloud::CLASSNAME))
+			{
+				if (CFuelAirCloud *pCloud = (CFuelAirCloud *)pEdict->pvPrivateData; pCloud->m_bIgnited)
+					flContribution = 1;	// It's exploding!!
+			}
+
+			flPercentage = std::clamp(flPercentage + flContribution, 0.0, 1.0);
+		}
+
+		DriftToWhite(1.0 - flPercentage);
+	}
 }
 
-void CSmoke::StartColorDrift(Vector const &vecTargetColor) noexcept
+void CSmoke::LitByFlame(bool const bShouldStartingWhite) noexcept
 {
-	m_Scheduler.Delist(DRIFT_COLOR_KEY);
-	m_Scheduler.Enroll(Task_DriftColor(vecTargetColor));
+	if (!bShouldStartingWhite)
+		pev->rendercolor = m_vecStartingLitClr + m_vecFlameClrToWhite * 0.4;
+
+	if (!m_Scheduler.Exist(REFLECTING_FLAME_KEY))
+		m_Scheduler.Enroll(Task_ReflectingFlame(), REFLECTING_FLAME_KEY);
 }
 
 void CSmoke::DriftToWhite(double const flPercentage) noexcept
 {
-	StartColorDrift(
-		m_vecStartingLitClr + m_vecFlameClrToWhite * std::clamp(flPercentage, 0.0, 1.0)
+	m_Scheduler.Delist(DRIFT_COLOR_KEY);
+	m_Scheduler.Enroll(
+		Task_DriftColor(m_vecStartingLitClr + m_vecFlameClrToWhite * std::clamp(flPercentage, 0.0, 1.0)),
+		DRIFT_COLOR_KEY
 	);
 }
 
@@ -344,6 +370,13 @@ void CSmoke::Spawn() noexcept
 	g_engfuncs.pfnTraceMonsterHull(edict(), tr.vecEndPos, pev->origin, ignore_monsters | ignore_glass, nullptr, &tr);
 
 	g_engfuncs.pfnSetOrigin(edict(), tr.vecEndPos);	// pfnSetOrigin includes the abssize setting, restoring our hitbox.
+
+	m_vecStartingLitClr = Vector(
+		UTIL_Random(0xC3, 0xCD),	// r
+		UTIL_Random(0x3E, 0x46),	// g
+		UTIL_Random(0x05, 0x10)		// b
+	);
+	m_vecFlameClrToWhite = Vector(255, 255, 255) - m_vecStartingLitClr;
 
 	m_Scheduler.Enroll(Task_FadeOut());
 }
@@ -408,63 +441,6 @@ void CFloatingDust::Spawn() noexcept
 
 	m_Scheduler.Enroll(Task_Animation());
 	m_Scheduler.Enroll(Task_FadeOut());
-}
-
-//
-// CFieldSmoke
-// Renders the color of smoke with the color of flames.
-//
-
-Task CFieldSmoke::Task_AdjustSmokeColor() noexcept
-{
-	for (;;)
-	{
-		co_await TaskScheduler::NextFrame::Rank[0];
-
-		m_rgpFlames.remove_if([](EHANDLE<CFlame> const &flame) noexcept -> bool { return !flame; });
-		m_rgpSmokes.remove_if([](EHANDLE<CSmoke> const &smoke) noexcept -> bool { return !smoke; });
-
-		[[unlikely]]
-		if (auto const iNewCount = m_rgpFlames.size(); m_iLastFlames != iNewCount)
-		{
-			for (auto &&pSmoke : m_rgpSmokes)
-				pSmoke->DriftToWhite(1.0 - (double)iNewCount / (double)m_iTotalFlames);
-
-			m_iLastFlames = iNewCount;
-		}
-	}
-}
-
-Task CFieldSmoke::Task_Remove() noexcept
-{
-	for (;;)
-	{
-		co_await 0.1f;
-
-		[[unlikely]]
-		if (m_rgpFlames.empty())
-		{
-			co_await TaskScheduler::NextFrame::Rank[0];
-
-			pev->flags |= FL_KILLME;
-			co_return;
-		}
-	}
-}
-
-void CFieldSmoke::Spawn() noexcept
-{
-	pev->effects |= EF_NODRAW;
-
-	m_Scheduler.Enroll(Task_Remove());
-}
-
-void CFieldSmoke::Activate() noexcept
-{
-	m_iTotalFlames = m_rgpFlames.size();
-	m_iTotalSmokes = m_rgpSmokes.size();
-
-	m_Scheduler.Enroll(Task_AdjustSmokeColor());
 }
 
 //

@@ -65,14 +65,15 @@ export struct CSmoke : public Prefab_t
 
 	static inline constexpr char CLASSNAME[] = "env_explo_smoke";
 	static inline constexpr auto DRIFT_COLOR_KEY = 3896738ul;
+	static inline constexpr auto REFLECTING_FLAME_KEY = 332847938ul;
 
 	// Methods
 
 	Task Task_DriftColor(Vector const vecTargetColor) noexcept;	// keep it internal, thanks.
 	Task Task_FadeOut() noexcept;
+	Task Task_ReflectingFlame() noexcept;
 
-	void LitByFlame() noexcept;
-	void StartColorDrift(Vector const &vecTargetColor) noexcept;
+	void LitByFlame(bool const bShouldStartingWhite) noexcept;
 	void DriftToWhite(double const flPercentage) noexcept;	// [0-1]
 
 	void Spawn() noexcept override;
@@ -95,27 +96,6 @@ export struct CFloatingDust : public Prefab_t
 	void Spawn() noexcept override;
 
 	high_resolution_clock::time_point m_LastAnimUpdate{};
-};
-
-export struct CFieldSmoke : public Prefab_t
-{
-	static inline constexpr char CLASSNAME[] = "env_explo_field_smoke";
-
-	Task Task_AdjustSmokeColor() noexcept;
-	Task Task_Remove() noexcept;
-
-	__forceinline void EnrollFlame(CFlame *pFlame) noexcept { m_rgpFlames.emplace_back(pFlame); }
-	__forceinline void EnrollSmoke(CSmoke *pSmoke) noexcept { m_rgpSmokes.emplace_back(pSmoke); }
-
-	void Spawn() noexcept override;
-	void Activate() noexcept override;	// All the initial res are enlisted.
-
-	// Members
-
-	list<EHANDLE<CFlame>> m_rgpFlames{};
-	list<EHANDLE<CSmoke>> m_rgpSmokes{};
-	size_t m_iTotalFlames{}, m_iLastFlames{};
-	size_t m_iTotalSmokes{}, m_iLastSmokes{};
 };
 
 export struct CDebris : public Prefab_t
