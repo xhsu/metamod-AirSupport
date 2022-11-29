@@ -760,6 +760,8 @@ void CFuelAirExplosive::Touch(CBaseEntity *pOther) noexcept
 	pev->gravity = 0;
 	pev->effects = EF_NODRAW;
 
+	g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, Sounds::CLUSTER_BOMB_DROP, VOL_NORM, 0, SND_STOP, UTIL_Random(92, 112));
+
 	m_Scheduler.Enroll(Task_GasPropagate());
 }
 
@@ -768,6 +770,7 @@ CFuelAirExplosive *CFuelAirExplosive::Create(Vector const &vecOrigin, CBasePlaye
 	auto const [pEdict, pPrefab] = UTIL_CreateNamedPrefab<CFuelAirExplosive>();
 
 	pEdict->v.origin = vecOrigin;
+	g_engfuncs.pfnVecToAngles(Vector::Down(), pEdict->v.angles);
 
 	pPrefab->m_pPlayer = pPlayer;
 	pPrefab->Spawn();
