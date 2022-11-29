@@ -25,6 +25,12 @@ export namespace Color
 	};
 };
 
+export extern "C++" Task Task_AnimationLoop(entvars_t *const pev, float const MAX_FRAME, double const FPS) noexcept;
+export extern "C++" Task Task_AnimateOnce(entvars_t *const pev, float const MAX_FRAME, double const FPS) noexcept;
+export extern "C++" Task Task_FadeOut(entvars_t *const pev, float const DECAY, float const ROLL) noexcept;
+export extern "C++" Task Task_Remove(entvars_t *const pev, float const TIME) noexcept;
+export extern "C++" Task Task_FadeIn(entvars_t *const pev, float const TRANSPARENT_INC, float const FINAL_VAL, float const ROLL) noexcept;
+
 export struct CFlame : public Prefab_t
 {
 	// Info
@@ -177,4 +183,24 @@ export struct CSparkSpr : public Prefab_t
 	void Spawn() noexcept override;
 };
 
-export extern "C++" Task Task_StartCough() noexcept;
+export extern "C++" Task Task_GlobalCoughThink() noexcept;
+
+export struct CFuelAirCloud : public Prefab_t
+{
+	static inline constexpr char CLASSNAME[] = "fuel_air_cloud";
+	static inline constexpr double FPS = 18.0;
+	static inline constexpr float MAX_FRAME = 40.f;
+	static inline constexpr auto FADE_IN_TASK_KEY = 4325749ul;
+
+	Task Task_FadeIn(float const TRANSPARENT_INC, float const FINAL_VAL, float const ROLL) noexcept;
+	Task Task_Ignite(void) noexcept;
+
+	__forceinline void Ignite(void) noexcept;
+
+	void Spawn() noexcept override;
+	void Touch(CBaseEntity *pOther) noexcept override;
+
+	bool m_bFadeInDone{ false };
+	bool m_bIgnited{ false };
+	byte m_iIgnitedCounts{};
+};

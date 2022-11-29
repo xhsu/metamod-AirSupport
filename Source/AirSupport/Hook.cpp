@@ -226,7 +226,7 @@ void fw_ServerActivate_Post(edict_t *pEdictList, int edictCount, int clientMax) 
 	g_engfuncs.pfnCvar_DirectSet(gcvarMaxSpeed, "99999.0");
 	g_engfuncs.pfnCvar_DirectSet(gcvarMaxVelocity, "99999.0");
 
-	TaskScheduler::Enroll(Task_StartCough());
+	TaskScheduler::Enroll(Task_GlobalCoughThink());
 	TaskScheduler::Enroll(Task_UpdateTeams());
 
 	// This hook is very special, since it is actually delete-newed in each new game.

@@ -1,8 +1,10 @@
 export module Projectile;
 
+export import <list>;
 export import <vector>;
 
 export import Beam;
+export import Effects;
 export import Prefab;
 
 export inline constexpr auto MISSILE_GROUPINFO = (1 << 10);
@@ -75,4 +77,19 @@ export struct CBullet : public Prefab_t
 
 	CBasePlayer *m_pShooter{};
 	Vector m_vecLastTraceSrc{};
+};
+
+export struct CFuelAirExplosive : public Prefab_t
+{
+	static inline constexpr char CLASSNAME[] = "fuel_air_bomb";
+
+	Task Task_GasPropagate() noexcept;
+
+	void Spawn() noexcept override;
+	void Touch(CBaseEntity *pOther) noexcept override;
+
+	static CFuelAirExplosive *Create(Vector const &vecOrigin, CBasePlayer *pPlayer) noexcept;
+
+	CBasePlayer *m_pPlayer{};
+	std::list<EHANDLE<CFuelAirCloud>> m_rgpCloud{};
 };

@@ -1,6 +1,7 @@
 ﻿#include <cassert>
 
 import <array>;
+import <list>;
 import <ranges>;
 
 import Effects;
@@ -12,6 +13,7 @@ import Resources;
 import UtlRandom;
 
 using std::array;
+using std::list;
 
 // Explosion.cpp
 extern void RangeDamage(CBasePlayer *pAttacker, const Vector &vecOrigin, float const flRadius, float const flDamage) noexcept;
@@ -635,12 +637,83 @@ CBullet *CBullet::Create(Vector const &vecOrigin, Vector const &vecVelocity, CBa
 // CFuelAirExplosive
 //
 
-struct CFuelAirExplosive : public Prefab_t
+Task CFuelAirExplosive::Task_GasPropagate() noexcept
 {
-	void Spawn() noexcept override;
+	TraceResult tr{};
+	auto const vecTestSrc = pev->origin + Vector::Up() * 5.0;
+	list<Vector> rgvecVarifiedLocations{};
+	bool bGoodToSpawn = false;
 
-	CBasePlayer *m_pPlayer{};
-};
+	for (auto iCounter = 0ul; iCounter < 50; /* Increase the counter only when successed */)
+	{
+	LAB_CONTINUE:;
+		co_await 0.02f;
+
+		bGoodToSpawn = false;
+
+		auto const flRangeMin = 10.0 + floor(iCounter / 10.0) * 100.0;
+		auto const flRangeMax = 200.0 + floor(iCounter / 10.0) * 100.0;
+		auto const vecCandidate = pev->origin + get_cylindrical_coord(UTIL_Random(flRangeMin, flRangeMax), UTIL_Random(0.0, 359.9), UTIL_Random(36, 96));
+
+		for (auto &&vec : rgvecVarifiedLocations)
+		{
+			auto const flLenghSq = (vec - vecCandidate).LengthSquared();
+
+			// Too close to each other.
+			if (flLenghSq < 64.0 * 64.0)
+				goto LAB_CONTINUE;
+		}
+
+		g_engfuncs.pfnTraceLine(vecTestSrc, vecCandidate, ignore_monsters | ignore_glass, nullptr, &tr);
+
+		if (tr.flFraction < 1 || tr.fAllSolid)
+		{
+			rgvecVarifiedLocations.sort([&](Vector const &lhs, Vector const &rhs) noexcept {
+				return (lhs - vecCandidate).LengthSquared() < (rhs - vecCandidate).LengthSquared();
+			});
+
+			for (auto &&vec : rgvecVarifiedLocations)
+			{
+				g_engfuncs.pfnTraceLine(vec, vecCandidate, ignore_glass | ignore_monsters, nullptr, &tr);
+				if (tr.flFraction == 1.0 && !tr.fAllSolid)
+				{
+					bGoodToSpawn = true;
+					break;
+				}
+			}
+		}
+		else
+			bGoodToSpawn = true;
+
+		if (!bGoodToSpawn)
+			continue;
+
+		m_rgpCloud.emplace_back(
+			Prefab_t::Create<CFuelAirCloud>(vecCandidate, Angles(0, 0, UTIL_Random(0.0, 359.0)))
+		);
+
+		rgvecVarifiedLocations.emplace_back(vecCandidate);
+		++iCounter;
+	}
+
+LAB_WAIT_FOR_FADE_IN:;
+	for (auto &&pCloud : m_rgpCloud)
+	{
+		co_await TaskScheduler::NextFrame::Rank[1];
+
+		// Something / someone ignited it already.
+		if (pCloud && pCloud->m_bIgnited)
+			goto LAB_CO_RETURN;
+
+		if (pCloud && !pCloud->m_bFadeInDone)
+			goto LAB_WAIT_FOR_FADE_IN;
+	}
+
+	m_rgpCloud.front()->Ignite();
+
+LAB_CO_RETURN:;
+	pev->flags |= FL_KILLME;
+}
 
 void CFuelAirExplosive::Spawn() noexcept
 {
@@ -671,4 +744,40 @@ void CFuelAirExplosive::Spawn() noexcept
 	MsgEnd();
 
 	g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, Sounds::CLUSTER_BOMB_DROP, VOL_NORM, 0, 0, UTIL_Random(92, 112));
+}
+
+void CFuelAirExplosive::Touch(CBaseEntity *pOther) noexcept
+{
+	g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, UTIL_GetRandomOne(Sounds::EXPLOSION_SHORT), VOL_NORM, 0, 0, UTIL_Random(92, 112));
+
+	auto const vecExplo = pev->origin + Vector::Up() * 72;
+
+	MsgPVS(SVC_TEMPENTITY, vecExplo);
+	WriteData(TE_SPRITE);
+	WriteData(vecExplo);
+	WriteData(Sprites::m_rgLibrary[Sprites::MINOR_EXPLO]);
+	WriteData((byte)40);
+	WriteData((byte)255);
+	MsgEnd();
+
+	pev->solid = SOLID_NOT;
+	pev->movetype = MOVETYPE_NONE;
+	pev->velocity = Vector::Zero();
+	pev->gravity = 0;
+	pev->effects = EF_NODRAW;
+
+	m_Scheduler.Enroll(Task_GasPropagate());
+}
+
+CFuelAirExplosive *CFuelAirExplosive::Create(Vector const &vecOrigin, CBasePlayer *pPlayer) noexcept
+{
+	auto const [pEdict, pPrefab] = UTIL_CreateNamedPrefab<CFuelAirExplosive>();
+
+	pEdict->v.origin = vecOrigin;
+
+	pPrefab->m_pPlayer = pPlayer;
+	pPrefab->Spawn();
+	pPrefab->pev->nextthink = 0.1f;
+
+	return pPrefab;
 }

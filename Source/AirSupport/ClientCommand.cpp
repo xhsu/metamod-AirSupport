@@ -102,6 +102,11 @@ META_RES OnClientCommand(CBasePlayer *pPlayer, const string &szCommand) noexcept
 			return MRES_SUPERCEDE;
 		}
 	}
+	else if (szCommand == "edict")
+	{
+		g_engfuncs.pfnServerPrint(std::format("{}/{}\n", g_engfuncs.pfnNumberOfEntities(), gpGlobals->maxEntities).c_str());
+		return MRES_SUPERCEDE;
+	}
 
 	return MRES_IGNORED;
 }

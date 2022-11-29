@@ -224,7 +224,6 @@ export namespace Sprites
 	inline constexpr char FIRE2[] = "sprites/hotglow.spr";
 	inline constexpr char SMOKE_1[] = "sprites/gas_smoke1.spr";
 	inline constexpr char SMOKE_2[] = "sprites/wall_puff1.spr";
-	inline constexpr char PERSISTENT_SMOKE[] = "sprites/ballsmoke.spr";
 	inline constexpr char MINOR_EXPLO[] = "sprites/zerog-frag1.spr";
 	inline constexpr char AIRBURST[] = "sprites/exploeffect1.spr";
 	inline constexpr char CARPET_FRAGMENT_EXPLO[] = "sprites/m79grenadeex.spr";
@@ -252,12 +251,12 @@ export namespace Sprites
 		"sprites/black_smoke4.spr",
 	};
 
-	inline constexpr array WALL_PUFF =
+	inline constexpr array GAS_EXPLO =
 	{
-		"sprites/wall_puff1.spr",
-		"sprites/wall_puff2.spr",
-		"sprites/wall_puff3.spr",
-		"sprites/wall_puff4.spr",
+		"sprites/exploeffect3.spr",
+		"sprites/exploeffect4.spr",
+		"sprites/exploeffect5.spr",
+		"sprites/exploeffect7.spr",
 	};
 
 	inline unordered_map<string, short> m_rgLibrary{};
@@ -265,7 +264,8 @@ export namespace Sprites
 	namespace Frames
 	{
 		inline constexpr array FLAME = { 17, 16, 16 };
-		inline constexpr auto WALL_PUFF = 30;
+		inline constexpr auto BLACK_SMOKE = 30;
+		inline constexpr array GAS_EXPLO = { 15, 20, 15, 20 };
 	};
 
 	static_assert(FLAME.size() == Frames::FLAME.size());

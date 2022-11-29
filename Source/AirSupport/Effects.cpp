@@ -503,7 +503,7 @@ void CDebris::Spawn() noexcept
 	pev->avelocity = { 400, UTIL_Random(-400.0, 400.0), 0 };
 
 	g_engfuncs.pfnSetOrigin(edict(), pev->origin);
-	g_engfuncs.pfnSetModel(edict(), Models::GIBS_WOOD);
+	g_engfuncs.pfnSetModel(edict(), Models::GIBS_METAL);
 	g_engfuncs.pfnSetSize(edict(), Vector(-1, -1, -1), Vector(1, 1, 1));
 
 	m_Scheduler.Enroll(Task_Debris());
@@ -564,7 +564,7 @@ Task CGunshotSmoke::Task_Animation() noexcept
 		pev->animtime = gpGlobals->time;
 
 		[[unlikely]]
-		if (pev->frame < 0 || pev->frame >= Sprites::Frames::WALL_PUFF)
+		if (pev->frame < 0 || pev->frame >= Sprites::Frames::BLACK_SMOKE)
 		{
 			pev->flags |= FL_KILLME;	// the WALL_PUFF spr is not cycling.
 			co_return;
@@ -781,7 +781,7 @@ Task Task_PlayerCough(CBasePlayer *pPlayer) noexcept
 	}
 }
 
-Task Task_StartCough() noexcept
+Task Task_GlobalCoughThink() noexcept
 {
 	co_await 0.1f;
 
@@ -806,5 +806,206 @@ Task Task_StartCough() noexcept
 		}
 
 		co_await 0.1f;
+	}
+}
+
+//
+// CFuelAirCloud
+//
+
+Task Task_AnimationLoop(entvars_t *const pev, float const MAX_FRAME, double const FPS) noexcept
+{
+	// Consider this as initialization
+	auto LastAnimUpdate = std::chrono::high_resolution_clock::now();
+
+	for (;;)
+	{
+		co_await TaskScheduler::NextFrame::Rank[8];
+
+		auto const CurTime = std::chrono::high_resolution_clock::now();
+		auto const flTimeDelta = std::chrono::duration_cast<std::chrono::nanoseconds>(CurTime - LastAnimUpdate).count() / 1'000'000'000.0;
+
+		pev->framerate = float(FPS * flTimeDelta);
+		pev->frame += pev->framerate;
+		pev->animtime = gpGlobals->time;
+
+		[[unlikely]]
+		if (pev->frame < 0 || pev->frame >= MAX_FRAME)
+			pev->frame -= float((pev->frame / MAX_FRAME) * MAX_FRAME);
+
+		LastAnimUpdate = CurTime;
+	}
+}
+
+Task Task_AnimateOnce(entvars_t *const pev, float const MAX_FRAME, double const FPS) noexcept
+{
+	pev->frame = 0;
+
+	// Consider this as initialization
+	auto LastAnimUpdate = std::chrono::high_resolution_clock::now();
+
+	for (;;)
+	{
+		co_await TaskScheduler::NextFrame::Rank[8];
+
+		auto const CurTime = std::chrono::high_resolution_clock::now();
+		auto const flTimeDelta = std::chrono::duration_cast<std::chrono::nanoseconds>(CurTime - LastAnimUpdate).count() / 1'000'000'000.0;
+
+		pev->framerate = float(FPS * flTimeDelta);
+		pev->frame += pev->framerate;
+		pev->animtime = gpGlobals->time;
+
+		[[unlikely]]
+		if (pev->frame < 0 || pev->frame >= MAX_FRAME)
+			break;
+
+		LastAnimUpdate = CurTime;
+	}
+
+	pev->flags |= FL_KILLME;
+}
+
+Task Task_FadeOut(entvars_t *const pev, float const DECAY, float const ROLL) noexcept
+{
+	for (; pev->renderamt > 0;)
+	{
+		co_await TaskScheduler::NextFrame::Rank.back();
+
+		pev->renderamt -= DECAY;
+		pev->angles.roll += ROLL;
+	}
+
+	pev->flags |= FL_KILLME;
+}
+
+Task Task_Remove(entvars_t *const pev, float const TIME) noexcept
+{
+	co_await TIME;
+
+	pev->flags |= FL_KILLME;
+}
+
+Task Task_FadeIn(entvars_t *const pev, float const TRANSPARENT_INC, float const FINAL_VAL, float const ROLL) noexcept
+{
+	for (; pev->renderamt < FINAL_VAL;)
+	{
+		co_await TaskScheduler::NextFrame::Rank.back();
+
+		pev->renderamt += TRANSPARENT_INC;
+		pev->angles.roll += ROLL;
+	}
+
+	[[unlikely]]
+	if (abs(ROLL) <= std::numeric_limits<float>::epsilon())
+		co_return;
+
+	for (;;)
+	{
+		co_await TaskScheduler::NextFrame::Rank.back();
+
+		pev->angles.roll += ROLL;
+	}
+}
+
+Task CFuelAirCloud::Task_FadeIn(float const TRANSPARENT_INC, float const FINAL_VAL, float const ROLL) noexcept
+{
+	for (; pev->renderamt < FINAL_VAL;)
+	{
+		co_await TaskScheduler::NextFrame::Rank.back();
+
+		pev->renderamt += TRANSPARENT_INC;
+		pev->angles.roll += ROLL;
+	}
+
+	m_bFadeInDone = true;
+
+	for (;;)
+	{
+		co_await TaskScheduler::NextFrame::Rank.back();
+
+		pev->angles.roll += ROLL;
+	}
+}
+
+Task CFuelAirCloud::Task_Ignite(void) noexcept
+{
+	if (m_bIgnited)
+		co_return;
+
+	co_await 0.05f;
+
+	// Enable the ability to ignite others
+	m_bIgnited = true;
+
+	pev->renderamt = 255.f;	// maximize brightness
+	pev->rendercolor = Vector(255, 255, 255);
+
+	pev->solid = SOLID_TRIGGER;
+	pev->movetype = MOVETYPE_FLY;
+	pev->velocity = Vector::Zero();
+	pev->scale = UTIL_Random(1.f, 2.f);
+
+	pev->angles = Angles();
+
+	auto const iSelectedFlame = UTIL_Random(0u, Sprites::GAS_EXPLO.size() - 1);
+	auto const iMaxFrame = Sprites::Frames::GAS_EXPLO[iSelectedFlame] - 1;
+
+	g_engfuncs.pfnSetModel(edict(), Sprites::GAS_EXPLO[iSelectedFlame]);
+	g_engfuncs.pfnSetOrigin(edict(), pev->origin);
+	g_engfuncs.pfnSetSize(edict(), Vector(-128, -128, -128) * pev->scale, Vector(128, 128, 128) * pev->scale);
+	g_engfuncs.pfnDropToFloor(edict());
+
+	m_Scheduler.Delist(FADE_IN_TASK_KEY);
+	m_Scheduler.Enroll(Task_AnimateOnce(pev, (float)iMaxFrame, UTIL_Random(4, 8)));
+
+	co_await 0.1f;
+
+	if (!UTIL_Random(0, 4))
+		Prefab_t::Create<CSmoke>(pev->origin + Vector::Up() * UTIL_Random(-64.f, 64.f), Angles(0, 0, UTIL_Random(0, 360)));
+}
+
+void CFuelAirCloud::Spawn() noexcept
+{
+	pev->rendermode = kRenderTransAdd;
+	pev->renderamt = 0.f;
+	pev->rendercolor = Vector(255, 255, 255);
+	pev->frame = UTIL_Random(0.f, MAX_FRAME - 1);
+
+	pev->solid = SOLID_TRIGGER;
+	pev->movetype = MOVETYPE_FLY;
+	pev->gravity = 0;
+	pev->velocity = Vector::Zero();
+	pev->scale = UTIL_Random(2.f, 3.f);
+
+	g_engfuncs.pfnSetModel(edict(), Sprites::LIFTED_DUST);
+	g_engfuncs.pfnSetOrigin(edict(), pev->origin);	// pfnSetOrigin includes the abssize setting, restoring our hitbox.
+	g_engfuncs.pfnSetSize(edict(), Vector(-128, -128, -128) * pev->scale, Vector(128, 128, 128) * pev->scale);
+
+	m_Scheduler.Enroll(Task_AnimationLoop(pev, MAX_FRAME, FPS));
+	m_Scheduler.Enroll(Task_FadeIn(0.05f, 32.f, 0.07f), FADE_IN_TASK_KEY);
+}
+
+__forceinline void CFuelAirCloud::Ignite(void) noexcept
+{
+	m_Scheduler.Enroll(Task_Ignite());
+}
+
+void CFuelAirCloud::Touch(CBaseEntity *pOther) noexcept
+{
+	if (!pOther || pOther->pev->solid == SOLID_BSP)
+		return;
+
+	if (m_bIgnited && m_iIgnitedCounts < 3 && pOther->pev->classname == MAKE_STRING(CFuelAirCloud::CLASSNAME))
+	{
+		if (CFuelAirCloud *pCloud = (CFuelAirCloud *)pOther; !pCloud->m_bIgnited)
+		{
+			pCloud->Ignite();
+			++m_iIgnitedCounts;
+		}
+	}
+
+	if (pOther->pev->takedamage != DAMAGE_NO)
+	{
+		// damage entities.
 	}
 }
