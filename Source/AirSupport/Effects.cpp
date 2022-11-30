@@ -779,6 +779,8 @@ void CFuelAirCloud::Spawn() noexcept
 
 	m_Scheduler.Enroll(Task_SpriteLoop(pev, FRAME_COUNT, FPS), TASK_ANIMATION);	// This should be removed as well, we are not going to loop on flame SPR.
 	m_Scheduler.Enroll(Task_FadeIn(0.05f, 32.f, 0.07f), TASK_FADE_IN);
+
+	s_rgpAeroClouds.emplace_back(this);
 }
 
 void CFuelAirCloud::Touch(CBaseEntity *pOther) noexcept
@@ -816,6 +818,12 @@ void CFuelAirCloud::Touch(CBaseEntity *pOther) noexcept
 		// Hurting entities.
 		else if (pOther->pev->takedamage != DAMAGE_NO)
 		{
+			if (pOther->IsPlayer())
+			{
+				if (CBasePlayer *pPlayer = (CBasePlayer *)pOther; pPlayer->m_iTeam == m_pPlayer->m_iTeam && gcvarFriendlyFire->value < 1)
+					return;
+			}
+
 			pOther->TakeDamage(pev, m_pPlayer->pev, pev->renderamt, DMG_SLOWBURN);
 		}
 	}
@@ -833,4 +841,111 @@ CFuelAirCloud *CFuelAirCloud::Create(CBasePlayer *pPlayer, Vector const &vecOrig
 	pPrefab->pev->nextthink = 0.1f;
 
 	return pPrefab;
+}
+
+Task CFuelAirCloud::Task_AirPressure() noexcept
+{
+	array<double, 3> rgflPressureCenter{};
+	Vector vecPressureCenter{}, vecDir{};
+	int iIgnitedCount{};
+	double flSpeed{};
+
+	for (;;)
+	{
+		co_await 0.1f;
+
+		// Kick off all invalid clouds, especially after map reload.
+		s_rgpAeroClouds.remove_if(
+			[](EHANDLE<CFuelAirCloud> const &pCloud) noexcept -> bool { return !static_cast<bool>(pCloud); }
+		);
+
+		if (s_rgpAeroClouds.empty())
+			continue;
+
+		rgflPressureCenter.fill(0);
+		iIgnitedCount = 0;
+
+		std::ranges::for_each(s_rgpAeroClouds | std::views::filter([](EHANDLE<CFuelAirCloud> const &pCloud) noexcept { return pCloud->m_bIgnited; }),
+			[&](Vector const &vecOrigin) noexcept { ++iIgnitedCount; rgflPressureCenter[0] += vecOrigin[0]; rgflPressureCenter[1] += vecOrigin[1]; rgflPressureCenter[2] += vecOrigin[2]; },
+			[](EHANDLE<CFuelAirCloud> const &pCloud) noexcept -> Vector const &{ return pCloud->pev->origin; }
+		);
+
+		if (iIgnitedCount <= 0)
+			continue;
+
+		// equiv of 'vec /= fl'
+		std::ranges::for_each(rgflPressureCenter,
+			[flCount = (double)iIgnitedCount](double &val) noexcept { val /= flCount; }
+		);
+
+		vecPressureCenter = Vector(
+			rgflPressureCenter[0],
+			rgflPressureCenter[1],
+			rgflPressureCenter[2]
+		);
+
+		for (CBasePlayer *pPlayer :
+			std::views::iota(1, gpGlobals->maxClients) |
+			std::views::transform([](int idx) noexcept { auto const pent = g_engfuncs.pfnPEntityOfEntIndex(idx); return pent ? (CBasePlayer *)pent->pvPrivateData : nullptr; }) |
+			std::views::filter([](void *p) noexcept { return p != nullptr; }) |
+
+			// Only player who is alive.
+			std::views::filter([](CBasePlayer *pPlayer) noexcept { return pPlayer->pev->deadflag == DEAD_NO && pPlayer->pev->takedamage != DAMAGE_NO; })
+			)
+		{
+			vecDir = vecPressureCenter - pPlayer->pev->origin;
+			flSpeed = std::clamp<double>(4096.0 - vecDir.Length(), 0.0, 256.0);
+
+			if (flSpeed > 1)
+				pPlayer->pev->velocity += vecDir.Normalize() * flSpeed;
+		}
+
+		if (iIgnitedCount > 10 && !TaskScheduler::Exist(TASK_HB_AND_ER))
+			TaskScheduler::Enroll(Task_Suffocation(iIgnitedCount / 10), TASK_HB_AND_ER);
+	}
+}
+
+Task CFuelAirCloud::Task_Suffocation(int const iDmgCounts) noexcept
+{
+	for (CBasePlayer *pPlayer :
+		std::views::iota(1, gpGlobals->maxClients) |
+		std::views::transform([](int idx) noexcept { auto const pent = g_engfuncs.pfnPEntityOfEntIndex(idx); return pent ? (CBasePlayer *)pent->pvPrivateData : nullptr; }) |
+		std::views::filter([](void *p) noexcept { return p != nullptr; }) |
+
+		// Only player who is alive.
+		std::views::filter([](CBasePlayer *pPlayer) noexcept { return pPlayer->pev->deadflag == DEAD_NO && pPlayer->pev->takedamage != DAMAGE_NO; })
+		)
+	{
+		g_engfuncs.pfnClientCommand(pPlayer->edict(), "spk %s\n", Sounds::PLAYER_HB_AND_ER);
+	}
+
+	auto const pevWorld = &g_engfuncs.pfnPEntityOfEntIndex(0)->v;
+
+	for (auto i = 0; i < iDmgCounts; ++i)
+	{
+		co_await 1.f;
+
+		for (CBasePlayer *pPlayer :
+			std::views::iota(1, gpGlobals->maxClients) |
+			std::views::transform([](int idx) noexcept { auto const pent = g_engfuncs.pfnPEntityOfEntIndex(idx); return pent ? (CBasePlayer *)pent->pvPrivateData : nullptr; }) |
+			std::views::filter([](void *p) noexcept { return p != nullptr; }) |
+
+			// Only player who is alive.
+			std::views::filter([](CBasePlayer *pPlayer) noexcept { return pPlayer->pev->deadflag == DEAD_NO && pPlayer->pev->takedamage != DAMAGE_NO; })
+			)
+		{
+			pPlayer->TakeDamage(pevWorld, pevWorld, pPlayer->pev->health * 0.03f, DMG_DROWN);
+
+			pPlayer->pev->punchangle.roll += UTIL_Random() ? -7.5f : 7.5f;
+
+			gmsgScreenShake::Send(pPlayer->edict(),
+				ScaledFloat<1 << 12>(15.0),	// amp
+				ScaledFloat<1 << 12>(1.0),	// dur
+				ScaledFloat<1 << 8>(12)					// freq
+			);
+		}
+	}
+
+	if (auto const flThisFuncTime = std::round(1.0 * iDmgCounts); flThisFuncTime < 13)
+		co_await float(13.0 - flThisFuncTime);	// 13 is the length of audio file Sounds::PLAYER_HB_AND_ER
 }

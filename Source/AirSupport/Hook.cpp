@@ -228,6 +228,7 @@ void fw_ServerActivate_Post(edict_t *pEdictList, int edictCount, int clientMax) 
 
 	TaskScheduler::Enroll(Task_GlobalCoughThink());
 	TaskScheduler::Enroll(Task_UpdateTeams());
+	TaskScheduler::Enroll(CFuelAirCloud::Task_AirPressure());
 
 	// This hook is very special, since it is actually delete-newed in each new game.
 	// Therefore we must hook it every time.

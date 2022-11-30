@@ -29,6 +29,7 @@ export enum EEfxTasks : uint64_t
 	TASK_COLOR_DRIFT = (1 << 3),
 	TASK_REFLECTING_FLAME = (1 << 4),
 	TASK_IGNITE = (1 << 5),
+	TASK_HB_AND_ER = (1 << 6),
 };
 
 export extern "C++" Task Task_SpriteLoop(entvars_t *const pev, short const FRAME_COUNT, double const FPS) noexcept;
@@ -151,6 +152,10 @@ export struct CFuelAirCloud : public Prefab_t
 	static inline constexpr double FPS = 18.0;
 	static inline constexpr short FRAME_COUNT = 40;
 
+	static inline list<EHANDLE<CFuelAirCloud>> s_rgpAeroClouds{};
+
+	~CFuelAirCloud() noexcept { s_rgpAeroClouds.remove(this); }
+
 	Task Task_FadeIn(float const TRANSPARENT_INC, float const FINAL_VAL, float const ROLL) noexcept;
 	Task Task_Ignite(void) noexcept;
 
@@ -160,6 +165,8 @@ export struct CFuelAirCloud : public Prefab_t
 	void Touch(CBaseEntity *pOther) noexcept override;
 
 	static CFuelAirCloud *Create(CBasePlayer *pPlayer, Vector const &vecOrigin) noexcept;
+	static Task Task_AirPressure() noexcept;
+	static Task Task_Suffocation(int const iDmgCounts) noexcept;
 
 	CBasePlayer *m_pPlayer{};
 	bool m_bFadeInDone{ false };

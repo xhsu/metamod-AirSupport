@@ -184,7 +184,7 @@ void __fastcall HamF_Item_PostFrame(CBasePlayerItem *pItem, int) noexcept
 	}
 	else if (pThis->m_pPlayer->m_afButtonPressed & IN_USE) [[unlikely]]
 	{
-		g_engfuncs.pfnMakeVectors(pThis->m_pPlayer->pev->v_angle);
+		//g_engfuncs.pfnMakeVectors(pThis->m_pPlayer->pev->v_angle);
 
 		//Prefab_t::Create<CBullet>(
 		//	pThis->m_pPlayer->GetGunPosition() + gpGlobals->v_forward * 64.0,
@@ -192,15 +192,17 @@ void __fastcall HamF_Item_PostFrame(CBasePlayerItem *pItem, int) noexcept
 		//	pThis->m_pPlayer
 		//);
 
-		TraceResult tr{};
-		auto const vecSrc = pThis->m_pPlayer->GetGunPosition();
-		auto const vecEnd = vecSrc + gpGlobals->v_forward * 4096.0;
-		g_engfuncs.pfnTraceLine(vecSrc, vecEnd, ignore_glass | ignore_monsters, nullptr, &tr);
-		g_engfuncs.pfnTraceLine(tr.vecEndPos, Vector(tr.vecEndPos.x, tr.vecEndPos.y, 8192.0), ignore_glass | ignore_monsters, nullptr, &tr);
+		//TraceResult tr{};
+		//auto const vecSrc = pThis->m_pPlayer->GetGunPosition();
+		//auto const vecEnd = vecSrc + gpGlobals->v_forward * 4096.0;
+		//g_engfuncs.pfnTraceLine(vecSrc, vecEnd, ignore_glass | ignore_monsters, nullptr, &tr);
+		//g_engfuncs.pfnTraceLine(tr.vecEndPos, Vector(tr.vecEndPos.x, tr.vecEndPos.y, 8192.0), ignore_glass | ignore_monsters, nullptr, &tr);
 
-		Prefab_t::Create<CFuelAirExplosive>(pThis->m_pPlayer, tr.vecEndPos + Vector::Down() * 3);
+		//Prefab_t::Create<CFuelAirExplosive>(pThis->m_pPlayer, tr.vecEndPos + Vector::Down() * 3);
 		//Prefab_t::Create<CFlame>(tr.vecEndPos)->pev->velocity = Vector(0, 0, 300);
 		//Prefab_t::Create<CFuelAirCloud>(tr.vecEndPos)->Ignite();
+
+		TaskScheduler::Enroll(CFuelAirCloud::Task_Suffocation(5), TASK_HB_AND_ER);
 	}
 }
 

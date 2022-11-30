@@ -95,6 +95,7 @@ export namespace Sounds
 	inline constexpr char PLAYER_BREATHE[] = "misc/breathe.wav";
 	inline constexpr char PLAYER_EAR_RINGING[] = "misc/earring.wav";
 	inline constexpr char PLAYER_HEARTBEAT[] = "misc/heartbeat.wav";
+	inline constexpr char PLAYER_HB_AND_ER[] = "misc/breathe_heartbeat.wav";
 
 	inline constexpr array PLAYER_COUGH =
 	{
