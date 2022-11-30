@@ -83,3 +83,42 @@ namespace GoldSrc
 
 	export template <typename T> inline constexpr auto as = std::views::transform(Impl::_impl_as<T>);
 };
+
+namespace Query
+{
+	// Iterating type: CBasePlayer*
+	export inline decltype(auto) all_players(void) noexcept
+	{
+		return
+			std::views::iota(1, gpGlobals->maxClients + 1) |	// from 1 to 32 actually, iota parsed as [1, 33)
+			std::views::transform([](int idx) noexcept { auto const pent = g_engfuncs.pfnPEntityOfEntIndex(idx); return pent ? (CBasePlayer *)pent->pvPrivateData : nullptr; }) |
+			std::views::filter([](void *p) noexcept { return p != nullptr; }) |
+
+			// Connected but not necessary alive.
+			std::views::filter([](CBasePlayer *pPlayer) noexcept { return !pPlayer->has_disconnected && !(pPlayer->pev->flags & FL_DORMANT); })
+			;
+	}
+
+	// Iterating type: CBaseEntity*
+	export inline decltype(auto) all_entities(void) noexcept
+	{
+		return
+			std::views::iota(0, gpGlobals->maxEntities + 1) |
+			std::views::transform([](int idx) noexcept { auto const pent = g_engfuncs.pfnPEntityOfEntIndex(idx); return pent ? (CBaseEntity *)pent->pvPrivateData : nullptr; }) |
+			std::views::filter([](void *p) noexcept { return p != nullptr; })
+			;
+	}
+
+	// Iterating type: CBasePlayer*
+	export inline decltype(auto) all_alive_player(void) noexcept
+	{
+		return
+			std::views::iota(1, gpGlobals->maxClients + 1) |
+			std::views::transform([](int idx) noexcept { auto const pent = g_engfuncs.pfnPEntityOfEntIndex(idx); return pent ? (CBasePlayer *)pent->pvPrivateData : nullptr; }) |
+			std::views::filter([](void *p) noexcept { return p != nullptr; }) |
+
+			// Only player who is alive. The pev->deadflag can filter disconnected player as well.
+			std::views::filter([](CBasePlayer *pPlayer) noexcept { return pPlayer->pev->deadflag == DEAD_NO && pPlayer->pev->takedamage != DAMAGE_NO; })
+			;
+	}
+}

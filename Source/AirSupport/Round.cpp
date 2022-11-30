@@ -1,11 +1,10 @@
-import <ranges>;
-
 import util;
 
 import Effects;
 import GameRules;
 import Jet;
 import Projectile;
+import Query;
 import Round;
 import Target;
 
@@ -78,13 +77,7 @@ Task Task_UpdateTeams(void) noexcept
 		g_rgpPlayersOfCT.clear();
 		g_rgpPlayersOfTerrorist.clear();
 
-		for (auto &&pPlayer :
-			std::views::iota(1, gpGlobals->maxClients) |
-			std::views::transform([](int idx) noexcept { return g_engfuncs.pfnPEntityOfEntIndex(idx); }) |
-			std::views::filter([](edict_t *pent) noexcept { return pent != nullptr && pent->pvPrivateData != nullptr; }) |
-			std::views::transform([](edict_t *pent) noexcept { return (CBasePlayer *)pent->pvPrivateData; }) |
-			std::views::filter([](CBasePlayer *pPlayer) noexcept { return !pPlayer->has_disconnected && !(pPlayer->pev->flags & FL_DORMANT); })
-			)
+		for (auto &&pPlayer : Query::all_players())
 		{
 			switch (pPlayer->m_iTeam)
 			{

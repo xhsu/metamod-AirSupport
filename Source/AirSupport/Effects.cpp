@@ -1,13 +1,13 @@
 import <array>;
 import <chrono>;
 import <numbers>;
-import <ranges>;
 
 import edict;
 import util;
 
 import Effects;
 import Math;
+import Query;
 import Resources;
 
 import UtlRandom;
@@ -884,14 +884,7 @@ Task CFuelAirCloud::Task_AirPressure() noexcept
 			rgflPressureCenter[2]
 		);
 
-		for (CBasePlayer *pPlayer :
-			std::views::iota(1, gpGlobals->maxClients) |
-			std::views::transform([](int idx) noexcept { auto const pent = g_engfuncs.pfnPEntityOfEntIndex(idx); return pent ? (CBasePlayer *)pent->pvPrivateData : nullptr; }) |
-			std::views::filter([](void *p) noexcept { return p != nullptr; }) |
-
-			// Only player who is alive.
-			std::views::filter([](CBasePlayer *pPlayer) noexcept { return pPlayer->pev->deadflag == DEAD_NO && pPlayer->pev->takedamage != DAMAGE_NO; })
-			)
+		for (CBasePlayer *pPlayer : Query::all_alive_player())
 		{
 			vecDir = vecPressureCenter - pPlayer->pev->origin;
 			flSpeed = std::clamp<double>(4096.0 - vecDir.Length(), 0.0, 256.0);
@@ -907,17 +900,8 @@ Task CFuelAirCloud::Task_AirPressure() noexcept
 
 Task CFuelAirCloud::Task_Suffocation(int const iDmgCounts) noexcept
 {
-	for (CBasePlayer *pPlayer :
-		std::views::iota(1, gpGlobals->maxClients) |
-		std::views::transform([](int idx) noexcept { auto const pent = g_engfuncs.pfnPEntityOfEntIndex(idx); return pent ? (CBasePlayer *)pent->pvPrivateData : nullptr; }) |
-		std::views::filter([](void *p) noexcept { return p != nullptr; }) |
-
-		// Only player who is alive.
-		std::views::filter([](CBasePlayer *pPlayer) noexcept { return pPlayer->pev->deadflag == DEAD_NO && pPlayer->pev->takedamage != DAMAGE_NO; })
-		)
-	{
+	for (CBasePlayer *pPlayer : Query::all_alive_player())
 		g_engfuncs.pfnClientCommand(pPlayer->edict(), "spk %s\n", Sounds::PLAYER_HB_AND_ER);
-	}
 
 	auto const pevWorld = &g_engfuncs.pfnPEntityOfEntIndex(0)->v;
 
@@ -925,14 +909,7 @@ Task CFuelAirCloud::Task_Suffocation(int const iDmgCounts) noexcept
 	{
 		co_await 1.f;
 
-		for (CBasePlayer *pPlayer :
-			std::views::iota(1, gpGlobals->maxClients) |
-			std::views::transform([](int idx) noexcept { auto const pent = g_engfuncs.pfnPEntityOfEntIndex(idx); return pent ? (CBasePlayer *)pent->pvPrivateData : nullptr; }) |
-			std::views::filter([](void *p) noexcept { return p != nullptr; }) |
-
-			// Only player who is alive.
-			std::views::filter([](CBasePlayer *pPlayer) noexcept { return pPlayer->pev->deadflag == DEAD_NO && pPlayer->pev->takedamage != DAMAGE_NO; })
-			)
+		for (CBasePlayer *pPlayer : Query::all_alive_player())
 		{
 			pPlayer->TakeDamage(pevWorld, pevWorld, pPlayer->pev->health * 0.03f, DMG_DROWN);
 
