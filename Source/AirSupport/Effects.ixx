@@ -165,8 +165,10 @@ export struct CFuelAirCloud : public Prefab_t
 	void Touch(CBaseEntity *pOther) noexcept override;
 
 	static CFuelAirCloud *Create(CBasePlayer *pPlayer, Vector const &vecOrigin) noexcept;
+	static void ApplySuffocation(CBasePlayer *pPlayer) noexcept;
 	static Task Task_AirPressure() noexcept;
-	static Task Task_Suffocation(int const iDmgCounts) noexcept;
+	static Task Task_PlayerSuffocation(CBasePlayer *pPlayer, entvars_t *pevWorld) noexcept;
+	static Task Task_GlobalSuffocation() noexcept;
 
 	CBasePlayer *m_pPlayer{};
 	bool m_bFadeInDone{ false };

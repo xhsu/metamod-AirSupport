@@ -252,7 +252,7 @@ void CJet::Spawn() noexcept
 
 	pev->solid = SOLID_NOT;
 	pev->movetype = MOVETYPE_NOCLIP;
-	pev->velocity = vecDir.Normalize() * ((m_AirSupportType == CARPET_BOMBARDMENT || m_AirSupportType == FUEL_AIR_BOMB) ? 2048 : 4096);
+	pev->velocity = vecDir.Normalize() * (m_AirSupportType == CARPET_BOMBARDMENT ? 2048 : 4096);
 	pev->effects |= EF_BRIGHTLIGHT;
 
 	switch (m_AirSupportType)

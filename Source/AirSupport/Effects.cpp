@@ -3,6 +3,7 @@ import <chrono>;
 import <numbers>;
 
 import edict;
+import shake;
 import util;
 
 import Effects;
@@ -502,7 +503,29 @@ void CSparkMdl::Spawn() noexcept
 	pev->rendermode = kRenderTransAdd;
 	pev->renderfx = kRenderFxNone;
 	pev->renderamt = UTIL_Random(192.f, 255.f);
-	pev->body = UTIL_Random(0, 1);
+
+	auto const iValue = UTIL_Random(0, 5);
+	switch (iValue)
+	{
+	case 0:
+	case 1:
+	case 2:
+	case 3:
+		pev->body = 0;
+		pev->skin = iValue;
+		break;
+
+	case 4:
+		pev->body = 1;
+		break;
+
+	case 5:
+		pev->body = 2;
+		break;
+
+	default:
+		std::unreachable();
+	}
 
 	g_engfuncs.pfnSetModel(edict(), Models::SPARK);
 	g_engfuncs.pfnSetOrigin(edict(), pev->origin);
@@ -686,7 +709,7 @@ Task Task_GlobalCoughThink() noexcept
 			if (auto const iIndex = pPlayer->entindex(); rgflTimeNextCough[iIndex] < gpGlobals->time)
 			{
 				rgflTimeNextCough[iIndex] = gpGlobals->time + 3.f;
-				g_engfuncs.pfnEmitSound(pPlayer->edict(), CHAN_STATIC, UTIL_GetRandomOne(Sounds::PLAYER_COUGH), VOL_NORM, ATTN_STATIC, 0, UTIL_Random(92, 116));
+				g_engfuncs.pfnEmitSound(pPlayer->edict(), CHAN_AUTO, UTIL_GetRandomOne(Sounds::PLAYER_COUGH), VOL_NORM, ATTN_STATIC, 0, UTIL_Random(92, 116));
 			}
 		}
 
@@ -827,6 +850,8 @@ void CFuelAirCloud::Touch(CBaseEntity *pOther) noexcept
 		{
 			if (pOther->IsPlayer())
 			{
+				ApplySuffocation((CBasePlayer *)pOther);
+
 				if (CBasePlayer *pPlayer = (CBasePlayer *)pOther; pPlayer->m_iTeam == m_pPlayer->m_iTeam && gcvarFriendlyFire->value < 1)
 					return;
 			}
@@ -850,12 +875,23 @@ CFuelAirCloud *CFuelAirCloud::Create(CBasePlayer *pPlayer, Vector const &vecOrig
 	return pPrefab;
 }
 
+void CFuelAirCloud::ApplySuffocation(CBasePlayer *pPlayer) noexcept
+{
+	// Cannot be static - the address will change when map changes.
+	auto const pevWorld = &g_engfuncs.pfnPEntityOfEntIndex(0)->v;
+
+	uint64_t const iPlayerTaskId = TASK_HB_AND_ER | (1ull << uint64_t(pPlayer->entindex() + 32ull));
+
+	if (!TaskScheduler::Exist(iPlayerTaskId))
+		TaskScheduler::Enroll(Task_PlayerSuffocation(pPlayer, pevWorld), iPlayerTaskId);
+}
+
 Task CFuelAirCloud::Task_AirPressure() noexcept
 {
 	array<double, 3> rgflPressureCenter{};
 	Vector vecPressureCenter{}, vecDir{};
 	int iIgnitedCount{};
-	double flSpeed{};
+	double flSpeed{}, flDistance{};
 
 	for (;;)
 	{
@@ -894,42 +930,82 @@ Task CFuelAirCloud::Task_AirPressure() noexcept
 		for (CBasePlayer *pPlayer : Query::all_alive_player())
 		{
 			vecDir = vecPressureCenter - pPlayer->pev->origin;
-			flSpeed = std::clamp<double>(4096.0 - vecDir.Length(), 0.0, 256.0);
+			flDistance = vecDir.Length();
+			flSpeed = std::clamp<double>(4096.0 - flDistance, 0.0, 256.0);
 
 			if (flSpeed > 1)
 				pPlayer->pev->velocity += vecDir.Normalize() * flSpeed;
-		}
 
-		if (iIgnitedCount > 10 && !TaskScheduler::Exist(TASK_HB_AND_ER))
-			TaskScheduler::Enroll(Task_Suffocation(iIgnitedCount / 10), TASK_HB_AND_ER);
+			if (flDistance < 1024)
+				ApplySuffocation(pPlayer);	// #FIXME #POTENTIAL_BUG sometimes won't work??
+		}
 	}
 }
 
-Task CFuelAirCloud::Task_Suffocation(int const iDmgCounts) noexcept
+Task CFuelAirCloud::Task_PlayerSuffocation(CBasePlayer *pPlayer, entvars_t *pevWorld) noexcept
 {
-	for (CBasePlayer *pPlayer : Query::all_alive_player())
-		g_engfuncs.pfnClientCommand(pPlayer->edict(), "spk %s\n", Sounds::PLAYER_HB_AND_ER);
+	auto LastTime = std::chrono::high_resolution_clock::now();
 
-	auto const pevWorld = &g_engfuncs.pfnPEntityOfEntIndex(0)->v;
+	g_engfuncs.pfnClientCommand(pPlayer->edict(), "spk %s\n", Sounds::PLAYER_HB_AND_ER);
 
-	for (auto i = 0; i < iDmgCounts; ++i)
+	// 10 heart beats in the .wav
+	for (auto i = 0; i < 10 && pPlayer->IsAlive(); ++i)
 	{
-		co_await 1.f;
+		// Timer against the whole loop.
+		LastTime = std::chrono::high_resolution_clock::now();
 
-		for (CBasePlayer *pPlayer : Query::all_alive_player())
+		pPlayer->TakeDamage(pevWorld, pevWorld, pPlayer->pev->health * 0.015f, DMG_DROWN);
+		pPlayer->pev->punchangle.roll += UTIL_Random() ? -14.f : 14.f;
+
+		gmsgScreenShake::Send(pPlayer->edict(),
+			ScaledFloat<1 << 12>(15.0),	// amp
+			ScaledFloat<1 << 12>(1.0),	// dur
+			ScaledFloat<1 << 8>(12)		// freq
+		);
+
+		gmsgScreenFade::Send(pPlayer->edict(),
+			ScaledFloat<1 << 12>(0.5),	// phase time
+			ScaledFloat<1 << 12>(0.1),	// color hold
+			FFADE_IN,	// flags
+			160,		// r
+			0,		// g
+			0,		// b
+			UTIL_Random(72, 128)			// a
+		);
+
+		int const iFOV = (i % 2) ? UTIL_Random(74, 79) : UTIL_Random(80, 85);
+		int const iFOVDelta = iFOV - pPlayer->m_iFOV;
+
+		for (; pPlayer->m_iFOV != iFOV && pPlayer->IsAlive();)
 		{
-			pPlayer->TakeDamage(pevWorld, pevWorld, pPlayer->pev->health * 0.03f, DMG_DROWN);
+			(iFOVDelta > 0) ? ++pPlayer->m_iFOV : --pPlayer->m_iFOV;
 
-			pPlayer->pev->punchangle.roll += UTIL_Random() ? -7.5f : 7.5f;
-
-			gmsgScreenShake::Send(pPlayer->edict(),
-				ScaledFloat<1 << 12>(15.0),	// amp
-				ScaledFloat<1 << 12>(1.0),	// dur
-				ScaledFloat<1 << 8>(12)		// freq
-			);
+			co_await TaskScheduler::NextFrame::Rank.back();
 		}
+
+		auto const CurTime = std::chrono::high_resolution_clock::now();
+		auto const flTimeDelta = std::chrono::duration_cast<std::chrono::nanoseconds>(CurTime - LastTime).count() / 1'000'000'000.0;
+
+		co_await float(0.77 - flTimeDelta);
 	}
 
-	if (auto const flThisFuncTime = std::round(1.0 * iDmgCounts); flThisFuncTime < 13)
-		co_await float(13.0 - flThisFuncTime);	// 13 is the length of audio file Sounds::PLAYER_HB_AND_ER
+	for (; pPlayer->m_iFOV != 90 && pPlayer->IsAlive();)
+	{
+		co_await UTIL_GetRandomOne(TaskScheduler::NextFrame::Rank);
+		++pPlayer->m_iFOV;
+	}
+
+	co_await 5.f;
+}
+
+Task CFuelAirCloud::Task_GlobalSuffocation() noexcept
+{
+	auto const StartingTime = std::chrono::high_resolution_clock::now();
+
+	std::ranges::for_each(Query::all_alive_player(), ApplySuffocation);
+
+	auto const CurTime = std::chrono::high_resolution_clock::now();
+	auto const flTimeDelta = std::chrono::duration_cast<std::chrono::nanoseconds>(CurTime - StartingTime).count() / 1'000'000'000.0;
+
+	co_await float(12.5 - flTimeDelta);	// 13 is the length of audio file Sounds::PLAYER_HB_AND_ER
 }
