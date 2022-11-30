@@ -195,6 +195,52 @@ Task CJet::Task_CarpetBombardment() noexcept
 	}
 }
 
+Task CJet::Task_FuelAirBomb() noexcept
+{
+	co_await TaskScheduler::NextFrame::Rank[0];	// yield to Task_BeamAndSound();
+
+	for (double flCurDist = 0, flRecordDist = std::numeric_limits<double>::max(); m_pTarget; flCurDist = (pev->origin.Make2D() - m_pTarget->pev->origin.Make2D()).LengthSquared())
+	{
+		if (flCurDist < flRecordDist)	// Jet is approaching
+			flRecordDist = flCurDist;
+		else
+		{
+			TraceResult tr{};
+			g_engfuncs.pfnTraceLine(
+				m_pTarget->pev->origin,
+				Vector(m_pTarget->pev->origin.x, m_pTarget->pev->origin.y, 8192),
+				ignore_glass | ignore_monsters,
+				edict(),
+				&tr
+			);
+
+			m_pTarget->m_pMissile = // pTarget now has a missile binding to it.
+				CFuelAirExplosive::Create(m_pPlayer, tr.vecEndPos - Vector(0, 0, 2.5));
+
+			break;
+		}
+
+		co_await TaskScheduler::NextFrame::Rank[0];	// try it every other frame.
+	}
+
+	for (;;)
+	{
+		[[unlikely]]
+		if (!IsInWorld())
+		{
+			MsgBroadcast(SVC_TEMPENTITY);
+			WriteData(TE_KILLBEAM);
+			WriteData(entindex());
+			MsgEnd();
+
+			pev->flags |= FL_KILLME;
+			co_return;
+		}
+
+		co_await 0.1f;
+	}
+}
+
 void CJet::Spawn() noexcept
 {
 	auto const vecDir = Vector(m_pTarget->pev->origin.x, m_pTarget->pev->origin.y, pev->origin.z) - pev->origin;
@@ -206,13 +252,13 @@ void CJet::Spawn() noexcept
 
 	pev->solid = SOLID_NOT;
 	pev->movetype = MOVETYPE_NOCLIP;
-	pev->velocity = vecDir.Normalize() * (m_AirSupportType == CARPET_BOMBARDMENT ? 2048 : 4096);
+	pev->velocity = vecDir.Normalize() * ((m_AirSupportType == CARPET_BOMBARDMENT || m_AirSupportType == FUEL_AIR_BOMB) ? 2048 : 4096);
 	pev->effects |= EF_BRIGHTLIGHT;
 
 	switch (m_AirSupportType)
 	{
 	default:
-		gmsgTextMsg::Send(m_pPlayer->edict(), 4, u8"抱歉, 這邊還沒做好- -");
+		gmsgTextMsg::Send(m_pPlayer->edict(), 4, u8"你不應該看到這則信息 - 請聯絡作者");
 		[[fallthrough]];
 
 	case AIR_STRIKE:
@@ -230,8 +276,9 @@ void CJet::Spawn() noexcept
 		m_iFlyingSoundIndex = UTIL_Random(0u, Sounds::BOMBER.size() - 1);
 		break;
 
-	case GUNSHIP_STRIKE:
-		gmsgTextMsg::Send(m_pPlayer->edict(), 4, u8"你不應該看到這則信息 - 請聯絡作者");
+	case FUEL_AIR_BOMB:
+		m_Scheduler.Enroll(Task_FuelAirBomb());
+		m_iFlyingSoundIndex = UTIL_Random(0u, Sounds::BOMBER.size() - 1);
 		break;
 	}
 

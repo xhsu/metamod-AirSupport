@@ -1,4 +1,5 @@
 import <array>;
+import <chrono>;
 import <numbers>;
 import <ranges>;
 
@@ -349,16 +350,16 @@ void CSmoke::LitByFlame(bool const bShouldStartingWhite) noexcept
 	if (!bShouldStartingWhite)
 		pev->rendercolor = m_vecStartingLitClr + m_vecFlameClrToWhite * 0.4;
 
-	if (!m_Scheduler.Exist(REFLECTING_FLAME_KEY))
-		m_Scheduler.Enroll(Task_ReflectingFlame(), REFLECTING_FLAME_KEY);
+	if (!m_Scheduler.Exist(TASK_REFLECTING_FLAME))
+		m_Scheduler.Enroll(Task_ReflectingFlame(), TASK_REFLECTING_FLAME);
 }
 
 void CSmoke::DriftToWhite(double const flPercentage) noexcept
 {
-	m_Scheduler.Delist(DRIFT_COLOR_KEY);
+	m_Scheduler.Delist(TASK_COLOR_DRIFT);
 	m_Scheduler.Enroll(
 		Task_DriftColor(m_vecStartingLitClr + m_vecFlameClrToWhite * std::clamp(flPercentage, 0.0, 1.0)),
-		DRIFT_COLOR_KEY
+		TASK_COLOR_DRIFT
 	);
 }
 
@@ -587,15 +588,17 @@ void CSparkSpr::Spawn() noexcept
 	pev->rendermode = kRenderTransAdd;
 	pev->renderamt = 255.f;
 	pev->rendercolor = Vector(255, 255, 255);
-	pev->frame = (float)UTIL_Random(0, MAX_FRAME - 1);
+	pev->frame = (float)UTIL_Random(0, FRAME_COUNT - 1);
 
-	pev->solid = SOLID_NOT;
-	pev->movetype = MOVETYPE_NONE;
+	pev->solid = SOLID_TRIGGER;
+	pev->movetype = MOVETYPE_FLY;
 	pev->gravity = 0;
+	pev->velocity = Vector::Zero();
 	pev->scale = UTIL_Random(0.35f, 0.45f);
 
 	g_engfuncs.pfnSetModel(edict(), Sprites::SPARK);
 	g_engfuncs.pfnSetOrigin(edict(), pev->origin);	// pfnSetOrigin includes the abssize setting, restoring our hitbox.
+	g_engfuncs.pfnSetSize(edict(), Vector(-0.2, -0.2, -0.2), Vector(0.2, 0.2, 0.2));	// such that we can collide with fuel-air cloud.
 
 	m_Scheduler.Enroll(Task_Remove(pev, HOLD_TIME));
 }
@@ -603,8 +606,6 @@ void CSparkSpr::Spawn() noexcept
 //
 // PlayerCough
 //
-
-inline constexpr auto COUGH_TASK_KEY = 2534968ul;
 
 [[nodiscard]]
 bool UTIL_AnySmokeNear(Vector const &vecSrc) noexcept
@@ -659,21 +660,10 @@ bool UTIL_AnySmokeNear(Vector const &vecSrc) noexcept
 	return false;
 }
 
-Task Task_PlayerCough(CBasePlayer *pPlayer) noexcept
-{
-	for (auto flEndTime = gpGlobals->time + UTIL_Random(3.f, 6.f); flEndTime > gpGlobals->time;)
-	{
-		co_await UTIL_Random(2.f, 3.f);
-
-		if (UTIL_AnySmokeNear(pPlayer->EyePosition()))
-			flEndTime = gpGlobals->time + UTIL_Random(3.f, 6.f);
-
-		g_engfuncs.pfnEmitSound(pPlayer->edict(), CHAN_STATIC, UTIL_GetRandomOne(Sounds::PLAYER_COUGH), VOL_NORM, ATTN_STATIC, 0, UTIL_Random(92, 116));
-	}
-}
-
 Task Task_GlobalCoughThink() noexcept
 {
+	array<float, 33> rgflTimeNextCough{};
+
 	co_await 0.1f;
 
 	for (;;)
@@ -692,8 +682,11 @@ Task Task_GlobalCoughThink() noexcept
 			if (!UTIL_AnySmokeNear(pPlayer->EyePosition()))
 				continue;
 
-			if (auto const iKey = COUGH_TASK_KEY + pPlayer->entindex(); !TaskScheduler::Exist(iKey))
-				TaskScheduler::Enroll(Task_PlayerCough(pPlayer), iKey);
+			if (auto const iIndex = pPlayer->entindex(); rgflTimeNextCough[iIndex] < gpGlobals->time)
+			{
+				rgflTimeNextCough[iIndex] = gpGlobals->time + 3.f;
+				g_engfuncs.pfnEmitSound(pPlayer->edict(), CHAN_STATIC, UTIL_GetRandomOne(Sounds::PLAYER_COUGH), VOL_NORM, ATTN_STATIC, 0, UTIL_Random(92, 116));
+			}
 		}
 
 		co_await 0.1f;
@@ -755,7 +748,7 @@ Task CFuelAirCloud::Task_Ignite(void) noexcept
 	g_engfuncs.pfnSetSize(edict(), Vector(-128, -128, -128) * pev->scale, Vector(128, 128, 128) * pev->scale);
 	g_engfuncs.pfnDropToFloor(edict());
 
-	m_Scheduler.Delist(FADE_IN_TASK_KEY);
+	m_Scheduler.Delist(TASK_FADE_IN | TASK_ANIMATION);
 	m_Scheduler.Enroll(Task_SpritePlayOnce(pev, iFrameCount, 20));
 
 	co_await 0.1f;
@@ -772,7 +765,7 @@ void CFuelAirCloud::Spawn() noexcept
 	pev->rendermode = kRenderTransAdd;
 	pev->renderamt = 0.f;
 	pev->rendercolor = Vector(255, 255, 255);
-	pev->frame = (float)UTIL_Random(0, MAX_FRAME - 1);
+	pev->frame = (float)UTIL_Random(0, FRAME_COUNT - 1);
 
 	pev->solid = SOLID_TRIGGER;
 	pev->movetype = MOVETYPE_FLY;
@@ -784,8 +777,8 @@ void CFuelAirCloud::Spawn() noexcept
 	g_engfuncs.pfnSetOrigin(edict(), pev->origin);	// pfnSetOrigin includes the abssize setting, restoring our hitbox.
 	g_engfuncs.pfnSetSize(edict(), Vector(-128, -128, -128) * pev->scale, Vector(128, 128, 128) * pev->scale);
 
-	m_Scheduler.Enroll(Task_SpriteLoop(pev, MAX_FRAME, FPS), FADE_IN_TASK_KEY);	// This should be removed as well, we are not going to loop on flame SPR.
-	m_Scheduler.Enroll(Task_FadeIn(0.05f, 32.f, 0.07f), FADE_IN_TASK_KEY);
+	m_Scheduler.Enroll(Task_SpriteLoop(pev, FRAME_COUNT, FPS), TASK_ANIMATION);	// This should be removed as well, we are not going to loop on flame SPR.
+	m_Scheduler.Enroll(Task_FadeIn(0.05f, 32.f, 0.07f), TASK_FADE_IN);
 }
 
 void CFuelAirCloud::Touch(CBaseEntity *pOther) noexcept
@@ -793,17 +786,51 @@ void CFuelAirCloud::Touch(CBaseEntity *pOther) noexcept
 	if (!pOther || pOther->pev->solid == SOLID_BSP)
 		return;
 
-	if (m_bIgnited && m_iIgnitedCounts < 3 && pOther->pev->classname == MAKE_STRING(CFuelAirCloud::CLASSNAME))
+	if (!m_bIgnited)
 	{
-		if (CFuelAirCloud *pCloud = (CFuelAirCloud *)pOther; !pCloud->m_bIgnited)
+		auto const &iClassName = pOther->pev->classname;
+
+		if (iClassName == MAKE_STRING(CSparkSpr::CLASSNAME) ||
+			iClassName == MAKE_STRING(CFlame::CLASSNAME) ||
+			iClassName == MAKE_STRING(CDebris::CLASSNAME))
 		{
-			pCloud->Ignite();
-			++m_iIgnitedCounts;
+			this->Ignite();
 		}
+
+		return;
 	}
 
-	if (pOther->pev->takedamage != DAMAGE_NO)
+	// Was ignited.
+	else
 	{
-		// damage entities.
+		// Chain reaction.
+		if (m_iIgnitedCounts < 3 && pOther->pev->classname == MAKE_STRING(CFuelAirCloud::CLASSNAME))
+		{
+			if (CFuelAirCloud *pCloud = (CFuelAirCloud *)pOther; !pCloud->m_bIgnited)
+			{
+				pCloud->Ignite();
+				++m_iIgnitedCounts;
+			}
+		}
+
+		// Hurting entities.
+		else if (pOther->pev->takedamage != DAMAGE_NO)
+		{
+			pOther->TakeDamage(pev, m_pPlayer->pev, pev->renderamt, DMG_SLOWBURN);
+		}
 	}
+}
+
+CFuelAirCloud *CFuelAirCloud::Create(CBasePlayer *pPlayer, Vector const &vecOrigin) noexcept
+{
+	auto const [pEdict, pPrefab] = UTIL_CreateNamedPrefab<CFuelAirCloud>();
+
+	pEdict->v.angles = Angles(0, 0, UTIL_Random(0.0, 359.9));
+	pEdict->v.origin = vecOrigin;
+
+	pPrefab->m_pPlayer = pPlayer;
+	pPrefab->Spawn();
+	pPrefab->pev->nextthink = 0.1f;
+
+	return pPrefab;
 }

@@ -198,7 +198,7 @@ void __fastcall HamF_Item_PostFrame(CBasePlayerItem *pItem, int) noexcept
 		g_engfuncs.pfnTraceLine(vecSrc, vecEnd, ignore_glass | ignore_monsters, nullptr, &tr);
 		g_engfuncs.pfnTraceLine(tr.vecEndPos, Vector(tr.vecEndPos.x, tr.vecEndPos.y, 8192.0), ignore_glass | ignore_monsters, nullptr, &tr);
 
-		Prefab_t::Create<CFuelAirExplosive>(tr.vecEndPos + Vector::Down() * 3, pThis->m_pPlayer);
+		Prefab_t::Create<CFuelAirExplosive>(pThis->m_pPlayer, tr.vecEndPos + Vector::Down() * 3);
 		//Prefab_t::Create<CFlame>(tr.vecEndPos)->pev->velocity = Vector(0, 0, 300);
 		//Prefab_t::Create<CFuelAirCloud>(tr.vecEndPos)->Ignite();
 	}

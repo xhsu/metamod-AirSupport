@@ -11,6 +11,7 @@ export struct CJet : public Prefab_t
 	Task Task_AirStrike() noexcept;
 	Task Task_ClusterBomb() noexcept;
 	Task Task_CarpetBombardment() noexcept;
+	Task Task_FuelAirBomb() noexcept;
 
 	void Spawn() noexcept override;
 	qboolean IsInWorld() noexcept override;

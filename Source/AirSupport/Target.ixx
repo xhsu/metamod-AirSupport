@@ -7,6 +7,14 @@ export import Beam;
 export import Menu;
 export import Prefab;
 
+export enum ETargetTasks : uint64_t
+{
+	TASK_QUICK_ANALYZE = (1 << 8),
+	TASK_DEEP_ANALYZE = (1 << 9),
+	TASK_TIME_OUT = (1 << 10),
+	TASK_ACTION = (1 << 11),
+};
+
 export struct CDynamicTarget : public Prefab_t
 {
 	static inline constexpr char CLASSNAME[] = "info_dynamic_target";
@@ -38,15 +46,11 @@ export struct CDynamicTarget : public Prefab_t
 	std::chrono::high_resolution_clock::time_point m_LastAnimUpdate{};
 	std::array<EHANDLE<CBeam>, BEACON_COUNT> m_rgpBeacons{};
 	bool m_bFreezed{};	// Use enable/disable beacons instead.
-
-	static inline constexpr auto QUICK_ANALYZE_KEY = 298457034ul;
-	static inline constexpr auto DETAIL_ANALYZE_KEY = 3658468ul;
 };
 
 export struct CFixedTarget : public Prefab_t
 {
 	static inline constexpr char CLASSNAME[] = "info_fixed_target";
-	static inline constexpr auto TIMEOUT_TASK_KEY = 64396365ul;
 	static inline constexpr auto GUNSHIP_NEXT_TARGET_RADIUS = 500.0;
 
 	Task Task_BeaconFx() noexcept;

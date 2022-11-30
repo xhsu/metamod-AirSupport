@@ -1,5 +1,7 @@
 export module Task;
 
+export import <cstdint>;
+
 export import <array>;
 import <coroutine>;
 import <functional>;
@@ -8,6 +10,9 @@ import <list>;
 import progdefs;
 
 using namespace std;
+
+using std::size_t;
+using std::uint64_t;
 
 export struct Task final
 {
@@ -27,7 +32,7 @@ export struct Task final
 
 	using Handle_t = std::coroutine_handle<promise_type>;
 	Handle_t m_handle;
-	unsigned long m_iCoroutineMarker{ 0ul };	// LUNA: use for marking the removal of coroutine
+	uint64_t m_iCoroutineMarker{};	// LUNA: use for marking the removal of coroutine
 
 	explicit Task(promise_type *ppt) noexcept : m_handle{ Handle_t::from_promise(*ppt) } {}	// Get handle and form the promise
 	Task(Task &&rhs) noexcept : m_handle{ std::exchange(rhs.m_handle, nullptr) }, m_iCoroutineMarker{ rhs.m_iCoroutineMarker } {}	// Move only
@@ -39,15 +44,12 @@ export struct Task final
 	__forceinline auto operator<=> (Task const &rhs) const noexcept { return this->m_handle.promise().m_flNextThink <=> rhs.m_handle.promise().m_flNextThink; }
 };
 
-export namespace TaskScheduler
+export struct TaskScheduler_t final
 {
-	inline list<Task> m_List{};
+	list<Task> m_List{};
 
 	inline void Think(void) noexcept
 	{
-		if (m_List.empty())
-			return;
-
 		while (!m_List.empty())
 		{
 			m_List.sort();
@@ -68,7 +70,7 @@ export namespace TaskScheduler
 		}
 	}
 
-	inline void Enroll(Task &&obj, unsigned long iCoroutineMarker = 0ul) noexcept
+	inline void Enroll(Task &&obj, uint64_t iCoroutineMarker = 0ull) noexcept
 	{
 		[[likely]]
 		if (!obj.Done())
@@ -81,33 +83,33 @@ export namespace TaskScheduler
 		}
 	}
 
-	inline unsigned int Delist(unsigned long iCoroutineMarker) noexcept
+	inline size_t Delist(uint64_t iCoroutineMarker) noexcept
 	{
 		if (!m_List.empty())
-			return m_List.remove_if([=](Task const &obj) noexcept { return obj.m_iCoroutineMarker == iCoroutineMarker; });
+			return m_List.remove_if([=](Task const &obj) noexcept { return (obj.m_iCoroutineMarker & iCoroutineMarker) != 0; });
 
 		return 0;
 	}
 
-	inline unsigned int Count(unsigned long iCoroutineMarker) noexcept
+	inline size_t Count(uint64_t iCoroutineMarker) noexcept
 	{
-		unsigned int ret{};
+		size_t ret{};
 
-		for (auto const& obj : m_List)
+		for (auto const &obj : m_List)
 		{
-			if (obj.m_iCoroutineMarker == iCoroutineMarker)
+			if ((obj.m_iCoroutineMarker & iCoroutineMarker) != 0)
 				++ret;
 		}
 
 		return ret;
 	}
 
-	inline bool Exist(unsigned long iCoroutineMarker) noexcept
+	inline bool Exist(uint64_t iCoroutineMarker) noexcept
 	{
 		for (auto const &obj : m_List)
 		{
 			[[unlikely]]
-			if (obj.m_iCoroutineMarker == iCoroutineMarker)
+			if ((obj.m_iCoroutineMarker & iCoroutineMarker) != 0)
 				return true;
 		}
 
@@ -118,6 +120,23 @@ export namespace TaskScheduler
 	{
 		m_List.clear();
 	}
+};
+
+export namespace TaskScheduler
+{
+	inline TaskScheduler_t m_GlobalScheduler{};
+
+	inline decltype(auto) Think(void) noexcept { return m_GlobalScheduler.Think(); }
+
+	inline decltype(auto) Enroll(Task &&obj, uint64_t iCoroutineMarker = 0ull) noexcept { return m_GlobalScheduler.Enroll(std::forward<Task>(obj), iCoroutineMarker); }
+
+	inline decltype(auto) Delist(uint64_t iCoroutineMarker) noexcept { return m_GlobalScheduler.Delist(iCoroutineMarker); }
+
+	inline decltype(auto) Count(uint64_t iCoroutineMarker) noexcept { return m_GlobalScheduler.Count(iCoroutineMarker); }
+
+	inline decltype(auto) Exist(uint64_t iCoroutineMarker) noexcept { return m_GlobalScheduler.Exist(iCoroutineMarker); }
+
+	inline decltype(auto) Clear(void) noexcept { return m_GlobalScheduler.Clear(); }
 };
 
 export namespace TaskScheduler::NextFrame

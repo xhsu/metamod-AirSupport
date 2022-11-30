@@ -26,14 +26,6 @@ extern TraceResult Impact(CBasePlayer *pAttacker, CBaseEntity *pProjectile, floa
 // CPrecisionAirStrike
 //
 
-CPrecisionAirStrike::~CPrecisionAirStrike() noexcept
-{
-	MsgBroadcast(SVC_TEMPENTITY);
-	WriteData(TE_KILLBEAM);
-	WriteData(ent_cast<short>(pev));
-	MsgEnd();
-}
-
 Task CPrecisionAirStrike::Task_Trail() noexcept
 {
 	for (;;)
@@ -168,6 +160,11 @@ void CPrecisionAirStrike::Touch(CBaseEntity *pOther) noexcept
 	RangeDamage(m_pPlayer, pev->origin, 350.f, 275.f);
 	ScreenEffects(pev->origin, 700.f, 12.f, 2048.f);
 	TaskScheduler::Enroll(VisualEffects(pev->origin, 700.f));
+
+	MsgBroadcast(SVC_TEMPENTITY);
+	WriteData(TE_KILLBEAM);
+	WriteData(ent_cast<short>(pev));
+	MsgEnd();
 
 	pev->flags |= FL_KILLME;
 }
@@ -683,7 +680,7 @@ Task CFuelAirExplosive::Task_GasPropagate() noexcept
 			continue;
 
 		m_rgpCloud.emplace_back(
-			Prefab_t::Create<CFuelAirCloud>(vecCandidate, Angles(0, 0, UTIL_Random(0.0, 359.0)))
+			Prefab_t::Create<CFuelAirCloud>(m_pPlayer, vecCandidate)
 		);
 
 		rgvecVarifiedLocations.emplace_back(vecCandidate);
@@ -703,7 +700,7 @@ LAB_WAIT_FOR_FADE_IN:;
 			goto LAB_WAIT_FOR_FADE_IN;
 	}
 
-	m_rgpCloud.front()->Ignite();
+	Prefab_t::Create<CSparkSpr>(pev->origin + Vector(UTIL_Random(-96.0, 96.0), UTIL_Random(-96.0, 96.0), UTIL_Random(48.0, 64.0)));
 
 LAB_CO_RETURN:;
 	pev->flags |= FL_KILLME;
@@ -765,7 +762,7 @@ void CFuelAirExplosive::Touch(CBaseEntity *pOther) noexcept
 	m_Scheduler.Enroll(Task_GasPropagate());
 }
 
-CFuelAirExplosive *CFuelAirExplosive::Create(Vector const &vecOrigin, CBasePlayer *pPlayer) noexcept
+CFuelAirExplosive *CFuelAirExplosive::Create(CBasePlayer *pPlayer, Vector const &vecOrigin) noexcept
 {
 	auto const [pEdict, pPrefab] = UTIL_CreateNamedPrefab<CFuelAirExplosive>();
 

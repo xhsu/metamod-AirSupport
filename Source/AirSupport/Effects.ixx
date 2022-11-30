@@ -1,18 +1,14 @@
 export module Effects;
 
 export import <array>;
-export import <chrono>;
 export import <list>;
 export import <unordered_map>;
 
 export import Prefab;
 
-import UtlRandom;
-
 using std::array;
 using std::list;
 using std::unordered_map;
-using std::chrono::high_resolution_clock;
 
 export namespace Color
 {
@@ -23,6 +19,16 @@ export namespace Color
 		color24{0xAD, 0xC9, 0xEB},	// TEAM_CT
 		color24{0xC0, 0xC0, 0xC0},	// TEAM_SPECTATOR
 	};
+};
+
+export enum EEfxTasks : uint64_t
+{
+	TASK_ANIMATION = (1 << 0),
+	TASK_FADE_OUT = (1 << 1),
+	TASK_FADE_IN = (1 << 2),
+	TASK_COLOR_DRIFT = (1 << 3),
+	TASK_REFLECTING_FLAME = (1 << 4),
+	TASK_IGNITE = (1 << 5),
 };
 
 export extern "C++" Task Task_SpriteLoop(entvars_t *const pev, short const FRAME_COUNT, double const FPS) noexcept;
@@ -59,8 +65,6 @@ export struct CSmoke : public Prefab_t
 	// Info
 
 	static inline constexpr char CLASSNAME[] = "env_explo_smoke";
-	static inline constexpr auto DRIFT_COLOR_KEY = 3896738ul;
-	static inline constexpr auto REFLECTING_FLAME_KEY = 332847938ul;
 
 	// Methods
 
@@ -133,7 +137,7 @@ export struct CGroundedDust : public Prefab_t
 export struct CSparkSpr : public Prefab_t
 {
 	static inline constexpr char CLASSNAME[] = "env_spark_spr";
-	static inline constexpr auto MAX_FRAME = 4;
+	static inline constexpr auto FRAME_COUNT = 4;
 	static inline constexpr auto HOLD_TIME = 0.07f;
 
 	void Spawn() noexcept override;
@@ -145,17 +149,19 @@ export struct CFuelAirCloud : public Prefab_t
 {
 	static inline constexpr char CLASSNAME[] = "fuel_air_cloud";
 	static inline constexpr double FPS = 18.0;
-	static inline constexpr short MAX_FRAME = 40;
-	static inline constexpr auto FADE_IN_TASK_KEY = 4325749ul;
+	static inline constexpr short FRAME_COUNT = 40;
 
 	Task Task_FadeIn(float const TRANSPARENT_INC, float const FINAL_VAL, float const ROLL) noexcept;
 	Task Task_Ignite(void) noexcept;
 
-	__forceinline void Ignite(void) noexcept { m_Scheduler.Enroll(Task_Ignite()); }
+	__forceinline void Ignite(void) noexcept { if (!m_Scheduler.Exist(TASK_IGNITE)) m_Scheduler.Enroll(Task_Ignite(), TASK_IGNITE); }
 
 	void Spawn() noexcept override;
 	void Touch(CBaseEntity *pOther) noexcept override;
 
+	static CFuelAirCloud *Create(CBasePlayer *pPlayer, Vector const &vecOrigin) noexcept;
+
+	CBasePlayer *m_pPlayer{};
 	bool m_bFadeInDone{ false };
 	bool m_bIgnited{ false };
 	std::uint8_t m_iIgnitedCounts{};

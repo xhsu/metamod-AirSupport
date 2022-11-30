@@ -214,7 +214,7 @@ Task CDynamicTarget::Task_QuickEval_AirStrike() noexcept
 		{
 			// One cannot ask air support to 'hit the sky'
 
-			m_Scheduler.Delist(DETAIL_ANALYZE_KEY);	// Stop evaluation now.
+			m_Scheduler.Delist(TASK_DEEP_ANALYZE);	// Stop evaluation now.
 			m_pTargeting = nullptr;
 
 			pev->skin = Models::targetmdl::SKIN_RED;
@@ -249,7 +249,7 @@ Task CDynamicTarget::Task_QuickEval_AirStrike() noexcept
 		if ((pev->origin - m_vecLastAiming).LengthSquared() > 24.0 * 24.0)
 		{
 			// Remove old deep think
-			m_Scheduler.Delist(DETAIL_ANALYZE_KEY);
+			m_Scheduler.Delist(TASK_DEEP_ANALYZE);
 
 			// Is it under sky?
 			g_engfuncs.pfnTraceLine(
@@ -262,7 +262,7 @@ Task CDynamicTarget::Task_QuickEval_AirStrike() noexcept
 			if (g_engfuncs.pfnPointContents(tr.vecEndPos) != CONTENTS_SKY)
 			{
 				// Start on deep analyze
-				m_Scheduler.Enroll(Task_DeepEvaluation(), DETAIL_ANALYZE_KEY);
+				m_Scheduler.Enroll(Task_DeepEvaluation(), TASK_DEEP_ANALYZE);
 
 				pev->skin = Models::targetmdl::SKIN_RED;
 			}
@@ -553,7 +553,7 @@ Task CDynamicTarget::Task_QuickEval_Gunship() noexcept
 		{
 			// One cannot ask air support to 'hit the sky'
 
-			m_Scheduler.Delist(DETAIL_ANALYZE_KEY);	// Stop evaluation now.
+			m_Scheduler.Delist(TASK_DEEP_ANALYZE);	// Stop evaluation now.
 			m_pTargeting = nullptr;
 
 			pev->skin = Models::targetmdl::SKIN_RED;
@@ -642,7 +642,7 @@ Task CDynamicTarget::Task_Remove() noexcept
 
 void CDynamicTarget::UpdateEvalMethod() noexcept
 {
-	m_Scheduler.Delist(QUICK_ANALYZE_KEY);
+	m_Scheduler.Delist(TASK_QUICK_ANALYZE);
 
 	for (auto &&pBeam : m_rgpBeacons)
 	{
@@ -659,22 +659,23 @@ void CDynamicTarget::UpdateEvalMethod() noexcept
 	default:
 	case AIR_STRIKE:
 		g_engfuncs.pfnSetSize(edict(), Vector::Zero(), Vector::Zero());
-		m_Scheduler.Enroll(Task_QuickEval_AirStrike(), QUICK_ANALYZE_KEY);
+		m_Scheduler.Enroll(Task_QuickEval_AirStrike(), TASK_QUICK_ANALYZE);
 		break;
 
 	case CLUSTER_BOMB:
+	case FUEL_AIR_BOMB:
 		g_engfuncs.pfnSetSize(edict(), Vector::Zero(), Vector::Zero());
-		m_Scheduler.Enroll(Task_QuickEval_ClusterBomb(), QUICK_ANALYZE_KEY);
+		m_Scheduler.Enroll(Task_QuickEval_ClusterBomb(), TASK_QUICK_ANALYZE);
 		break;
 
 	case CARPET_BOMBARDMENT:
 		g_engfuncs.pfnSetSize(edict(), Vector(-32, -32, 0), Vector(32, 32, 72));
-		m_Scheduler.Enroll(Task_QuickEval_CarpetBombardment(), QUICK_ANALYZE_KEY);
+		m_Scheduler.Enroll(Task_QuickEval_CarpetBombardment(), TASK_QUICK_ANALYZE);
 		break;
 
 	case GUNSHIP_STRIKE:
 		g_engfuncs.pfnSetSize(edict(), Vector::Zero(), Vector::Zero());
-		m_Scheduler.Enroll(Task_QuickEval_Gunship(), QUICK_ANALYZE_KEY);
+		m_Scheduler.Enroll(Task_QuickEval_Gunship(), TASK_QUICK_ANALYZE);
 		break;
 	}
 }
@@ -942,18 +943,35 @@ Task CFixedTarget::Task_RecruitJet() noexcept
 		co_await TaskScheduler::NextFrame::Rank[1];
 	}
 
-	for (;;)
+	if (auto const pFuelAirExplosive = m_pMissile.As<CFuelAirExplosive>(); pFuelAirExplosive != nullptr)
 	{
-		if (!m_pMissile)	// Missile entity despawned.
+		for (;;)
 		{
-			pev->flags |= FL_KILLME;	// So should this.
-			co_return;
-		}
+			if (pFuelAirExplosive->pev->effects == EF_NODRAW)	// This means the fuel air bomb had been detonated.
+			{
+				pev->flags |= FL_KILLME;
+				co_return;
+			}
 
-		co_await TaskScheduler::NextFrame::Rank[1];
+			co_await TaskScheduler::NextFrame::Rank[1];
+		}
+	}
+	else
+	{
+		for (;;)
+		{
+			if (!m_pMissile)	// Missile entity despawned.
+			{
+				pev->flags |= FL_KILLME;	// So should this.
+				co_return;
+			}
+
+			co_await TaskScheduler::NextFrame::Rank[1];
+		}
 	}
 
-	co_return;
+	// It will always waiting in the loop .
+	std::unreachable();
 }
 
 Task CFixedTarget::Task_TimeOut() noexcept
@@ -1019,7 +1037,7 @@ void CFixedTarget::Spawn() noexcept
 	m_vecPosForJetSpawnTesting = (g_engfuncs.pfnPointContents(tr.vecEndPos) == CONTENTS_SKY) ? (tr.vecEndPos - Vector(0, 0, 16)) : pev->origin;
 
 	m_Scheduler.Enroll(Task_PrepareJetSpawn());
-	m_Scheduler.Enroll(Task_TimeOut(), TIMEOUT_TASK_KEY);
+	m_Scheduler.Enroll(Task_TimeOut(), TASK_TIME_OUT);
 	m_Scheduler.Enroll(Task_UpdateOrigin());
 }
 
@@ -1031,15 +1049,15 @@ void CFixedTarget::Activate() noexcept
 		//m_Scheduler.Delist(TIMEOUT_TASK_KEY);
 
 		[[likely]]
-		if (!m_Scheduler.Exist(RADIO_KEY))
-			m_Scheduler.Enroll(Task_Gunship(), RADIO_KEY);
-			m_Scheduler.Enroll(Task_BeaconFx(), RADIO_KEY);
+		if (!m_Scheduler.Exist(TASK_ACTION))
+			m_Scheduler.Enroll(Task_Gunship(), TASK_ACTION);
+			m_Scheduler.Enroll(Task_BeaconFx(), TASK_ACTION);
 		break;
 
 	default:
 		[[likely]]
-		if (!m_Scheduler.Exist(RADIO_KEY))
-			m_Scheduler.Enroll(Task_RecruitJet(), RADIO_KEY);
+		if (!m_Scheduler.Exist(TASK_ACTION))
+			m_Scheduler.Enroll(Task_RecruitJet(), TASK_ACTION);
 		break;
 	}
 }

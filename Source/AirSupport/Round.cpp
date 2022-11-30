@@ -27,12 +27,22 @@ void OrpheuF_CleanUpMap(CHalfLifeMultiplay *pThis) noexcept
 
 	// CDynamicTarget does not required to be clear up
 
-	// CFieldSmoke does not required to be clear up
-
 	for (auto &&pEnt : FIND_ENTITY_BY_CLASSNAME(CFixedTarget::CLASSNAME))
 		pEnt->v.flags |= FL_KILLME;
 
 	for (auto &&pEnt : FIND_ENTITY_BY_CLASSNAME(CFlame::CLASSNAME))
+		pEnt->v.flags |= FL_KILLME;
+
+	for (auto &&pEnt : FIND_ENTITY_BY_CLASSNAME(CFloatingDust::CLASSNAME))
+		pEnt->v.flags |= FL_KILLME;
+
+	for (auto &&pEnt : FIND_ENTITY_BY_CLASSNAME(CFuelAirCloud::CLASSNAME))
+		pEnt->v.flags |= FL_KILLME;
+
+	for (auto &&pEnt : FIND_ENTITY_BY_CLASSNAME(CFuelAirExplosive::CLASSNAME))
+		pEnt->v.flags |= FL_KILLME;
+
+	for (auto &&pEnt : FIND_ENTITY_BY_CLASSNAME(CGroundedDust::CLASSNAME))
 		pEnt->v.flags |= FL_KILLME;
 
 	// CGunship does not required to be clear up
@@ -51,13 +61,19 @@ void OrpheuF_CleanUpMap(CHalfLifeMultiplay *pThis) noexcept
 
 	for (auto &&pEnt : FIND_ENTITY_BY_CLASSNAME(CSparkMdl::CLASSNAME))
 		pEnt->v.flags |= FL_KILLME;
+
+	for (auto &&pEnt : FIND_ENTITY_BY_CLASSNAME(CSparkSpr::CLASSNAME))
+		pEnt->v.flags |= FL_KILLME;
 }
 
 Task Task_UpdateTeams(void) noexcept
 {
+	g_rgpPlayersOfCT.reserve(gpGlobals->maxClients + 1);
+	g_rgpPlayersOfTerrorist.reserve(gpGlobals->maxClients + 1);
+
 	for (;;)
 	{
-		co_await 0.1f;
+		co_await TaskScheduler::NextFrame::Rank[1];
 
 		g_rgpPlayersOfCT.clear();
 		g_rgpPlayersOfTerrorist.clear();

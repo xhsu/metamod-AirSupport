@@ -15,8 +15,6 @@ export struct CPrecisionAirStrike : public Prefab_t
 	static inline constexpr char CLASSNAME[] = "missile_precision";
 	static inline constexpr auto SPEED = 800.0;
 
-	~CPrecisionAirStrike() noexcept override;
-
 	Task Task_Trail() noexcept;
 
 	void Spawn() noexcept override;
@@ -88,7 +86,7 @@ export struct CFuelAirExplosive : public Prefab_t
 	void Spawn() noexcept override;
 	void Touch(CBaseEntity *pOther) noexcept override;
 
-	static CFuelAirExplosive *Create(Vector const &vecOrigin, CBasePlayer *pPlayer) noexcept;
+	static CFuelAirExplosive *Create(CBasePlayer *pPlayer, Vector const &vecOrigin) noexcept;
 
 	CBasePlayer *m_pPlayer{};
 	std::list<EHANDLE<CFuelAirCloud>> m_rgpCloud{};
