@@ -9,6 +9,7 @@ import util;
 
 import UtlHook;
 
+import Effects;
 import GameRules;
 import Hook;
 import Jet;
@@ -222,10 +223,12 @@ void fw_ServerActivate_Post(edict_t *pEdictList, int edictCount, int clientMax) 
 
 	// plugin_cfg
 
-	g_engfuncs.pfnCvar_DirectSet(gcvarMaxSpeed, "9999.0");
-	g_engfuncs.pfnCvar_DirectSet(gcvarMaxVelocity, "9999.0");
+	g_engfuncs.pfnCvar_DirectSet(gcvarMaxSpeed, "99999.0");
+	g_engfuncs.pfnCvar_DirectSet(gcvarMaxVelocity, "99999.0");
 
+	TaskScheduler::Enroll(Task_GlobalCoughThink());
 	TaskScheduler::Enroll(Task_UpdateTeams());
+	TaskScheduler::Enroll(CFuelAirCloud::Task_AirPressure());
 
 	// This hook is very special, since it is actually delete-newed in each new game.
 	// Therefore we must hook it every time.
@@ -261,6 +264,24 @@ void fw_ServerActivate_Post(edict_t *pEdictList, int edictCount, int clientMax) 
 			bGameRuleHooked = true;
 		}
 	}
+}
+
+void fw_ServerDeactivate_Post(void) noexcept
+{
+	// Precache should be done across on every map change.
+	g_bShouldPrecache = true;
+
+	// CGameRules class is re-install every map change. Hence we should re-hook it everytime.
+	g_pGameRules = nullptr;
+
+	// Remove ALL existing tasks.
+	TaskScheduler::Clear();
+	
+	/************ Regular Re-zero Actions ************/
+
+	g_rgiAirSupportSelected.fill(AIR_STRIKE);
+	g_rgpPlayersOfCT.clear();
+	g_rgpPlayersOfTerrorist.clear();
 }
 
 void fw_PlayerPostThink(edict_t *pEntity) noexcept
@@ -534,7 +555,7 @@ inline constexpr DLL_FUNCTIONS gFunctionTable_Post =
 	.pfnClientCommand		= nullptr,
 	.pfnClientUserInfoChanged= nullptr,
 	.pfnServerActivate		= &fw_ServerActivate_Post,
-	.pfnServerDeactivate	= []() noexcept { g_bShouldPrecache = true; g_pGameRules = nullptr; TaskScheduler::Clear(); },
+	.pfnServerDeactivate	= &fw_ServerDeactivate_Post,
 
 	.pfnPlayerPreThink	= nullptr,
 	.pfnPlayerPostThink	= nullptr,

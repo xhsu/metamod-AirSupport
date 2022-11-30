@@ -1,4 +1,5 @@
 import <array>;
+import <chrono>;
 import <numbers>;
 
 import edict;
@@ -6,6 +7,7 @@ import util;
 
 import Effects;
 import Math;
+import Query;
 import Resources;
 
 import UtlRandom;
@@ -13,32 +15,86 @@ import UtlRandom;
 using std::array;
 
 //
-// CFlame
+// Componental function
 //
 
-Task CFlame::Task_Animation() noexcept
+Task Task_SpriteLoop(entvars_t *const pev, short const FRAME_COUNT, double const FPS) noexcept
 {
-	// Consider this as initialization
-	m_LastAnimUpdate = std::chrono::high_resolution_clock::now();
+	short iFrame = (short)std::clamp(pev->frame, 0.f, float(FRAME_COUNT - 1));
 
 	for (;;)
 	{
-		co_await TaskScheduler::NextFrame::Rank[0];
+		co_await float(1.f / FPS);
 
-		auto const CurTime = std::chrono::high_resolution_clock::now();
-		auto const flTimeDelta = std::chrono::duration_cast<std::chrono::nanoseconds>(CurTime - m_LastAnimUpdate).count() / 1'000'000'000.0;
+		iFrame = (iFrame + 1) % FRAME_COUNT;
 
-		pev->framerate = float(30.0 * flTimeDelta);
-		pev->frame += pev->framerate;
+		pev->framerate = float(1.f / FPS);
+		pev->frame = iFrame;
 		pev->animtime = gpGlobals->time;
-
-		[[unlikely]]
-		if (pev->frame < 0 || pev->frame >= m_iMaxFrame)
-			pev->frame -= float((pev->frame / m_iMaxFrame) * m_iMaxFrame);
-
-		m_LastAnimUpdate = CurTime;
 	}
 }
+
+Task Task_SpritePlayOnce(entvars_t *const pev, short const FRAME_COUNT, double const FPS) noexcept
+{
+	short iFrame = (short)std::clamp(pev->frame, 0.f, float(FRAME_COUNT - 1));
+
+	for (; iFrame < FRAME_COUNT;)
+	{
+		co_await float(1.f / FPS);
+
+		pev->framerate = float(1.f / FPS);
+		pev->frame = ++iFrame;
+		pev->animtime = gpGlobals->time;
+	}
+
+	pev->flags |= FL_KILLME;
+}
+
+Task Task_FadeOut(entvars_t *const pev, float const DECAY, float const ROLL) noexcept
+{
+	for (; pev->renderamt > 0;)
+	{
+		co_await TaskScheduler::NextFrame::Rank.back();
+
+		pev->renderamt -= DECAY;
+		pev->angles.roll += ROLL;
+	}
+
+	pev->flags |= FL_KILLME;
+}
+
+Task Task_Remove(entvars_t *const pev, float const TIME) noexcept
+{
+	co_await TIME;
+
+	pev->flags |= FL_KILLME;
+}
+
+Task Task_FadeIn(entvars_t *const pev, float const TRANSPARENT_INC, float const FINAL_VAL, float const ROLL) noexcept
+{
+	for (; pev->renderamt < FINAL_VAL;)
+	{
+		co_await TaskScheduler::NextFrame::Rank.back();
+
+		pev->renderamt += TRANSPARENT_INC;
+		pev->angles.roll += ROLL;
+	}
+
+	[[unlikely]]
+	if (abs(ROLL) <= std::numeric_limits<float>::epsilon())
+		co_return;
+
+	for (;;)
+	{
+		co_await TaskScheduler::NextFrame::Rank.back();
+
+		pev->angles.roll += ROLL;
+	}
+}
+
+//
+// CFlame
+//
 
 Task CFlame::Task_DetectGround() noexcept	// Deprecated
 {
@@ -136,28 +192,21 @@ Task CFlame::Task_EmitSmoke() noexcept
 	}
 }
 
-Task CFlame::Task_Remove() noexcept
-{
-	co_await UTIL_Random(9.f, 14.f);
-
-	pev->flags |= FL_KILLME;
-}
-
 void CFlame::Spawn() noexcept
 {
-	m_iFlameSprIndex = UTIL_Random(0u, Sprites::FLAME.size() - 1);
-	m_iMaxFrame = Sprites::Frames::FLAME[m_iFlameSprIndex];
+	auto const iFlameSprIndex = UTIL_Random(0u, Sprites::FLAME.size() - 1);
+	auto const iFrameCount = Sprites::Frames::FLAME[iFlameSprIndex];
 
 	pev->rendermode = kRenderTransAdd;
 	pev->renderamt = UTIL_Random(192.f, 255.f);
-	pev->frame = UTIL_Random<float>(0, m_iMaxFrame);
+	pev->frame = (float)UTIL_Random(0, iFrameCount);
 
 	pev->solid = SOLID_TRIGGER;
 	pev->movetype = MOVETYPE_TOSS;
 	pev->gravity = 2.f;
 	pev->scale = UTIL_Random(0.6f, 0.85f);
 
-	g_engfuncs.pfnSetModel(edict(), Sprites::FLAME[m_iFlameSprIndex]);
+	g_engfuncs.pfnSetModel(edict(), Sprites::FLAME[iFlameSprIndex]);
 	g_engfuncs.pfnSetSize(edict(), Vector(-32, -32, -64) * pev->scale, Vector(32, 32, 64) * pev->scale);	// it is still required for pfnTraceMonsterHull
 
 	// Doing this is to prevent spawning on slope and the spr just stuck and sink into ground.
@@ -167,10 +216,10 @@ void CFlame::Spawn() noexcept
 
 	g_engfuncs.pfnSetOrigin(edict(), tr.vecEndPos);	// pfnSetOrigin includes the abssize setting, restoring our hitbox.
 
-	m_Scheduler.Enroll(Task_Animation());
+	m_Scheduler.Enroll(Task_SpriteLoop(pev, iFrameCount, 30));
 	//m_Scheduler.Enroll(Task_DetectGround());
 	m_Scheduler.Enroll(Task_EmitLight());
-	m_Scheduler.Enroll(Task_Remove());
+	m_Scheduler.Enroll(Task_Remove(pev, UTIL_Random(9.f, 14.f)));
 
 	SetTouch(&CFlame::Touch_AttachingSurface);
 }
@@ -263,41 +312,54 @@ Task CSmoke::Task_DriftColor(Vector const vecTargetColor) noexcept
 	co_return;
 }
 
-Task CSmoke::Task_FadeOut() noexcept
+Task CSmoke::Task_ReflectingFlame() noexcept
 {
-	for (; pev->renderamt > 0;)
+	static constexpr auto SEARCH_RADIUS = 192.0;
+
+	TraceResult tr{};
+	double flPercentage{}, flContribution{};
+
+	for (;;)
 	{
-		co_await TaskScheduler::NextFrame::Rank[0];
+		co_await 0.05f;
 
-		pev->renderamt -= 0.055f;
-		pev->angles.z += 0.07f;
+		flPercentage = 0;
+		g_engfuncs.pfnTraceLine(pev->origin, Vector(pev->origin.x, pev->origin.y, pev->absmin.z - 36.0), ignore_glass | ignore_monsters, nullptr, &tr);
+
+		for (edict_t *pEdict : FIND_ENTITY_IN_SPHERE(tr.vecEndPos, (float)SEARCH_RADIUS))
+		{
+			flContribution = 0;
+
+			if (pEdict->v.classname == MAKE_STRING(CFlame::CLASSNAME))
+				flContribution = std::clamp(1.0 - (pEdict->v.origin - tr.vecEndPos).Length() / SEARCH_RADIUS, 0.0, 0.4);
+			else if (pEdict->v.classname == MAKE_STRING(CFuelAirCloud::CLASSNAME))
+			{
+				if (CFuelAirCloud *pCloud = (CFuelAirCloud *)pEdict->pvPrivateData; pCloud->m_bIgnited)
+					flContribution = 1;	// It's exploding!!
+			}
+
+			flPercentage = std::clamp(flPercentage + flContribution, 0.0, 1.0);
+		}
+
+		DriftToWhite(1.0 - flPercentage);
 	}
-
-	pev->flags |= FL_KILLME;
 }
 
-void CSmoke::LitByFlame() noexcept
+void CSmoke::LitByFlame(bool const bShouldStartingWhite) noexcept
 {
-	pev->rendercolor = Vector(
-		UTIL_Random(0xC3, 0xCD),	// r
-		UTIL_Random(0x3E, 0x46),	// g
-		UTIL_Random(0x05, 0x10)		// b
-	);
+	if (!bShouldStartingWhite)
+		pev->rendercolor = m_vecStartingLitClr + m_vecFlameClrToWhite * 0.4;
 
-	m_vecStartingLitClr = pev->rendercolor;
-	m_vecFlameClrToWhite = Vector(255, 255, 255) - pev->rendercolor;
-}
-
-void CSmoke::StartColorDrift(Vector const &vecTargetColor) noexcept
-{
-	m_Scheduler.Delist(DRIFT_COLOR_KEY);
-	m_Scheduler.Enroll(Task_DriftColor(vecTargetColor));
+	if (!m_Scheduler.Exist(TASK_REFLECTING_FLAME))
+		m_Scheduler.Enroll(Task_ReflectingFlame(), TASK_REFLECTING_FLAME);
 }
 
 void CSmoke::DriftToWhite(double const flPercentage) noexcept
 {
-	StartColorDrift(
-		m_vecStartingLitClr + m_vecFlameClrToWhite * std::clamp(flPercentage, 0.0, 1.0)
+	m_Scheduler.Delist(TASK_COLOR_DRIFT);
+	m_Scheduler.Enroll(
+		Task_DriftColor(m_vecStartingLitClr + m_vecFlameClrToWhite * std::clamp(flPercentage, 0.0, 1.0)),
+		TASK_COLOR_DRIFT
 	);
 }
 
@@ -344,64 +406,39 @@ void CSmoke::Spawn() noexcept
 
 	g_engfuncs.pfnSetOrigin(edict(), tr.vecEndPos);	// pfnSetOrigin includes the abssize setting, restoring our hitbox.
 
-	m_Scheduler.Enroll(Task_FadeOut());
+	m_vecStartingLitClr = Vector(
+		UTIL_Random(0xC3, 0xCD),	// r
+		UTIL_Random(0x3E, 0x46),	// g
+		UTIL_Random(0x05, 0x10)		// b
+	);
+	m_vecFlameClrToWhite = Vector(255, 255, 255) - m_vecStartingLitClr;
+
+	m_Scheduler.Enroll(Task_FadeOut(pev, 0.055f, 0.07f));
 }
 
 //
-// CFieldSmoke
-// Renders the color of smoke with the color of flames.
+// CRaisedDust
 //
 
-Task CFieldSmoke::Task_AdjustSmokeColor() noexcept
+void CFloatingDust::Spawn() noexcept
 {
-	for (;;)
-	{
-		co_await TaskScheduler::NextFrame::Rank[0];
+	pev->rendermode = kRenderTransAdd;
+	pev->renderamt = UTIL_Random(64.f, 128.f);
+	pev->rendercolor = Vector(255, 255, 255);
+	pev->frame = (float)UTIL_Random(0, FRAME_COUNT - 1);
 
-		m_rgpFlames.remove_if([](EHANDLE<CFlame> const &flame) noexcept -> bool { return !flame; });
-		m_rgpSmokes.remove_if([](EHANDLE<CSmoke> const &smoke) noexcept -> bool { return !smoke; });
+	pev->solid = SOLID_NOT;
+	pev->movetype = MOVETYPE_NOCLIP;
+	pev->gravity = 0;
+	pev->velocity = Vector(UTIL_Random(-96, 96), UTIL_Random(-96, 96), 0).Normalize() * UTIL_Random(12.0, 18.0);
+	pev->scale = UTIL_Random(2.f, 3.f);
 
-		[[unlikely]]
-		if (auto const iNewCount = m_rgpFlames.size(); m_iLastFlames != iNewCount)
-		{
-			for (auto &&pSmoke : m_rgpSmokes)
-				pSmoke->DriftToWhite(1.0 - (double)iNewCount / (double)m_iTotalFlames);
+	g_engfuncs.pfnSetModel(edict(), Sprites::LIFTED_DUST);
+	g_engfuncs.pfnSetOrigin(edict(), pev->origin);	// pfnSetOrigin includes the abssize setting, restoring our hitbox.
+	g_engfuncs.pfnSetSize(edict(), Vector(-128, -128, -128) * pev->scale, Vector(128, 128, 128) * pev->scale);
 
-			m_iLastFlames = iNewCount;
-		}
-	}
-}
-
-Task CFieldSmoke::Task_Remove() noexcept
-{
-	for (;;)
-	{
-		co_await 0.1f;
-
-		[[unlikely]]
-		if (m_rgpFlames.empty())
-		{
-			co_await TaskScheduler::NextFrame::Rank[0];
-
-			pev->flags |= FL_KILLME;
-			co_return;
-		}
-	}
-}
-
-void CFieldSmoke::Spawn() noexcept
-{
-	pev->effects |= EF_NODRAW;
-
-	m_Scheduler.Enroll(Task_Remove());
-}
-
-void CFieldSmoke::Activate() noexcept
-{
-	m_iTotalFlames = m_rgpFlames.size();
-	m_iTotalSmokes = m_rgpSmokes.size();
-
-	m_Scheduler.Enroll(Task_AdjustSmokeColor());
+	m_Scheduler.Enroll(Task_SpriteLoop(pev, FRAME_COUNT, FPS));
+	m_Scheduler.Enroll(Task_FadeOut(pev, 0.07f, 0.07f));
 }
 
 //
@@ -440,7 +477,7 @@ void CDebris::Spawn() noexcept
 	pev->avelocity = { 400, UTIL_Random(-400.0, 400.0), 0 };
 
 	g_engfuncs.pfnSetOrigin(edict(), pev->origin);
-	g_engfuncs.pfnSetModel(edict(), Models::GIBS_WOOD);
+	g_engfuncs.pfnSetModel(edict(), Models::GIBS_METAL);
 	g_engfuncs.pfnSetSize(edict(), Vector(-1, -1, -1), Vector(1, 1, 1));
 
 	m_Scheduler.Enroll(Task_Debris());
@@ -456,17 +493,7 @@ void CDebris::Touch(CBaseEntity *pOther) noexcept
 // CSpark
 //
 
-Task CSpark::Task_FadeOut() noexcept
-{
-	for (; pev->renderamt > 0; pev->renderamt -= 10.f)
-	{
-		co_await TaskScheduler::NextFrame::Rank[0];
-	}
-
-	pev->flags |= FL_KILLME;
-}
-
-void CSpark::Spawn() noexcept
+void CSparkMdl::Spawn() noexcept
 {
 	pev->solid = SOLID_NOT;
 	pev->movetype = MOVETYPE_NONE;
@@ -480,84 +507,39 @@ void CSpark::Spawn() noexcept
 	g_engfuncs.pfnSetOrigin(edict(), pev->origin);
 	g_engfuncs.pfnSetSize(edict(), Vector::Zero(), Vector::Zero());
 
-	m_Scheduler.Enroll(Task_FadeOut());
+	m_Scheduler.Enroll(Task_Remove(pev, HOLD_TIME));
 }
 
 //
 // CGunshotSmoke
 //
 
-Task CGunshotSmoke::Task_Animation() noexcept
-{
-	// Consider this as initialization
-	m_LastAnimUpdate = std::chrono::high_resolution_clock::now();
-
-	for (;;)
-	{
-		co_await TaskScheduler::NextFrame::Rank[0];
-
-		auto const CurTime = std::chrono::high_resolution_clock::now();
-		auto const flTimeDelta = std::chrono::duration_cast<std::chrono::nanoseconds>(CurTime - m_LastAnimUpdate).count() / 1'000'000'000.0;
-
-		pev->framerate = float(FPS * flTimeDelta);
-		pev->frame += pev->framerate;
-		pev->animtime = gpGlobals->time;
-
-		[[unlikely]]
-		if (pev->frame < 0 || pev->frame >= Sprites::Frames::WALL_PUFF)
-		{
-			pev->flags |= FL_KILLME;	// the WALL_PUFF spr is not cycling.
-			co_return;
-		}
-
-		m_LastAnimUpdate = CurTime;
-	}
-}
-
-Task CGunshotSmoke::Task_FadeOut() noexcept
-{
-	for (; pev->renderamt > 0;)
-	{
-		co_await TaskScheduler::NextFrame::Rank[0];
-
-		pev->renderamt -= 1.f;
-		pev->angles.z += 0.07f;
-	}
-
-	pev->flags |= FL_KILLME;
-}
-
 void CGunshotSmoke::Spawn() noexcept
 {
-	pev->rendermode = kRenderTransAdd;
-	pev->renderamt = 96.f;
-	pev->rendercolor = Vector(255, 255, 255);
+	auto const flLightness = UTIL_Random(1.0, 48.0);
+
+	pev->rendermode = kRenderTransAlpha;
+	pev->renderamt = UTIL_Random(128.f, 192.f);	// Alpha?
+	pev->rendercolor = Vector(0xD1, 0xC5, 0x9F);	// Color. Cannot be 0x000000
 	pev->frame = 0;
 
 	pev->solid = SOLID_NOT;
 	pev->movetype = MOVETYPE_NOCLIP;
 	pev->gravity = 0;
-	pev->velocity = Vector(UTIL_Random(-96, 96), UTIL_Random(-96, 96), 0).Normalize() * 1024;
-	pev->scale = 1;
+	pev->scale = UTIL_Random(1.5f, 2.5f);
 
-	g_engfuncs.pfnSetModel(edict(), UTIL_GetRandomOne(Sprites::WALL_PUFF));
-	g_engfuncs.pfnSetSize(edict(), Vector(-36, -36, -36) * pev->scale, Vector(36, 36, 36) * pev->scale);	// it is still required for pfnTraceMonsterHull
+	g_engfuncs.pfnSetModel(edict(), UTIL_GetRandomOne(Sprites::BLACK_SMOKE));
 
-	// Doing this is to prevent spawning on slope and the spr just stuck and sink into ground.
-	TraceResult tr{};
-	g_engfuncs.pfnTraceMonsterHull(edict(), m_tr.vecEndPos, m_tr.vecEndPos + m_tr.vecPlaneNormal * 512, ignore_monsters | ignore_glass, nullptr, &tr);
-	g_engfuncs.pfnTraceMonsterHull(edict(), tr.vecEndPos, tr.vecEndPos - m_tr.vecPlaneNormal * 512, ignore_monsters | ignore_glass, nullptr, &tr);
-
-	Vector const vecDir = CrossProduct(tr.vecPlaneNormal,
-		(tr.vecPlaneNormal - Vector::Up()).LengthSquared() < std::numeric_limits<float>::epsilon() ? Vector::Forward() : Vector::Up()	// #INVESTIGATE why will consteval fail here?
+	Vector const vecDir = m_tr.vecPlaneNormal + CrossProduct(m_tr.vecPlaneNormal,
+		(m_tr.vecPlaneNormal - Vector::Up()).LengthSquared() < std::numeric_limits<float>::epsilon() ? Vector::Forward() : Vector::Up()	// #INVESTIGATE why will consteval fail here?
 	);
 
-	pev->velocity = vecDir * UTIL_Random(12.0, 18.0);
+	pev->velocity = vecDir.Normalize() * UTIL_Random(72.0, 96.0);
 
-	g_engfuncs.pfnSetOrigin(edict(), tr.vecEndPos);	// pfnSetOrigin includes the abssize setting, restoring our hitbox.
+	g_engfuncs.pfnSetOrigin(edict(), m_tr.vecEndPos + m_tr.vecPlaneNormal * 24.0 * pev->scale);	// The actual SPR size will be 36 on radius. Clip the outter plain black part and it will be 24.
 
-	m_Scheduler.Enroll(Task_Animation());
-	m_Scheduler.Enroll(Task_FadeOut());
+	m_Scheduler.Enroll(Task_SpritePlayOnce(pev, Sprites::Frames::BLACK_SMOKE, FPS));
+	m_Scheduler.Enroll(Task_FadeOut(pev, 0.055f, 0.07f));
 }
 
 CGunshotSmoke *CGunshotSmoke::Create(const TraceResult &tr) noexcept
@@ -571,4 +553,376 @@ CGunshotSmoke *CGunshotSmoke::Create(const TraceResult &tr) noexcept
 	pPrefab->pev->nextthink = 0.1f;
 
 	return pPrefab;
+}
+
+//
+// CGroundedDust
+//
+
+void CGroundedDust::Spawn() noexcept
+{
+	pev->rendermode = kRenderTransAdd;
+	pev->renderamt = UTIL_Random(64.f, 128.f);
+	pev->rendercolor = Vector(255, 255, 255);
+	pev->frame = 0;
+
+	pev->solid = SOLID_NOT;
+	pev->movetype = MOVETYPE_NOCLIP;
+	pev->gravity = 0;
+	pev->velocity = Vector(UTIL_Random(-96, 96), UTIL_Random(-96, 96), 0).Normalize() * UTIL_Random(12.0, 18.0);
+	pev->scale = UTIL_Random(1.f, 1.2f);
+
+	g_engfuncs.pfnSetModel(edict(), Sprites::GROUNDED_DUST);
+	g_engfuncs.pfnSetOrigin(edict(), pev->origin);	// pfnSetOrigin includes the abssize setting, restoring our hitbox.
+
+	m_Scheduler.Enroll(Task_SpritePlayOnce(pev, FRAME_COUNT, FPS));
+	m_Scheduler.Enroll(Task_FadeOut(pev, 0.06f, 0.f));
+}
+
+//
+// CSparkSpr
+//
+
+void CSparkSpr::Spawn() noexcept
+{
+	pev->rendermode = kRenderTransAdd;
+	pev->renderamt = 255.f;
+	pev->rendercolor = Vector(255, 255, 255);
+	pev->frame = (float)UTIL_Random(0, FRAME_COUNT - 1);
+
+	pev->solid = SOLID_TRIGGER;
+	pev->movetype = MOVETYPE_FLY;
+	pev->gravity = 0;
+	pev->velocity = Vector::Zero();
+	pev->scale = UTIL_Random(0.35f, 0.45f);
+
+	g_engfuncs.pfnSetModel(edict(), Sprites::SPARK);
+	g_engfuncs.pfnSetOrigin(edict(), pev->origin);	// pfnSetOrigin includes the abssize setting, restoring our hitbox.
+	g_engfuncs.pfnSetSize(edict(), Vector(-0.2, -0.2, -0.2), Vector(0.2, 0.2, 0.2));	// such that we can collide with fuel-air cloud.
+
+	m_Scheduler.Enroll(Task_Remove(pev, HOLD_TIME));
+}
+
+//
+// PlayerCough
+//
+
+[[nodiscard]]
+bool UTIL_AnySmokeNear(Vector const &vecSrc) noexcept
+{
+	for (auto &&pSmoke :
+		FIND_ENTITY_IN_SPHERE(vecSrc, float(32.0 * std::numbers::sqrt3)) |
+		std::views::filter([](edict_t *pEdcit) noexcept { return pEdcit->v.classname == MAKE_STRING(CSmoke::CLASSNAME); })
+		)
+	{
+		// Any CSmoke entity near the head?
+
+		if (pSmoke->v.renderamt < 32)
+			continue;
+
+		return true;
+	}
+
+	for (auto &&pFloatingDust :
+		FIND_ENTITY_IN_SPHERE(vecSrc, float(72.0 * std::numbers::sqrt3)) |
+		std::views::filter([](edict_t *pEdcit) noexcept { return pEdcit->v.classname == MAKE_STRING(CFloatingDust::CLASSNAME); })
+		)
+	{
+		// Any CFloatingDust entity near the head?
+
+		if (pFloatingDust->v.renderamt < 32)
+			continue;
+
+		return true;
+	}
+
+	for (auto &&pFlame :
+		FIND_ENTITY_IN_SPHERE(vecSrc, float(72.0 * std::numbers::sqrt3)) |
+		std::views::filter([](edict_t *pEdcit) noexcept { return pEdcit->v.classname == MAKE_STRING(CFlame::CLASSNAME); })
+		)
+	{
+		// Any CFlame entity near the head?
+
+		return true;
+	}
+
+	for (auto &&pFlame :
+		FIND_ENTITY_IN_SPHERE(vecSrc, float(72.0 * std::numbers::sqrt3)) |
+		std::views::filter([](edict_t *pEdcit) noexcept { return pEdcit->v.classname == MAKE_STRING(CFuelAirCloud::CLASSNAME); })
+		)
+	{
+		// Any CFuelAirCloud entity near the head?
+		// It's quite toxic so the transparency doesn't matter.
+
+		return true;
+	}
+
+	return false;
+}
+
+Task Task_GlobalCoughThink() noexcept
+{
+	array<float, 33> rgflTimeNextCough{};
+
+	co_await 0.1f;
+
+	for (;;)
+	{
+		for (CBasePlayer *pPlayer :
+			std::views::iota(1, gpGlobals->maxClients) |
+			std::views::transform([](int idx) noexcept { auto const pent = g_engfuncs.pfnPEntityOfEntIndex(idx); return pent ? (CBasePlayer *)pent->pvPrivateData : nullptr; }) |
+			std::views::filter([](void *p) noexcept { return p != nullptr; }) |
+
+			// Only player who is alive.
+			std::views::filter([](CBasePlayer *pPlayer) noexcept { return pPlayer->pev->deadflag == DEAD_NO && pPlayer->pev->takedamage != DAMAGE_NO; })
+			)
+		{
+			co_await 0.05f;
+
+			if (!UTIL_AnySmokeNear(pPlayer->EyePosition()))
+				continue;
+
+			if (auto const iIndex = pPlayer->entindex(); rgflTimeNextCough[iIndex] < gpGlobals->time)
+			{
+				rgflTimeNextCough[iIndex] = gpGlobals->time + 3.f;
+				g_engfuncs.pfnEmitSound(pPlayer->edict(), CHAN_STATIC, UTIL_GetRandomOne(Sounds::PLAYER_COUGH), VOL_NORM, ATTN_STATIC, 0, UTIL_Random(92, 116));
+			}
+		}
+
+		co_await 0.1f;
+	}
+}
+
+//
+// CFuelAirCloud
+//
+
+Task CFuelAirCloud::Task_FadeIn(float const TRANSPARENT_INC, float const FINAL_VAL, float const ROLL) noexcept
+{
+	for (; pev->renderamt < FINAL_VAL;)
+	{
+		co_await TaskScheduler::NextFrame::Rank.back();
+
+		pev->renderamt += TRANSPARENT_INC;
+		pev->angles.roll += ROLL;
+	}
+
+	m_bFadeInDone = true;
+
+	for (;;)
+	{
+		co_await TaskScheduler::NextFrame::Rank.back();
+
+		pev->angles.roll += ROLL;
+	}
+}
+
+Task CFuelAirCloud::Task_Ignite(void) noexcept
+{
+	if (m_bIgnited)
+		co_return;
+
+	co_await 0.05f;
+
+	// Enable the ability to ignite others
+	m_bIgnited = true;
+
+	pev->renderamt = 255.f;	// maximize brightness
+	pev->rendercolor = Vector(255, 255, 255);
+
+	pev->solid = SOLID_TRIGGER;
+	pev->movetype = MOVETYPE_FLY;
+	pev->velocity = Vector::Zero();
+	pev->scale = UTIL_Random(1.f, 2.f);
+
+	pev->angles = Angles();
+	pev->framerate = 0;
+	pev->frame = 0;
+	pev->animtime = 0;
+
+	auto const iSelectedFlame = UTIL_Random(0u, Sprites::GAS_EXPLO.size() - 1);
+	auto const iFrameCount = Sprites::Frames::GAS_EXPLO[iSelectedFlame];
+
+	g_engfuncs.pfnSetModel(edict(), Sprites::GAS_EXPLO[iSelectedFlame]);
+	g_engfuncs.pfnSetOrigin(edict(), pev->origin);
+	g_engfuncs.pfnSetSize(edict(), Vector(-128, -128, -128) * pev->scale, Vector(128, 128, 128) * pev->scale);
+	g_engfuncs.pfnDropToFloor(edict());
+
+	m_Scheduler.Delist(TASK_FADE_IN | TASK_ANIMATION);
+	m_Scheduler.Enroll(Task_SpritePlayOnce(pev, iFrameCount, 20));
+
+	co_await 0.1f;
+
+	if (!UTIL_Random(0, 3))
+		Prefab_t::Create<CSmoke>(pev->origin + Vector(0, 0, UTIL_Random(-64.0, 64.0)), Angles(0, 0, UTIL_Random(0, 360)))->LitByFlame(false);
+
+	if (!UTIL_Random(0, 4))
+		Prefab_t::Create<CFlame>(pev->origin)->pev->velocity = get_spherical_coord(128, UTIL_Random(30.0, 60.0), UTIL_Random(0.0, 360.0));
+}
+
+void CFuelAirCloud::Spawn() noexcept
+{
+	pev->rendermode = kRenderTransAdd;
+	pev->renderamt = 0.f;
+	pev->rendercolor = Vector(255, 255, 255);
+	pev->frame = (float)UTIL_Random(0, FRAME_COUNT - 1);
+
+	pev->solid = SOLID_TRIGGER;
+	pev->movetype = MOVETYPE_FLY;
+	pev->gravity = 0;
+	pev->velocity = Vector::Zero();
+	pev->scale = UTIL_Random(2.f, 3.f);
+
+	g_engfuncs.pfnSetModel(edict(), Sprites::LIFTED_DUST);
+	g_engfuncs.pfnSetOrigin(edict(), pev->origin);	// pfnSetOrigin includes the abssize setting, restoring our hitbox.
+	g_engfuncs.pfnSetSize(edict(), Vector(-128, -128, -128) * pev->scale, Vector(128, 128, 128) * pev->scale);
+
+	m_Scheduler.Enroll(Task_SpriteLoop(pev, FRAME_COUNT, FPS), TASK_ANIMATION);	// This should be removed as well, we are not going to loop on flame SPR.
+	m_Scheduler.Enroll(Task_FadeIn(0.05f, 32.f, 0.07f), TASK_FADE_IN);
+
+	s_rgpAeroClouds.emplace_back(this);
+}
+
+void CFuelAirCloud::Touch(CBaseEntity *pOther) noexcept
+{
+	if (!pOther || pOther->pev->solid == SOLID_BSP)
+		return;
+
+	if (!m_bIgnited)
+	{
+		auto const &iClassName = pOther->pev->classname;
+
+		if (iClassName == MAKE_STRING(CSparkSpr::CLASSNAME) ||
+			iClassName == MAKE_STRING(CFlame::CLASSNAME) ||
+			iClassName == MAKE_STRING(CDebris::CLASSNAME))
+		{
+			this->Ignite();
+		}
+
+		return;
+	}
+
+	// Was ignited.
+	else
+	{
+		// Chain reaction.
+		if (m_iIgnitedCounts < 3 && pOther->pev->classname == MAKE_STRING(CFuelAirCloud::CLASSNAME))
+		{
+			if (CFuelAirCloud *pCloud = (CFuelAirCloud *)pOther; !pCloud->m_bIgnited)
+			{
+				pCloud->Ignite();
+				++m_iIgnitedCounts;
+			}
+		}
+
+		// Hurting entities.
+		else if (pOther->pev->takedamage != DAMAGE_NO)
+		{
+			if (pOther->IsPlayer())
+			{
+				if (CBasePlayer *pPlayer = (CBasePlayer *)pOther; pPlayer->m_iTeam == m_pPlayer->m_iTeam && gcvarFriendlyFire->value < 1)
+					return;
+			}
+
+			pOther->TakeDamage(pev, m_pPlayer->pev, pev->renderamt, DMG_SLOWBURN);
+		}
+	}
+}
+
+CFuelAirCloud *CFuelAirCloud::Create(CBasePlayer *pPlayer, Vector const &vecOrigin) noexcept
+{
+	auto const [pEdict, pPrefab] = UTIL_CreateNamedPrefab<CFuelAirCloud>();
+
+	pEdict->v.angles = Angles(0, 0, UTIL_Random(0.0, 359.9));
+	pEdict->v.origin = vecOrigin;
+
+	pPrefab->m_pPlayer = pPlayer;
+	pPrefab->Spawn();
+	pPrefab->pev->nextthink = 0.1f;
+
+	return pPrefab;
+}
+
+Task CFuelAirCloud::Task_AirPressure() noexcept
+{
+	array<double, 3> rgflPressureCenter{};
+	Vector vecPressureCenter{}, vecDir{};
+	int iIgnitedCount{};
+	double flSpeed{};
+
+	for (;;)
+	{
+		co_await 0.1f;
+
+		// Kick off all invalid clouds, especially after map reload.
+		s_rgpAeroClouds.remove_if(
+			[](EHANDLE<CFuelAirCloud> const &pCloud) noexcept -> bool { return !static_cast<bool>(pCloud); }
+		);
+
+		if (s_rgpAeroClouds.empty())
+			continue;
+
+		rgflPressureCenter.fill(0);
+		iIgnitedCount = 0;
+
+		std::ranges::for_each(s_rgpAeroClouds | std::views::filter([](EHANDLE<CFuelAirCloud> const &pCloud) noexcept { return pCloud->m_bIgnited; }),
+			[&](Vector const &vecOrigin) noexcept { ++iIgnitedCount; rgflPressureCenter[0] += vecOrigin[0]; rgflPressureCenter[1] += vecOrigin[1]; rgflPressureCenter[2] += vecOrigin[2]; },
+			[](EHANDLE<CFuelAirCloud> const &pCloud) noexcept -> Vector const &{ return pCloud->pev->origin; }
+		);
+
+		if (iIgnitedCount <= 0)
+			continue;
+
+		// equiv of 'vec /= fl'
+		std::ranges::for_each(rgflPressureCenter,
+			[flCount = (double)iIgnitedCount](double &val) noexcept { val /= flCount; }
+		);
+
+		vecPressureCenter = Vector(
+			rgflPressureCenter[0],
+			rgflPressureCenter[1],
+			rgflPressureCenter[2]
+		);
+
+		for (CBasePlayer *pPlayer : Query::all_alive_player())
+		{
+			vecDir = vecPressureCenter - pPlayer->pev->origin;
+			flSpeed = std::clamp<double>(4096.0 - vecDir.Length(), 0.0, 256.0);
+
+			if (flSpeed > 1)
+				pPlayer->pev->velocity += vecDir.Normalize() * flSpeed;
+		}
+
+		if (iIgnitedCount > 10 && !TaskScheduler::Exist(TASK_HB_AND_ER))
+			TaskScheduler::Enroll(Task_Suffocation(iIgnitedCount / 10), TASK_HB_AND_ER);
+	}
+}
+
+Task CFuelAirCloud::Task_Suffocation(int const iDmgCounts) noexcept
+{
+	for (CBasePlayer *pPlayer : Query::all_alive_player())
+		g_engfuncs.pfnClientCommand(pPlayer->edict(), "spk %s\n", Sounds::PLAYER_HB_AND_ER);
+
+	auto const pevWorld = &g_engfuncs.pfnPEntityOfEntIndex(0)->v;
+
+	for (auto i = 0; i < iDmgCounts; ++i)
+	{
+		co_await 1.f;
+
+		for (CBasePlayer *pPlayer : Query::all_alive_player())
+		{
+			pPlayer->TakeDamage(pevWorld, pevWorld, pPlayer->pev->health * 0.03f, DMG_DROWN);
+
+			pPlayer->pev->punchangle.roll += UTIL_Random() ? -7.5f : 7.5f;
+
+			gmsgScreenShake::Send(pPlayer->edict(),
+				ScaledFloat<1 << 12>(15.0),	// amp
+				ScaledFloat<1 << 12>(1.0),	// dur
+				ScaledFloat<1 << 8>(12)					// freq
+			);
+		}
+	}
+
+	if (auto const flThisFuncTime = std::round(1.0 * iDmgCounts); flThisFuncTime < 13)
+		co_await float(13.0 - flThisFuncTime);	// 13 is the length of audio file Sounds::PLAYER_HB_AND_ER
 }

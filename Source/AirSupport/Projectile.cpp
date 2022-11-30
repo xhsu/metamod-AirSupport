@@ -1,17 +1,19 @@
 ﻿#include <cassert>
 
 import <array>;
+import <list>;
 import <ranges>;
 
 import Effects;
 import Math;
 import Menu;
-import Missile;
+import Projectile;
 import Resources;
 
 import UtlRandom;
 
 using std::array;
+using std::list;
 
 // Explosion.cpp
 extern void RangeDamage(CBasePlayer *pAttacker, const Vector &vecOrigin, float const flRadius, float const flDamage) noexcept;
@@ -24,40 +26,23 @@ extern TraceResult Impact(CBasePlayer *pAttacker, CBaseEntity *pProjectile, floa
 // CPrecisionAirStrike
 //
 
-CPrecisionAirStrike::~CPrecisionAirStrike() noexcept
-{
-	MsgBroadcast(SVC_TEMPENTITY);
-	WriteData(TE_KILLBEAM);
-	WriteData(ent_cast<short>(pev));
-	MsgEnd();
-}
-
-Task CPrecisionAirStrike::Task_SFX() noexcept
-{
-	for (;;)
-	{
-		g_engfuncs.pfnEmitSound(edict(), CHAN_WEAPON, Sounds::TRAVEL, VOL_NORM, ATTN_NORM, 0, UTIL_Random(94, 112));
-		co_await 1.f;
-	}
-}
-
 Task CPrecisionAirStrike::Task_Trail() noexcept
 {
 	for (;;)
 	{
 		co_await gpGlobals->frametime;
 
-		pev->angles += Vector(
+		pev->angles += Angles(
 			UTIL_Random(-0.35f, 0.35f),
 			UTIL_Random(-0.35f, 0.35f),
 			UTIL_Random(-0.35f, 0.35f)
 		);
 
 		// GoldSrc Mystery #1: The fucking v_angle and angles.
-		g_engfuncs.pfnMakeVectors(Vector(
-			-pev->angles.x,
-			pev->angles.y,
-			pev->angles.z)
+		g_engfuncs.pfnMakeVectors(Angles(
+			-pev->angles.pitch,
+			pev->angles.yaw,
+			pev->angles.roll)
 		);
 
 		pev->velocity = gpGlobals->v_forward * SPEED;
@@ -155,7 +140,8 @@ void CPrecisionAirStrike::Spawn() noexcept
 		MsgEnd();
 	}
 
-	m_Scheduler.Enroll(Task_SFX());
+	g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, Sounds::TRAVEL, VOL_NORM, 0.3f, 0, UTIL_Random(94, 112));
+
 	m_Scheduler.Enroll(Task_Trail());
 }
 
@@ -167,12 +153,18 @@ void CPrecisionAirStrike::Touch(CBaseEntity *pOther) noexcept
 		return;
 	}
 
-	g_engfuncs.pfnEmitSound(ent_cast<edict_t *>(pev), CHAN_WEAPON, UTIL_GetRandomOne(Sounds::EXPLOSION), VOL_NORM, 0.3f, 0, UTIL_Random(92, 116));
+	g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, Sounds::TRAVEL, VOL_NORM, 0.3f, SND_STOP, UTIL_Random(94, 112));
+	g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, UTIL_GetRandomOne(Sounds::EXPLOSION), VOL_NORM, 0.3f, 0, UTIL_Random(92, 116));
 
 	Impact(m_pPlayer, this, 500.f);
 	RangeDamage(m_pPlayer, pev->origin, 350.f, 275.f);
 	ScreenEffects(pev->origin, 700.f, 12.f, 2048.f);
 	TaskScheduler::Enroll(VisualEffects(pev->origin, 700.f));
+
+	MsgBroadcast(SVC_TEMPENTITY);
+	WriteData(TE_KILLBEAM);
+	WriteData(ent_cast<short>(pev));
+	MsgEnd();
 
 	pev->flags |= FL_KILLME;
 }
@@ -207,7 +199,7 @@ Task CClusterBomb::Task_ClusterBomb() noexcept
 	WriteData(pev->origin);
 	WriteData(Sprites::m_rgLibrary[Sprites::AIRBURST]);
 	WriteData((byte)35);
-	WriteData((byte)24);
+	WriteData((byte)12);
 	WriteData(TE_EXPLFLAG_NONE);
 	MsgEnd();
 
@@ -226,6 +218,8 @@ Task CClusterBomb::Task_ClusterBomb() noexcept
 	pev->movetype = MOVETYPE_NONE;
 	pev->effects = EF_NODRAW;
 
+	g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, Sounds::CLUSTER_BOMB_DROP, VOL_NORM, 0, SND_STOP, UTIL_Random(92, 112));
+
 	MsgBroadcast(SVC_TEMPENTITY);
 	WriteData(TE_KILLBEAM);
 	WriteData(ent_cast<short>(pev));
@@ -238,7 +232,7 @@ Task CClusterBomb::Task_ClusterBomb() noexcept
 
 	UTIL_ExplodeModel(
 		pev->origin,
-		UTIL_Random(-300.f, 300.f),
+		UTIL_Random() ? -750.f : 750.f,
 		Models::m_rgLibrary[Models::GIBS_METAL],
 		UTIL_Random(16, 24),
 		UTIL_Random(8.f, 12.f)
@@ -294,7 +288,7 @@ Task CClusterBomb::Task_ClusterBomb() noexcept
 
 		if (iCounter % 3 == 0)
 		{
-			Prefab_t::Create<CSmoke>(vec, Vector(0, 0, UTIL_Random(0.0, 359.9)));
+			Prefab_t::Create<CFloatingDust>(vec, Angles(0, 0, UTIL_Random(0.0, 359.9)));
 		}
 
 		++iCounter;
@@ -333,6 +327,8 @@ void CClusterBomb::Spawn() noexcept
 	WriteData((byte)255);
 	WriteData((byte)255);
 	MsgEnd();
+
+	g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, Sounds::CLUSTER_BOMB_DROP, VOL_NORM, 0, 0, UTIL_Random(92, 112));
 
 	m_Scheduler.Enroll(Task_ClusterBomb());
 	// Calculate everything, including all those detonation spots and where is the first detonation.
@@ -391,8 +387,10 @@ Task CCarpetBombardment::Task_Touch() noexcept
 	WriteData(Sprites::m_rgLibrary[Sprites::CARPET_FRAGMENT_EXPLO]);
 	WriteData((byte)UTIL_Random(20, 30));
 	WriteData((byte)12);
-	WriteData(TE_EXPLFLAG_NONE);
+	WriteData(TE_EXPLFLAG_NOSOUND);
 	MsgEnd();
+
+	g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, UTIL_GetRandomOne(Sounds::EXPLOSION_SHORT), VOL_NORM, 0.3f, 0, UTIL_Random(92, 116));
 
 	co_await TaskScheduler::NextFrame::Rank[0];
 
@@ -405,7 +403,6 @@ Task CCarpetBombardment::Task_Touch() noexcept
 
 	co_await TaskScheduler::NextFrame::Rank[0];
 
-	auto const pFieldSmoke = Prefab_t::Create<CFieldSmoke>();
 	auto const iFlameCount = UTIL_Random(1, 3);
 	for (int i = 0; i < iFlameCount; ++i)
 	{
@@ -414,13 +411,8 @@ Task CCarpetBombardment::Task_Touch() noexcept
 		pFlame->pev->gravity = 1.f;
 
 		auto const pSmoke = Prefab_t::Create<CSmoke>(tr.vecEndPos + Vector(UTIL_Random(-96, 96), UTIL_Random(-96, 96), UTIL_Random(0, 72)));
-		pSmoke->LitByFlame();
-
-		pFieldSmoke->EnrollFlame(pFlame);
-		pFieldSmoke->EnrollSmoke(pSmoke);
+		pSmoke->LitByFlame(false);
 	}
-
-	pFieldSmoke->Activate();
 
 	co_await TaskScheduler::NextFrame::Rank[0];
 
@@ -513,21 +505,21 @@ Task CBullet::Task_Touch() noexcept
 		co_return;
 	}
 
-	Vector vecAngles{};
+	Angles vecAngles{};
 	g_engfuncs.pfnVecToAngles(tr.vecPlaneNormal, vecAngles);
-	vecAngles.x += 270.f;	// it seems like all MDL requires a += 270 shift.
+	vecAngles.pitch += 270.f;	// it seems like all MDL requires a += 270 shift.
 
-	Prefab_t::Create<CSpark>(tr.vecEndPos, vecAngles);
+	Prefab_t::Create<CSparkMdl>(tr.vecEndPos, vecAngles);
+	Prefab_t::Create<CGroundedDust>(tr.vecEndPos);
 	Prefab_t::Create<CGunshotSmoke>(tr);
 
 	co_await TaskScheduler::NextFrame::Rank[1];
 
-	auto const flScale = UTIL_Random(0.05f, 0.075f);
 	UTIL_BreakModel(
-		tr.vecEndPos, Vector(flScale, flScale, flScale), tr.vecPlaneNormal * UTIL_Random(75, 100),
+		tr.vecEndPos, Vector(1, 1, 1) /* Invalid Arg? */, tr.vecPlaneNormal * UTIL_Random(75, 100),
 		UTIL_Random(0.8f, 1.2f),
 		Models::m_rgLibrary[Models::GIBS_CONCRETE],
-		UTIL_Random(4, 12),
+		UTIL_Random(4, 8),
 		UTIL_Random(8.f, 12.f),
 		0x40
 	);
@@ -536,6 +528,8 @@ Task CBullet::Task_Touch() noexcept
 	WriteData(TE_GUNSHOT);
 	WriteData(tr.vecEndPos);
 	MsgEnd();
+
+	Prefab_t::Create<CSparkSpr>(tr.vecEndPos);
 
 	pev->flags |= FL_KILLME;
 }
@@ -624,6 +618,158 @@ CBullet *CBullet::Create(Vector const &vecOrigin, Vector const &vecVelocity, CBa
 
 	pPrefab->m_pShooter = pShooter;
 	pPrefab->m_vecLastTraceSrc = vecOrigin;
+	pPrefab->Spawn();
+	pPrefab->pev->nextthink = 0.1f;
+
+	return pPrefab;
+}
+
+//
+// CFuelAirExplosive
+//
+
+Task CFuelAirExplosive::Task_GasPropagate() noexcept
+{
+	TraceResult tr{};
+	auto const vecTestSrc = pev->origin + Vector::Up() * 5.0;
+	list<Vector> rgvecVarifiedLocations{};
+	bool bGoodToSpawn = false;
+
+	for (auto iCounter = 0ul; iCounter < 50; /* Increase the counter only when successed */)
+	{
+	LAB_CONTINUE:;
+		co_await 0.02f;
+
+		bGoodToSpawn = false;
+
+		auto const flRangeMin = 10.0 + floor(iCounter / 10.0) * 100.0;
+		auto const flRangeMax = 200.0 + floor(iCounter / 10.0) * 100.0;
+		auto const vecCandidate = pev->origin + get_cylindrical_coord(UTIL_Random(flRangeMin, flRangeMax), UTIL_Random(0.0, 359.9), UTIL_Random(36, 96));
+
+		for (auto &&vec : rgvecVarifiedLocations)
+		{
+			auto const flLenghSq = (vec - vecCandidate).LengthSquared();
+
+			// Too close to each other.
+			if (flLenghSq < 64.0 * 64.0)
+				goto LAB_CONTINUE;
+		}
+
+		g_engfuncs.pfnTraceLine(vecTestSrc, vecCandidate, ignore_monsters | ignore_glass, nullptr, &tr);
+
+		if (tr.flFraction < 1 || tr.fAllSolid)
+		{
+			rgvecVarifiedLocations.sort([&](Vector const &lhs, Vector const &rhs) noexcept {
+				return (lhs - vecCandidate).LengthSquared() < (rhs - vecCandidate).LengthSquared();
+			});
+
+			for (auto &&vec : rgvecVarifiedLocations)
+			{
+				g_engfuncs.pfnTraceLine(vec, vecCandidate, ignore_glass | ignore_monsters, nullptr, &tr);
+				if (tr.flFraction == 1.0 && !tr.fAllSolid)
+				{
+					bGoodToSpawn = true;
+					break;
+				}
+			}
+		}
+		else
+			bGoodToSpawn = true;
+
+		if (!bGoodToSpawn)
+			continue;
+
+		m_rgpCloud.emplace_back(
+			Prefab_t::Create<CFuelAirCloud>(m_pPlayer, vecCandidate)
+		);
+
+		rgvecVarifiedLocations.emplace_back(vecCandidate);
+		++iCounter;
+	}
+
+LAB_WAIT_FOR_FADE_IN:;
+	for (auto &&pCloud : m_rgpCloud)
+	{
+		co_await TaskScheduler::NextFrame::Rank[1];
+
+		// Something / someone ignited it already.
+		if (pCloud && pCloud->m_bIgnited)
+			goto LAB_CO_RETURN;
+
+		if (pCloud && !pCloud->m_bFadeInDone)
+			goto LAB_WAIT_FOR_FADE_IN;
+	}
+
+	Prefab_t::Create<CSparkSpr>(pev->origin + Vector(UTIL_Random(-96.0, 96.0), UTIL_Random(-96.0, 96.0), UTIL_Random(48.0, 64.0)));
+
+LAB_CO_RETURN:;
+	pev->flags |= FL_KILLME;
+}
+
+void CFuelAirExplosive::Spawn() noexcept
+{
+	g_engfuncs.pfnSetOrigin(edict(), pev->origin);
+	g_engfuncs.pfnSetModel(edict(), Models::PROJECTILE[FUEL_AIR_BOMB]);
+	g_engfuncs.pfnSetSize(edict(), Vector(-2, -2, -2), Vector(2, 2, 2));
+
+	pev->owner = m_pPlayer->edict();
+	pev->solid = SOLID_BBOX;
+	pev->movetype = MOVETYPE_TOSS;
+	pev->velocity = Vector::Zero();
+	pev->gravity = 1.f;
+
+	pev->effects = EF_DIMLIGHT;
+
+	// This is just a bomb drop. No energy post-apply onto the projectile, therefore no complex VFX.
+
+	MsgBroadcast(SVC_TEMPENTITY);
+	WriteData(TE_BEAMFOLLOW);
+	WriteData(entindex());
+	WriteData(Sprites::m_rgLibrary[Sprites::TRAIL]);
+	WriteData((byte)20);
+	WriteData((byte)3);
+	WriteData((byte)255);
+	WriteData((byte)255);
+	WriteData((byte)255);
+	WriteData((byte)255);
+	MsgEnd();
+
+	g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, Sounds::CLUSTER_BOMB_DROP, VOL_NORM, 0, 0, UTIL_Random(92, 112));
+}
+
+void CFuelAirExplosive::Touch(CBaseEntity *pOther) noexcept
+{
+	g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, UTIL_GetRandomOne(Sounds::EXPLOSION_SHORT), VOL_NORM, 0, 0, UTIL_Random(92, 112));
+
+	auto const vecExplo = pev->origin + Vector::Up() * 72;
+
+	MsgPVS(SVC_TEMPENTITY, vecExplo);
+	WriteData(TE_SPRITE);
+	WriteData(vecExplo);
+	WriteData(Sprites::m_rgLibrary[Sprites::MINOR_EXPLO]);
+	WriteData((byte)40);
+	WriteData((byte)255);
+	MsgEnd();
+
+	pev->solid = SOLID_NOT;
+	pev->movetype = MOVETYPE_NONE;
+	pev->velocity = Vector::Zero();
+	pev->gravity = 0;
+	pev->effects = EF_NODRAW;
+
+	g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, Sounds::CLUSTER_BOMB_DROP, VOL_NORM, 0, SND_STOP, UTIL_Random(92, 112));
+
+	m_Scheduler.Enroll(Task_GasPropagate());
+}
+
+CFuelAirExplosive *CFuelAirExplosive::Create(CBasePlayer *pPlayer, Vector const &vecOrigin) noexcept
+{
+	auto const [pEdict, pPrefab] = UTIL_CreateNamedPrefab<CFuelAirExplosive>();
+
+	pEdict->v.origin = vecOrigin;
+	g_engfuncs.pfnVecToAngles(Vector::Down(), pEdict->v.angles);
+
+	pPrefab->m_pPlayer = pPlayer;
 	pPrefab->Spawn();
 	pPrefab->pev->nextthink = 0.1f;
 

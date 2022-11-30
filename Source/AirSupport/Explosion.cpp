@@ -154,7 +154,7 @@ void ScreenEffects(const Vector &vecOrigin, float const flRadius, float const fl
 		);
 
 		float const flPunch = flPunchMax * flModifer;
-		pPlayer->pev->punchangle += Vector(
+		pPlayer->pev->punchangle += Angles(
 			flPunch * (UTIL_Random() ? 1.0 : -1.0),
 			flPunch * (UTIL_Random() ? 1.0 : -1.0),
 			flPunch * (UTIL_Random() ? 1.0 : -1.0)
@@ -215,7 +215,7 @@ Task VisualEffects(const Vector vecOrigin, float const flRadius) noexcept	// The
 		auto pEdict = g_engfuncs.pfnCreateNamedEntity(MAKE_STRING("spark_shower"));
 		g_engfuncs.pfnSetOrigin(pEdict, vecOrigin);
 		g_engfuncs.pfnVecToAngles(tr.vecPlaneNormal, pEdict->v.angles);
-		pEdict->v.angles.x += 270.f;	// don't know why, but this is the deal.
+		pEdict->v.angles.pitch += 270.f;	// don't know why, but this is the deal.
 
 		pEdict->v.absmin = vecOrigin - Vector(1, 1, 1);
 		pEdict->v.absmax = vecOrigin + Vector(1, 1, 1);
@@ -281,8 +281,6 @@ Task VisualEffects(const Vector vecOrigin, float const flRadius) noexcept	// The
 		get_spherical_coord(vecOrigin, qRotation, 128.f, UTIL_Random(85.f, 95.f), 315),
 	};
 
-	auto const pFieldSmoke = Prefab_t::Create<CFieldSmoke>();
-
 	for (auto &&vecPeri : rgvecPericoords)
 	{
 		//MsgBroadcast(SVC_TEMPENTITY);
@@ -294,25 +292,16 @@ Task VisualEffects(const Vector vecOrigin, float const flRadius) noexcept	// The
 		//MsgEnd();
 
 		auto const pSmoke = Prefab_t::Create<CSmoke>(vecPeri);
-		pSmoke->LitByFlame();
-
-		pFieldSmoke->EnrollSmoke(pSmoke);
+		pSmoke->LitByFlame(false);
 	}
 
 	co_await gpGlobals->frametime;
-
-	//auto pSmoke = Prefab_t::Create<CFieldSmoke>(vecOrigin);
-	//pSmoke->m_flRadius = flRadius * 0.2f;
 
 	for (int i = 0; i < 8; ++i)
 	{
 		auto const pFlame = Prefab_t::Create<CFlame>(vecOrigin);
 		pFlame->pev->velocity = get_spherical_coord(flRadius * 0.75, UTIL_Random(15.0, 25.0), UTIL_Random(0.0, 359.9));
-
-		pFieldSmoke->EnrollFlame(pFlame);
 	}
-
-	pFieldSmoke->Activate();
 }
 
 TraceResult Impact(CBasePlayer *pAttacker, CBaseEntity *pProjectile, float flDamage) noexcept

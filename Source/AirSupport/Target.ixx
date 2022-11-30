@@ -7,11 +7,19 @@ export import Beam;
 export import Menu;
 export import Prefab;
 
+export enum ETargetTasks : uint64_t
+{
+	TASK_QUICK_ANALYZE = (1 << 8),
+	TASK_DEEP_ANALYZE = (1 << 9),
+	TASK_TIME_OUT = (1 << 10),
+	TASK_ACTION = (1 << 11),
+};
+
 export struct CDynamicTarget : public Prefab_t
 {
 	static inline constexpr char CLASSNAME[] = "info_dynamic_target";
-	static inline constexpr size_t BEACON_COUNT = 8;
-	static inline constexpr double CARPET_BOMBARDMENT_INTERVAL = 350.0;
+	static inline constexpr size_t BEACON_COUNT = 12;
+	static inline constexpr double CARPET_BOMBARDMENT_INTERVAL = 250.0;
 
 	~CDynamicTarget() noexcept override;
 
@@ -20,6 +28,7 @@ export struct CDynamicTarget : public Prefab_t
 	Task Task_QuickEval_AirStrike() noexcept;
 	Task Task_QuickEval_ClusterBomb() noexcept;
 	Task Task_QuickEval_CarpetBombardment() noexcept;
+	Task Task_QuickEval_Gunship() noexcept;
 	Task Task_Remove() noexcept;
 
 	void UpdateEvalMethod() noexcept;
@@ -36,16 +45,12 @@ export struct CDynamicTarget : public Prefab_t
 	float m_flLastValidTracking{};
 	std::chrono::high_resolution_clock::time_point m_LastAnimUpdate{};
 	std::array<EHANDLE<CBeam>, BEACON_COUNT> m_rgpBeacons{};
-	bool m_bFreezed{};
-
-	static inline constexpr auto QUICK_ANALYZE_KEY = 298457034ul;
-	static inline constexpr auto DETAIL_ANALYZE_KEY = 3658468ul;
+	bool m_bFreezed{};	// Use enable/disable beacons instead.
 };
 
 export struct CFixedTarget : public Prefab_t
 {
 	static inline constexpr char CLASSNAME[] = "info_fixed_target";
-	static inline constexpr auto TIMEOUT_TASK_KEY = 64396365ul;
 	static inline constexpr auto GUNSHIP_NEXT_TARGET_RADIUS = 500.0;
 
 	Task Task_BeaconFx() noexcept;

@@ -1,3 +1,5 @@
+import <algorithm>;
+
 import Resources;
 
 void Precache(void) noexcept
@@ -15,7 +17,8 @@ void Precache(void) noexcept
 
 	Models::m_rgLibrary[Models::GIBS_CONCRETE] = g_engfuncs.pfnPrecacheModel(Models::GIBS_CONCRETE);
 	Models::m_rgLibrary[Models::GIBS_METAL] = g_engfuncs.pfnPrecacheModel(Models::GIBS_METAL);
-	Models::m_rgLibrary[Models::GIBS_WOOD] = g_engfuncs.pfnPrecacheModel(Models::GIBS_WOOD);
+	//Models::m_rgLibrary[Models::GIBS_RUBBLE] = g_engfuncs.pfnPrecacheModel(Models::GIBS_RUBBLE);
+	//Models::m_rgLibrary[Models::GIBS_WOOD] = g_engfuncs.pfnPrecacheModel(Models::GIBS_WOOD);
 
 	Models::m_rgLibrary[Models::TARGET] = g_engfuncs.pfnPrecacheModel(Models::TARGET);
 
@@ -37,15 +40,17 @@ void Precache(void) noexcept
 	g_engfuncs.pfnPrecacheSound(Sounds::PLAYER_BREATHE);
 	g_engfuncs.pfnPrecacheSound(Sounds::PLAYER_EAR_RINGING);
 	g_engfuncs.pfnPrecacheSound(Sounds::PLAYER_HEARTBEAT);
+	g_engfuncs.pfnPrecacheSound(Sounds::PLAYER_HB_AND_ER);
 
-	for (auto &&psz : Sounds::EXPLOSION)
-		g_engfuncs.pfnPrecacheSound(psz);
+	std::ranges::for_each(Sounds::PLAYER_COUGH, g_engfuncs.pfnPrecacheSound);
 
-	for (auto &&psz : Sounds::JET)
-		g_engfuncs.pfnPrecacheSound(psz);
+	std::ranges::for_each(Sounds::EXPLOSION, g_engfuncs.pfnPrecacheSound);
+	std::ranges::for_each(Sounds::EXPLOSION_SHORT, g_engfuncs.pfnPrecacheSound);
+	std::ranges::for_each(Sounds::JET, g_engfuncs.pfnPrecacheSound);
+	std::ranges::for_each(Sounds::WHIZZ, g_engfuncs.pfnPrecacheSound);
+	std::ranges::for_each(Sounds::BOMBER, g_engfuncs.pfnPrecacheSound);
 
-	for (auto &&psz : Sounds::WHIZZ)
-		g_engfuncs.pfnPrecacheSound(psz);
+	g_engfuncs.pfnPrecacheSound(Sounds::CLUSTER_BOMB_DROP);
 
 	// namespace Gunship
 	{
@@ -68,6 +73,8 @@ void Precache(void) noexcept
 
 		for (auto &&psz : Sounds::Gunship::AC130_RELOAD)
 			g_engfuncs.pfnPrecacheSound(psz);
+
+		g_engfuncs.pfnPrecacheSound(Sounds::Gunship::RESELECT_TARGET);
 	}
 
 	// Sprite
@@ -79,14 +86,15 @@ void Precache(void) noexcept
 	Sprites::m_rgLibrary[Sprites::FIRE2] = g_engfuncs.pfnPrecacheModel(Sprites::FIRE2);
 	Sprites::m_rgLibrary[Sprites::SMOKE_1] = g_engfuncs.pfnPrecacheModel(Sprites::SMOKE_1);
 	Sprites::m_rgLibrary[Sprites::SMOKE_2] = g_engfuncs.pfnPrecacheModel(Sprites::SMOKE_2);
-	Sprites::m_rgLibrary[Sprites::PERSISTENT_SMOKE] = g_engfuncs.pfnPrecacheModel(Sprites::PERSISTENT_SMOKE);
 	Sprites::m_rgLibrary[Sprites::MINOR_EXPLO] = g_engfuncs.pfnPrecacheModel(Sprites::MINOR_EXPLO);
 	Sprites::m_rgLibrary[Sprites::AIRBURST] = g_engfuncs.pfnPrecacheModel(Sprites::AIRBURST);
 	Sprites::m_rgLibrary[Sprites::CARPET_FRAGMENT_EXPLO] = g_engfuncs.pfnPrecacheModel(Sprites::CARPET_FRAGMENT_EXPLO);
 	Sprites::m_rgLibrary[Sprites::SHOCKWAVE] = g_engfuncs.pfnPrecacheModel(Sprites::SHOCKWAVE);
+	Sprites::m_rgLibrary[Sprites::SPARK] = g_engfuncs.pfnPrecacheModel(Sprites::SPARK);
+	Sprites::m_rgLibrary[Sprites::LIFTED_DUST] = g_engfuncs.pfnPrecacheModel(Sprites::LIFTED_DUST);
+	Sprites::m_rgLibrary[Sprites::GROUNDED_DUST] = g_engfuncs.pfnPrecacheModel(Sprites::GROUNDED_DUST);
 
 	Sprites::m_rgLibrary[Sprites::BEAM] = g_engfuncs.pfnPrecacheModel(Sprites::BEAM);
-	//Sprite::m_rgLibrary[Sprite::AIM] = g_engfuncs.pfnPrecacheModel(Sprite::AIM);
 
 	Sprites::m_rgLibrary[Sprites::TRAIL] = g_engfuncs.pfnPrecacheModel(Sprites::TRAIL);
 
@@ -96,7 +104,7 @@ void Precache(void) noexcept
 	for (auto &&psz : Sprites::BLACK_SMOKE)
 		Sprites::m_rgLibrary[psz] = g_engfuncs.pfnPrecacheModel(psz);
 
-	for (auto &&psz : Sprites::WALL_PUFF)
+	for (auto &&psz : Sprites::GAS_EXPLO)
 		Sprites::m_rgLibrary[psz] = g_engfuncs.pfnPrecacheModel(psz);
 
 	// Decal

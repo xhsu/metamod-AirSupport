@@ -35,6 +35,7 @@ export namespace Models
 
 	inline constexpr char GIBS_CONCRETE[] = "models/gibs_wallbrown.mdl";
 	inline constexpr char GIBS_METAL[] = "models/gibs_stairsmetal.mdl";
+	inline constexpr char GIBS_RUBBLE[] = "models/gibs_rubble.mdl";
 	inline constexpr char GIBS_WOOD[] = "models/gibs_woodplank.mdl";
 
 	inline constexpr char TARGET[] = "models/AirSupport/Test_001.mdl";
@@ -87,13 +88,25 @@ export namespace Sounds
 	inline constexpr char REJECTING[] = "airsupport/radio/radio_negative.wav";
 	inline constexpr char NOISE[] = "weapons/RADIO/radio_use.wav";
 
-	inline constexpr char TRAVEL[] = "weapons/missile_travel_06.wav";
+	inline constexpr char TRAVEL[] = "weapons/cruise_missile_travel_02.wav";
 
 	inline constexpr char AMBIENT_FIRE[] = "ambience/fire_loop_1.wav";
 
 	inline constexpr char PLAYER_BREATHE[] = "misc/breathe.wav";
 	inline constexpr char PLAYER_EAR_RINGING[] = "misc/earring.wav";
 	inline constexpr char PLAYER_HEARTBEAT[] = "misc/heartbeat.wav";
+	inline constexpr char PLAYER_HB_AND_ER[] = "misc/breathe_heartbeat.wav";
+
+	inline constexpr array PLAYER_COUGH =
+	{
+		"misc/cough1.wav",
+		"misc/cough2.wav",
+		"misc/cough3.wav",
+		"misc/cough4.wav",
+		"misc/cough5.wav",
+		"misc/cough6.wav",
+		"misc/cough7.wav",
+	};
 
 	inline constexpr array EXPLOSION =
 	{
@@ -103,6 +116,16 @@ export namespace Sounds
 		"airsupport/explode/explode_near_4.wav",
 		"airsupport/explode/explode_near_5.wav",
 		"airsupport/explode/explode_near_6.wav",
+		"airsupport/explode/explode_near_7.wav",
+		"airsupport/explode/explode_near_8.wav",
+	};
+
+	inline constexpr array EXPLOSION_SHORT =
+	{
+		"airsupport/explode/m67_detonate_01.wav",
+		"airsupport/explode/m67_detonate_02.wav",
+		"airsupport/explode/m67_detonate_03.wav",
+		"airsupport/explode/m67_detonate_04.wav",
 	};
 
 	inline constexpr array JET =
@@ -129,6 +152,17 @@ export namespace Sounds
 		"misc/whizz4.wav",
 		"misc/whizz5.wav",
 	};
+
+	inline constexpr array BOMBER =
+	{
+		"airsupport/bomber/b1b_01.wav",
+		"airsupport/bomber/b1b_02.wav",
+		"airsupport/bomber/b1b_03.wav",
+		"airsupport/bomber/b1b_04.wav",
+		"airsupport/bomber/b1b_05.wav",
+	};
+
+	inline constexpr char CLUSTER_BOMB_DROP[] = "weapons/missile_travel_01.wav";
 
 	namespace Gunship
 	{
@@ -172,6 +206,7 @@ export namespace Sounds
 			"airsupport/airgunship/ac130_reloading_02.wav",
 			"airsupport/airgunship/ac130_reloading_03.wav",
 		};
+		inline constexpr char RESELECT_TARGET[] = "airsupport/radio/radio_attacking.wav";
 	}
 
 	namespace Length::Gunship
@@ -190,14 +225,15 @@ export namespace Sprites
 	inline constexpr char FIRE2[] = "sprites/hotglow.spr";
 	inline constexpr char SMOKE_1[] = "sprites/gas_smoke1.spr";
 	inline constexpr char SMOKE_2[] = "sprites/wall_puff1.spr";
-	inline constexpr char PERSISTENT_SMOKE[] = "sprites/ballsmoke.spr";
 	inline constexpr char MINOR_EXPLO[] = "sprites/zerog-frag1.spr";
-	inline constexpr char AIRBURST[] = "sprites/fexplo1.spr";
+	inline constexpr char AIRBURST[] = "sprites/exploeffect1.spr";
 	inline constexpr char CARPET_FRAGMENT_EXPLO[] = "sprites/m79grenadeex.spr";
 	inline constexpr char SHOCKWAVE[] = "sprites/shockwave.spr";
+	inline constexpr char SPARK[] = "sprites/metal_sparks1.spr";
+	inline constexpr char LIFTED_DUST[] = "sprites/smoke_loop.spr";
+	inline constexpr char GROUNDED_DUST[] = "sprites/bettyspr2.spr";
 
 	inline constexpr char BEAM[] = "sprites/laserbeam.spr";
-	inline constexpr char AIM[] = "sprites/targetsign.spr";
 
 	inline constexpr char TRAIL[] = "sprites/smoke.spr";
 
@@ -216,12 +252,12 @@ export namespace Sprites
 		"sprites/black_smoke4.spr",
 	};
 
-	inline constexpr array WALL_PUFF =
+	inline constexpr array GAS_EXPLO =
 	{
-		"sprites/wall_puff1.spr",
-		"sprites/wall_puff2.spr",
-		"sprites/wall_puff3.spr",
-		"sprites/wall_puff4.spr",
+		"sprites/exploeffect3.spr",
+		"sprites/exploeffect4.spr",
+		"sprites/exploeffect5.spr",
+		"sprites/exploeffect7.spr",
 	};
 
 	inline unordered_map<string, short> m_rgLibrary{};
@@ -229,7 +265,8 @@ export namespace Sprites
 	namespace Frames
 	{
 		inline constexpr array FLAME = { 17, 16, 16 };
-		inline constexpr auto WALL_PUFF = 30;
+		inline constexpr auto BLACK_SMOKE = 30;
+		inline constexpr array GAS_EXPLO = { 15, 20, 15, 20 };
 	};
 
 	static_assert(FLAME.size() == Frames::FLAME.size());

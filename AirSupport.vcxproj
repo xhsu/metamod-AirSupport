@@ -182,8 +182,8 @@
     <ClCompile Include="Source\AirSupport\Jet.ixx" />
     <ClCompile Include="Source\AirSupport\Localization.ixx" />
     <ClCompile Include="Source\CSDK\Math.ixx" />
-    <ClCompile Include="Source\AirSupport\Missile.cpp" />
-    <ClCompile Include="Source\AirSupport\Missile.ixx" />
+    <ClCompile Include="Source\AirSupport\Projectile.cpp" />
+    <ClCompile Include="Source\AirSupport\Projectile.ixx" />
     <ClCompile Include="Source\CSDK\Prefab.ixx" />
     <ClCompile Include="Source\CSDK\Query.ixx" />
     <ClCompile Include="Source\AirSupport\Resources.ixx" />

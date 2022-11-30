@@ -64,7 +64,7 @@ export struct Prefab_t : public CBaseEntity
 	// Setup the object->object collision box (pev->mins / pev->maxs is the object->world collision box)
 	void SetObjectCollisionBox() noexcept override
 	{
-		if (pev->solid == SOLID_BSP && (pev->angles.x || pev->angles.y || pev->angles.z))
+		if (pev->solid == SOLID_BSP && (pev->angles.pitch || pev->angles.yaw || pev->angles.roll))
 		{
 			// expand for rotation
 			double max, v;
@@ -254,7 +254,7 @@ export struct Prefab_t : public CBaseEntity
 
 	// Have to entity have to be created like this.
 	template <typename T> requires (!requires{ T::Create(); })
-	static T *Create(const Vector& vecOrigin = Vector::Zero(), const Vector& vecAngles = Vector::Zero()) noexcept
+	static T *Create(const Vector& vecOrigin = Vector::Zero(), const Angles& vecAngles = Angles()) noexcept
 	{
 		auto const [pEdict, pPrefab] = UTIL_CreateNamedPrefab<T>();
 
@@ -276,87 +276,7 @@ export struct Prefab_t : public CBaseEntity
 		return T::Create(std::forward<Tys>(args)...);
 	}
 
-	struct PrefabScheduler_t final
-	{
-		list<Task> m_List{};
-
-		inline void Think(void) noexcept
-		{
-			if (m_List.empty())
-				return;
-
-			while (!m_List.empty())
-			{
-				m_List.sort();
-
-				while (!m_List.empty() && m_List.front().Done())
-				{
-					m_List.pop_front();
-				}
-
-				if (m_List.empty())
-					break;
-
-				[[likely]]
-				if (m_List.front().ShouldResume())
-					m_List.front().Resume();
-				else
-					break;	// if the first one in queue is not going to resume, then nor should anyone else.
-			}
-		}
-
-		inline void Enroll(Task &&obj, unsigned long iCoroutineMarker = 0ul) noexcept
-		{
-			[[likely]]
-			if (!obj.Done())
-			{
-				obj.m_iCoroutineMarker = iCoroutineMarker;
-
-				m_List.emplace_back(std::forward<Task>(obj));
-				m_List.sort();
-				m_List.remove_if(std::bind_front(&Task::Done));
-			}
-		}
-
-		inline unsigned int Delist(unsigned long iCoroutineMarker) noexcept
-		{
-			if (!m_List.empty())
-				return m_List.remove_if([=](Task const &obj) noexcept { return obj.m_iCoroutineMarker == iCoroutineMarker; });
-
-			return 0;
-		}
-
-		inline unsigned int Count(unsigned long iCoroutineMarker) noexcept
-		{
-			unsigned int ret{};
-
-			for (auto const &obj : m_List)
-			{
-				if (obj.m_iCoroutineMarker == iCoroutineMarker)
-					++ret;
-			}
-
-			return ret;
-		}
-
-		inline bool Exist(unsigned long iCoroutineMarker) noexcept
-		{
-			for (auto const &obj : m_List)
-			{
-				[[unlikely]]
-				if (obj.m_iCoroutineMarker == iCoroutineMarker)
-					return true;
-			}
-
-			return false;
-		}
-
-		inline void Clear(void) noexcept
-		{
-			m_List.clear();
-		}
-	}
-	m_Scheduler{};
+	TaskScheduler_t m_Scheduler{};
 
 	// Move these to original CBaseEntity?
 

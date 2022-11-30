@@ -130,7 +130,7 @@ public:
 //	int ShouldToggle(USE_TYPE useType, qboolean currentState);
 //	void FireBullets(ULONG cShots, Vector vecSrc, Vector vecDirShooting, Vector vecSpread, float flDistance, int iBulletType, int iTracerFreq = 4, int iDamage = 0, entvars_t *pevAttacker = NULL);
 //	Vector FireBullets3(Vector vecSrc, Vector vecDirShooting, float flSpread, float flDistance, int iPenetration, int iBulletType, int iDamage, float flRangeModifier, entvars_t *pevAttacker, qboolean bPistol, int shared_rand = 0);
-//	int Intersects(CBaseEntity *pOther);
+	bool Intersects(CBaseEntity *pOther) noexcept { return (pOther->pev->absmin.x > pev->absmax.x || pOther->pev->absmin.y > pev->absmax.y || pOther->pev->absmin.z > pev->absmax.z || pOther->pev->absmax.x < pev->absmin.x || pOther->pev->absmax.y < pev->absmin.y || pOther->pev->absmax.z < pev->absmin.z); }
 //	void MakeDormant(void);
 //	int IsDormant(void);
 //	qboolean IsLockedByMaster(void) { return FALSE; }
@@ -335,8 +335,15 @@ struct EHANDLE final
 
 		return pEntity;
 	}
-	inline T *operator->() const noexcept { auto const pent = Get(); return pent ? (T *)pent->pvPrivateData : nullptr; }
-	inline T &operator*() const noexcept { return *(T *)Get()->pvPrivateData; }
+	inline T *operator-> () const noexcept { auto const pent = Get(); return pent ? (T *)pent->pvPrivateData : nullptr; }
+	inline T &operator* () const noexcept { return *(T *)Get()->pvPrivateData; }
+
+	// ent comperasion
+	//inline bool operator== (short iIndex) noexcept { auto const pent = Get(); return pent && ent_cast<short>(pent) == iIndex; }
+	//inline bool operator== (edict_t *pEdict) noexcept { auto const pent = Get(); return pent && pent == pEdict; }
+	//inline bool operator== (entvars_t *pev) noexcept { auto const pent = Get(); return pent && pent == pev->pContainingEntity; }
+	//inline bool operator== (T *pEntity) noexcept { auto const pent = Get(); return pent && pEntity == pent->pvPrivateData; }
+	inline bool operator== (EHANDLE<T> const &rhs) const noexcept { return m_pent == rhs.m_pent && m_serialnumber == rhs.m_serialnumber; }
 
 private:
 	edict_t *m_pent = nullptr;

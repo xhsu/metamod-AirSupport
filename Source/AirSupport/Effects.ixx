@@ -1,7 +1,6 @@
 export module Effects;
 
 export import <array>;
-export import <chrono>;
 export import <list>;
 export import <unordered_map>;
 
@@ -10,7 +9,6 @@ export import Prefab;
 using std::array;
 using std::list;
 using std::unordered_map;
-using std::chrono::high_resolution_clock;
 
 export namespace Color
 {
@@ -23,6 +21,23 @@ export namespace Color
 	};
 };
 
+export enum EEfxTasks : uint64_t
+{
+	TASK_ANIMATION = (1 << 0),
+	TASK_FADE_OUT = (1 << 1),
+	TASK_FADE_IN = (1 << 2),
+	TASK_COLOR_DRIFT = (1 << 3),
+	TASK_REFLECTING_FLAME = (1 << 4),
+	TASK_IGNITE = (1 << 5),
+	TASK_HB_AND_ER = (1 << 6),
+};
+
+export extern "C++" Task Task_SpriteLoop(entvars_t *const pev, short const FRAME_COUNT, double const FPS) noexcept;
+export extern "C++" Task Task_SpritePlayOnce(entvars_t *const pev, short const FRAME_COUNT, double const FPS) noexcept;
+export extern "C++" Task Task_FadeOut(entvars_t *const pev, float const DECAY, float const ROLL) noexcept;
+export extern "C++" Task Task_Remove(entvars_t *const pev, float const TIME) noexcept;
+export extern "C++" Task Task_FadeIn(entvars_t *const pev, float const TRANSPARENT_INC, float const FINAL_VAL, float const ROLL) noexcept;
+
 export struct CFlame : public Prefab_t
 {
 	// Info
@@ -31,11 +46,9 @@ export struct CFlame : public Prefab_t
 
 	// Methods
 
-	Task Task_Animation() noexcept;
 	Task Task_DetectGround() noexcept;	// Deprecated.
 	Task Task_EmitLight() noexcept;
 	Task Task_EmitSmoke() noexcept;
-	Task Task_Remove() noexcept;
 
 	void Spawn() noexcept override;
 
@@ -44,11 +57,8 @@ export struct CFlame : public Prefab_t
 
 	// Members
 
-	short m_iMaxFrame{};
-	short m_iFlameSprIndex{};
 	EHANDLE<CBasePlayer> m_pOwner{ nullptr };
 	unordered_map<int, float> m_rgflDamageInterval{};
-	high_resolution_clock::time_point m_LastAnimUpdate{};
 };
 
 export struct CSmoke : public Prefab_t
@@ -56,15 +66,13 @@ export struct CSmoke : public Prefab_t
 	// Info
 
 	static inline constexpr char CLASSNAME[] = "env_explo_smoke";
-	static inline constexpr auto DRIFT_COLOR_KEY = 3896738ul;
 
 	// Methods
 
 	Task Task_DriftColor(Vector const vecTargetColor) noexcept;	// keep it internal, thanks.
-	Task Task_FadeOut() noexcept;
+	Task Task_ReflectingFlame() noexcept;
 
-	void LitByFlame() noexcept;
-	void StartColorDrift(Vector const &vecTargetColor) noexcept;
+	void LitByFlame(bool const bShouldStartingWhite) noexcept;
 	void DriftToWhite(double const flPercentage) noexcept;	// [0-1]
 
 	void Spawn() noexcept override;
@@ -75,25 +83,13 @@ export struct CSmoke : public Prefab_t
 	Vector m_vecFlameClrToWhite{};
 };
 
-export struct CFieldSmoke : public Prefab_t
+export struct CFloatingDust : public Prefab_t
 {
-	static inline constexpr char CLASSNAME[] = "env_explo_field_smoke";
-
-	Task Task_AdjustSmokeColor() noexcept;
-	Task Task_Remove() noexcept;
-
-	__forceinline void EnrollFlame(CFlame *pFlame) noexcept { m_rgpFlames.emplace_back(pFlame); }
-	__forceinline void EnrollSmoke(CSmoke *pSmoke) noexcept { m_rgpSmokes.emplace_back(pSmoke); }
+	static inline constexpr char CLASSNAME[] = "env_floating_dust";
+	static inline constexpr double FPS = 18.0;
+	static inline constexpr short FRAME_COUNT = 40;
 
 	void Spawn() noexcept override;
-	void Activate() noexcept override;	// All the initial res are enlisted.
-
-	// Members
-
-	list<EHANDLE<CFlame>> m_rgpFlames{};
-	list<EHANDLE<CSmoke>> m_rgpSmokes{};
-	size_t m_iTotalFlames{}, m_iLastFlames{};
-	size_t m_iTotalSmokes{}, m_iLastSmokes{};
 };
 
 export struct CDebris : public Prefab_t
@@ -110,11 +106,10 @@ export struct CDebris : public Prefab_t
 	void Touch(CBaseEntity *pOther) noexcept override;
 };
 
-export struct CSpark : public Prefab_t
+export struct CSparkMdl : public Prefab_t
 {
 	static inline constexpr char CLASSNAME[] = "3d_spark_of_gunshot";
-
-	Task Task_FadeOut() noexcept;
+	static inline constexpr auto HOLD_TIME = 0.07f;
 
 	void Spawn() noexcept override;
 };
@@ -124,13 +119,57 @@ export struct CGunshotSmoke : public Prefab_t
 	static inline constexpr char CLASSNAME[] = "env_gunshot_smoke";
 	static inline constexpr double FPS = 30.0;
 
-	Task Task_Animation() noexcept;
-	Task Task_FadeOut() noexcept;
-
 	void Spawn() noexcept override;
 
 	static CGunshotSmoke *Create(const TraceResult &tr) noexcept;
 
 	TraceResult m_tr{};
-	high_resolution_clock::time_point m_LastAnimUpdate{};
+};
+
+export struct CGroundedDust : public Prefab_t
+{
+	static inline constexpr char CLASSNAME[] = "env_smoke_grounded_dust";
+	static inline constexpr double FPS = 12.0;
+	static inline constexpr short FRAME_COUNT = 25;
+
+	void Spawn() noexcept override;
+};
+
+export struct CSparkSpr : public Prefab_t
+{
+	static inline constexpr char CLASSNAME[] = "env_spark_spr";
+	static inline constexpr auto FRAME_COUNT = 4;
+	static inline constexpr auto HOLD_TIME = 0.07f;
+
+	void Spawn() noexcept override;
+};
+
+export extern "C++" Task Task_GlobalCoughThink() noexcept;
+
+export struct CFuelAirCloud : public Prefab_t
+{
+	static inline constexpr char CLASSNAME[] = "fuel_air_cloud";
+	static inline constexpr double FPS = 18.0;
+	static inline constexpr short FRAME_COUNT = 40;
+
+	static inline list<EHANDLE<CFuelAirCloud>> s_rgpAeroClouds{};
+
+	~CFuelAirCloud() noexcept { s_rgpAeroClouds.remove(this); }
+
+	Task Task_FadeIn(float const TRANSPARENT_INC, float const FINAL_VAL, float const ROLL) noexcept;
+	Task Task_Ignite(void) noexcept;
+
+	__forceinline void Ignite(void) noexcept { if (!m_Scheduler.Exist(TASK_IGNITE)) m_Scheduler.Enroll(Task_Ignite(), TASK_IGNITE); }
+
+	void Spawn() noexcept override;
+	void Touch(CBaseEntity *pOther) noexcept override;
+
+	static CFuelAirCloud *Create(CBasePlayer *pPlayer, Vector const &vecOrigin) noexcept;
+	static Task Task_AirPressure() noexcept;
+	static Task Task_Suffocation(int const iDmgCounts) noexcept;
+
+	CBasePlayer *m_pPlayer{};
+	bool m_bFadeInDone{ false };
+	bool m_bIgnited{ false };
+	std::uint8_t m_iIgnitedCounts{};
 };
