@@ -1383,3 +1383,82 @@ public:
 
 static_assert(offsetof(CBasePlayer, m_allowAutoFollowTime) == 519 * 4);
 static_assert(offsetof(CBasePlayerWeapon, m_flDecreaseShotsFired) == 76 * 4);
+
+export class CGrenade : public CBaseMonster
+{
+public:
+	virtual void Spawn(void) override = 0;
+	virtual int Save(void *save) override = 0;	// CSave &
+	virtual int Restore(void *restore) override = 0;	// CRestore &
+	virtual void BounceSound(void) = 0;
+	virtual int ObjectCaps(void) override = 0;
+	virtual int BloodColor(void) override = 0;
+	virtual void Use(CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value) override = 0;
+	virtual void Killed(entvars_t *pevAttacker, int iGib) override = 0;
+
+//public:
+//	typedef enum { SATCHEL_DETONATE = 0, SATCHEL_RELEASE } SATCHELCODE;
+//
+//public:
+//	static CGrenade *ShootTimed(entvars_t *pevOwner, Vector vecStart, Vector vecVelocity, float time);
+//	static CGrenade *ShootTimed2(entvars_t *pevOwner, Vector vecStart, Vector vecVelocity, float time, int iTeam, unsigned short usEvent);
+//	static CGrenade *ShootContact(entvars_t *pevOwner, Vector vecStart, Vector vecVelocity);
+//	static CGrenade *ShootSmokeGrenade(entvars_t *pevOwner, Vector vecStart, Vector vecVelocity, float time, unsigned short usEvent);
+//	static CGrenade *ShootSatchelCharge(entvars_t *pevOwner, Vector vecStart, Vector vecVelocity);
+//	static void UseSatchelCharges(entvars_t *pevOwner, SATCHELCODE code);
+//
+//public:
+//	void Explode(Vector vecSrc, Vector vecAim);
+//	void Explode(TraceResult *pTrace, int bitsDamageType);
+//	void Explode2(TraceResult *pTrace, int bitsDamageType);
+//	void Explode3(TraceResult *pTrace, int bitsDamageType);
+//	void EXPORT Smoke(void);
+//	void EXPORT SG_Smoke(void);
+//	void EXPORT Smoke2(void);
+//	void EXPORT Smoke3_A(void);
+//	void EXPORT Smoke3_B(void);
+//	void EXPORT Smoke3_C(void);
+//	void EXPORT BounceTouch(CBaseEntity *pOther);
+//	void EXPORT SlideTouch(CBaseEntity *pOther);
+//	void EXPORT ExplodeTouch(CBaseEntity *pOther);
+//	void EXPORT DangerSoundThink(void);
+//	void EXPORT PreDetonate(void);
+//	void EXPORT Detonate(void);
+//	void EXPORT SG_Detonate(void);
+//	void EXPORT Detonate2(void);
+//	void EXPORT Detonate3(void);
+//	void EXPORT DetonateUse(CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value);
+//	void EXPORT TumbleThink(void);
+//	void EXPORT SG_TumbleThink(void);
+//	void EXPORT C4Think(void);
+//	void EXPORT C4Touch(CBaseEntity *pOther) {}
+//
+//public:
+//	static TYPEDESCRIPTION m_SaveData[];
+
+public:
+	bool m_bStartDefuse;
+	bool m_bIsC4;
+	EHANDLE<CBaseEntity> m_pBombDefuser;
+	float m_flDefuseCountDown;
+	float m_flC4Blow;
+	float m_flNextFreqInterval;
+	float m_flNextBeep;
+	float m_flNextFreq;
+	char *m_sBeepName;
+	float m_fAttenu;
+	float m_flNextBlink;
+	float m_fNextDefuse;
+	bool m_bJustBlew;
+	int m_iTeam;
+	int m_iCurWave;
+	edict_t *m_pentCurBombTarget;
+	int m_SGSmoke;
+	int m_angle;
+	unsigned short m_usEvent;
+	bool m_bLightSmoke;
+	bool m_bDetonated;
+	Vector m_vSmokeDetonate;
+	int m_iBounceCount;
+	qboolean m_fRegisteredSound;
+};

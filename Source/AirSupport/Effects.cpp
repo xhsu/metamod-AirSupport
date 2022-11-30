@@ -13,6 +13,7 @@ import Resources;
 import UtlRandom;
 
 using std::array;
+using std::string;
 
 //
 // Componental function
@@ -798,6 +799,12 @@ void CFuelAirCloud::Touch(CBaseEntity *pOther) noexcept
 		{
 			this->Ignite();
 		}
+		else if (auto const pGrenade = EHANDLE{ pOther }.As<CGrenade>();
+			pGrenade != nullptr && !pGrenade->m_bIsC4)
+		{
+			// Save for the explosion think.
+			pGrenade->m_pBombDefuser = this;
+		}
 
 		return;
 	}
@@ -918,7 +925,7 @@ Task CFuelAirCloud::Task_Suffocation(int const iDmgCounts) noexcept
 			gmsgScreenShake::Send(pPlayer->edict(),
 				ScaledFloat<1 << 12>(15.0),	// amp
 				ScaledFloat<1 << 12>(1.0),	// dur
-				ScaledFloat<1 << 8>(12)					// freq
+				ScaledFloat<1 << 8>(12)		// freq
 			);
 		}
 	}
