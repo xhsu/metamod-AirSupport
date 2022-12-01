@@ -11,9 +11,6 @@ import progdefs;
 
 using namespace std;
 
-using std::size_t;
-using std::uint64_t;
-
 export struct Task final
 {
 	struct promise_type final // FIXED NAME

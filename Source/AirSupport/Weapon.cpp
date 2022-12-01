@@ -56,7 +56,6 @@ enum EVShieldKnife
 
 inline constexpr float KNIFE_MAX_SPEED = 250.0f;
 inline constexpr float KNIFE_MAX_SPEED_SHIELD = 180.0f;
-extern Task Task_PlayerSuffocation(CBasePlayer *pPlayer, entvars_t *pevWorld) noexcept;
 
 qboolean __fastcall HamF_Item_AddToPlayer(CBasePlayerItem *pThis, int, CBasePlayer *pPlayer) noexcept
 {
@@ -203,9 +202,7 @@ void __fastcall HamF_Item_PostFrame(CBasePlayerItem *pItem, int) noexcept
 		//Prefab_t::Create<CFlame>(tr.vecEndPos)->pev->velocity = Vector(0, 0, 300);
 		//Prefab_t::Create<CFuelAirCloud>(tr.vecEndPos)->Ignite();
 
-		//TaskScheduler::Enroll(CFuelAirCloud::Task_GlobalSuffocation(), TASK_HB_AND_ER);
-		//TaskScheduler::Enroll(CFuelAirCloud::Task_ScreenTwist(pThis->m_pPlayer), TASK_HB_AND_ER);
-		//TaskScheduler::Enroll(Task_PlayerSuffocation(pThis->m_pPlayer, &g_engfuncs.pfnPEntityOfEntIndex(0)->v), TASK_HB_AND_ER);
+		//TaskScheduler::Enroll(CFuelAirCloud::Task_PlayerSuffocation(pThis->m_pPlayer, &g_engfuncs.pfnPEntityOfEntIndex(0)->v), TASK_HB_AND_ER);
 	}
 }
 
