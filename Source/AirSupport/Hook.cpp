@@ -194,6 +194,21 @@ int fw_Spawn(edict_t *pent) noexcept
 	return 0;
 }
 
+void fw_Think(edict_t *pent) noexcept
+{
+	[[unlikely]]
+	if (auto const pGrenade = EHANDLE<CBaseEntity>(pent).As<CGrenade>();
+		pGrenade != nullptr && !pGrenade->m_bIsC4 && pGrenade->pev->dmgtime < gpGlobals->time)
+	{
+		// This should be our cloud, if everything goes with the plan.
+		if (auto const pCloud = pGrenade->m_pBombDefuser.As<CFuelAirCloud>();
+			pCloud != nullptr && !pCloud->m_bIgnited)
+		{
+			pCloud->Ignite();
+		}
+	}
+}
+
 extern META_RES OnClientCommand(CBasePlayer *pPlayer, const std::string &szCommand) noexcept;
 void fw_ClientCommand(edict_t *pEdict) noexcept
 {
@@ -448,7 +463,7 @@ inline constexpr DLL_FUNCTIONS gFunctionTable =
 {
 	.pfnGameInit	= nullptr,
 	.pfnSpawn		= &fw_Spawn,
-	.pfnThink		= nullptr,
+	.pfnThink		= &fw_Think,
 	.pfnUse			= nullptr,
 	.pfnTouch		= nullptr,
 	.pfnBlocked		= nullptr,
