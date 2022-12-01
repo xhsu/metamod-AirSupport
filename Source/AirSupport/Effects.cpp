@@ -682,7 +682,7 @@ pair<bool/*ShouldCough*/, bool/*Toxic*/> UTIL_AnySmokeNear(Vector const &vecSrc)
 		return { true, true };
 	}
 
-	return { false, false };;
+	return { false, false };
 }
 
 Task Task_GlobalCoughThink() noexcept

@@ -26,12 +26,9 @@ extern void Precache(void) noexcept;
 extern qboolean __fastcall HamF_Item_AddToPlayer(CBasePlayerItem *pThis, int, CBasePlayer *pPlayer) noexcept;
 extern qboolean __fastcall HamF_Item_Deploy(CBasePlayerItem *pItem, int) noexcept;
 extern void __fastcall HamF_Item_PostFrame(CBasePlayerItem *pItem, int) noexcept;
-extern void __fastcall HamF_Weapon_PrimaryAttack(CBasePlayerWeapon *pThis, int) noexcept;
-extern void __fastcall HamF_Weapon_SecondaryAttack(CBasePlayerWeapon *pThis, int) noexcept;
-extern qboolean __fastcall HamF_Item_CanHolster(CBasePlayerItem *pThis, int) noexcept;
 extern void __fastcall HamF_Item_Holster(CBasePlayerItem *pThis, int, int skiplocal) noexcept;
-extern qboolean SwitchWeapon(CBasePlayer *pPlayer, CBasePlayerItem *pWeapon) noexcept;
-extern void SelectItem(CBasePlayer *pPlayer, const char *pstr) noexcept;
+extern void __fastcall OrpheuF_FireBullets(CBaseEntity *pThis, int, unsigned long cShots, Vector vecSrc, Vector vecDirShooting, Vector vecSpread, float flDistance, int iBulletType, int iTracerFreq, int iDamage, entvars_t *pevAttacker) noexcept;
+extern Vector __fastcall OrpheuF_FireBullets3(long argument1, long argument2, Vector vecSrc, Vector vecDirShooting, float flSpread, float flDistance, int iPenetration, int iBulletType, int iDamage, float flRangeModifier, entvars_t *pevAttacker, bool bPistol, int shared_rand) noexcept;
 //
 
 // Round.cpp
@@ -78,9 +75,6 @@ void DeployHooks(void) noexcept
 	UTIL_VirtualTableInjection(rgpfnCKnife, VFTIDX_ITEM_ADDTOPLAYER, &HamF_Item_AddToPlayer, (void **)&g_pfnItemAddToPlayer);
 	UTIL_VirtualTableInjection(rgpfnCKnife, VFTIDX_ITEM_DEPLOY, &HamF_Item_Deploy, (void **)&g_pfnItemDeploy);
 	UTIL_VirtualTableInjection(rgpfnCKnife, VFTIDX_ITEM_POSTFRAME, &HamF_Item_PostFrame, (void **)&g_pfnItemPostFrame);
-//	UTIL_VirtualTableInjection(rgpfnCKnife, VFTIDX_WEAPON_PRIMARYATTACK, &HamF_Weapon_PrimaryAttack, (void **)&g_pfnWeaponPrimaryAttack);
-//	UTIL_VirtualTableInjection(rgpfnCKnife, VFTIDX_WEAPON_SECONDARYATTACK, &HamF_Weapon_SecondaryAttack, (void **)&g_pfnWeaponSecondaryAttack);
-//	UTIL_VirtualTableInjection(rgpfnCKnife, VFTIDX_ITEM_CANHOLSTER, &HamF_Item_CanHolster, (void **)&g_pfnItemCanHolster);
 	UTIL_VirtualTableInjection(rgpfnCKnife, VFTIDX_ITEM_HOLSTER, &HamF_Item_Holster, (void **)&g_pfnItemHolster);
 
 	g_pfnRadiusFlash = (fnRadiusFlash_t)UTIL_SearchPattern("mp.dll", RADIUS_FLASH_FN_PATTERN, 1);
@@ -90,6 +84,8 @@ void DeployHooks(void) noexcept
 	g_pfnAddMultiDamage = (fnAddMultiDamage_t)UTIL_SearchPattern("mp.dll", ADD_MULTI_DAMAGE_FN_PATTERN, 1);
 	g_pfnDefaultDeploy = (fnDefaultDeploy_t)UTIL_SearchPattern("mp.dll", DEFAULT_DEPLOY_FN_PATTERN, 1);
 	g_pfnSwitchWeapon = (fnSwitchWeapon_t)UTIL_SearchPattern("mp.dll", SWITCH_WEAPON_FN_PATTERN, 1);
+	g_pfnFireBullets = (fnFireBullets_t)UTIL_SearchPattern("mp.dll", FIRE_BULLETS_FN_PATTERN, 1);
+	g_pfnFireBullets3 = (fnFireBullets3_t)UTIL_SearchPattern("mp.dll", FIRE_BULLETS_3_FN_PATTERN, 1);
 
 	pEnt = g_engfuncs.pfnCreateNamedEntity(MAKE_STRING("info_target"));	// Technically this is not CBaseEntity, but it is the closest one. It overrides Spawn() and ObjectCaps(), so it is still pure enough.
 
@@ -120,6 +116,8 @@ void DeployHooks(void) noexcept
 	assert(g_pfnAddMultiDamage != nullptr);
 	assert(g_pfnDefaultDeploy != nullptr);
 	assert(g_pfnSwitchWeapon != nullptr);
+	assert(g_pfnFireBullets != nullptr);
+	assert(g_pfnFireBullets3 != nullptr);
 #else
 	[[unlikely]]
 	if (!g_pfnRadiusFlash)
@@ -142,16 +140,22 @@ void DeployHooks(void) noexcept
 	[[unlikely]]
 	if (!g_pfnSwitchWeapon)
 		LOG_ERROR("Function \"CBasePlayer::SwitchWeapon\" no found!");
+	[[unlikely]]
+	if (!g_pfnFireBullets)
+		LOG_ERROR("Function \"CBaseEntity::FireBullets\" no found!");
+	[[unlikely]]
+	if (!g_pfnFireBullets3)
+		LOG_ERROR("Function \"CBaseEntity::FireBullets3\" no found!");
 #endif
 
-	//HookInfo::SelectItem.m_Address = g_pfnSelectItem;
-	//HookInfo::SwitchWeapon.m_Address = g_pfnSwitchWeapon;
+	HookInfo::FireBullets.m_Address = g_pfnFireBullets;
+	HookInfo::FireBullets3.m_Address = g_pfnFireBullets3;
 
-	//UTIL_PreparePatch(g_pfnSelectItem, UTIL_CreateTrampoline(true, 1, &::SelectItem), HookInfo::SelectItem.m_PatchedBytes, HookInfo::SelectItem.m_OriginalBytes);
-	//UTIL_PreparePatch(g_pfnSwitchWeapon, UTIL_CreateTrampoline(true, 1, &::SwitchWeapon), HookInfo::SwitchWeapon.m_PatchedBytes, HookInfo::SwitchWeapon.m_OriginalBytes);
+	UTIL_PreparePatch(g_pfnFireBullets, &OrpheuF_FireBullets, HookInfo::FireBullets.m_PatchedBytes, HookInfo::FireBullets.m_OriginalBytes);
+	UTIL_PreparePatch(g_pfnFireBullets3, &OrpheuF_FireBullets3, HookInfo::FireBullets3.m_PatchedBytes, HookInfo::FireBullets3.m_OriginalBytes);
 
-	//UTIL_DoPatch(g_pfnSelectItem, HookInfo::SelectItem.m_PatchedBytes);
-	//UTIL_DoPatch(g_pfnSwitchWeapon, HookInfo::SwitchWeapon.m_PatchedBytes);
+	UTIL_DoPatch(g_pfnFireBullets, HookInfo::FireBullets.m_PatchedBytes);
+	UTIL_DoPatch(g_pfnFireBullets3, HookInfo::FireBullets3.m_PatchedBytes);
 
 	bHooksPerformed = true;
 }
