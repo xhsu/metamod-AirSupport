@@ -82,12 +82,15 @@ export struct CFuelAirExplosive : public Prefab_t
 	static inline constexpr char CLASSNAME[] = "fuel_air_bomb";
 
 	Task Task_GasPropagate() noexcept;
+	Task Task_StopSoundAndRemove() noexcept;
 
 	void Spawn() noexcept override;
 	void Touch(CBaseEntity *pOther) noexcept override;
+	void TraceAttack(entvars_t *pevAttacker, float flDamage, Vector vecDir, TraceResult *ptr, int bitsDamageType) noexcept override;
 
 	static CFuelAirExplosive *Create(CBasePlayer *pPlayer, Vector const &vecOrigin) noexcept;
 
 	CBasePlayer *m_pPlayer{};
 	std::list<EHANDLE<CFuelAirCloud>> m_rgpCloud{};
+	bool m_bReleasingGas{};
 };

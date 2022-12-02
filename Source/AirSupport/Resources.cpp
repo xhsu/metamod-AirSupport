@@ -6,11 +6,8 @@ void Precache(void) noexcept
 {
 	// Models
 
-	for (auto &&psz : Models::PLANE)
-		Models::m_rgLibrary[psz] = g_engfuncs.pfnPrecacheModel(psz);
-
-	for (auto &&psz : Models::PROJECTILE)
-		Models::m_rgLibrary[psz] = g_engfuncs.pfnPrecacheModel(psz);
+	std::ranges::for_each(Models::PLANE, g_engfuncs.pfnPrecacheModel);
+	std::ranges::for_each(Models::PROJECTILE, g_engfuncs.pfnPrecacheModel);
 
 	Models::m_rgLibrary[Models::V_RADIO] = g_engfuncs.pfnPrecacheModel(Models::V_RADIO);
 	Models::m_rgLibrary[Models::P_RADIO] = g_engfuncs.pfnPrecacheModel(Models::P_RADIO);
@@ -26,8 +23,7 @@ void Precache(void) noexcept
 
 	// Sounds
 
-	for (auto &&psz : Sounds::RADIO)
-		g_engfuncs.pfnPrecacheSound(psz);
+	std::ranges::for_each(Sounds::RADIO, g_engfuncs.pfnPrecacheSound);
 
 	g_engfuncs.pfnPrecacheSound(Sounds::REQUESTING);
 	g_engfuncs.pfnPrecacheSound(Sounds::REJECTING);
@@ -49,32 +45,43 @@ void Precache(void) noexcept
 	std::ranges::for_each(Sounds::JET, g_engfuncs.pfnPrecacheSound);
 	std::ranges::for_each(Sounds::WHIZZ, g_engfuncs.pfnPrecacheSound);
 	std::ranges::for_each(Sounds::BOMBER, g_engfuncs.pfnPrecacheSound);
+	std::ranges::for_each(Sounds::HIT_METAL, g_engfuncs.pfnPrecacheSound);
+	std::ranges::for_each(Sounds::EXPLOSION_BIG, g_engfuncs.pfnPrecacheSound);
 
 	g_engfuncs.pfnPrecacheSound(Sounds::CLUSTER_BOMB_DROP);
 
 	// namespace Gunship
 	{
-		for (auto &&psz : Sounds::Gunship::AC130_AMBIENT)
-			g_engfuncs.pfnPrecacheSound(psz);
-
-		for (auto &&psz : Sounds::Gunship::AC130_DEPARTURE)
-			g_engfuncs.pfnPrecacheSound(psz);
+		std::ranges::for_each(Sounds::Gunship::AC130_AMBIENT, g_engfuncs.pfnPrecacheSound);
+		std::ranges::for_each(Sounds::Gunship::AC130_DEPARTURE, g_engfuncs.pfnPrecacheSound);
 
 		g_engfuncs.pfnPrecacheSound(Sounds::Gunship::AC130_IS_IN_AIR);
 		g_engfuncs.pfnPrecacheSound(Sounds::Gunship::UAV_IS_ONLINE);
 
-		for (auto &&psz : Sounds::Gunship::KILL_CONFIRMED)
-			g_engfuncs.pfnPrecacheSound(psz);
+		std::ranges::for_each(Sounds::Gunship::KILL_CONFIRMED, g_engfuncs.pfnPrecacheSound);
 
 		g_engfuncs.pfnPrecacheSound(Sounds::Gunship::NOISE_PILOT);
 
-		for (auto &&psz : Sounds::Gunship::AC130_FIRE_25MM)
-			g_engfuncs.pfnPrecacheSound(psz);
+		std::ranges::for_each(Sounds::Gunship::AC130_FIRE_25MM, g_engfuncs.pfnPrecacheSound);
+		std::ranges::for_each(Sounds::Gunship::AC130_RELOAD, g_engfuncs.pfnPrecacheSound);
 
-		for (auto &&psz : Sounds::Gunship::AC130_RELOAD)
-			g_engfuncs.pfnPrecacheSound(psz);
+		std::ranges::for_each(Sounds::Gunship::RESELECT_TARGET, g_engfuncs.pfnPrecacheSound);
 
-		g_engfuncs.pfnPrecacheSound(Sounds::Gunship::RESELECT_TARGET);
+		g_engfuncs.pfnPrecacheSound(Sounds::Gunship::TARGET_RAN_TO_COVER);
+	}
+
+	// namespace FuelAirBomb
+	{
+		g_engfuncs.pfnPrecacheSound(Sounds::FuelAirBomb::GAS_LEAK_FADEOUT);
+		g_engfuncs.pfnPrecacheSound(Sounds::FuelAirBomb::GAS_LEAK_LOOP);
+
+		std::ranges::for_each(Sounds::FuelAirBomb::GAS_EXPLO, g_engfuncs.pfnPrecacheSound);
+	}
+
+	// namespace Flame
+	{
+		//std::ranges::for_each(Sounds::Flame::FLAME, g_engfuncs.pfnPrecacheSound);
+		//g_engfuncs.pfnPrecacheSound(Sounds::Flame::FLAME_FADEOUT);
 	}
 
 	// Sprite
@@ -93,6 +100,7 @@ void Precache(void) noexcept
 	Sprites::m_rgLibrary[Sprites::SPARK] = g_engfuncs.pfnPrecacheModel(Sprites::SPARK);
 	Sprites::m_rgLibrary[Sprites::LIFTED_DUST] = g_engfuncs.pfnPrecacheModel(Sprites::LIFTED_DUST);
 	Sprites::m_rgLibrary[Sprites::GROUNDED_DUST] = g_engfuncs.pfnPrecacheModel(Sprites::GROUNDED_DUST);
+	Sprites::m_rgLibrary[Sprites::GIGANTIC_EXPLO] = g_engfuncs.pfnPrecacheModel(Sprites::GIGANTIC_EXPLO);
 
 	Sprites::m_rgLibrary[Sprites::BEAM] = g_engfuncs.pfnPrecacheModel(Sprites::BEAM);
 

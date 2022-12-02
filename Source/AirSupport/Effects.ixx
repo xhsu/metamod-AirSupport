@@ -158,6 +158,7 @@ export struct CFuelAirCloud : public Prefab_t
 
 	Task Task_FadeIn(float const TRANSPARENT_INC, float const FINAL_VAL, float const ROLL) noexcept;
 	Task Task_Ignite(void) noexcept;
+	Task Task_EmitLight(void) noexcept;
 
 	__forceinline void Ignite(void) noexcept { if (!m_Scheduler.Exist(TASK_IGNITE)) m_Scheduler.Enroll(Task_Ignite(), TASK_IGNITE); }
 

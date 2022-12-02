@@ -162,6 +162,22 @@ export namespace Sounds
 		"airsupport/bomber/b1b_05.wav",
 	};
 
+	inline constexpr array HIT_METAL =
+	{
+		"debris/metal1.wav",
+		"debris/metal2.wav",
+		"debris/metal3.wav",
+		"debris/metal4.wav",
+		"debris/metal5.wav",
+		"debris/metal6.wav",
+	};
+
+	inline constexpr array EXPLOSION_BIG =
+	{
+		"airsupport/explode/bigexplosion_01.wav",
+		"airsupport/explode/bigexplosion_02.wav",
+	};
+
 	inline constexpr char CLUSTER_BOMB_DROP[] = "weapons/missile_travel_01.wav";
 
 	namespace Gunship
@@ -185,6 +201,9 @@ export namespace Sounds
 			"airsupport/radio/ns_gst_inform_killfirm_generic_02_R.wav",
 			"airsupport/radio/ns_gst_inform_killfirm_generic_04_R.wav",
 			"airsupport/radio/ns_gst_inform_killfirm_generic_05_R.wav",
+			"airsupport/radio/ac130_fco_goodkill_01.wav",
+			"airsupport/radio/ac130_fco_hotdamn3_02.wav",
+			"airsupport/radio/vo_mp_announcer_english_en_40.wav",
 		};
 		inline constexpr char NOISE_PILOT[] = "airsupport/radio/radio_pilot.wav";
 		inline constexpr array AC130_FIRE_25MM =
@@ -206,14 +225,46 @@ export namespace Sounds
 			"airsupport/airgunship/ac130_reloading_02.wav",
 			"airsupport/airgunship/ac130_reloading_03.wav",
 		};
-		inline constexpr char RESELECT_TARGET[] = "airsupport/radio/radio_attacking.wav";
+		inline constexpr array RESELECT_TARGET =
+		{
+			"airsupport/radio/ac130_fco_moreenemy_01.wav",
+			"airsupport/radio/ac130_fco_rightthere_02.wav",
+			"airsupport/radio/ac130_fco_takehimout_01.wav",
+			"airsupport/radio/ac130_fco_tracking_01.wav",
+			"airsupport/radio/ac130_plt_targetreset_01.wav",
+			"airsupport/radio/vo_mp_announcer_english_en_24.wav",
+		};
+		inline constexpr char TARGET_RAN_TO_COVER[] = "airsupport/radio/ac130_tvo_coverbywall1_01.wav";
 	}
+
+	namespace FuelAirBomb
+	{
+		inline constexpr char GAS_LEAK_LOOP[] = "airsupport/explode/steam_pipe_burst_loop.wav";
+		inline constexpr char GAS_LEAK_FADEOUT[] = "airsupport/explode/steam_pipe_burst_loop_end.wav";
+
+		inline constexpr array GAS_EXPLO =
+		{
+			"airsupport/explode/steam_pipe_burst2.wav",
+			"airsupport/explode/steam_pipe_burst3.wav",
+		};
+	};
 
 	namespace Length::Gunship
 	{
 		inline constexpr array AC130_RELOAD = { 2.2f, 4.2f, 3.2f };
 		inline constexpr array AC130_DEPARTURE = { 6.2f, 6.2f };
 	}
+
+	namespace Flame
+	{
+		inline constexpr array FLAME =
+		{
+			"ambience/fire_woodtrash_small1v2res.wav",
+			"ambience/fire_woodtrash_small2v2res.wav",
+		};
+
+		inline constexpr char FLAME_FADEOUT[] = "ambience/fire_loop_fadeout_01.wav";
+	};
 };
 
 export namespace Sprites
@@ -232,6 +283,7 @@ export namespace Sprites
 	inline constexpr char SPARK[] = "sprites/metal_sparks1.spr";
 	inline constexpr char LIFTED_DUST[] = "sprites/smoke_loop.spr";
 	inline constexpr char GROUNDED_DUST[] = "sprites/bettyspr2.spr";
+	inline constexpr char GIGANTIC_EXPLO[] = "sprites/bunkerbuster_explosion.spr";
 
 	inline constexpr char BEAM[] = "sprites/laserbeam.spr";
 

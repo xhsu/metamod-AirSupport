@@ -365,6 +365,7 @@ Task CGunship::Task_Gunship() noexcept
 
 			if (g_engfuncs.pfnPointContents(tr.vecEndPos) != CONTENTS_SKY)	// This guy runs into shelter.
 			{
+				g_engfuncs.pfnEmitSound(m_pPlayer->edict(), CHAN_STATIC, Sounds::Gunship::TARGET_RAN_TO_COVER, VOL_NORM, ATTN_STATIC, 0, PITCH_NORM);
 				pEnemy = nullptr;
 				continue;
 			}

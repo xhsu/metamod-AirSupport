@@ -779,6 +779,9 @@ Task CFuelAirCloud::Task_Ignite(void) noexcept
 
 	m_Scheduler.Delist(TASK_FADE_IN | TASK_ANIMATION);
 	m_Scheduler.Enroll(Task_SpritePlayOnce(pev, iFrameCount, 20));
+	m_Scheduler.Enroll(Task_EmitLight());
+
+	g_engfuncs.pfnEmitSound(edict(), CHAN_WEAPON, UTIL_GetRandomOne(Sounds::FuelAirBomb::GAS_EXPLO), VOL_NORM, UTIL_Random(ATTN_NORM / 2.f, ATTN_NORM), 0, UTIL_Random(88, 116));
 
 	co_await 0.1f;
 
@@ -787,6 +790,32 @@ Task CFuelAirCloud::Task_Ignite(void) noexcept
 
 	if (!UTIL_Random(0, 4))
 		Prefab_t::Create<CFlame>(pev->origin)->pev->velocity = get_spherical_coord(128, UTIL_Random(30.0, 60.0), UTIL_Random(0.0, 360.0));
+}
+
+Task CFuelAirCloud::Task_EmitLight(void) noexcept
+{
+	for (;;)
+	{
+		co_await UTIL_Random(0.1f, 0.2f);
+
+		Vector const vecNoise = pev->scale * Vector(
+			UTIL_Random(-36.0, 36.0),
+			UTIL_Random(-36.0, 36.0),
+			UTIL_Random(-36.0, 36.0)
+		);
+
+		MsgPVS(SVC_TEMPENTITY, pev->origin);
+		WriteData(TE_DLIGHT);
+		WriteData(pev->origin + vecNoise);	// pos
+		WriteData((byte)UTIL_Random(40, 50));	// rad in 10's
+		WriteData((byte)UTIL_Random(0xC3, 0xCD));	// r
+		WriteData((byte)UTIL_Random(0x3E, 0x46));	// g
+		WriteData((byte)UTIL_Random(0x05, 0x10));	// b
+		WriteData((byte)2);	// brightness
+		WriteData((byte)0);	// life in 10's
+		WriteData((byte)1);	// decay in 10's
+		MsgEnd();
+	}
 }
 
 void CFuelAirCloud::Spawn() noexcept
@@ -1032,12 +1061,21 @@ void CFuelAirCloud::OnTraceAttack(TraceResult const &tr, EHANDLE<CBaseEntity> pS
 		return;
 
 	for (auto &&pCloud : s_rgpAeroClouds |
-		std::views::filter([](EHANDLE<CFuelAirCloud> const &pCloud) noexcept -> bool { return !pCloud->m_bIgnited; }) |
-
-		// Both the bullet and muzzle fire ignites the gas.
-		std::views::filter([&](EHANDLE<CFuelAirCloud> const &pCloud) noexcept -> bool { return ((tr.vecEndPos + tr.vecPlaneNormal * 24.0) - pCloud->pev->origin).LengthSquared() < (72.0 * 72.0) || (pPlayer->pev->origin - pCloud->pev->origin).LengthSquared() < (72.0 * 72.0); })
-		)
+		std::views::filter([](EHANDLE<CFuelAirCloud> const &pCloud) noexcept -> bool { return !pCloud->m_bIgnited; }))
 	{
-		pCloud->Ignite();
+		if (((tr.vecEndPos + tr.vecPlaneNormal * 24.0) - pCloud->pev->origin).LengthSquared() < (72.0 * 72.0))
+		{
+			auto const pEdict = Prefab_t::Create<CSparkSpr>(tr.vecEndPos)->edict();
+			g_engfuncs.pfnEmitSound(pEdict, CHAN_STATIC, UTIL_GetRandomOne(Sounds::HIT_METAL), VOL_NORM, ATTN_NORM, 0, UTIL_Random(96, 108));
+		}
+		else if ((pPlayer->pev->origin - pCloud->pev->origin).LengthSquared() < (72.0 * 72.0))
+		{
+			Vector vecAttachmentPos{};
+			Angles vecAngles{};
+			g_engfuncs.pfnGetAttachment(pPlayer->edict(), 0, vecAttachmentPos, vecAngles);
+
+			auto const pEdict = Prefab_t::Create<CSparkSpr>(vecAttachmentPos)->edict();
+			g_engfuncs.pfnEmitSound(pEdict, CHAN_STATIC, UTIL_GetRandomOne(Sounds::HIT_METAL), VOL_NORM, ATTN_NORM, 0, UTIL_Random(96, 108));
+		}
 	}
 }

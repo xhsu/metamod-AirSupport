@@ -630,6 +630,9 @@ CBullet *CBullet::Create(Vector const &vecOrigin, Vector const &vecVelocity, CBa
 
 Task CFuelAirExplosive::Task_GasPropagate() noexcept
 {
+	m_bReleasingGas = true;
+	g_engfuncs.pfnEmitAmbientSound(edict(), pev->origin, Sounds::FuelAirBomb::GAS_LEAK_LOOP, VOL_NORM, ATTN_NORM, 0, UTIL_Random(92, 112));
+
 	TraceResult tr{};
 	auto const vecTestSrc = pev->origin + Vector::Up() * 5.0;
 	list<Vector> rgvecVarifiedLocations{};
@@ -703,6 +706,20 @@ LAB_WAIT_FOR_FADE_IN:;
 	Prefab_t::Create<CSparkSpr>(pev->origin + Vector(UTIL_Random(-96.0, 96.0), UTIL_Random(-96.0, 96.0), UTIL_Random(48.0, 64.0)));
 
 LAB_CO_RETURN:;
+	m_Scheduler.Enroll(Task_StopSoundAndRemove());
+}
+
+Task CFuelAirExplosive::Task_StopSoundAndRemove() noexcept
+{
+	if (!m_bReleasingGas)
+		goto LAB_JUST_REMOVE;
+
+	g_engfuncs.pfnEmitAmbientSound(edict(), pev->origin, Sounds::FuelAirBomb::GAS_LEAK_LOOP, VOL_NORM, ATTN_NORM, SND_STOP, UTIL_Random(92, 112));
+	//g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, Sounds::FuelAirBomb::GAS_LEAK_FADEOUT, VOL_NORM, ATTN_NORM, 0, UTIL_Random(92, 112));
+
+	co_await 1.2f;
+
+LAB_JUST_REMOVE:;
 	pev->flags |= FL_KILLME;
 }
 
@@ -712,13 +729,12 @@ void CFuelAirExplosive::Spawn() noexcept
 	g_engfuncs.pfnSetModel(edict(), Models::PROJECTILE[FUEL_AIR_BOMB]);
 	g_engfuncs.pfnSetSize(edict(), Vector(-2, -2, -2), Vector(2, 2, 2));
 
-	pev->owner = m_pPlayer->edict();
 	pev->solid = SOLID_BBOX;
 	pev->movetype = MOVETYPE_TOSS;
 	pev->velocity = Vector::Zero();
 	pev->gravity = 1.f;
-
 	pev->effects = EF_DIMLIGHT;
+	pev->takedamage = DAMAGE_YES;
 
 	// This is just a bomb drop. No energy post-apply onto the projectile, therefore no complex VFX.
 
@@ -741,25 +757,48 @@ void CFuelAirExplosive::Touch(CBaseEntity *pOther) noexcept
 {
 	g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, UTIL_GetRandomOne(Sounds::EXPLOSION_SHORT), VOL_NORM, 0, 0, UTIL_Random(92, 112));
 
-	auto const vecExplo = pev->origin + Vector::Up() * 72;
+	pev->velocity = Vector::Zero();
+	pev->gravity = 0;
+	pev->effects = 0;
+
+	g_engfuncs.pfnSetSize(edict(), Vector(-8, -8, -16), Vector(8, 8, 16));
+
+	TraceResult tr{};
+	g_engfuncs.pfnTraceMonsterHull(edict(), pev->origin + Vector(0, 0, 24), pev->origin, ignore_monsters | ignore_glass, nullptr, &tr);
+	g_engfuncs.pfnSetOrigin(edict(), tr.vecEndPos);
+
+	g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, UTIL_GetRandomOne(Sounds::HIT_METAL), VOL_NORM, ATTN_NORM, 0, UTIL_Random(92, 112));
+
+	m_Scheduler.Enroll(Task_GasPropagate());
+}
+
+void CFuelAirExplosive::TraceAttack(entvars_t *pevAttacker, float flDamage, Vector vecDir, TraceResult *ptr, int bitsDamageType) noexcept
+{
+	// Only one of these can trigger.
+	if (!(bitsDamageType & (DMG_BULLET | DMG_SLASH | DMG_CLUB | DMG_BURN | DMG_SHOCK | DMG_ENERGYBEAM | DMG_SLOWBURN | DMG_BLAST | DMG_EXPLOSION)))
+		return;
+
+	// Because if there are gas surrounding, the CFuelAirCloud::OnTraceAttack() fn will create one already.
+	Prefab_t::Create<CSparkSpr>(ptr->vecEndPos);
+
+	static constexpr auto SCALE = 3;
+	auto const vecExplo = pev->origin + Vector::Up() * 120 * SCALE;
 
 	MsgPVS(SVC_TEMPENTITY, vecExplo);
 	WriteData(TE_SPRITE);
 	WriteData(vecExplo);
-	WriteData(Sprites::m_rgLibrary[Sprites::MINOR_EXPLO]);
-	WriteData((byte)40);
+	WriteData(Sprites::m_rgLibrary[Sprites::GIGANTIC_EXPLO]);
+	WriteData((byte)(SCALE * 10));
 	WriteData((byte)255);
 	MsgEnd();
 
-	pev->solid = SOLID_NOT;
-	pev->movetype = MOVETYPE_NONE;
-	pev->velocity = Vector::Zero();
-	pev->gravity = 0;
 	pev->effects = EF_NODRAW;
+	UTIL_ExplodeModel(Vector(pev->origin.x, pev->origin.y, pev->absmax.z), 700.f, Models::m_rgLibrary[Models::GIBS_METAL], UTIL_Random(4, 6), UTIL_Random(10.f, 15.f));
 
-	g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, Sounds::CLUSTER_BOMB_DROP, VOL_NORM, 0, SND_STOP, UTIL_Random(92, 112));
+	g_engfuncs.pfnEmitSound(edict(), CHAN_BODY, UTIL_GetRandomOne(Sounds::HIT_METAL), VOL_NORM, ATTN_NORM, 0, UTIL_Random(92, 112));
+	g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, UTIL_GetRandomOne(Sounds::EXPLOSION_BIG), VOL_NORM, ATTN_NONE, 0, UTIL_Random(92, 112));
 
-	m_Scheduler.Enroll(Task_GasPropagate());
+	m_Scheduler.Enroll(Task_StopSoundAndRemove());
 }
 
 CFuelAirExplosive *CFuelAirExplosive::Create(CBasePlayer *pPlayer, Vector const &vecOrigin) noexcept

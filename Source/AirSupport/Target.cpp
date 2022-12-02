@@ -604,7 +604,7 @@ Task CDynamicTarget::Task_QuickEval_Gunship() noexcept
 				if (flLastAttackingVoice < gpGlobals->time)
 				{
 					flLastAttackingVoice = gpGlobals->time + 1.f;
-					g_engfuncs.pfnEmitSound(m_pRadio.Get(), CHAN_STATIC, Sounds::Gunship::RESELECT_TARGET, VOL_NORM, ATTN_STATIC, 0, PITCH_NORM);
+					g_engfuncs.pfnEmitSound(m_pRadio.Get(), CHAN_STATIC, UTIL_GetRandomOne(Sounds::Gunship::RESELECT_TARGET), VOL_NORM, ATTN_STATIC, 0, PITCH_NORM);
 					gmsgTextMsg::Send(m_pPlayer->edict(), 4, Localization::GUNSHIP_RESELECT_TARGET);
 				}
 
@@ -935,7 +935,7 @@ Task CFixedTarget::Task_RecruitJet() noexcept
 	{
 		for (;;)
 		{
-			if (pFuelAirExplosive->pev->effects == EF_NODRAW)	// This means the fuel air bomb had been detonated.
+			if (!pFuelAirExplosive || pFuelAirExplosive->m_bReleasingGas)	// This means the fuel air bomb had been detonated.
 			{
 				pev->flags |= FL_KILLME;
 				co_return;
