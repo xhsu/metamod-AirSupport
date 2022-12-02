@@ -375,9 +375,11 @@ extern "C++" namespace Weapon
 
 void __fastcall OrpheuF_FireBullets(CBaseEntity *pThis, int, unsigned long cShots, Vector vecSrc, Vector vecDirShooting, Vector vecSpread, float flDistance, int iBulletType, int iTracerFreq, int iDamage, entvars_t *pevAttacker) noexcept
 {
+	g_bIsSomeoneShooting = true;
 	UTIL_UndoPatch(g_pfnFireBullets, HookInfo::FireBullets.m_OriginalBytes);
 	g_pfnFireBullets(pThis, cShots, vecSrc, vecDirShooting, vecSpread, flDistance, iBulletType, iTracerFreq, iDamage, pevAttacker);
 	UTIL_DoPatch(g_pfnFireBullets, HookInfo::FireBullets.m_PatchedBytes);
+	g_bIsSomeoneShooting = false;
 }
 
 Vector __fastcall OrpheuF_FireBullets3(long argument1, long argument2, Vector vecSrc, Vector vecDirShooting, float flSpread, float flDistance, int iPenetration, int iBulletType, int iDamage, float flRangeModifier, entvars_t *pevAttacker, bool bPistol, int shared_rand) noexcept
@@ -389,8 +391,10 @@ Vector __fastcall OrpheuF_FireBullets3(long argument1, long argument2, Vector ve
 
 	//_asm mov pThis, ecx;
 
+	g_bIsSomeoneShooting = true;
 	UTIL_UndoPatch(g_pfnFireBullets3, HookInfo::FireBullets3.m_OriginalBytes);
 	auto const ret = g_pfnFireBullets3(argument1, argument2, vecSrc, vecDirShooting, flSpread, flDistance, iPenetration, iBulletType, iDamage, flRangeModifier, pevAttacker, bPistol, shared_rand);
 	UTIL_DoPatch(g_pfnFireBullets3, HookInfo::FireBullets3.m_PatchedBytes);
+	g_bIsSomeoneShooting = false;
 	return ret;
 }

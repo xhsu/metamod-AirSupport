@@ -688,6 +688,7 @@ pair<bool/*ShouldCough*/, bool/*Toxic*/> UTIL_AnySmokeNear(Vector const &vecSrc)
 Task Task_GlobalCoughThink() noexcept
 {
 	array<float, 33> rgflTimeNextCough{};
+	array<float, 33> rgflTimeNextInhale{};
 	auto const pevWorld = &g_engfuncs.pfnPEntityOfEntIndex(0)->v;
 
 	co_await 0.1f;
@@ -707,9 +708,13 @@ Task Task_GlobalCoughThink() noexcept
 				}
 			}
 
-			if (bIsToxic)
+			if (bIsToxic && pPlayer->pev->takedamage != DAMAGE_NO)
 			{
-				pPlayer->TakeDamage(pevWorld, pevWorld, 5.f, DMG_POISON);
+				if (auto const iIndex = pPlayer->entindex(); rgflTimeNextInhale[iIndex] < gpGlobals->time)
+				{
+					rgflTimeNextInhale[iIndex] = gpGlobals->time + UTIL_Random(1.5f, 2.5f);
+					pPlayer->TakeDamage(pevWorld, pevWorld, 5.f, DMG_POISON);
+				}
 			}
 		}
 
@@ -1008,4 +1013,31 @@ Task CFuelAirCloud::Task_GlobalSuffocation() noexcept
 	auto const flTimeDelta = std::chrono::duration_cast<std::chrono::nanoseconds>(CurTime - StartingTime).count() / 1'000'000'000.0;
 
 	co_await float(12.5 - flTimeDelta);	// 13 is the length of audio file Sounds::PLAYER_HB_AND_ER
+}
+
+void CFuelAirCloud::OnTraceAttack(TraceResult const &tr, EHANDLE<CBaseEntity> pSkippedEntity) noexcept
+{
+	auto const pPlayer = pSkippedEntity.As<CBasePlayer>();
+
+	[[unlikely]]
+	if (pPlayer == nullptr)
+		return;
+
+	// Kick off all invalid clouds, especially after map reload.
+	s_rgpAeroClouds.remove_if(
+		[](EHANDLE<CFuelAirCloud> const &pCloud) noexcept -> bool { return !static_cast<bool>(pCloud); }
+	);
+
+	if (s_rgpAeroClouds.empty())
+		return;
+
+	for (auto &&pCloud : s_rgpAeroClouds |
+		std::views::filter([](EHANDLE<CFuelAirCloud> const &pCloud) noexcept -> bool { return !pCloud->m_bIgnited; }) |
+
+		// Both the bullet and muzzle fire ignites the gas.
+		std::views::filter([&](EHANDLE<CFuelAirCloud> const &pCloud) noexcept -> bool { return ((tr.vecEndPos + tr.vecPlaneNormal * 24.0) - pCloud->pev->origin).LengthSquared() < (72.0 * 72.0) || (pPlayer->pev->origin - pCloud->pev->origin).LengthSquared() < (72.0 * 72.0); })
+		)
+	{
+		pCloud->Ignite();
+	}
 }
