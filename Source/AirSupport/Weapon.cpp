@@ -56,7 +56,6 @@ enum EVShieldKnife
 
 inline constexpr float KNIFE_MAX_SPEED = 250.0f;
 inline constexpr float KNIFE_MAX_SPEED_SHIELD = 180.0f;
-extern Task Task_PlayerSuffocation(CBasePlayer *pPlayer, entvars_t *pevWorld) noexcept;
 
 qboolean __fastcall HamF_Item_AddToPlayer(CBasePlayerItem *pThis, int, CBasePlayer *pPlayer) noexcept
 {
@@ -203,18 +202,8 @@ void __fastcall HamF_Item_PostFrame(CBasePlayerItem *pItem, int) noexcept
 		//Prefab_t::Create<CFlame>(tr.vecEndPos)->pev->velocity = Vector(0, 0, 300);
 		//Prefab_t::Create<CFuelAirCloud>(tr.vecEndPos)->Ignite();
 
-		//TaskScheduler::Enroll(CFuelAirCloud::Task_GlobalSuffocation(), TASK_HB_AND_ER);
-		//TaskScheduler::Enroll(CFuelAirCloud::Task_ScreenTwist(pThis->m_pPlayer), TASK_HB_AND_ER);
-		//TaskScheduler::Enroll(Task_PlayerSuffocation(pThis->m_pPlayer, &g_engfuncs.pfnPEntityOfEntIndex(0)->v), TASK_HB_AND_ER);
+		//TaskScheduler::Enroll(CFuelAirCloud::Task_PlayerSuffocation(pThis->m_pPlayer, &g_engfuncs.pfnPEntityOfEntIndex(0)->v), TASK_HB_AND_ER);
 	}
-}
-
-void __fastcall HamF_Weapon_PrimaryAttack(CBasePlayerWeapon *pThis, int) noexcept { return g_pfnWeaponPrimaryAttack(pThis); }
-void __fastcall HamF_Weapon_SecondaryAttack(CBasePlayerWeapon *pThis, int) noexcept { return g_pfnWeaponSecondaryAttack(pThis); }
-
-qboolean __fastcall HamF_Item_CanHolster(CBasePlayerItem *pThis, int) noexcept
-{
-	return g_pfnItemCanHolster(pThis) & pThis->has_disconnected;
 }
 
 void __fastcall HamF_Item_Holster(CBasePlayerItem *pThis, int, int skiplocal) noexcept
@@ -384,23 +373,28 @@ extern "C++" namespace Weapon
 	}
 };
 
-qboolean SwitchWeapon(CBasePlayer *pPlayer, CBasePlayerItem *pWeapon) noexcept
+void __fastcall OrpheuF_FireBullets(CBaseEntity *pThis, int, unsigned long cShots, Vector vecSrc, Vector vecDirShooting, Vector vecSpread, float flDistance, int iBulletType, int iTracerFreq, int iDamage, entvars_t *pevAttacker) noexcept
 {
-	if (pPlayer->m_pActiveItem && !pPlayer->m_pActiveItem->CanHolster())
-		return false;
-
-	UTIL_UndoPatch(g_pfnSwitchWeapon, HookInfo::SwitchWeapon.m_OriginalBytes);
-	auto const ret = g_pfnSwitchWeapon(pPlayer, pWeapon);
-	UTIL_DoPatch(g_pfnSwitchWeapon, HookInfo::SwitchWeapon.m_PatchedBytes);
-	return ret;
+	g_bIsSomeoneShooting = true;
+	UTIL_UndoPatch(g_pfnFireBullets, HookInfo::FireBullets.m_OriginalBytes);
+	g_pfnFireBullets(pThis, cShots, vecSrc, vecDirShooting, vecSpread, flDistance, iBulletType, iTracerFreq, iDamage, pevAttacker);
+	UTIL_DoPatch(g_pfnFireBullets, HookInfo::FireBullets.m_PatchedBytes);
+	g_bIsSomeoneShooting = false;
 }
 
-void SelectItem(CBasePlayer *pPlayer, const char *pstr) noexcept
+Vector __fastcall OrpheuF_FireBullets3(long argument1, long argument2, Vector vecSrc, Vector vecDirShooting, float flSpread, float flDistance, int iPenetration, int iBulletType, int iDamage, float flRangeModifier, entvars_t *pevAttacker, bool bPistol, int shared_rand) noexcept
 {
-	if (pPlayer->m_pActiveItem && !pPlayer->m_pActiveItem->CanHolster())
-		return;
+	// LUNA: this hook is VERY wierd and cannot be served as any other purpose
+	// unlike other __fastcall, the 'this' pointer is still stuck in register ecx and the first two arguments remains unknown.
+	// So does the return value, it's a array of constant mumbo-jumbo 4-byte data.
+	// According to IDA, it consists of 16 arguments (excluding 'this' and 'edx') but only 15 arguments are meaningful.
 
-	UTIL_UndoPatch(g_pfnSelectItem, HookInfo::SelectItem.m_OriginalBytes);
-	g_pfnSelectItem(pPlayer, pstr);
-	UTIL_DoPatch(g_pfnSelectItem, HookInfo::SelectItem.m_PatchedBytes);
+	//_asm mov pThis, ecx;
+
+	g_bIsSomeoneShooting = true;
+	UTIL_UndoPatch(g_pfnFireBullets3, HookInfo::FireBullets3.m_OriginalBytes);
+	auto const ret = g_pfnFireBullets3(argument1, argument2, vecSrc, vecDirShooting, flSpread, flDistance, iPenetration, iBulletType, iDamage, flRangeModifier, pevAttacker, bPistol, shared_rand);
+	UTIL_DoPatch(g_pfnFireBullets3, HookInfo::FireBullets3.m_PatchedBytes);
+	g_bIsSomeoneShooting = false;
+	return ret;
 }

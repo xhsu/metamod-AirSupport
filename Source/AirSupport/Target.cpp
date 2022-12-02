@@ -1,24 +1,18 @@
 #include <cassert>
 
-import <array>;
 import <numbers>;
-import <ranges>;
-import <vector>;
-
-import progdefs;
-import util;
 
 import Beam;
 import Effects;
 import Jet;
 import Localization;
 import Projectile;
+import Query;
 import Resources;
 import Round;
 import Target;
 import Waypoint;
 import Weapon;
-import Math;
 
 import UtlRandom;
 
@@ -88,8 +82,8 @@ CDynamicTarget::~CDynamicTarget() noexcept
 
 Task CDynamicTarget::Task_Animation() noexcept
 {
-	// Consider this as initialization
-	m_LastAnimUpdate = std::chrono::high_resolution_clock::now();
+	// This variable should never be a part of the class. It doesn't even being ref anywhere else.
+	auto LastAnimUpdate = std::chrono::high_resolution_clock::now();
 
 	for (;;)
 	{
@@ -102,7 +96,7 @@ Task CDynamicTarget::Task_Animation() noexcept
 		co_await TaskScheduler::NextFrame::Rank[1];	// behind coord update.
 
 		auto const CurTime = std::chrono::high_resolution_clock::now();
-		auto const flTimeDelta = std::chrono::duration_cast<std::chrono::nanoseconds>(CurTime - m_LastAnimUpdate).count() / 1'000'000'000.0;
+		auto const flTimeDelta = std::chrono::duration_cast<std::chrono::nanoseconds>(CurTime - LastAnimUpdate).count() / 1'000'000'000.0;
 
 		pev->framerate = float(Models::targetmdl::FPS * flTimeDelta);
 		pev->frame += pev->framerate;
@@ -112,7 +106,7 @@ Task CDynamicTarget::Task_Animation() noexcept
 		if (pev->frame < 0 || pev->frame >= 256)
 			pev->frame -= float((pev->frame / 256.0) * 256.0);	// model sequence is different from SPRITE, no matter now many frame you have, it will stretch/squeeze into 256.
 
-		m_LastAnimUpdate = CurTime;
+		LastAnimUpdate = CurTime;
 	}
 }
 
@@ -789,15 +783,9 @@ Task CFixedTarget::Task_Gunship() noexcept
 			};
 
 			auto vecCandidates =
-				// Any human player must belong to [1, 32]
-				std::views::iota(1, gpGlobals->maxClients) |
 
-				// Skip invalid player ent.
-				std::views::transform([](int idx) noexcept { auto const pEdict = g_engfuncs.pfnPEntityOfEntIndex(idx); return pEdict ? (CBasePlayer *)pEdict->pvPrivateData : nullptr; }) |
-				std::views::filter([](CBasePlayer *pPlayer) noexcept { return pPlayer != nullptr; }) |
-
-				// Only player who is alive, and connected. Disconnected player will be marked as DEAD_DEAD therefore filtered.
-				std::views::filter([](CBasePlayer *pPlayer) noexcept { return pPlayer->pev->deadflag == DEAD_NO && pPlayer->pev->takedamage != DAMAGE_NO; }) |
+				// First of all, it must be a living person...
+				Query::all_living_players() |
 
 				// Don't select your teammate!
 				std::views::filter([&](CBasePlayer *pPlayer) noexcept { return pPlayer->m_iTeam != pev->team; }) |

@@ -1,7 +1,6 @@
 export module Target;
 
 export import <array>;
-export import <chrono>;
 
 export import Beam;
 export import Menu;
@@ -43,7 +42,6 @@ export struct CDynamicTarget : public Prefab_t
 	CBasePlayer *m_pPlayer{};
 	Vector m_vecLastAiming{};
 	float m_flLastValidTracking{};
-	std::chrono::high_resolution_clock::time_point m_LastAnimUpdate{};
 	std::array<EHANDLE<CBeam>, BEACON_COUNT> m_rgpBeacons{};
 	bool m_bFreezed{};	// Use enable/disable beacons instead.
 };

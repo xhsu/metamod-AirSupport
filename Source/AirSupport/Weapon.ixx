@@ -14,3 +14,5 @@ export extern "C++" namespace Weapon
 };
 
 export __forceinline edict_t *&DYN_TARGET(CBasePlayerItem *pThis) noexcept { return pThis->pev->euser1; }
+
+export inline bool g_bIsSomeoneShooting = false;

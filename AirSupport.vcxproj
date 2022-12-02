@@ -102,7 +102,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\Hydrogenium\UtlConcepts.ixx" />
-    <ClCompile Include="..\Hydrogenium\UtlFunction.ixx" />
     <ClCompile Include="..\Hydrogenium\UtlHook.ixx" />
     <ClCompile Include="..\Hydrogenium\UtlRandom.ixx" />
     <ClCompile Include="..\metamod-p\hlsdk\cl_dll\hud_iface.ixx" />

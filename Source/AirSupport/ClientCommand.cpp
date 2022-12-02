@@ -1,11 +1,12 @@
 import <format>;
 import <string>;
 
-import meta_api;
-
+import CBase;
 import Hook;
 import Menu;
+import Plugin;
 import Resources;
+import Task;
 import Weapon;
 
 using std::string;

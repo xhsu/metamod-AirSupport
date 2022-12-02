@@ -169,6 +169,7 @@ export struct CFuelAirCloud : public Prefab_t
 	static Task Task_AirPressure() noexcept;
 	static Task Task_PlayerSuffocation(CBasePlayer *pPlayer, entvars_t *pevWorld) noexcept;
 	static Task Task_GlobalSuffocation() noexcept;
+	static void OnTraceAttack(TraceResult const &tr, EHANDLE<CBaseEntity> pSkippedEntity) noexcept;
 
 	CBasePlayer *m_pPlayer{};
 	bool m_bFadeInDone{ false };

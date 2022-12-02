@@ -14,6 +14,7 @@ import Resources;
 import UtlRandom;
 
 using std::array;
+using std::pair;
 using std::string;
 
 //
@@ -632,7 +633,7 @@ void CSparkSpr::Spawn() noexcept
 //
 
 [[nodiscard]]
-bool UTIL_AnySmokeNear(Vector const &vecSrc) noexcept
+pair<bool/*ShouldCough*/, bool/*Toxic*/> UTIL_AnySmokeNear(Vector const &vecSrc) noexcept
 {
 	for (auto &&pSmoke :
 		FIND_ENTITY_IN_SPHERE(vecSrc, float(32.0 * std::numbers::sqrt3)) |
@@ -644,7 +645,7 @@ bool UTIL_AnySmokeNear(Vector const &vecSrc) noexcept
 		if (pSmoke->v.renderamt < 32)
 			continue;
 
-		return true;
+		return { true, false };
 	}
 
 	for (auto &&pFloatingDust :
@@ -657,59 +658,63 @@ bool UTIL_AnySmokeNear(Vector const &vecSrc) noexcept
 		if (pFloatingDust->v.renderamt < 32)
 			continue;
 
-		return true;
+		return { true, false };
 	}
 
 	for (auto &&pFlame :
-		FIND_ENTITY_IN_SPHERE(vecSrc, float(72.0 * std::numbers::sqrt3)) |
+		FIND_ENTITY_IN_SPHERE(vecSrc, 72.f) |
 		std::views::filter([](edict_t *pEdcit) noexcept { return pEdcit->v.classname == MAKE_STRING(CFlame::CLASSNAME); })
 		)
 	{
 		// Any CFlame entity near the head?
 
-		return true;
+		return { true, false };
 	}
 
-	for (auto &&pFlame :
-		FIND_ENTITY_IN_SPHERE(vecSrc, float(72.0 * std::numbers::sqrt3)) |
+	for (auto &&pCloud :
+		FIND_ENTITY_IN_SPHERE(vecSrc, 72.f) |
 		std::views::filter([](edict_t *pEdcit) noexcept { return pEdcit->v.classname == MAKE_STRING(CFuelAirCloud::CLASSNAME); })
 		)
 	{
 		// Any CFuelAirCloud entity near the head?
 		// It's quite toxic so the transparency doesn't matter.
 
-		return true;
+		return { true, true };
 	}
 
-	return false;
+	return { false, false };
 }
 
 Task Task_GlobalCoughThink() noexcept
 {
 	array<float, 33> rgflTimeNextCough{};
+	array<float, 33> rgflTimeNextInhale{};
+	auto const pevWorld = &g_engfuncs.pfnPEntityOfEntIndex(0)->v;
 
 	co_await 0.1f;
 
 	for (;;)
 	{
-		for (CBasePlayer *pPlayer :
-			std::views::iota(1, gpGlobals->maxClients) |
-			std::views::transform([](int idx) noexcept { auto const pent = g_engfuncs.pfnPEntityOfEntIndex(idx); return pent ? (CBasePlayer *)pent->pvPrivateData : nullptr; }) |
-			std::views::filter([](void *p) noexcept { return p != nullptr; }) |
-
-			// Only player who is alive.
-			std::views::filter([](CBasePlayer *pPlayer) noexcept { return pPlayer->pev->deadflag == DEAD_NO && pPlayer->pev->takedamage != DAMAGE_NO; })
-			)
+		for (CBasePlayer *pPlayer : Query::all_living_players())	// #INVESTIGATE #POTENTIAL_BUG awaiting in this loop can cause CTD in release mod. WHY???
 		{
-			co_await 0.05f;
+			auto const [bShouldCough, bIsToxic] = UTIL_AnySmokeNear(pPlayer->EyePosition());
 
-			if (!UTIL_AnySmokeNear(pPlayer->EyePosition()))
-				continue;
-
-			if (auto const iIndex = pPlayer->entindex(); rgflTimeNextCough[iIndex] < gpGlobals->time)
+			if (bShouldCough)
 			{
-				rgflTimeNextCough[iIndex] = gpGlobals->time + 3.f;
-				g_engfuncs.pfnEmitSound(pPlayer->edict(), CHAN_AUTO, UTIL_GetRandomOne(Sounds::PLAYER_COUGH), VOL_NORM, ATTN_STATIC, 0, UTIL_Random(92, 116));
+				if (auto const iIndex = pPlayer->entindex(); rgflTimeNextCough[iIndex] < gpGlobals->time)
+				{
+					rgflTimeNextCough[iIndex] = gpGlobals->time + UTIL_Random(3.f, 3.5f);
+					g_engfuncs.pfnEmitSound(pPlayer->edict(), CHAN_AUTO, UTIL_GetRandomOne(Sounds::PLAYER_COUGH), VOL_NORM, ATTN_STATIC, 0, UTIL_Random(92, 116));
+				}
+			}
+
+			if (bIsToxic && pPlayer->pev->takedamage != DAMAGE_NO)
+			{
+				if (auto const iIndex = pPlayer->entindex(); rgflTimeNextInhale[iIndex] < gpGlobals->time)
+				{
+					rgflTimeNextInhale[iIndex] = gpGlobals->time + UTIL_Random(1.5f, 2.5f);
+					pPlayer->TakeDamage(pevWorld, pevWorld, 5.f, DMG_POISON);
+				}
 			}
 		}
 
@@ -927,7 +932,7 @@ Task CFuelAirCloud::Task_AirPressure() noexcept
 			rgflPressureCenter[2]
 		);
 
-		for (CBasePlayer *pPlayer : Query::all_alive_player())
+		for (CBasePlayer *pPlayer : Query::all_living_players())
 		{
 			vecDir = vecPressureCenter - pPlayer->pev->origin;
 			flDistance = vecDir.Length();
@@ -989,7 +994,7 @@ Task CFuelAirCloud::Task_PlayerSuffocation(CBasePlayer *pPlayer, entvars_t *pevW
 		co_await float(0.77 - flTimeDelta);
 	}
 
-	for (; pPlayer->m_iFOV != 90 && pPlayer->IsAlive();)
+	for (; pPlayer->m_iFOV < 90 && pPlayer->IsAlive();)
 	{
 		co_await UTIL_GetRandomOne(TaskScheduler::NextFrame::Rank);
 		++pPlayer->m_iFOV;
@@ -1002,10 +1007,37 @@ Task CFuelAirCloud::Task_GlobalSuffocation() noexcept
 {
 	auto const StartingTime = std::chrono::high_resolution_clock::now();
 
-	std::ranges::for_each(Query::all_alive_player(), ApplySuffocation);
+	std::ranges::for_each(Query::all_living_players(), ApplySuffocation);
 
 	auto const CurTime = std::chrono::high_resolution_clock::now();
 	auto const flTimeDelta = std::chrono::duration_cast<std::chrono::nanoseconds>(CurTime - StartingTime).count() / 1'000'000'000.0;
 
 	co_await float(12.5 - flTimeDelta);	// 13 is the length of audio file Sounds::PLAYER_HB_AND_ER
+}
+
+void CFuelAirCloud::OnTraceAttack(TraceResult const &tr, EHANDLE<CBaseEntity> pSkippedEntity) noexcept
+{
+	auto const pPlayer = pSkippedEntity.As<CBasePlayer>();
+
+	[[unlikely]]
+	if (pPlayer == nullptr)
+		return;
+
+	// Kick off all invalid clouds, especially after map reload.
+	s_rgpAeroClouds.remove_if(
+		[](EHANDLE<CFuelAirCloud> const &pCloud) noexcept -> bool { return !static_cast<bool>(pCloud); }
+	);
+
+	if (s_rgpAeroClouds.empty())
+		return;
+
+	for (auto &&pCloud : s_rgpAeroClouds |
+		std::views::filter([](EHANDLE<CFuelAirCloud> const &pCloud) noexcept -> bool { return !pCloud->m_bIgnited; }) |
+
+		// Both the bullet and muzzle fire ignites the gas.
+		std::views::filter([&](EHANDLE<CFuelAirCloud> const &pCloud) noexcept -> bool { return ((tr.vecEndPos + tr.vecPlaneNormal * 24.0) - pCloud->pev->origin).LengthSquared() < (72.0 * 72.0) || (pPlayer->pev->origin - pCloud->pev->origin).LengthSquared() < (72.0 * 72.0); })
+		)
+	{
+		pCloud->Ignite();
+	}
 }
