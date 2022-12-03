@@ -714,12 +714,12 @@ LAB_CO_RETURN:;
 
 Task CFuelAirExplosive::Task_StopSoundAndRemove() noexcept
 {
-	if (!m_bReleasingGas)
-		goto LAB_JUST_REMOVE;
+	if (!m_bTouched)
+		g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, Sounds::CLUSTER_BOMB_DROP, VOL_NORM, 0, SND_STOP, UTIL_Random(92, 112));	// stop the flying sound!!
 
-	g_engfuncs.pfnEmitAmbientSound(edict(), pev->origin, Sounds::FuelAirBomb::GAS_LEAK_LOOP, VOL_NORM, ATTN_NORM, SND_STOP, UTIL_Random(92, 112));
+	if (m_bReleasingGas)
+		g_engfuncs.pfnEmitAmbientSound(edict(), pev->origin, Sounds::FuelAirBomb::GAS_LEAK_LOOP, VOL_NORM, ATTN_NORM, SND_STOP, UTIL_Random(92, 112));
 
-LAB_JUST_REMOVE:;
 	co_await TaskScheduler::NextFrame::Rank.back();
 	pev->flags |= FL_KILLME;
 }
@@ -756,6 +756,8 @@ void CFuelAirExplosive::Spawn() noexcept
 
 void CFuelAirExplosive::Touch(CBaseEntity *pOther) noexcept
 {
+	m_bTouched = true;
+	g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, Sounds::CLUSTER_BOMB_DROP, VOL_NORM, 0, SND_STOP, UTIL_Random(92, 112));
 	g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, UTIL_GetRandomOne(Sounds::EXPLOSION_SHORT), VOL_NORM, 0, 0, UTIL_Random(92, 112));
 	g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, UTIL_GetRandomOne(Sounds::HIT_METAL), VOL_NORM, ATTN_NORM, 0, UTIL_Random(92, 112));
 

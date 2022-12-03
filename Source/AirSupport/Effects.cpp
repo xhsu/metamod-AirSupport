@@ -1070,6 +1070,10 @@ void CFuelAirCloud::OnTraceAttack(TraceResult const &tr, EHANDLE<CBaseEntity> pS
 		{
 			auto const pEdict = Prefab_t::Create<CSparkSpr>(tr.vecEndPos)->edict();
 			g_engfuncs.pfnEmitSound(pEdict, CHAN_STATIC, UTIL_GetRandomOne(Sounds::HIT_METAL), VOL_NORM, ATTN_NORM, 0, UTIL_Random(96, 108));
+
+			Angles vecAngles{};
+			g_engfuncs.pfnVecToAngles(-tr.vecPlaneNormal, vecAngles);
+			Prefab_t::Create<CSparkMdl>(tr.vecEndPos, vecAngles);
 		}
 		else if ((pPlayer->pev->origin - pCloud->pev->origin).LengthSquared() < (72.0 * 72.0))
 		{

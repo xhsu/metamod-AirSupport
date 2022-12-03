@@ -93,5 +93,5 @@ export struct CFuelAirExplosive : public Prefab_t
 
 	CBasePlayer *m_pPlayer{};
 	std::list<EHANDLE<CFuelAirCloud>> m_rgpCloud{};
-	bool m_bReleasingGas{ false }, m_bGasAllOut{ false };
+	bool m_bReleasingGas{ false }, m_bGasAllOut{ false }, m_bTouched{ false };
 };
