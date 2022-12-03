@@ -506,8 +506,7 @@ Task CBullet::Task_Touch() noexcept
 	}
 
 	Angles vecAngles{};
-	g_engfuncs.pfnVecToAngles(tr.vecPlaneNormal, vecAngles);
-	vecAngles.pitch += 270.f;	// it seems like all MDL requires a += 270 shift.
+	g_engfuncs.pfnVecToAngles(-tr.vecPlaneNormal, vecAngles);	// netagive is due to we want to rotate the "front" of that model towards into the surface it hits.
 
 	Prefab_t::Create<CSparkMdl>(tr.vecEndPos, vecAngles);
 	Prefab_t::Create<CGroundedDust>(tr.vecEndPos);
@@ -690,6 +689,12 @@ Task CFuelAirExplosive::Task_GasPropagate() noexcept
 		++iCounter;
 	}
 
+	// all the gases are out.
+	g_engfuncs.pfnEmitAmbientSound(edict(), pev->origin, Sounds::FuelAirBomb::GAS_LEAK_LOOP, VOL_NORM, ATTN_NORM, SND_STOP, UTIL_Random(92, 112));
+	g_engfuncs.pfnEmitAmbientSound(edict(), pev->origin, Sounds::FuelAirBomb::GAS_LEAK_FADEOUT, VOL_NORM, ATTN_NORM, 0, UTIL_Random(92, 112));
+	m_bReleasingGas = false;
+	m_bGasAllOut = true;
+
 LAB_WAIT_FOR_FADE_IN:;
 	for (auto &&pCloud : m_rgpCloud)
 	{
@@ -703,23 +708,19 @@ LAB_WAIT_FOR_FADE_IN:;
 			goto LAB_WAIT_FOR_FADE_IN;
 	}
 
-	Prefab_t::Create<CSparkSpr>(pev->origin + Vector(UTIL_Random(-96.0, 96.0), UTIL_Random(-96.0, 96.0), UTIL_Random(48.0, 64.0)));
-
 LAB_CO_RETURN:;
-	m_Scheduler.Enroll(Task_StopSoundAndRemove());
+	TakeDamage(pev, pev, 1.f, DMG_SHOCK);
 }
 
 Task CFuelAirExplosive::Task_StopSoundAndRemove() noexcept
 {
-	if (!m_bReleasingGas)
-		goto LAB_JUST_REMOVE;
+	if (!m_bTouched)
+		g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, Sounds::CLUSTER_BOMB_DROP, VOL_NORM, 0, SND_STOP, UTIL_Random(92, 112));	// stop the flying sound!!
 
-	g_engfuncs.pfnEmitAmbientSound(edict(), pev->origin, Sounds::FuelAirBomb::GAS_LEAK_LOOP, VOL_NORM, ATTN_NORM, SND_STOP, UTIL_Random(92, 112));
-	//g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, Sounds::FuelAirBomb::GAS_LEAK_FADEOUT, VOL_NORM, ATTN_NORM, 0, UTIL_Random(92, 112));
+	if (m_bReleasingGas)
+		g_engfuncs.pfnEmitAmbientSound(edict(), pev->origin, Sounds::FuelAirBomb::GAS_LEAK_LOOP, VOL_NORM, ATTN_NORM, SND_STOP, UTIL_Random(92, 112));
 
-	co_await 1.2f;
-
-LAB_JUST_REMOVE:;
+	co_await TaskScheduler::NextFrame::Rank.back();
 	pev->flags |= FL_KILLME;
 }
 
@@ -755,7 +756,10 @@ void CFuelAirExplosive::Spawn() noexcept
 
 void CFuelAirExplosive::Touch(CBaseEntity *pOther) noexcept
 {
+	m_bTouched = true;
+	g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, Sounds::CLUSTER_BOMB_DROP, VOL_NORM, 0, SND_STOP, UTIL_Random(92, 112));
 	g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, UTIL_GetRandomOne(Sounds::EXPLOSION_SHORT), VOL_NORM, 0, 0, UTIL_Random(92, 112));
+	g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, UTIL_GetRandomOne(Sounds::HIT_METAL), VOL_NORM, ATTN_NORM, 0, UTIL_Random(92, 112));
 
 	pev->velocity = Vector::Zero();
 	pev->gravity = 0;
@@ -767,19 +771,31 @@ void CFuelAirExplosive::Touch(CBaseEntity *pOther) noexcept
 	g_engfuncs.pfnTraceMonsterHull(edict(), pev->origin + Vector(0, 0, 24), pev->origin, ignore_monsters | ignore_glass, nullptr, &tr);
 	g_engfuncs.pfnSetOrigin(edict(), tr.vecEndPos);
 
-	g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, UTIL_GetRandomOne(Sounds::HIT_METAL), VOL_NORM, ATTN_NORM, 0, UTIL_Random(92, 112));
+	Impact(m_pPlayer, this, 180.f);
 
 	m_Scheduler.Enroll(Task_GasPropagate());
 }
 
 void CFuelAirExplosive::TraceAttack(entvars_t *pevAttacker, float flDamage, Vector vecDir, TraceResult *ptr, int bitsDamageType) noexcept
 {
-	// Only one of these can trigger.
-	if (!(bitsDamageType & (DMG_BULLET | DMG_SLASH | DMG_CLUB | DMG_BURN | DMG_SHOCK | DMG_ENERGYBEAM | DMG_SLOWBURN | DMG_BLAST | DMG_EXPLOSION)))
-		return;
-
 	// Because if there are gas surrounding, the CFuelAirCloud::OnTraceAttack() fn will create one already.
 	Prefab_t::Create<CSparkSpr>(ptr->vecEndPos);
+
+	Angles vecAngles{};
+	g_engfuncs.pfnVecToAngles(-ptr->vecPlaneNormal, vecAngles);
+	Prefab_t::Create<CSparkMdl>(ptr->vecEndPos, vecAngles);
+
+	TakeDamage(nullptr, pevAttacker, flDamage, bitsDamageType);
+}
+
+qboolean CFuelAirExplosive::TakeDamage(entvars_t *pevInflictor, entvars_t *pevAttacker, float flDamage, int bitsDamageType) noexcept
+{
+	// Only one of these can trigger.
+	if (!(bitsDamageType & (DMG_BULLET | DMG_SLASH | DMG_CLUB | DMG_BURN | DMG_SHOCK | DMG_ENERGYBEAM | DMG_SLOWBURN | DMG_BLAST | DMG_EXPLOSION)))
+		return false;
+
+	// Therefore preventing inf loop
+	pev->takedamage = DAMAGE_NO;
 
 	static constexpr auto SCALE = 3;
 	auto const vecExplo = pev->origin + Vector::Up() * 120 * SCALE;
@@ -795,10 +811,27 @@ void CFuelAirExplosive::TraceAttack(entvars_t *pevAttacker, float flDamage, Vect
 	pev->effects = EF_NODRAW;
 	UTIL_ExplodeModel(Vector(pev->origin.x, pev->origin.y, pev->absmax.z), 700.f, Models::m_rgLibrary[Models::GIBS_METAL], UTIL_Random(4, 6), UTIL_Random(10.f, 15.f));
 
+	Prefab_t::Create<CSparkSpr>(
+		Vector(
+			UTIL_Random(pev->absmin.x, pev->absmax.x),
+			UTIL_Random(pev->absmin.y, pev->absmax.y),
+			UTIL_Random(pev->absmin.z, pev->absmax.z)
+		)
+	);
+
+	// Huge-o-explo will only occurs when the gas isn't out.
+	if (!m_bGasAllOut)
+	{
+		g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, UTIL_GetRandomOne(Sounds::EXPLOSION_BIG), VOL_NORM, ATTN_NONE, 0, UTIL_Random(92, 112));
+
+		// Potential self-damaging, and cause inf-loop
+		RangeDamage(m_pPlayer, pev->origin, 128.f * SCALE, 750.f);
+	}
+
 	g_engfuncs.pfnEmitSound(edict(), CHAN_BODY, UTIL_GetRandomOne(Sounds::HIT_METAL), VOL_NORM, ATTN_NORM, 0, UTIL_Random(92, 112));
-	g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, UTIL_GetRandomOne(Sounds::EXPLOSION_BIG), VOL_NORM, ATTN_NONE, 0, UTIL_Random(92, 112));
 
 	m_Scheduler.Enroll(Task_StopSoundAndRemove());
+	return true;
 }
 
 CFuelAirExplosive *CFuelAirExplosive::Create(CBasePlayer *pPlayer, Vector const &vecOrigin) noexcept

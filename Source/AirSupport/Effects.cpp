@@ -8,6 +8,7 @@ import util;
 
 import Effects;
 import Math;
+import Projectile;
 import Query;
 import Resources;
 
@@ -1008,11 +1009,10 @@ Task CFuelAirCloud::Task_PlayerSuffocation(CBasePlayer *pPlayer, entvars_t *pevW
 		);
 
 		int const iFOV = (i % 2) ? UTIL_Random(74, 79) : UTIL_Random(80, 85);
-		int const iFOVDelta = iFOV - pPlayer->m_iFOV;
 
 		for (; pPlayer->m_iFOV != iFOV && pPlayer->IsAlive();)
 		{
-			(iFOVDelta > 0) ? ++pPlayer->m_iFOV : --pPlayer->m_iFOV;
+			((iFOV - pPlayer->m_iFOV) > 0) ? ++pPlayer->m_iFOV : --pPlayer->m_iFOV;	// don't make the FOV-delta a constant and only eval once. It could cause compatibility issue.
 
 			co_await TaskScheduler::NextFrame::Rank.back();
 		}
@@ -1060,6 +1060,9 @@ void CFuelAirCloud::OnTraceAttack(TraceResult const &tr, EHANDLE<CBaseEntity> pS
 	if (s_rgpAeroClouds.empty())
 		return;
 
+	if (auto pHitEntity = EHANDLE<CBaseEntity>(tr.pHit); pHitEntity.Is<CFuelAirExplosive>())
+		return;
+
 	for (auto &&pCloud : s_rgpAeroClouds |
 		std::views::filter([](EHANDLE<CFuelAirCloud> const &pCloud) noexcept -> bool { return !pCloud->m_bIgnited; }))
 	{
@@ -1067,6 +1070,10 @@ void CFuelAirCloud::OnTraceAttack(TraceResult const &tr, EHANDLE<CBaseEntity> pS
 		{
 			auto const pEdict = Prefab_t::Create<CSparkSpr>(tr.vecEndPos)->edict();
 			g_engfuncs.pfnEmitSound(pEdict, CHAN_STATIC, UTIL_GetRandomOne(Sounds::HIT_METAL), VOL_NORM, ATTN_NORM, 0, UTIL_Random(96, 108));
+
+			Angles vecAngles{};
+			g_engfuncs.pfnVecToAngles(-tr.vecPlaneNormal, vecAngles);
+			Prefab_t::Create<CSparkMdl>(tr.vecEndPos, vecAngles);
 		}
 		else if ((pPlayer->pev->origin - pCloud->pev->origin).LengthSquared() < (72.0 * 72.0))
 		{

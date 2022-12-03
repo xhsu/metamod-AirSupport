@@ -87,10 +87,11 @@ export struct CFuelAirExplosive : public Prefab_t
 	void Spawn() noexcept override;
 	void Touch(CBaseEntity *pOther) noexcept override;
 	void TraceAttack(entvars_t *pevAttacker, float flDamage, Vector vecDir, TraceResult *ptr, int bitsDamageType) noexcept override;
+	qboolean TakeDamage(entvars_t *pevInflictor, entvars_t *pevAttacker, float flDamage, int bitsDamageType) noexcept override;
 
 	static CFuelAirExplosive *Create(CBasePlayer *pPlayer, Vector const &vecOrigin) noexcept;
 
 	CBasePlayer *m_pPlayer{};
 	std::list<EHANDLE<CFuelAirCloud>> m_rgpCloud{};
-	bool m_bReleasingGas{};
+	bool m_bReleasingGas{ false }, m_bGasAllOut{ false }, m_bTouched{ false };
 };
