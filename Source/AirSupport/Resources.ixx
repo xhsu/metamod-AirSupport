@@ -1,3 +1,5 @@
+#define CONSERVE_SFX_RES_SLOT
+
 export module Resources;
 
 export import <array>;
@@ -90,8 +92,6 @@ export namespace Sounds
 
 	inline constexpr char TRAVEL[] = "weapons/cruise_missile_travel_02.wav";
 
-	inline constexpr char AMBIENT_FIRE[] = "ambience/fire_loop_1.wav";
-
 	inline constexpr char PLAYER_BREATHE[] = "misc/breathe.wav";
 	inline constexpr char PLAYER_EAR_RINGING[] = "misc/earring.wav";
 	inline constexpr char PLAYER_HEARTBEAT[] = "misc/heartbeat.wav";
@@ -102,10 +102,12 @@ export namespace Sounds
 		"misc/cough1.wav",
 		"misc/cough2.wav",
 		"misc/cough3.wav",
+#ifndef CONSERVE_SFX_RES_SLOT
 		"misc/cough4.wav",
 		"misc/cough5.wav",
 		"misc/cough6.wav",
 		"misc/cough7.wav",
+#endif
 	};
 
 	inline constexpr array EXPLOSION =
@@ -113,19 +115,23 @@ export namespace Sounds
 		"airsupport/explode/explode_near_1.wav",
 		"airsupport/explode/explode_near_2.wav",
 		"airsupport/explode/explode_near_3.wav",
+#ifndef CONSERVE_SFX_RES_SLOT
 		"airsupport/explode/explode_near_4.wav",
 		"airsupport/explode/explode_near_5.wav",
 		"airsupport/explode/explode_near_6.wav",
 		"airsupport/explode/explode_near_7.wav",
 		"airsupport/explode/explode_near_8.wav",
+#endif
 	};
 
 	inline constexpr array EXPLOSION_SHORT =
 	{
 		"airsupport/explode/m67_detonate_01.wav",
 		"airsupport/explode/m67_detonate_02.wav",
+#ifndef CONSERVE_SFX_RES_SLOT
 		"airsupport/explode/m67_detonate_03.wav",
 		"airsupport/explode/m67_detonate_04.wav",
+#endif
 	};
 
 	inline constexpr array JET =
@@ -133,6 +139,7 @@ export namespace Sounds
 		"airsupport/jet/jet_short_1.wav",
 		"airsupport/jet/jet_short_2.wav",
 		"airsupport/jet/jet_short_3.wav",
+#ifndef CONSERVE_SFX_RES_SLOT
 		"airsupport/jet/jet_short_4.wav",
 		"airsupport/jet/jet_short_5.wav",
 		"airsupport/jet/jet_short_6.wav",
@@ -142,24 +149,29 @@ export namespace Sounds
 		"airsupport/jet/jet_short_10.wav",
 		"airsupport/jet/jet_short_11.wav",
 		"airsupport/jet/jet_short_12.wav",
+#endif
 	};
 
 	inline constexpr array WHIZZ =
 	{
 		"misc/whizz1.wav",
 		"misc/whizz2.wav",
+#ifndef CONSERVE_SFX_RES_SLOT
 		"misc/whizz3.wav",
 		"misc/whizz4.wav",
 		"misc/whizz5.wav",
+#endif
 	};
 
 	inline constexpr array BOMBER =
 	{
 		"airsupport/bomber/b1b_01.wav",
 		"airsupport/bomber/b1b_02.wav",
+#ifndef CONSERVE_SFX_RES_SLOT
 		"airsupport/bomber/b1b_03.wav",
 		"airsupport/bomber/b1b_04.wav",
 		"airsupport/bomber/b1b_05.wav",
+#endif
 	};
 
 	inline constexpr array HIT_METAL =
@@ -167,9 +179,11 @@ export namespace Sounds
 		"debris/metal1.wav",
 		"debris/metal2.wav",
 		"debris/metal3.wav",
+#ifndef CONSERVE_SFX_RES_SLOT
 		"debris/metal4.wav",
 		"debris/metal5.wav",
 		"debris/metal6.wav",
+#endif
 	};
 
 	inline constexpr array EXPLOSION_BIG =
@@ -201,9 +215,11 @@ export namespace Sounds
 			"airsupport/radio/ns_gst_inform_killfirm_generic_02_R.wav",
 			"airsupport/radio/ns_gst_inform_killfirm_generic_04_R.wav",
 			"airsupport/radio/ns_gst_inform_killfirm_generic_05_R.wav",
+#ifndef CONSERVE_SFX_RES_SLOT
 			"airsupport/radio/ac130_fco_goodkill_01.wav",
 			"airsupport/radio/ac130_fco_hotdamn3_02.wav",
 			"airsupport/radio/vo_mp_announcer_english_en_40.wav",
+#endif
 		};
 		inline constexpr char NOISE_PILOT[] = "airsupport/radio/radio_pilot.wav";
 		inline constexpr array AC130_FIRE_25MM =
@@ -231,8 +247,10 @@ export namespace Sounds
 			"airsupport/radio/ac130_fco_rightthere_02.wav",
 			"airsupport/radio/ac130_fco_takehimout_01.wav",
 			"airsupport/radio/ac130_fco_tracking_01.wav",
+#ifndef CONSERVE_SFX_RES_SLOT
 			"airsupport/radio/ac130_plt_targetreset_01.wav",
 			"airsupport/radio/vo_mp_announcer_english_en_24.wav",
+#endif
 		};
 		inline constexpr char TARGET_RAN_TO_COVER[] = "airsupport/radio/ac130_tvo_coverbywall1_01.wav";
 	}

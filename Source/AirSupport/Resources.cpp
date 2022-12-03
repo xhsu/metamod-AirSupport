@@ -31,11 +31,9 @@ void Precache(void) noexcept
 
 	g_engfuncs.pfnPrecacheSound(Sounds::TRAVEL);
 
-	g_engfuncs.pfnPrecacheSound(Sounds::AMBIENT_FIRE);
-
-	g_engfuncs.pfnPrecacheSound(Sounds::PLAYER_BREATHE);
+	//g_engfuncs.pfnPrecacheSound(Sounds::PLAYER_BREATHE);
 	g_engfuncs.pfnPrecacheSound(Sounds::PLAYER_EAR_RINGING);
-	g_engfuncs.pfnPrecacheSound(Sounds::PLAYER_HEARTBEAT);
+	//g_engfuncs.pfnPrecacheSound(Sounds::PLAYER_HEARTBEAT);
 	g_engfuncs.pfnPrecacheSound(Sounds::PLAYER_HB_AND_ER);
 
 	std::ranges::for_each(Sounds::PLAYER_COUGH, g_engfuncs.pfnPrecacheSound);
