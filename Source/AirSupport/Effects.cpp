@@ -11,6 +11,7 @@ import Math;
 import Projectile;
 import Query;
 import Resources;
+import Target;
 
 import UtlRandom;
 
@@ -819,6 +820,14 @@ Task CFuelAirCloud::Task_EmitLight(void) noexcept
 	}
 }
 
+Task CFuelAirCloud::Task_TimeOut(void) noexcept
+{
+	co_await 60.f;
+
+	m_Scheduler.Delist(TASK_FADE_IN);
+	m_Scheduler.Enroll(Task_FadeOut(pev, 0.06f, 0.07f), TASK_FADE_OUT);
+}
+
 void CFuelAirCloud::Spawn() noexcept
 {
 	pev->rendermode = kRenderTransAdd;
@@ -838,6 +847,7 @@ void CFuelAirCloud::Spawn() noexcept
 
 	m_Scheduler.Enroll(Task_SpriteLoop(pev, FRAME_COUNT, FPS), TASK_ANIMATION);	// This should be removed as well, we are not going to loop on flame SPR.
 	m_Scheduler.Enroll(Task_FadeIn(0.05f, 32.f, 0.07f), TASK_FADE_IN);
+	m_Scheduler.Enroll(Task_TimeOut(), TASK_TIME_OUT);
 
 	s_rgpAeroClouds.emplace_back(this);
 }
@@ -948,7 +958,7 @@ Task CFuelAirCloud::Task_AirPressure() noexcept
 			[](EHANDLE<CFuelAirCloud> const &pCloud) noexcept -> Vector const &{ return pCloud->pev->origin; }
 		);
 
-		if (iIgnitedCount <= 0)
+		if (iIgnitedCount < 10)
 			continue;
 
 		// equiv of 'vec /= fl'
@@ -1074,6 +1084,8 @@ void CFuelAirCloud::OnTraceAttack(TraceResult const &tr, EHANDLE<CBaseEntity> pS
 			Angles vecAngles{};
 			g_engfuncs.pfnVecToAngles(-tr.vecPlaneNormal, vecAngles);
 			Prefab_t::Create<CSparkMdl>(tr.vecEndPos, vecAngles);
+
+			pCloud->Ignite();
 		}
 		else if ((pPlayer->pev->origin - pCloud->pev->origin).LengthSquared() < (72.0 * 72.0))
 		{
@@ -1083,6 +1095,8 @@ void CFuelAirCloud::OnTraceAttack(TraceResult const &tr, EHANDLE<CBaseEntity> pS
 
 			auto const pEdict = Prefab_t::Create<CSparkSpr>(vecAttachmentPos)->edict();
 			g_engfuncs.pfnEmitSound(pEdict, CHAN_STATIC, UTIL_GetRandomOne(Sounds::HIT_METAL), VOL_NORM, ATTN_NORM, 0, UTIL_Random(96, 108));
+
+			pCloud->Ignite();
 		}
 	}
 }

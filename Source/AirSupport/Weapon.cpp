@@ -9,6 +9,7 @@ import Jet;
 import Localization;
 import Menu;
 import Projectile;
+import Query;
 import Resources;
 import Target;
 import Task;
@@ -95,7 +96,7 @@ qboolean __fastcall HamF_Item_Deploy(CBasePlayerItem *pItem, int) noexcept
 
 	if (pThis->pev->weapons == RADIO_KEY)
 	{
-		TaskScheduler::Enroll(Weapon::Task_RadioDeploy(pThis));
+		TaskScheduler::Enroll(Weapon::Task_RadioDeploy(pThis), UTIL_CombineTaskAndPlayerIndex(TASK_RADIO_DEPLOY, pThis->m_pPlayer->entindex()));
 		return true;
 	}
 
@@ -116,6 +117,8 @@ void __fastcall HamF_Item_PostFrame(CBasePlayerItem *pItem, int) noexcept
 
 	if (pThis->m_pPlayer->m_afButtonPressed & IN_ATTACK) [[unlikely]]
 	{
+		uint64_t const iPlayer = pThis->m_pPlayer->entindex();
+
 		switch (g_rgiAirSupportSelected[pThis->m_pPlayer->entindex()])
 		{
 		case CARPET_BOMBARDMENT:
@@ -135,28 +138,32 @@ void __fastcall HamF_Item_PostFrame(CBasePlayerItem *pItem, int) noexcept
 			[[fallthrough]];
 
 		default:
+			auto const bAccepted = (DYN_TARGET(pThis)->v.skin == Models::targetmdl::SKIN_GREEN);
+
 			TaskScheduler::Enroll(
-				(DYN_TARGET(pThis)->v.skin == Models::targetmdl::SKIN_GREEN) ?
-				Weapon::Task_RadioAccepted(pThis) : Weapon::Task_RadioRejected(pThis)
+				bAccepted ? Weapon::Task_RadioAccepted(pThis) : Weapon::Task_RadioRejected(pThis),
+				UTIL_CombineTaskAndPlayerIndex(bAccepted ? TASK_RADIO_ACCEPTED : TASK_RADIO_REJECTED, iPlayer)
 			);
 			break;
 		}
 	}
 	else if (pThis->m_pPlayer->m_afButtonReleased & IN_ATTACK) [[unlikely]]
 	{
+		uint64_t const iPlayer = pThis->m_pPlayer->entindex();
+
 		switch (g_rgiAirSupportSelected[pThis->m_pPlayer->entindex()])
 		{
 		case CARPET_BOMBARDMENT:
 		{
 			if (DYN_TARGET(pThis)->v.skin != Models::targetmdl::SKIN_GREEN)
 			{
-				TaskScheduler::Enroll(Weapon::Task_RadioRejected(pThis));
+				TaskScheduler::Enroll(Weapon::Task_RadioRejected(pThis), UTIL_CombineTaskAndPlayerIndex(TASK_RADIO_REJECTED, iPlayer));
 
 				auto const pTarget = (CDynamicTarget *)DYN_TARGET(pThis)->pvPrivateData;
 				pTarget->DisableBeacons();
 			}
 			else
-				TaskScheduler::Enroll(Weapon::Task_RadioAccepted(pThis));
+				TaskScheduler::Enroll(Weapon::Task_RadioAccepted(pThis), UTIL_CombineTaskAndPlayerIndex(TASK_RADIO_ACCEPTED, iPlayer));
 		}
 			break;
 
@@ -365,6 +372,19 @@ extern "C++" namespace Weapon
 		{
 			DYN_TARGET(pThis)->v.flags |= FL_KILLME;
 			DYN_TARGET(pThis) = nullptr;
+		}
+
+		if (TaskScheduler::Delist(UTIL_CombineTaskAndPlayerIndex(TASK_RADIO_ACCEPTED, pThis->m_pPlayer->entindex())) > 0)
+		{
+			for (CFixedTarget *pFixedTarget :
+				FIND_ENTITY_BY_CLASSNAME(CFixedTarget::CLASSNAME) | Query::as<CFixedTarget>() |
+				std::views::filter([&](CFixedTarget *p) noexcept { return p->m_pPlayer == pThis->m_pPlayer; }) |	// Called by this player
+				std::views::filter([&](CFixedTarget *p) noexcept { return !p->m_Scheduler.Exist(TASK_ACTION); })	// Not yet activated.
+				)
+			{
+				pFixedTarget->pev->flags |= FL_KILLME;
+				gmsgTextMsg::Send(pThis->m_pPlayer->edict(), 4, Localization::REJECT_TIME_OUT);
+			}
 		}
 
 		// Resume shield protection

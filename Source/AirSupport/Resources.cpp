@@ -2,12 +2,22 @@ import <algorithm>;
 
 import Resources;
 
+void PrecacheModel(const char *psz) noexcept
+{
+	Models::m_rgLibrary[psz] = g_engfuncs.pfnPrecacheModel(psz);
+}
+
+void PrecacheSprite(const char *psz) noexcept
+{
+	Sprites::m_rgLibrary[psz] = g_engfuncs.pfnPrecacheModel(psz);
+}
+
 void Precache(void) noexcept
 {
 	// Models
 
-	std::ranges::for_each(Models::PLANE, g_engfuncs.pfnPrecacheModel);
-	std::ranges::for_each(Models::PROJECTILE, g_engfuncs.pfnPrecacheModel);
+	std::ranges::for_each(Models::PLANE, PrecacheModel);
+	Models::m_rgLibrary[Models::PROJECTILE] = g_engfuncs.pfnPrecacheModel(Models::PROJECTILE);
 
 	Models::m_rgLibrary[Models::V_RADIO] = g_engfuncs.pfnPrecacheModel(Models::V_RADIO);
 	Models::m_rgLibrary[Models::P_RADIO] = g_engfuncs.pfnPrecacheModel(Models::P_RADIO);

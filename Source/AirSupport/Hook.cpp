@@ -309,6 +309,127 @@ void fw_PlayerPostThink(edict_t *pEntity) noexcept
 	// pre
 }
 
+int fw_PrecacheSound(const char *s) noexcept
+{
+	static constexpr std::array rgszRemoveSoundsPrecache =
+	{
+		"items/suitcharge1.wav",
+		"items/suitchargeno1.wav",
+		"items/suitchargeok1.wav",
+		"player/geiger6.wav",
+		"player/geiger5.wav",
+		"player/geiger4.wav",
+		"player/geiger3.wav",
+		"player/geiger2.wav",
+		"player/geiger1.wav",
+		"weapons/bullet_hit1.wav",
+		"weapons/bullet_hit2.wav",
+		"items/weapondrop1.wav",
+		"weapons/generic_reload.wav",
+		"buttons/bell1.wav",
+		"buttons/blip1.wav",
+		"buttons/blip2.wav",
+		"buttons/button11.wav",
+		"buttons/latchunlocked2.wav",
+		"buttons/lightswitch2.wav",
+		"ambience/quail1.wav",
+		"events/tutor_msg.wav",
+		"events/enemy_died.wav",
+		"events/friend_died.wav",
+		"events/task_complete.wav",
+		"weapons/ak47_clipout.wav",
+		"weapons/ak47_clipin.wav",
+		"weapons/ak47_boltpull.wav",
+		"weapons/aug_clipout.wav",
+		"weapons/aug_clipin.wav",
+		"weapons/aug_boltpull.wav",
+		"weapons/aug_boltslap.wav",
+		"weapons/aug_forearm.wav",
+		"weapons/c4_click.wav",
+		"weapons/c4_beep1.wav",
+		"weapons/c4_beep2.wav",
+		"weapons/c4_beep3.wav",
+		"weapons/c4_beep4.wav",
+		"weapons/c4_beep5.wav",
+		"weapons/c4_explode1.wav",
+		"weapons/c4_plant.wav",
+		"weapons/c4_disarm.wav",
+		"weapons/c4_disarmed.wav",
+		"weapons/elite_reloadstart.wav",
+		"weapons/elite_leftclipin.wav",
+		"weapons/elite_clipout.wav",
+		"weapons/elite_sliderelease.wav",
+		"weapons/elite_rightclipin.wav",
+		"weapons/elite_deploy.wav",
+		"weapons/famas_clipout.wav",
+		"weapons/famas_clipin.wav",
+		"weapons/famas_boltpull.wav",
+		"weapons/famas_boltslap.wav",
+		"weapons/famas_forearm.wav",
+		"weapons/g3sg1_slide.wav",
+		"weapons/g3sg1_clipin.wav",
+		"weapons/g3sg1_clipout.wav",
+		"weapons/galil_clipout.wav",
+		"weapons/galil_clipin.wav",
+		"weapons/galil_boltpull.wav",
+		"weapons/m4a1_clipin.wav",
+		"weapons/m4a1_clipout.wav",
+		"weapons/m4a1_boltpull.wav",
+		"weapons/m4a1_deploy.wav",
+		"weapons/m4a1_silencer_on.wav",
+		"weapons/m4a1_silencer_off.wav",
+		"weapons/m249_boxout.wav",
+		"weapons/m249_boxin.wav",
+		"weapons/m249_chain.wav",
+		"weapons/m249_coverup.wav",
+		"weapons/m249_coverdown.wav",
+		"weapons/mac10_clipout.wav",
+		"weapons/mac10_clipin.wav",
+		"weapons/mac10_boltpull.wav",
+		"weapons/mp5_clipout.wav",
+		"weapons/mp5_clipin.wav",
+		"weapons/mp5_slideback.wav",
+		"weapons/p90_clipout.wav",
+		"weapons/p90_clipin.wav",
+		"weapons/p90_boltpull.wav",
+		"weapons/p90_cliprelease.wav",
+		"weapons/p228_clipout.wav",
+		"weapons/p228_clipin.wav",
+		"weapons/p228_sliderelease.wav",
+		"weapons/p228_slidepull.wav",
+		"weapons/scout_bolt.wav",
+		"weapons/scout_clipin.wav",
+		"weapons/scout_clipout.wav",
+		"weapons/sg550_boltpull.wav",
+		"weapons/sg550_clipin.wav",
+		"weapons/sg550_clipout.wav",
+		"weapons/sg552_clipout.wav",
+		"weapons/sg552_clipin.wav",
+		"weapons/sg552_boltpull.wav",
+		"weapons/ump45_clipout.wav",
+		"weapons/ump45_clipin.wav",
+		"weapons/ump45_boltslap.wav",
+		"weapons/usp_clipout.wav",
+		"weapons/usp_clipin.wav",
+		"weapons/usp_silencer_on.wav",
+		"weapons/usp_silencer_off.wav",
+		"weapons/usp_sliderelease.wav",
+		"weapons/usp_slideback.wav",
+	};
+
+	for (auto &&psz : rgszRemoveSoundsPrecache)
+	{
+		if (!strcmp(s, psz))
+		{
+			gpMetaGlobals->mres = MRES_SUPERCEDE;
+			return 0;
+		}
+	}
+
+	gpMetaGlobals->mres = MRES_IGNORED;
+	return 0;
+}
+
 void fw_TraceLine_Post(const float *v1, const float *v2, int fNoMonsters, edict_t *pentToSkip, TraceResult *ptr) noexcept
 {
 	gpMetaGlobals->mres = MRES_IGNORED;
@@ -593,7 +714,7 @@ int HookGameDLLNewFn(NEW_DLL_FUNCTIONS *pFunctionTable, int *interfaceVersion) n
 inline constexpr enginefuncs_t gHookEngFns = 
 {
 	.pfnPrecacheModel	= nullptr,
-	.pfnPrecacheSound	= nullptr,
+	.pfnPrecacheSound	= &fw_PrecacheSound,
 	.pfnSetModel		= nullptr,
 	.pfnModelIndex		= nullptr,
 	.pfnModelFrames		= nullptr,

@@ -45,4 +45,16 @@ namespace Query
 			std::views::filter([](CBasePlayer *pPlayer) noexcept { return pPlayer->pev->deadflag == DEAD_NO && pPlayer->pev->takedamage != DAMAGE_NO; })
 			;
 	}
+
+	export template <typename T> inline decltype(auto) is(void) noexcept
+	{
+		return
+			std::views::filter([](auto &&ent) noexcept -> bool { return EHANDLE<CBaseEntity>(ent).Is<T>(); });
+	}
+
+	export template <typename T> inline decltype(auto) as(void) noexcept
+	{
+		return
+			std::views::transform([](auto &&ent) noexcept -> T* { return EHANDLE<CBaseEntity>(ent).As<T>(); });
+	}
 }

@@ -85,7 +85,7 @@ Task CPrecisionAirStrike::Task_Trail() noexcept
 void CPrecisionAirStrike::Spawn() noexcept
 {
 	g_engfuncs.pfnSetOrigin(edict(), pev->origin);
-	g_engfuncs.pfnSetModel(edict(), Models::PROJECTILE[AIR_STRIKE]);
+	g_engfuncs.pfnSetModel(edict(), Models::PROJECTILE);
 	g_engfuncs.pfnSetSize(edict(), Vector(-2, -2, -2), Vector(2, 2, 2));
 
 	pev->owner = m_pPlayer->edict();
@@ -93,6 +93,7 @@ void CPrecisionAirStrike::Spawn() noexcept
 	pev->movetype = MOVETYPE_TOSS;
 	pev->velocity = (m_vecTarget - pev->origin).Normalize() * SPEED;
 	g_engfuncs.pfnVecToAngles(pev->velocity, pev->angles);
+	pev->body = AIR_STRIKE;
 
 	MsgPVS(SVC_TEMPENTITY, pev->origin);
 	WriteData(TE_SPRITE);
@@ -302,7 +303,7 @@ Task CClusterBomb::Task_ClusterBomb() noexcept
 void CClusterBomb::Spawn() noexcept
 {
 	g_engfuncs.pfnSetOrigin(edict(), pev->origin);
-	g_engfuncs.pfnSetModel(edict(), Models::PROJECTILE[CLUSTER_BOMB]);
+	g_engfuncs.pfnSetModel(edict(), Models::PROJECTILE);
 	g_engfuncs.pfnSetSize(edict(), Vector(-2, -2, -2), Vector(2, 2, 2));
 
 	pev->owner = m_pPlayer->edict();
@@ -312,6 +313,7 @@ void CClusterBomb::Spawn() noexcept
 	pev->gravity = 1.f;
 	g_engfuncs.pfnVecToAngles(pev->velocity, pev->angles);
 
+	pev->body = CLUSTER_BOMB;
 	pev->effects = EF_DIMLIGHT;
 
 	// This is just a bomb drop. No energy post-apply onto the projectile, therefore no complex VFX.
@@ -448,7 +450,7 @@ Task CCarpetBombardment::Task_Touch() noexcept
 void CCarpetBombardment::Spawn() noexcept
 {
 	g_engfuncs.pfnSetOrigin(edict(), pev->origin);
-	g_engfuncs.pfnSetModel(edict(), Models::PROJECTILE[CARPET_BOMBARDMENT]);
+	g_engfuncs.pfnSetModel(edict(), Models::PROJECTILE);
 	g_engfuncs.pfnSetSize(edict(), Vector(-2, -2, -2), Vector(2, 2, 2));
 
 	pev->owner = m_pPlayer->edict();
@@ -456,6 +458,7 @@ void CCarpetBombardment::Spawn() noexcept
 	pev->movetype = MOVETYPE_TOSS;
 	pev->velocity = Vector::Zero();	// No init speed needed. Gravity is good enough.
 	pev->gravity = UTIL_Random(0.8f, 1.1f);
+	pev->body = CARPET_BOMBARDMENT;
 }
 
 void CCarpetBombardment::Touch(CBaseEntity *pOther) noexcept
@@ -579,8 +582,9 @@ void CBullet::Spawn() noexcept
 	pev->solid = SOLID_TRIGGER;
 	pev->movetype = MOVETYPE_FLY;
 	pev->gravity = 0;
+	pev->body = GUNSHIP_STRIKE;
 
-	g_engfuncs.pfnSetModel(edict(), "models/rshell.mdl");
+	g_engfuncs.pfnSetModel(edict(), Models::PROJECTILE);
 	g_engfuncs.pfnSetOrigin(edict(), pev->origin);
 	g_engfuncs.pfnSetSize(edict(), Vector(-0.1, -0.1, -0.1), Vector(0.1, 0.1, 0.1));
 
@@ -727,8 +731,8 @@ Task CFuelAirExplosive::Task_StopSoundAndRemove() noexcept
 void CFuelAirExplosive::Spawn() noexcept
 {
 	g_engfuncs.pfnSetOrigin(edict(), pev->origin);
-	g_engfuncs.pfnSetModel(edict(), Models::PROJECTILE[FUEL_AIR_BOMB]);
-	g_engfuncs.pfnSetSize(edict(), Vector(-2, -2, -2), Vector(2, 2, 2));
+	g_engfuncs.pfnSetModel(edict(), Models::PROJECTILE);
+	g_engfuncs.pfnSetSize(edict(), Vector(-2, -2, -36), Vector(2, 2, 36));
 
 	pev->solid = SOLID_BBOX;
 	pev->movetype = MOVETYPE_TOSS;
@@ -736,6 +740,7 @@ void CFuelAirExplosive::Spawn() noexcept
 	pev->gravity = 1.f;
 	pev->effects = EF_DIMLIGHT;
 	pev->takedamage = DAMAGE_YES;
+	pev->body = FUEL_AIR_BOMB;
 
 	// This is just a bomb drop. No energy post-apply onto the projectile, therefore no complex VFX.
 
@@ -765,7 +770,7 @@ void CFuelAirExplosive::Touch(CBaseEntity *pOther) noexcept
 	pev->gravity = 0;
 	pev->effects = 0;
 
-	g_engfuncs.pfnSetSize(edict(), Vector(-8, -8, -16), Vector(8, 8, 16));
+	g_engfuncs.pfnSetSize(edict(), Vector(-8, -8, -36), Vector(8, 8, 36));
 
 	TraceResult tr{};
 	g_engfuncs.pfnTraceMonsterHull(edict(), pev->origin + Vector(0, 0, 24), pev->origin, ignore_monsters | ignore_glass, nullptr, &tr);

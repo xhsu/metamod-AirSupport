@@ -1,4 +1,4 @@
-#define CONSERVE_SFX_RES_SLOT
+//#define CONSERVE_SFX_RES_SLOT
 
 export module Resources;
 
@@ -23,14 +23,7 @@ export namespace Models
 		"models/AirSupport/F18.mdl",
 	};
 
-	inline constexpr array PROJECTILE =
-	{
-		"models/AirSupport/mq9_missile.mdl",
-		"models/AirSupport/mortar-rocket.mdl",
-		"models/AirSupport/mortar-rocket.mdl",
-		"models/AirSupport/mortar-rocket.mdl",
-		"models/AirSupport/mortar-rocket.mdl",
-	};
+	inline constexpr char PROJECTILE[] = "models/AirSupport/projectiles.mdl";
 
 	inline constexpr char V_RADIO[] = "models/AirSupport/v_radio.mdl";
 	inline constexpr char P_RADIO[] = "models/AirSupport/p_radio.mdl";

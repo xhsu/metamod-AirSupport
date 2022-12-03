@@ -30,7 +30,7 @@ META_RES OnClientCommand(CBasePlayer *pPlayer, const string &szCommand) noexcept
 			if (pWeapon->pev->weapons == RADIO_KEY)
 				return MRES_SUPERCEDE;
 
-			TaskScheduler::Enroll(Weapon::Task_RadioDeploy((CBasePlayerWeapon *)pWeapon));
+			TaskScheduler::Enroll(Weapon::Task_RadioDeploy((CBasePlayerWeapon *)pWeapon), UTIL_CombineTaskAndPlayerIndex(TASK_RADIO_DEPLOY, pPlayer->entindex()));
 		}
 
 		// Switch from anything to radio
