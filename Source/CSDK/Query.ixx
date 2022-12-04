@@ -23,16 +23,6 @@ namespace Query
 			;
 	}
 
-	// Iterating type: CBaseEntity*
-	export inline decltype(auto) all_entities(void) noexcept
-	{
-		return
-			std::views::iota(0, gpGlobals->maxEntities + 1) |
-			std::views::transform([](int idx) noexcept { auto const pent = g_engfuncs.pfnPEntityOfEntIndex(idx); return pent ? (CBaseEntity *)pent->pvPrivateData : nullptr; }) |
-			std::views::filter([](void *p) noexcept { return p != nullptr; })
-			;
-	}
-
 	// Iterating type: CBasePlayer*
 	export inline decltype(auto) all_living_players(void) noexcept
 	{
@@ -43,6 +33,35 @@ namespace Query
 
 			// Only player who is alive, and connected. Disconnected player will be marked as DEAD_DEAD therefore filtered.
 			std::views::filter([](CBasePlayer *pPlayer) noexcept { return pPlayer->pev->deadflag == DEAD_NO && pPlayer->pev->takedamage != DAMAGE_NO; })
+			;
+	}
+
+	// Iterating type: CBaseEntity*
+	export inline decltype(auto) all_entities(void) noexcept
+	{
+		return
+			std::views::iota(0, gpGlobals->maxEntities + 1) |
+			std::views::transform([](int idx) noexcept { auto const pent = g_engfuncs.pfnPEntityOfEntIndex(idx); return pent ? (CBaseEntity *)pent->pvPrivateData : nullptr; }) |
+			std::views::filter([](void *p) noexcept { return p != nullptr; })
+			;
+	}
+
+	// Iterating type: CBaseEntity*
+	export inline decltype(auto) all_nonplayer_entities(void) noexcept
+	{
+		return
+			std::views::iota(33, gpGlobals->maxEntities + 1) |
+			std::views::transform([](int idx) noexcept { auto const pent = g_engfuncs.pfnPEntityOfEntIndex(idx); return pent ? (CBaseEntity *)pent->pvPrivateData : nullptr; }) |
+			std::views::filter([](void *p) noexcept { return p != nullptr; })
+			;
+	}
+
+	// Iterating type: CBaseEntity*
+	export inline decltype(auto) all_entities_in_radius(const Vector &vecOrigin, double const flDistance) noexcept
+	{
+		return
+			all_entities() |
+			std::views::filter([&, flLenSq = flDistance * flDistance](CBaseEntity *p) noexcept { return (p->Center() - vecOrigin).LengthSquared() < flLenSq; })
 			;
 	}
 

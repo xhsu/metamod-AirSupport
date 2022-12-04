@@ -70,7 +70,7 @@ export namespace Models
 
 export namespace Sounds
 {
-	inline constexpr array RADIO =
+	inline constexpr array ACCEPTING =
 	{
 		"airsupport/radio/radio_affirm.wav",
 		"airsupport/radio/radio_affirm.wav",
@@ -80,8 +80,12 @@ export namespace Sounds
 	};
 
 	inline constexpr char REQUESTING[] = "airsupport/radio/radio_use.wav";
-	inline constexpr char REJECTING[] = "airsupport/radio/radio_negative.wav";
+	inline constexpr array REJECTING = { "airsupport/radio/radio_negative.wav", "airsupport/radio/radio_negative-2.wav" };
 	inline constexpr char NOISE[] = "weapons/RADIO/radio_use.wav";
+
+	inline constexpr char ALERT_AC130[] = "airsupport/radio/radio_enemy_ac130.wav";
+	inline constexpr char ALERT_AIRSTRIKE[] = "airsupport/radio/radio_enemy_airstrike.wav";
+	inline constexpr char ALERT_APACHE[] = "airsupport/radio/radio_enemy_apache.wav";
 
 	inline constexpr char TRAVEL[] = "weapons/cruise_missile_travel_02.wav";
 
@@ -234,17 +238,7 @@ export namespace Sounds
 			"airsupport/airgunship/ac130_reloading_02.wav",
 			"airsupport/airgunship/ac130_reloading_03.wav",
 		};
-		inline constexpr array RESELECT_TARGET =
-		{
-			"airsupport/radio/ac130_fco_moreenemy_01.wav",
-			"airsupport/radio/ac130_fco_rightthere_02.wav",
-			"airsupport/radio/ac130_fco_takehimout_01.wav",
-			"airsupport/radio/ac130_fco_tracking_01.wav",
-#ifndef CONSERVE_SFX_RES_SLOT
-			"airsupport/radio/ac130_plt_targetreset_01.wav",
-			"airsupport/radio/vo_mp_announcer_english_en_24.wav",
-#endif
-		};
+		inline constexpr char RESELECT_TARGET[] = "airsupport/radio/radio_attacking.wav";
 		inline constexpr char TARGET_RAN_TO_COVER[] = "airsupport/radio/ac130_tvo_coverbywall1_01.wav";
 	}
 
@@ -260,10 +254,17 @@ export namespace Sounds
 		};
 	};
 
+	namespace Length::Radio
+	{
+		inline constexpr array ACCEPTING = { 2.564f, 2.564f, 2.564f, 2.409f, 2.564f };
+		inline constexpr float REQUESTING = 1.003f;
+		inline constexpr array REJECTING = { 2.603f, 2.947f };
+	}
+
 	namespace Length::Gunship
 	{
-		inline constexpr array AC130_RELOAD = { 2.2f, 4.2f, 3.2f };
-		inline constexpr array AC130_DEPARTURE = { 6.2f, 6.2f };
+		inline constexpr array AC130_RELOAD = { 2.279f, 4.397f, 3.703f };
+		inline constexpr array AC130_DEPARTURE = { 6.388f, 6.478f };
 	}
 
 	namespace Flame

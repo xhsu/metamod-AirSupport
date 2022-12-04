@@ -33,10 +33,10 @@ void Precache(void) noexcept
 
 	// Sounds
 
-	std::ranges::for_each(Sounds::RADIO, g_engfuncs.pfnPrecacheSound);
+	std::ranges::for_each(Sounds::ACCEPTING, g_engfuncs.pfnPrecacheSound);
 
 	g_engfuncs.pfnPrecacheSound(Sounds::REQUESTING);
-	g_engfuncs.pfnPrecacheSound(Sounds::REJECTING);
+	std::ranges::for_each(Sounds::REJECTING, g_engfuncs.pfnPrecacheSound);
 	g_engfuncs.pfnPrecacheSound(Sounds::NOISE);
 
 	g_engfuncs.pfnPrecacheSound(Sounds::TRAVEL);
@@ -73,7 +73,7 @@ void Precache(void) noexcept
 		std::ranges::for_each(Sounds::Gunship::AC130_FIRE_25MM, g_engfuncs.pfnPrecacheSound);
 		std::ranges::for_each(Sounds::Gunship::AC130_RELOAD, g_engfuncs.pfnPrecacheSound);
 
-		std::ranges::for_each(Sounds::Gunship::RESELECT_TARGET, g_engfuncs.pfnPrecacheSound);
+		g_engfuncs.pfnPrecacheSound(Sounds::Gunship::RESELECT_TARGET);
 
 		g_engfuncs.pfnPrecacheSound(Sounds::Gunship::TARGET_RAN_TO_COVER);
 	}

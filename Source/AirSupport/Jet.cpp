@@ -3,6 +3,7 @@ import Menu;
 import Message;
 import Projectile;
 import Resources;
+import Round;
 
 import UtlRandom;
 
@@ -12,6 +13,9 @@ import UtlRandom;
 
 Task CJet::Task_BeamAndSound() noexcept
 {
+	for (edict_t *pEdict : (m_pPlayer->m_iTeam == TEAM_CT ? g_rgpPlayersOfTerrorist : g_rgpPlayersOfCT))
+		g_engfuncs.pfnClientCommand(pEdict, "spk %s\n", Sounds::ALERT_AIRSTRIKE);	// AC130 will be played in another class.
+
 	switch (m_AirSupportType)
 	{
 	case CARPET_BOMBARDMENT:
@@ -321,8 +325,11 @@ CJet *CJet::Create(CBasePlayer *pPlayer, CFixedTarget *pTarget, Vector const &ve
 
 Task CGunship::Task_Gunship() noexcept
 {
-	g_engfuncs.pfnEmitSound(m_pPlayer->edict(), CHAN_STATIC, Sounds::Gunship::NOISE_PILOT, VOL_NORM, ATTN_STATIC, 0, PITCH_NORM);
-	g_engfuncs.pfnEmitSound(m_pPlayer->edict(), CHAN_STATIC, Sounds::Gunship::AC130_IS_IN_AIR, VOL_NORM, ATTN_STATIC, 0, UTIL_Random(92, 108));
+	for (edict_t *pEdict : (m_pPlayer->m_iTeam == TEAM_CT ? g_rgpPlayersOfTerrorist : g_rgpPlayersOfCT))
+		g_engfuncs.pfnClientCommand(pEdict, "spk %s\n", Sounds::ALERT_AC130);
+
+	g_engfuncs.pfnEmitAmbientSound(m_pPlayer->edict(), m_pPlayer->pev->origin, Sounds::Gunship::NOISE_PILOT, VOL_NORM, ATTN_STATIC, 0, PITCH_NORM);
+	g_engfuncs.pfnEmitAmbientSound(m_pPlayer->edict(), m_pPlayer->pev->origin, Sounds::Gunship::AC130_IS_IN_AIR, VOL_NORM, ATTN_STATIC, 0, UTIL_Random(92, 108));
 	g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, Sounds::Gunship::AC130_AMBIENT[m_iAmbientSoundIndex], VOL_NORM, ATTN_NONE, 0, UTIL_Random(92, 108));
 
 	co_await TaskScheduler::NextFrame::Rank[1];
@@ -411,7 +418,7 @@ Task CGunship::Task_Gunship() noexcept
 	co_await Sounds::Length::Gunship::AC130_DEPARTURE[m_iDepartureSoundIndex];
 
 	// Stop the radio background noise
-	g_engfuncs.pfnEmitSound(m_pPlayer->edict(), CHAN_STATIC, Sounds::Gunship::NOISE_PILOT, VOL_NORM, ATTN_STATIC, SND_STOP, PITCH_NORM);
+	g_engfuncs.pfnEmitAmbientSound(m_pPlayer->edict(), m_pPlayer->pev->origin, Sounds::Gunship::NOISE_PILOT, VOL_NORM, ATTN_STATIC, SND_STOP, PITCH_NORM);
 
 	// Die with CFixedTarget
 	pev->flags |= FL_KILLME;

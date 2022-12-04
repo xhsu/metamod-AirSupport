@@ -13,6 +13,7 @@ import UtlRandom;
 import Effects;
 import Hook;
 import Math;
+import Query;
 import Resources;
 import Task;
 
@@ -94,9 +95,8 @@ void RangeDamage(CBasePlayer *pAttacker, const Vector &vecOrigin, float const fl
 {
 	bool const bInWater = g_engfuncs.pfnPointContents(vecOrigin) == CONTENTS_WATER;
 
-	for (auto &&pEntity : FIND_ENTITY_IN_SPHERE(vecOrigin, flRadius)
-		| std::views::filter([](edict_t *pEdict) noexcept { return pEdict->v.takedamage != DAMAGE_NO; })
-		| std::views::transform([](edict_t *pEdict) noexcept { return (CBaseEntity *)pEdict->pvPrivateData; })
+	for (auto &&pEntity : Query::all_entities_in_radius(vecOrigin, flRadius) |
+		std::views::filter([](CBaseEntity *p) noexcept { return p->pev->takedamage != DAMAGE_NO; })
 		)
 	{
 		// blast's don't tavel into or out of water

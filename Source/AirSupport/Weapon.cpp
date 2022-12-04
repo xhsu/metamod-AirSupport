@@ -270,16 +270,14 @@ extern "C++" namespace Weapon
 
 		g_engfuncs.pfnEmitSound(pThis.Get(), CHAN_VOICE, Sounds::REQUESTING, 0.75f, ATTN_STATIC, 0, UTIL_Random(92, 108));
 
-		static constexpr float TIME_REQUESTING = 1.2f;
-		co_await TIME_REQUESTING;
+		co_await Sounds::Length::Radio::REQUESTING;
 		RESUME_CHECK;
 
-		g_engfuncs.pfnEmitSound(pThis.Get(), CHAN_VOICE, Sounds::REJECTING, 0.75f, ATTN_STATIC, 0, UTIL_Random(92, 108));
-		gmsgTextMsg::FreeBegin<MSG_ONE>(Vector::Zero(), pThis->m_pPlayer->edict(), (byte)4, Localization::REJECT_COVERED_LOCATION);
+		g_engfuncs.pfnEmitSound(pThis.Get(), CHAN_VOICE, UTIL_GetRandomOne(Sounds::REJECTING), 0.75f, ATTN_STATIC, 0, UTIL_Random(92, 108));
+		gmsgTextMsg::Send(pThis->m_pPlayer->edict(), 4, Localization::REJECT_COVERED_LOCATION);
 
-
-		static_assert(Models::v_radio::time::use - TIME_PRESS_TALK - TIME_REQUESTING > 0);
-		co_await (Models::v_radio::time::use - TIME_PRESS_TALK - TIME_REQUESTING);
+		static_assert(Models::v_radio::time::use - TIME_PRESS_TALK - Sounds::Length::Radio::REQUESTING > 0);
+		co_await (Models::v_radio::time::use - TIME_PRESS_TALK - Sounds::Length::Radio::REQUESTING);
 		RESUME_CHECK;
 
 		pThis->SendWeaponAnim((int)Models::v_radio::seq::idle, false);
@@ -290,6 +288,7 @@ extern "C++" namespace Weapon
 	{
 		EHANDLE<CDynamicTarget> pTarget = DYN_TARGET(pThis);
 		EHANDLE<CFixedTarget> pFixedTarget = CFixedTarget::Create(pTarget);
+		auto const iTaskIndex = UTIL_CombineTaskAndPlayerIndex(TASK_RADIO_ACCEPTED, pThis->m_pPlayer->entindex());
 
 		DYN_TARGET(pThis) = nullptr;
 		pTarget->pev->flags |= FL_KILLME;
@@ -298,64 +297,74 @@ extern "C++" namespace Weapon
 		pThis->SendWeaponAnim((int)Models::v_radio::seq::use);
 		pThis->m_pPlayer->m_flNextAttack = Models::v_radio::time::use;
 
-		g_engfuncs.pfnEmitSound(pThis.Get(), CHAN_AUTO, Sounds::NOISE, VOL_NORM, ATTN_STATIC, 0, UTIL_Random(92, 108));
+		g_engfuncs.pfnEmitSound(pThis.Get(), CHAN_STATIC, Sounds::NOISE, VOL_NORM, ATTN_STATIC, 0, UTIL_Random(92, 108));
 
-		static constexpr float TIME_PRESS_TALK = 19.f / 45.f;
-		co_await TIME_PRESS_TALK;
-		RESUME_CHECK;
-
-		g_engfuncs.pfnEmitSound(pThis.Get(), CHAN_VOICE, Sounds::REQUESTING, 0.75f, ATTN_STATIC, 0, UTIL_Random(92, 108));
-
-		static constexpr float TIME_REQUESTING = 1.2f;
-		co_await TIME_REQUESTING;
-		RESUME_CHECK;
-
-		g_engfuncs.pfnEmitSound(pThis.Get(), CHAN_VOICE, Sounds::RADIO[AIR_STRIKE], 0.75f, ATTN_STATIC, 0, UTIL_Random(92, 108));
-
-		static constexpr float TIME_RESPOUNDING = 1.f;
-		co_await TIME_RESPOUNDING;
-		RESUME_CHECK;
-
-		[[likely]]
-		if (pFixedTarget)
-			pFixedTarget->Activate();
-		else
-			co_return;	// Round ended or something???
-
-		static_assert(Models::v_radio::time::use - TIME_PRESS_TALK - TIME_REQUESTING - TIME_RESPOUNDING > 0);
-		co_await (Models::v_radio::time::use - TIME_PRESS_TALK - TIME_REQUESTING - TIME_RESPOUNDING);
-		RESUME_CHECK;
-
-		pThis->SendWeaponAnim((int)Models::v_radio::seq::holster);
-		pThis->m_pPlayer->m_flNextAttack = Models::v_radio::time::holster;
-
-		co_await Models::v_radio::time::holster;
-		RESUME_CHECK;
-
-		for (auto &&pItem : pThis->m_pPlayer->m_rgpPlayerItems)
+		static constexpr auto SubRoutine_Sound = [](EHANDLE<CBasePlayerWeapon> pThis, EHANDLE<CFixedTarget> pFixedTarget) noexcept -> Task
 		{
-			if (!pItem || pev_valid(pItem->pev) != 2)
-				continue;
+			auto const iAirsupportType = g_rgiAirSupportSelected[pThis->m_pPlayer->entindex()];
 
-			pThis->has_disconnected = true;	// BORROWED MEMBER: allow holster.
+			static constexpr float TIME_PRESS_TALK = 19.f / 45.f;
+			co_await TIME_PRESS_TALK;
+			RESUME_CHECK;
 
-			if (pItem == pThis)	// this guy only got his knife.
-			{
-				// Clear radio events
-				Weapon::OnRadioHolster(pThis);
+			g_engfuncs.pfnEmitSound(pThis.Get(), CHAN_STATIC, Sounds::REQUESTING, 0.75f, ATTN_STATIC, 0, UTIL_Random(92, 108));
 
-				// Take out knife.
-				g_pfnItemDeploy(pThis);
-			}
+			co_await Sounds::Length::Radio::REQUESTING;
+			RESUME_CHECK;
+
+			g_engfuncs.pfnEmitSound(pThis.Get(), CHAN_STATIC, Sounds::ACCEPTING[iAirsupportType], 0.75f, ATTN_STATIC, 0, UTIL_Random(92, 108));
+
+			co_await Sounds::Length::Radio::ACCEPTING[iAirsupportType];
+			RESUME_CHECK;
+
+			[[likely]]
+			if (pFixedTarget)
+				pFixedTarget->Activate();
 			else
-			{
-				// By cl_command is actually better for net game.
-				//g_pfnSwitchWeapon(pThis->m_pPlayer, pItem);
-				g_engfuncs.pfnClientCommand(pThis->m_pPlayer->edict(), "%s\n", STRING(pItem->pev->classname));
-			}
+				co_return;	// Round ended or something???
+		};
 
-			break;
-		}
+		static constexpr auto SubRoutine_Animation = [](EHANDLE<CBasePlayerWeapon> pThis) noexcept -> Task
+		{
+			co_await Models::v_radio::time::use;
+			RESUME_CHECK;
+
+			pThis->SendWeaponAnim((int)Models::v_radio::seq::holster);
+			pThis->m_pPlayer->m_flNextAttack = Models::v_radio::time::holster;
+
+			co_await Models::v_radio::time::holster;
+			RESUME_CHECK;
+
+			for (auto &&pItem : pThis->m_pPlayer->m_rgpPlayerItems)
+			{
+				if (!pItem || pev_valid(pItem->pev) != 2)
+					continue;
+
+				pThis->has_disconnected = true;	// BORROWED MEMBER: allow holster.
+
+				if (pItem == pThis)	// this guy only got his knife.
+				{
+					// Clear radio events
+					Weapon::OnRadioHolster(pThis);
+
+					// Take out knife.
+					g_pfnItemDeploy(pThis);
+				}
+				else
+				{
+					// By cl_command is actually better for net game.
+					//g_pfnSwitchWeapon(pThis->m_pPlayer, pItem);
+					g_engfuncs.pfnClientCommand(pThis->m_pPlayer->edict(), "%s\n", STRING(pItem->pev->classname));
+				}
+
+				break;
+			}
+		};
+
+		TaskScheduler::Enroll(SubRoutine_Animation(pThis), iTaskIndex);
+		TaskScheduler::Enroll(SubRoutine_Sound(pThis, pFixedTarget), iTaskIndex);
+
+		co_return;
 	}
 
 	void OnRadioHolster(CBasePlayerWeapon *pThis) noexcept
