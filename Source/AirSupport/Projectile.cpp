@@ -185,6 +185,191 @@ CPrecisionAirStrike *CPrecisionAirStrike::Create(CBasePlayer *pPlayer, Vector co
 }
 
 //
+// CClusterCharge
+//
+
+Task CClusterCharge::Task_Explo() noexcept
+{
+	TraceResult tr{};
+
+	co_await m_flTotalFuseTime;
+
+	g_engfuncs.pfnTraceLine(pev->origin, Vector(pev->origin.x, pev->origin.y, pev->origin.z - 48.0), ignore_monsters | ignore_glass, nullptr, &tr);
+
+	if (tr.flFraction == 1.f)
+	{
+		// Is it flying to a wall?
+
+		g_engfuncs.pfnTraceLine(pev->origin, pev->origin + pev->velocity, ignore_monsters | ignore_glass, nullptr, &tr);
+	}
+	else
+	{
+		// If this is somewhere near gound, cause fire.
+		// But the fire should not be flying out, this is not 'burning debris'
+
+		auto const pFlame = Prefab_t::Create<CFlame>(tr.vecEndPos + tr.vecPlaneNormal * 72.0);
+		pFlame->pev->velocity = Vector::Zero();
+	}
+
+	if (tr.pHit && tr.pHit->v.solid == SOLID_BSP)
+		UTIL_Decal(tr.pHit, tr.vecEndPos, UTIL_GetRandomOne(Decal::SMALL_SCORCH).m_Index);
+
+	MsgBroadcast(SVC_TEMPENTITY);
+	WriteData(TE_EXPLOSION);
+	WriteData(pev->origin);
+	WriteData(Sprites::m_rgLibrary[Sprites::MINOR_EXPLO]);
+	WriteData((byte)UTIL_Random(10, 20));
+	WriteData((byte)20);
+	WriteData(TE_EXPLFLAG_NONE);
+	MsgEnd();
+
+	co_await TaskScheduler::NextFrame::Rank[1];
+
+	RangeDamage(m_pPlayer, pev->origin, 120.f, 210.f);
+	ScreenEffects(pev->origin, 180.f, 4.f, 256.f);
+
+	if ((s_iCounter++) % 2 == 0)
+		Prefab_t::Create<CFloatingDust>(pev->origin, Angles(0, 0, UTIL_Random(0.0, 359.9)));
+	else if (pev->flags & FL_ONGROUND)
+		Prefab_t::Create<CGroundedDust>(pev->origin);
+
+	co_await TaskScheduler::NextFrame::Rank[1];
+	pev->flags |= FL_KILLME;
+}
+
+Task CClusterCharge::Task_VisualEffects() noexcept
+{
+	for (;;)
+	{
+		co_await 0.075f;
+
+		if (!IsInWorld())
+		{
+			pev->flags |= FL_KILLME;
+			co_return;
+		}
+
+		if (pev->waterlevel != 0)
+		{
+			pev->velocity = pev->velocity * 0.5f;
+			pev->framerate = 0.2f;
+		}
+
+		MsgPVS(SVC_TEMPENTITY, pev->origin);
+		WriteData(TE_SPARKS);
+		WriteData(pev->origin);
+		MsgEnd();
+
+		MsgPVS(SVC_TEMPENTITY, pev->origin);
+		WriteData(TE_SMOKE);
+		WriteData(pev->origin);
+		WriteData((short)Sprites::m_rgLibrary[UTIL_GetRandomOne(Sprites::BLACK_SMOKE)]);
+		WriteData((byte)UTIL_Random(5, 10));	// (scale in 0.1's)
+		WriteData((byte)UTIL_Random(15, 20));	// (framerate)
+		MsgEnd();
+	}
+}
+
+void CClusterCharge::Touch_Bouncing(CBaseEntity *pOther) noexcept
+{
+	if (FClassnameIs(pOther->pev, "func_breakable") && pOther->pev->rendermode != kRenderNormal)
+	{
+		pev->velocity = pev->velocity * -2.0f;
+		return;
+	}
+
+	if (pev->flags & FL_ONGROUND)
+	{
+		// add a bit of static friction
+		pev->velocity = pev->velocity * 0.8f;
+	}
+	else
+	{
+		if (m_iBounceCount < 5)
+		{
+			// Regular sound
+			if (gpGlobals->time < (pev->dmgtime - m_flTotalFuseTime * 0.65f))
+				g_engfuncs.pfnEmitSound(edict(), CHAN_VOICE, Sounds::GRENADE_BOUNCE[1], VOL_NORM, ATTN_NORM, 0, UTIL_Random(96, 108));
+
+			// Damger sound
+			else
+				g_engfuncs.pfnEmitSound(edict(), CHAN_VOICE, Sounds::GRENADE_BOUNCE[0], VOL_NORM, ATTN_NORM, 0, UTIL_Random(96, 108));
+		}
+
+		if (m_iBounceCount >= 10)
+		{
+			pev->groundentity = ent_cast<edict_t *>(0);
+			pev->flags |= FL_ONGROUND;
+			pev->velocity = Vector::Zero();
+		}
+
+		m_iBounceCount++;
+	}
+
+	pev->framerate = float(pev->velocity.Length() / 200.0);
+
+	if (pev->framerate > 1)
+	{
+		pev->framerate = 1.0f;
+	}
+	else if (pev->framerate < 0.5f)
+	{
+		pev->framerate = 0.0f;
+	}
+}
+
+void CClusterCharge::Spawn() noexcept
+{
+	pev->velocity = get_spherical_coord(250.0, UTIL_Random(45.0, 180.0), UTIL_Random(0.0, 360.0));
+	pev->gravity = 0.55f;
+	pev->friction = 0.7f;
+
+	auto const flSpeed = pev->velocity.Length();
+
+	pev->angles = Angles(UTIL_Random(0.0, 180.0), UTIL_Random(0.0, 360.0), UTIL_Random(0.0, 360.0));
+	pev->avelocity = Angles(flSpeed, UTIL_Random(-flSpeed, flSpeed), 0);
+
+	pev->solid = SOLID_BBOX;
+	pev->movetype = MOVETYPE_BOUNCE;
+
+	g_engfuncs.pfnSetModel(edict(), Models::PROJECTILE);
+	g_engfuncs.pfnSetOrigin(edict(), pev->origin);
+	g_engfuncs.pfnSetSize(edict(), Vector(-2, -2, -2), Vector(2, 2, 2));
+
+	pev->framerate = 1.f;
+	pev->body = 5;	// small charge
+	pev->scale = 2.f;
+
+	SetTouch(&CClusterCharge::Touch_Bouncing);
+
+	m_Scheduler.Enroll(Task_Explo());
+	m_Scheduler.Enroll(Task_VisualEffects());
+}
+
+bool CClusterCharge::ShouldCollide(EHANDLE<CBaseEntity> pOther) noexcept
+{
+	if (pOther.Is<CClusterCharge>() || pOther.Is<CClusterBomb>())
+		return false;
+
+	return true;
+}
+
+CClusterCharge *CClusterCharge::Create(CBasePlayer *pPlayer, Vector const &vecSpawn, float const flFuseTime) noexcept
+{
+	auto const [pEdict, pPrefab] = UTIL_CreateNamedPrefab<CClusterCharge>();
+
+	pEdict->v.origin = vecSpawn;
+	pEdict->v.dmgtime = gpGlobals->time + flFuseTime;
+
+	pPrefab->m_pPlayer = pPlayer;
+	pPrefab->m_flTotalFuseTime = flFuseTime;
+	pPrefab->Spawn();
+	pPrefab->pev->nextthink = 0.1f;
+
+	return pPrefab;
+}
+
+//
 // CClusterBomb
 //
 
@@ -300,6 +485,72 @@ Task CClusterBomb::Task_ClusterBomb() noexcept
 	co_return;
 }
 
+Task CClusterBomb::Task_ClusterBomb2() noexcept
+{
+	for (; pev->origin.z > m_flDetonationHeight;)
+	{
+		co_await 0.01f;
+	}
+
+	MsgBroadcast(SVC_TEMPENTITY);
+	WriteData(TE_EXPLOSION);
+	WriteData(pev->origin);
+	WriteData(Sprites::m_rgLibrary[Sprites::AIRBURST]);
+	WriteData((byte)35);
+	WriteData((byte)12);
+	WriteData(TE_EXPLFLAG_NONE);
+	MsgEnd();
+
+	MsgBroadcast(SVC_TEMPENTITY);
+	WriteData(TE_DLIGHT);
+	WriteData(pev->origin);
+	WriteData((byte)70);
+	WriteData((byte)255);
+	WriteData((byte)0);
+	WriteData((byte)0);
+	WriteData((byte)2);
+	WriteData((byte)0);
+	MsgEnd();
+
+	pev->solid = SOLID_NOT;
+	pev->movetype = MOVETYPE_NONE;
+	pev->effects = EF_NODRAW;
+
+	g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, Sounds::CLUSTER_BOMB_DROP, VOL_NORM, 0, SND_STOP, UTIL_Random(92, 112));
+
+	MsgBroadcast(SVC_TEMPENTITY);
+	WriteData(TE_KILLBEAM);
+	WriteData(ent_cast<short>(pev));
+	MsgEnd();
+
+	for (float flFuseTime = 1.f; flFuseTime < 3.4f; flFuseTime += 0.1f)
+	{
+		Prefab_t::Create<CClusterCharge>(
+			m_pPlayer,
+			pev->origin + Vector(UTIL_Random(-10.0, 10.0), UTIL_Random(-10.0, 10.0), UTIL_Random(-10.0, 10.0)),
+			flFuseTime
+		);
+	}
+
+	UTIL_ExplodeModel(
+		pev->origin,
+		UTIL_Random() ? -750.f : 750.f,
+		Models::m_rgLibrary[Models::GIBS_METAL],
+		UTIL_Random(16, 24),
+		UTIL_Random(8.f, 12.f)
+	);
+
+	co_await TaskScheduler::NextFrame::Rank[0];
+
+	RangeDamage(m_pPlayer, pev->origin, 180.f, 100.f);
+	ScreenEffects(pev->origin, 360.f, 5.f, 512.f);
+
+	co_await 1.f;
+
+	pev->flags |= FL_KILLME;
+	co_return;
+}
+
 void CClusterBomb::Spawn() noexcept
 {
 	g_engfuncs.pfnSetOrigin(edict(), pev->origin);
@@ -332,7 +583,7 @@ void CClusterBomb::Spawn() noexcept
 
 	g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, Sounds::CLUSTER_BOMB_DROP, VOL_NORM, 0, 0, UTIL_Random(92, 112));
 
-	m_Scheduler.Enroll(Task_ClusterBomb());
+	m_Scheduler.Enroll(Task_ClusterBomb2());
 	// Calculate everything, including all those detonation spots and where is the first detonation.
 
 	TraceResult tr{};
@@ -494,7 +745,7 @@ Task CBullet::Task_Touch() noexcept
 	g_engfuncs.pfnTraceLine(m_vecLastTraceSrc, pev->origin + pev->velocity, dont_ignore_monsters, edict(), &tr);
 
 	if (tr.pHit && tr.pHit->v.solid == SOLID_BSP)
-		UTIL_Decal(tr.pHit, tr.vecEndPos, UTIL_GetRandomOne(Decal::GUNSHOT).m_Index);
+		UTIL_Decal(tr.pHit, tr.vecEndPos, UTIL_GetRandomOne(Decal::BIGSHOT).m_Index);
 
 	if (tr.pHit && tr.pHit->v.takedamage != DAMAGE_NO)
 	{

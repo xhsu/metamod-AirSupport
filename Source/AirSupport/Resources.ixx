@@ -6,7 +6,11 @@ export import <array>;
 export import <string>;
 export import <unordered_map>;
 
+#ifdef PACKING_RESOURCES
+export import Transpiler;
+#else
 export import util;
+#endif
 
 using std::array;
 using std::string;
@@ -191,6 +195,12 @@ export namespace Sounds
 
 	inline constexpr char CLUSTER_BOMB_DROP[] = "weapons/missile_travel_01.wav";
 
+	inline constexpr array GRENADE_BOUNCE =
+	{
+		"weapons/he_bounce-1.wav",
+		"weapons/grenade_hit1.wav",
+	};
+
 	namespace Gunship
 	{
 		inline constexpr array AC130_AMBIENT =
@@ -355,10 +365,27 @@ export namespace Decal
 		Decal_t{"{shot5", 0},
 	};
 
+	inline array BIGSHOT =
+	{
+		Decal_t{"{bigshot1", 0},
+		Decal_t{"{bigshot2", 0},
+		Decal_t{"{bigshot3", 0},
+		Decal_t{"{bigshot4", 0},
+		Decal_t{"{bigshot5", 0},
+	};
+
 	inline array SCORCH =
 	{
 		Decal_t{"{scorch1", 0},
 		Decal_t{"{scorch2", 0},
+		Decal_t{"{scorch3", 0},
+	};
+
+	inline array SMALL_SCORCH =
+	{
+		Decal_t{"{smscorch1", 0},
+		Decal_t{"{smscorch2", 0},
+		Decal_t{"{smscorch3", 0},
 	};
 }
 

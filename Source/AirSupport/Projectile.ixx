@@ -26,12 +26,39 @@ export struct CPrecisionAirStrike : public Prefab_t
 	CBasePlayer *m_pPlayer{};
 };
 
+export struct CClusterCharge : public Prefab_t
+{
+	// Info
+
+	static inline constexpr char CLASSNAME[] = "cluster_charge";
+	static inline uint64_t s_iCounter = 0;
+
+	// Methods
+
+	Task Task_Explo() noexcept;
+	Task Task_VisualEffects() noexcept;
+
+	void Touch_Bouncing(CBaseEntity *pOther) noexcept;
+
+	void Spawn() noexcept override;
+	bool ShouldCollide(EHANDLE<CBaseEntity> pOther) noexcept override;
+
+	static CClusterCharge *Create(CBasePlayer *pPlayer, Vector const &vecSpawn, float const flFuseTime) noexcept;
+
+	// Members
+
+	CBasePlayer *m_pPlayer{};
+	float m_flTotalFuseTime{};
+	short m_iBounceCount{};
+};
+
 export struct CClusterBomb : public Prefab_t
 {
 	static inline constexpr char CLASSNAME[] = "cluster_bomb";
 	static inline constexpr auto SPEED = 800.0;
 
 	Task Task_ClusterBomb() noexcept;
+	Task Task_ClusterBomb2() noexcept;
 
 	void Spawn() noexcept override;
 

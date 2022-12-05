@@ -252,6 +252,9 @@ export struct Prefab_t : public CBaseEntity
 		}
 	}
 
+	// LUNA: Extended Virtual Funcs: Be adviced that original CBaseEntity does not containing these!
+	virtual bool ShouldCollide(EHANDLE<CBaseEntity> pOther) noexcept { return true; }
+
 	// Have to entity have to be created like this.
 	template <typename T> requires (!requires{ T::Create(); })
 	static T *Create(const Vector& vecOrigin = Vector::Zero(), const Angles& vecAngles = Angles()) noexcept

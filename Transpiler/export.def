@@ -1,0 +1,4 @@
+LIBRARY
+EXPORTS
+	ReceiveCSharpFnPtr			@1
+	Precache					@2

@@ -191,13 +191,13 @@ void __fastcall HamF_Item_PostFrame(CBasePlayerItem *pItem, int) noexcept
 	}
 	else if (pThis->m_pPlayer->m_afButtonPressed & IN_USE) [[unlikely]]
 	{
-		//g_engfuncs.pfnMakeVectors(pThis->m_pPlayer->pev->v_angle);
+		g_engfuncs.pfnMakeVectors(pThis->m_pPlayer->pev->v_angle);
 
-		//Prefab_t::Create<CBullet>(
-		//	pThis->m_pPlayer->GetGunPosition() + gpGlobals->v_forward * 64.0,
-		//	gpGlobals->v_forward * 2048,
-		//	pThis->m_pPlayer
-		//);
+		Prefab_t::Create<CBullet>(
+			pThis->m_pPlayer->GetGunPosition() + gpGlobals->v_forward * 64.0,
+			gpGlobals->v_forward * 2048,
+			pThis->m_pPlayer
+		);
 
 		//TraceResult tr{};
 		//auto const vecSrc = pThis->m_pPlayer->GetGunPosition();
@@ -210,6 +210,8 @@ void __fastcall HamF_Item_PostFrame(CBasePlayerItem *pItem, int) noexcept
 		//Prefab_t::Create<CFuelAirCloud>(tr.vecEndPos)->Ignite();
 
 		//TaskScheduler::Enroll(CFuelAirCloud::Task_PlayerSuffocation(pThis->m_pPlayer, &g_engfuncs.pfnPEntityOfEntIndex(0)->v), TASK_HB_AND_ER);
+
+		//Prefab_t::Create<CClusterCharge>(pThis->m_pPlayer, tr.vecEndPos + tr.vecPlaneNormal * 128.0, 2.f);
 	}
 }
 
