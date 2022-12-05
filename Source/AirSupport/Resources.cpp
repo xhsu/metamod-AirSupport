@@ -58,13 +58,15 @@ void Precache(void) noexcept
 
 	g_engfuncs.pfnPrecacheSound(Sounds::CLUSTER_BOMB_DROP);
 
+	std::ranges::for_each(Sounds::GRENADE_BOUNCE, g_engfuncs.pfnPrecacheSound);
+
 	// namespace Gunship
 	{
 		std::ranges::for_each(Sounds::Gunship::AC130_AMBIENT, g_engfuncs.pfnPrecacheSound);
 		std::ranges::for_each(Sounds::Gunship::AC130_DEPARTURE, g_engfuncs.pfnPrecacheSound);
 
 		g_engfuncs.pfnPrecacheSound(Sounds::Gunship::AC130_IS_IN_AIR);
-		g_engfuncs.pfnPrecacheSound(Sounds::Gunship::UAV_IS_ONLINE);
+		//g_engfuncs.pfnPrecacheSound(Sounds::Gunship::UAV_IS_ONLINE);
 
 		std::ranges::for_each(Sounds::Gunship::KILL_CONFIRMED, g_engfuncs.pfnPrecacheSound);
 
@@ -91,6 +93,12 @@ void Precache(void) noexcept
 		//std::ranges::for_each(Sounds::Flame::FLAME, g_engfuncs.pfnPrecacheSound);
 		//g_engfuncs.pfnPrecacheSound(Sounds::Flame::FLAME_FADEOUT);
 	}
+
+#ifdef PACKING_RESOURCES
+	g_engfuncs.pfnPrecacheSound(Sounds::ALERT_AC130);
+	g_engfuncs.pfnPrecacheSound(Sounds::ALERT_AIRSTRIKE);
+	g_engfuncs.pfnPrecacheSound(Sounds::ALERT_APACHE);
+#endif
 
 	// Sprite
 

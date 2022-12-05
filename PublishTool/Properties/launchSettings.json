@@ -1,0 +1,9 @@
+{
+  "profiles": {
+    "Publish": {
+      "commandName": "Project",
+      "commandLineArgs": "\"$(SolutionDir)Resource\"",
+      "workingDirectory": "$(SolutionDir)Bin\\"
+    }
+  }
+}

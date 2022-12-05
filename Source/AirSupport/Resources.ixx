@@ -6,7 +6,11 @@ export import <array>;
 export import <string>;
 export import <unordered_map>;
 
+#ifdef PACKING_RESOURCES
+export import Transpiler;
+#else
 export import util;
+#endif
 
 using std::array;
 using std::string;
