@@ -512,6 +512,24 @@ void fw_OnFreeEntPrivateData(edict_t *pEdict) noexcept
 	}
 }
 
+qboolean fw_ShouldCollide(edict_t *pentTouched, edict_t *pentOther) noexcept
+{
+	gpMetaGlobals->mres = MRES_IGNORED;
+
+	if (gpMetaGlobals->prev_mres == MRES_SUPERCEDE)
+		return *(int *)gpMetaGlobals->orig_ret;
+
+	EHANDLE<CBaseEntity> pEntity(pentTouched), pOther(pentOther);
+
+	if (auto const pPrefab = pEntity.As<Prefab_t>(); pPrefab && pOther)
+	{
+		gpMetaGlobals->mres = MRES_SUPERCEDE;
+		return pPrefab->ShouldCollide(pOther);
+	}
+
+	return *(int *)gpMetaGlobals->orig_ret;
+}
+
 // Register Meta Hooks
 
 inline constexpr DLL_FUNCTIONS gFunctionTable =
@@ -686,7 +704,7 @@ inline constexpr NEW_DLL_FUNCTIONS gNewFunctionTable =
 {
 	.pfnOnFreeEntPrivateData	= &fw_OnFreeEntPrivateData,
 	.pfnGameShutdown			= nullptr,
-	.pfnShouldCollide			= nullptr,
+	.pfnShouldCollide			= &fw_ShouldCollide,
 	.pfnCvarValue				= nullptr,
 	.pfnCvarValue2				= nullptr,
 };

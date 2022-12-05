@@ -1,6 +1,7 @@
 ﻿import <cmath>;
 
 import <array>;
+import <bit>;
 import <numbers>;
 import <ranges>;
 import <vector>;
@@ -18,6 +19,7 @@ import Resources;
 import Task;
 
 using std::array;
+using std::bit_cast;
 using std::vector;
 
 float GetAmountOfPlayerVisible(const Vector& vecSrc, CBaseEntity *pEntity) noexcept
@@ -214,8 +216,7 @@ Task VisualEffects(const Vector vecOrigin, float const flRadius) noexcept	// The
 	{
 		auto pEdict = g_engfuncs.pfnCreateNamedEntity(MAKE_STRING("spark_shower"));
 		g_engfuncs.pfnSetOrigin(pEdict, vecOrigin);
-		g_engfuncs.pfnVecToAngles(tr.vecPlaneNormal, pEdict->v.angles);
-		pEdict->v.angles.pitch += 270.f;	// don't know why, but this is the deal.
+		pEdict->v.angles = bit_cast<Angles>(tr.vecPlaneNormal);	// This class, CShower, use pev->angles as a vector not an angle.
 
 		pEdict->v.absmin = vecOrigin - Vector(1, 1, 1);
 		pEdict->v.absmax = vecOrigin + Vector(1, 1, 1);

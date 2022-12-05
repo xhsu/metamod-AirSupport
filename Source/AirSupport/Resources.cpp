@@ -128,6 +128,12 @@ void Precache(void) noexcept
 	for (auto &&decal : Decal::GUNSHOT)
 		decal.Initialize();
 
+	for (auto &&decal : Decal::BIGSHOT)
+		decal.Initialize();
+
 	for (auto &&decal : Decal::SCORCH)
+		decal.Initialize();
+
+	for (auto &&decal : Decal::SMALL_SCORCH)
 		decal.Initialize();
 }
