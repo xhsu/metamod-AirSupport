@@ -95,6 +95,17 @@ Task CDynamicTarget::Task_Animation() noexcept
 
 		co_await TaskScheduler::NextFrame::Rank[1];	// behind coord update.
 
+		if (m_bFreezed)
+		{
+			// When player is holding LMB, just stop rotation.
+
+			pev->framerate = 0;
+			pev->frame = 0;
+			pev->animtime = 0;
+
+			continue;
+		}
+
 		auto const CurTime = std::chrono::high_resolution_clock::now();
 		auto const flTimeDelta = std::chrono::duration_cast<std::chrono::nanoseconds>(CurTime - LastAnimUpdate).count() / 1'000'000'000.0;
 
@@ -225,7 +236,7 @@ Task CDynamicTarget::Task_QuickEval_AirStrike() noexcept
 
 		if (m_pTargeting && !m_pTargeting->IsBSPModel() && m_pTargeting->IsAlive())
 		{
-			pev->angles = Angles();	// facing up.
+			g_engfuncs.pfnVecToAngles(Vector::Up(), pev->angles);
 
 			Vector const vecCenter = m_pTargeting->Center();
 			g_engfuncs.pfnSetOrigin(edict(), Vector(vecCenter.x, vecCenter.y, m_pTargeting->pev->absmin.z + 1.0));	// snap to target.
@@ -233,8 +244,6 @@ Task CDynamicTarget::Task_QuickEval_AirStrike() noexcept
 		else
 		{
 			g_engfuncs.pfnVecToAngles(tr.vecPlaneNormal, pev->angles);
-			pev->angles.pitch += 270.f;	// don't know why, but this is the deal.
-
 			g_engfuncs.pfnSetOrigin(edict(), tr.vecEndPos);
 		}
 
@@ -314,8 +323,6 @@ Task CDynamicTarget::Task_QuickEval_ClusterBomb() noexcept
 		}
 
 		g_engfuncs.pfnVecToAngles(tr.vecPlaneNormal, pev->angles);
-		pev->angles.pitch += 270.f;	// don't know why, but this is the deal.
-
 		g_engfuncs.pfnSetOrigin(edict(), tr.vecEndPos);
 
 		// Quick Evaluation
@@ -423,8 +430,6 @@ Task CDynamicTarget::Task_QuickEval_CarpetBombardment() noexcept
 			// Not pressing LMB, only the main target mdl will showed up.
 
 			g_engfuncs.pfnVecToAngles(vecSurfNorm, pev->angles);
-			pev->angles.pitch += 270.f;	// don't know why, but this is the deal.
-
 			g_engfuncs.pfnSetOrigin(edict(), vecAiming);
 			pev->skin = Models::targetmdl::SKIN_GREEN;
 
@@ -564,7 +569,7 @@ Task CDynamicTarget::Task_QuickEval_Gunship() noexcept
 
 		if (m_pTargeting && !m_pTargeting->IsBSPModel() && m_pTargeting->IsAlive())
 		{
-			pev->angles = Angles();	// facing up.
+			g_engfuncs.pfnVecToAngles(Vector::Up(), pev->angles);
 
 			Vector const vecCenter = m_pTargeting->Center();
 			g_engfuncs.pfnSetOrigin(edict(), Vector(vecCenter.x, vecCenter.y, m_pTargeting->pev->absmin.z + 1.0));	// snap to target.
@@ -572,8 +577,6 @@ Task CDynamicTarget::Task_QuickEval_Gunship() noexcept
 		else
 		{
 			g_engfuncs.pfnVecToAngles(tr.vecPlaneNormal, pev->angles);
-			pev->angles.pitch += 270.f;	// don't know why, but this is the deal.
-
 			g_engfuncs.pfnSetOrigin(edict(), tr.vecEndPos);
 		}
 
@@ -767,8 +770,6 @@ Task CFixedTarget::Task_Gunship() noexcept
 			tr.vecPlaneNormal == Vector::Zero() ? Vector::Up() : tr.vecPlaneNormal,
 			pev->angles
 		);
-
-		pev->angles.pitch += 270.f;
 
 		if (!m_pTargeting)
 		{
