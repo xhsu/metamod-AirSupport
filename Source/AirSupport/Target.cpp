@@ -429,7 +429,15 @@ Task CDynamicTarget::Task_QuickEval_CarpetBombardment() noexcept
 		{
 			// Not pressing LMB, only the main target mdl will showed up.
 
+			static double ang = 0;
+			ang += 5;
+			if (ang > 360)
+				ang -= 360;
+
 			g_engfuncs.pfnVecToAngles(vecSurfNorm, pev->angles);
+			auto const q = Quaternion::Rotate(Vector::Front(), Vector::Up())*Quaternion::Rotate(Vector::Front(), vecSurfNorm) * Quaternion::AxisAngle(Vector::Front(), ang);
+			pev->angles = q.Euler();
+			//g_engfuncs.pfnVecToAngles(vecSurfNorm, pev->angles);
 			g_engfuncs.pfnSetOrigin(edict(), vecAiming);
 			pev->skin = Models::targetmdl::SKIN_GREEN;
 
@@ -442,7 +450,7 @@ Task CDynamicTarget::Task_QuickEval_CarpetBombardment() noexcept
 		Vector vecDir((vecAiming.Make2D() - pev->origin.Make2D()).Normalize(), 0);
 
 		if (vecDir == Vector::Zero())
-			vecDir = Vector::Forward();
+			vecDir = Vector::Front();
 
 		g_engfuncs.pfnTraceLine(
 			vecSkyBaseOrigin - Vector(0, 0, 16),
@@ -569,7 +577,7 @@ Task CDynamicTarget::Task_QuickEval_Gunship() noexcept
 
 		if (m_pTargeting && !m_pTargeting->IsBSPModel() && m_pTargeting->IsAlive())
 		{
-			g_engfuncs.pfnVecToAngles(Vector::Up(), pev->angles);
+			pev->angles = Angles::Upwards();
 
 			Vector const vecCenter = m_pTargeting->Center();
 			g_engfuncs.pfnSetOrigin(edict(), Vector(vecCenter.x, vecCenter.y, m_pTargeting->pev->absmin.z + 1.0));	// snap to target.

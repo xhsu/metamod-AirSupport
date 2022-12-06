@@ -291,13 +291,10 @@ export namespace Sounds
 
 export namespace Sprites
 {
-	inline constexpr char SMOKE[] = "sprites/exsmoke.spr";
 	inline constexpr char ROCKET_EXPLO[] = "sprites/rockeexplode.spr";
 	inline constexpr char ROCKET_EXPLO2[] = "sprites/zerogxplode-big1.spr";
 	inline constexpr char FIRE[] = "sprites/rockefire.spr";
 	inline constexpr char FIRE2[] = "sprites/hotglow.spr";
-	inline constexpr char SMOKE_1[] = "sprites/gas_smoke1.spr";
-	inline constexpr char SMOKE_2[] = "sprites/wall_puff1.spr";
 	inline constexpr char MINOR_EXPLO[] = "sprites/zerog-frag1.spr";
 	inline constexpr char AIRBURST[] = "sprites/exploeffect1.spr";
 	inline constexpr char CARPET_FRAGMENT_EXPLO[] = "sprites/m79grenadeex.spr";
@@ -306,6 +303,8 @@ export namespace Sprites
 	inline constexpr char LIFTED_DUST[] = "sprites/smoke_loop.spr";
 	inline constexpr char GROUNDED_DUST[] = "sprites/bettyspr2.spr";
 	inline constexpr char GIGANTIC_EXPLO[] = "sprites/bunkerbuster_explosion.spr";
+	inline constexpr char STATIC_SMOKE_THIN[] = "sprites/static_smoke_thin_1.spr";
+	inline constexpr char STATIC_SMOKE_THICK[] = "sprites/static_smoke_thick_1.spr";
 
 	inline constexpr char BEAM[] = "sprites/laserbeam.spr";
 
@@ -326,12 +325,21 @@ export namespace Sprites
 		"sprites/black_smoke4.spr",
 	};
 
+	inline constexpr array ROCKET_TRAIL_SMOKE =
+	{
+		"sprites/exsmoke.spr",
+		"sprites/wall_puff3.spr",
+		"sprites/wall_puff4.spr",
+	};
+
 	inline constexpr array GAS_EXPLO =
 	{
-		"sprites/exploeffect3.spr",
-		"sprites/exploeffect4.spr",
-		"sprites/exploeffect5.spr",
-		"sprites/exploeffect7.spr",
+		//"sprites/exploeffect3.spr",
+		//"sprites/exploeffect4.spr",
+		//"sprites/exploeffect5.spr",
+		//"sprites/exploeffect7.spr",
+		"sprites/fire_explosion_1.spr",
+		"sprites/fire_explosion_2.spr",
 	};
 
 	inline unordered_map<string, short> m_rgLibrary{};
@@ -340,7 +348,8 @@ export namespace Sprites
 	{
 		inline constexpr array FLAME = { 17, 16, 16 };
 		inline constexpr auto BLACK_SMOKE = 30;
-		inline constexpr array GAS_EXPLO = { 15, 20, 15, 20 };
+		//inline constexpr array GAS_EXPLO = { 15, 20, 15, 20 };
+		inline constexpr array GAS_EXPLO = { 50, 50 };
 	};
 
 	static_assert(FLAME.size() == Frames::FLAME.size());

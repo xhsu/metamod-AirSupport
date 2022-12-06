@@ -193,11 +193,16 @@ void __fastcall HamF_Item_PostFrame(CBasePlayerItem *pItem, int) noexcept
 	{
 		g_engfuncs.pfnMakeVectors(pThis->m_pPlayer->pev->v_angle);
 
-		Prefab_t::Create<CBullet>(
-			pThis->m_pPlayer->GetGunPosition() + gpGlobals->v_forward * 64.0,
-			gpGlobals->v_forward * 2048,
-			pThis->m_pPlayer
+		Prefab_t::Create<CSpriteDisplayment>(
+			pThis->m_pPlayer->GetGunPosition() + gpGlobals->v_forward * 256.0,
+			(kRenderFn)g_rgiAirSupportSelected[pThis->m_pPlayer->entindex()]
 		);
+
+		//Prefab_t::Create<CBullet>(
+		//	pThis->m_pPlayer->GetGunPosition() + gpGlobals->v_forward * 64.0,
+		//	gpGlobals->v_forward * 2048,
+		//	pThis->m_pPlayer
+		//);
 
 		//TraceResult tr{};
 		//auto const vecSrc = pThis->m_pPlayer->GetGunPosition();
