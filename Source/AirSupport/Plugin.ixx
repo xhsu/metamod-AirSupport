@@ -11,8 +11,8 @@ inline constexpr plugin_info_t gPluginInfo =
 {
 	.ifvers		= META_INTERFACE_VERSION,
 	.name		= "Air Support",
-	.version	= "1.6.3",
-	.date		= "Nov. 06 2022",
+	.version	= "1.6.4",
+	.date		= __DATE__ __TIME__,
 	.author		= "Luna the Reborn",
 	.url		= "N/A",
 	.logtag		= "AirSup",

@@ -30,7 +30,7 @@ Task CPrecisionAirStrike::Task_Trail() noexcept
 {
 	for (;;)
 	{
-		co_await gpGlobals->frametime;
+		co_await TaskScheduler::NextFrame::Rank[1];
 
 		pev->angles += Angles(
 			UTIL_Random(-0.35f, 0.35f),
@@ -61,20 +61,21 @@ Task CPrecisionAirStrike::Task_Trail() noexcept
 		WriteData(TE_SPRITE);
 		WriteData(vecOrigin);
 
-		switch (UTIL_Random(0, 2))
-		{
-		case 0:
-			WriteData((short)Sprites::m_rgLibrary[Sprites::SMOKE]);
-			break;
+		//switch (UTIL_Random(0, 2))
+		//{
+		//case 0:
+		//	WriteData((short)Sprites::m_rgLibrary[Sprites::SMOKE]);
+		//	break;
 
-		case 1:
-			WriteData((short)Sprites::m_rgLibrary[Sprites::SMOKE_1]);
-			break;
+		//case 1:
+		//	WriteData((short)Sprites::m_rgLibrary[Sprites::SMOKE_1]);
+		//	break;
 
-		default:
-			WriteData((short)Sprites::m_rgLibrary[Sprites::SMOKE_2]);
-			break;
-		}
+		//default:
+		//	WriteData((short)Sprites::m_rgLibrary[Sprites::SMOKE_2]);
+		//	break;
+		//}
+		WriteData(Sprites::m_rgLibrary[UTIL_GetRandomOne(Sprites::ROCKET_TRAIL_SMOKE)]);
 
 		WriteData((byte)UTIL_Random<short>(1, 10));
 		WriteData((byte)UTIL_Random<short>(50, 255));
@@ -95,14 +96,6 @@ void CPrecisionAirStrike::Spawn() noexcept
 	g_engfuncs.pfnVecToAngles(pev->velocity, pev->angles);
 	pev->body = AIR_STRIKE;
 
-	MsgPVS(SVC_TEMPENTITY, pev->origin);
-	WriteData(TE_SPRITE);
-	WriteData(pev->origin);
-	WriteData((short)Sprites::m_rgLibrary[Sprites::FIRE]);
-	WriteData((byte)5);
-	WriteData((byte)255);
-	MsgEnd();
-
 	pev->effects = EF_LIGHT | EF_BRIGHTLIGHT;
 
 	MsgBroadcast(SVC_TEMPENTITY);
@@ -117,31 +110,7 @@ void CPrecisionAirStrike::Spawn() noexcept
 	WriteData((byte)255);
 	MsgEnd();
 
-	g_engfuncs.pfnMakeVectors(pev->angles);
-
-	auto const qRot = Quaternion::Rotate(Vector(0, 0, 1), gpGlobals->v_forward);
-
-	array const rgvecPericoord =
-	{
-		get_spherical_coord(pev->origin, qRot, 24.f, 120.f, 0.f),
-		get_spherical_coord(pev->origin, qRot, 24.f, 120.f, 72.f),
-		get_spherical_coord(pev->origin, qRot, 24.f, 120.f, 144.f),
-		get_spherical_coord(pev->origin, qRot, 24.f, 120.f, 216.f),
-		get_spherical_coord(pev->origin, qRot, 24.f, 120.f, 288.f),
-	};
-
-	for (auto &&vecPos : rgvecPericoord)
-	{
-		MsgPVS(SVC_TEMPENTITY, vecPos);
-		WriteData(TE_SPRITE);
-		WriteData(vecPos);
-		WriteData((short)Sprites::m_rgLibrary[Sprites::SMOKE]);
-		WriteData((byte)10);
-		WriteData((byte)50);
-		MsgEnd();
-	}
-
-	g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, Sounds::TRAVEL, VOL_NORM, 0.3f, 0, UTIL_Random(94, 112));
+	g_engfuncs.pfnEmitAmbientSound(edict(), pev->origin, Sounds::TRAVEL, VOL_NORM, 0.3f, 0, UTIL_Random(94, 112));
 
 	m_Scheduler.Enroll(Task_Trail());
 }
@@ -154,7 +123,7 @@ void CPrecisionAirStrike::Touch(CBaseEntity *pOther) noexcept
 		return;
 	}
 
-	g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, Sounds::TRAVEL, VOL_NORM, 0.3f, SND_STOP, UTIL_Random(94, 112));
+	g_engfuncs.pfnEmitAmbientSound(edict(), pev->origin, Sounds::TRAVEL, VOL_NORM, 0.3f, SND_STOP, UTIL_Random(94, 112));
 	g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, UTIL_GetRandomOne(Sounds::EXPLOSION), VOL_NORM, 0.3f, 0, UTIL_Random(92, 116));
 
 	Impact(m_pPlayer, this, 500.f);
@@ -270,7 +239,33 @@ Task CClusterCharge::Task_VisualEffects() noexcept
 	}
 }
 
-void CClusterCharge::Touch_Bouncing(CBaseEntity *pOther) noexcept
+void CClusterCharge::Spawn() noexcept
+{
+	pev->velocity = get_spherical_coord(250.0, UTIL_Random(45.0, 180.0), UTIL_Random(0.0, 360.0));
+	pev->gravity = 0.55f;
+	pev->friction = 0.7f;
+
+	auto const flSpeed = pev->velocity.Length();
+
+	pev->angles = Angles(UTIL_Random(0.0, 180.0), UTIL_Random(0.0, 360.0), UTIL_Random(0.0, 360.0));
+	pev->avelocity = Angles(flSpeed, UTIL_Random(-flSpeed, flSpeed), 0);
+
+	pev->solid = SOLID_BBOX;
+	pev->movetype = MOVETYPE_BOUNCE;
+
+	g_engfuncs.pfnSetModel(edict(), Models::PROJECTILE);
+	g_engfuncs.pfnSetOrigin(edict(), pev->origin);
+	g_engfuncs.pfnSetSize(edict(), Vector(-2, -2, -2), Vector(2, 2, 2));
+
+	pev->framerate = 1.f;
+	pev->body = 5;	// small charge
+	pev->scale = 2.f;
+
+	m_Scheduler.Enroll(Task_Explo());
+	m_Scheduler.Enroll(Task_VisualEffects());
+}
+
+void CClusterCharge::Touch(CBaseEntity *pOther) noexcept
 {
 	if (FClassnameIs(pOther->pev, "func_breakable") && pOther->pev->rendermode != kRenderNormal)
 	{
@@ -316,34 +311,6 @@ void CClusterCharge::Touch_Bouncing(CBaseEntity *pOther) noexcept
 	{
 		pev->framerate = 0.0f;
 	}
-}
-
-void CClusterCharge::Spawn() noexcept
-{
-	pev->velocity = get_spherical_coord(250.0, UTIL_Random(45.0, 180.0), UTIL_Random(0.0, 360.0));
-	pev->gravity = 0.55f;
-	pev->friction = 0.7f;
-
-	auto const flSpeed = pev->velocity.Length();
-
-	pev->angles = Angles(UTIL_Random(0.0, 180.0), UTIL_Random(0.0, 360.0), UTIL_Random(0.0, 360.0));
-	pev->avelocity = Angles(flSpeed, UTIL_Random(-flSpeed, flSpeed), 0);
-
-	pev->solid = SOLID_BBOX;
-	pev->movetype = MOVETYPE_BOUNCE;
-
-	g_engfuncs.pfnSetModel(edict(), Models::PROJECTILE);
-	g_engfuncs.pfnSetOrigin(edict(), pev->origin);
-	g_engfuncs.pfnSetSize(edict(), Vector(-2, -2, -2), Vector(2, 2, 2));
-
-	pev->framerate = 1.f;
-	pev->body = 5;	// small charge
-	pev->scale = 2.f;
-
-	SetTouch(&CClusterCharge::Touch_Bouncing);
-
-	m_Scheduler.Enroll(Task_Explo());
-	m_Scheduler.Enroll(Task_VisualEffects());
 }
 
 bool CClusterCharge::ShouldCollide(EHANDLE<CBaseEntity> pOther) noexcept
@@ -662,10 +629,10 @@ Task CCarpetBombardment::Task_Touch() noexcept
 		auto const pFlame = Prefab_t::Create<CFlame>(tr.vecEndPos + Vector(0, 0, 8));
 		pFlame->pev->velocity = get_spherical_coord(350.f, UTIL_Random(30.0, 45.0), UTIL_Random(0.0, 359.9));
 		pFlame->pev->gravity = 1.f;
-
-		auto const pSmoke = Prefab_t::Create<CSmoke>(tr.vecEndPos + Vector(UTIL_Random(-96, 96), UTIL_Random(-96, 96), UTIL_Random(0, 72)));
-		pSmoke->LitByFlame(false);
 	}
+
+	auto const pSmoke = Prefab_t::Create<CSmoke>(tr.vecEndPos + Vector(UTIL_Random(-96, 96), UTIL_Random(-96, 96), UTIL_Random(0, 72)));
+	pSmoke->LitByFlame(false);
 
 	co_await TaskScheduler::NextFrame::Rank[0];
 
@@ -842,7 +809,7 @@ void CBullet::Spawn() noexcept
 	MsgBroadcast(SVC_TEMPENTITY);
 	WriteData(TE_BEAMFOLLOW);
 	WriteData(entindex());
-	WriteData(Sprites::m_rgLibrary[Sprites::TRAIL]);
+	WriteData(Sprites::m_rgLibrary[Sprites::BEAM]);
 	WriteData((byte)1);
 	WriteData((byte)1);
 	WriteData((byte)255);

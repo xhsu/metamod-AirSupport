@@ -37,6 +37,7 @@ export extern "C++" Task Task_SpritePlayOnce(entvars_t *const pev, short const F
 export extern "C++" Task Task_FadeOut(entvars_t *const pev, float const DECAY, float const ROLL) noexcept;
 export extern "C++" Task Task_Remove(entvars_t *const pev, float const TIME) noexcept;
 export extern "C++" Task Task_FadeIn(entvars_t *const pev, float const TRANSPARENT_INC, float const FINAL_VAL, float const ROLL) noexcept;
+export extern "C++" Task Task_Fade(entvars_t *const pev, float const INC, float const DEC, float const PEAK, float const ROLL) noexcept;
 
 export struct CFlame : public Prefab_t
 {
@@ -65,7 +66,7 @@ export struct CSmoke : public Prefab_t
 {
 	// Info
 
-	static inline constexpr char CLASSNAME[] = "env_explo_smoke";
+	static inline constexpr char CLASSNAME[] = "env_thick_smoke";
 
 	// Methods
 
@@ -81,6 +82,17 @@ export struct CSmoke : public Prefab_t
 
 	Vector m_vecStartingLitClr{};
 	Vector m_vecFlameClrToWhite{};
+};
+
+export struct CThinSmoke : public CSmoke
+{
+	// Info
+
+	static inline constexpr char CLASSNAME[] = "env_thin_smoke";
+
+	// Methods
+
+	void Spawn() noexcept override;
 };
 
 export struct CFloatingDust : public Prefab_t
@@ -176,5 +188,17 @@ export struct CFuelAirCloud : public Prefab_t
 	CBasePlayer *m_pPlayer{};
 	bool m_bFadeInDone{ false };
 	bool m_bIgnited{ false };
+	bool m_bBurning{ false };
 	std::uint8_t m_iIgnitedCounts{};
+};
+
+export struct CSpriteDisplayment : public Prefab_t
+{
+	static inline constexpr char CLASSNAME[] = "CSpriteDisplayment";
+
+	void Spawn() noexcept override;
+
+	static CSpriteDisplayment *Create(Vector const& vecOrigin, kRenderFn iRenderMethod) noexcept;
+
+	kRenderFn m_iRenderMethod{ kRenderFn::kRenderNormal };
 };
