@@ -258,7 +258,7 @@ Task VisualEffects(const Vector vecOrigin, float const flRadius) noexcept	// The
 	UTIL_ExplodeModel(
 		Vector(vecOrigin.x, vecOrigin.y, vecOrigin.z + 70.0),
 		UTIL_Random(300.f, 500.f),
-		Models::m_rgLibrary[Models::GIBS_METAL],
+		Models::m_rgLibrary[Models::GIBS_CONCRETE],
 		UTIL_Random(6, 9),
 		UTIL_Random(12.f, 15.f)
 	);
@@ -291,7 +291,7 @@ Task VisualEffects(const Vector vecOrigin, float const flRadius) noexcept	// The
 
 TraceResult Impact(CBasePlayer *pAttacker, CBaseEntity *pProjectile, float flDamage) noexcept
 {
-	g_engfuncs.pfnMakeVectors(pProjectile->pev->angles);
+	g_engfuncs.pfnMakeVectors(Angles{ -pProjectile->pev->angles.pitch, pProjectile->pev->angles.yaw, pProjectile->pev->angles.roll });
 
 	TraceResult tr{};
 	g_engfuncs.pfnTraceLine(pProjectile->pev->origin, pProjectile->pev->origin + gpGlobals->v_forward * 32.f, dont_ignore_monsters, ent_cast<edict_t *>(pProjectile->pev), &tr);

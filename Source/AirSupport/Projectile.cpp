@@ -994,7 +994,8 @@ void CFuelAirExplosive::Touch(CBaseEntity *pOther) noexcept
 	g_engfuncs.pfnTraceMonsterHull(edict(), pev->origin + Vector(0, 0, 24), pev->origin, ignore_monsters | ignore_glass, nullptr, &tr);
 	g_engfuncs.pfnSetOrigin(edict(), tr.vecEndPos);
 
-	Impact(m_pPlayer, this, 180.f);
+	if (auto const tr = Impact(m_pPlayer, this, 180.f); tr.pHit && tr.pHit->v.solid == SOLID_BSP)
+		UTIL_Decal(tr.pHit, tr.vecEndPos, UTIL_GetRandomOne(Decal::SMALL_SCORCH).m_Index);
 
 	m_Scheduler.Enroll(Task_GasPropagate());
 }

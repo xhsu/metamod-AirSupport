@@ -1010,13 +1010,13 @@ Task CFuelAirCloud::Task_AirPressure() noexcept
 		{
 			vecDir = vecPressureCenter - pPlayer->pev->origin;
 			flDistance = vecDir.Length();
-			flSpeed = std::clamp<double>(4096.0 - flDistance, 0.0, 256.0);
+			flSpeed = std::clamp<double>(2048.0 - flDistance, 0.0, 256.0);
 
 			if (flSpeed > 1)
+			{
 				pPlayer->pev->velocity += vecDir.Normalize() * flSpeed;
-
-			if (flDistance < 1024)
 				ApplySuffocation(pPlayer);	// #FIXME #POTENTIAL_BUG sometimes won't work??
+			}
 		}
 	}
 }
