@@ -817,7 +817,7 @@ Task CFuelAirCloud::Task_Ignite(void) noexcept
 	m_Scheduler.Enroll(Task_SpritePlayOnce(pev, iFrameCount, 25));	// 2 secs
 	m_Scheduler.Enroll(Task_EmitLight());
 
-	g_engfuncs.pfnEmitSound(edict(), CHAN_WEAPON, UTIL_GetRandomOne(Sounds::FuelAirBomb::GAS_EXPLO), VOL_NORM, UTIL_Random(ATTN_NORM / 2.f, ATTN_NORM), 0, UTIL_Random(88, 116));
+	g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, UTIL_GetRandomOne(Sounds::FuelAirBomb::GAS_EXPLO), VOL_NORM, UTIL_Random(ATTN_NORM / 2.f, ATTN_NORM), 0, UTIL_Random(88, 116));
 
 	co_await 0.1f;
 

@@ -243,8 +243,8 @@ Task CDynamicTarget::Task_QuickEval_AirStrike() noexcept
 		}
 		else
 		{
-			g_engfuncs.pfnVecToAngles(tr.vecPlaneNormal, pev->angles);
-			g_engfuncs.pfnSetOrigin(edict(), tr.vecEndPos);
+			pev->angles = tr.vecPlaneNormal.VectorAngles();
+			pev->origin = tr.vecEndPos;
 		}
 
 		// Quick Evaluation
@@ -429,15 +429,20 @@ Task CDynamicTarget::Task_QuickEval_CarpetBombardment() noexcept
 		{
 			// Not pressing LMB, only the main target mdl will showed up.
 
-			static double ang = 0;
-			ang += 5;
-			if (ang > 360)
-				ang -= 360;
+			//static double ang = 0;
+			//ang += 5;
+			//if (ang > 360)
+			//	ang -= 360;
 
-			g_engfuncs.pfnVecToAngles(vecSurfNorm, pev->angles);
-			auto const q = Quaternion::Rotate(Vector::Front(), Vector::Up())*Quaternion::Rotate(Vector::Front(), vecSurfNorm) * Quaternion::AxisAngle(Vector::Front(), ang);
-			pev->angles = q.Euler();
 			//g_engfuncs.pfnVecToAngles(vecSurfNorm, pev->angles);
+			//auto const q = Quaternion::Rotate(Vector::Front(), vecSurfNorm) * Quaternion::AxisAngle(Vector::Front(), ang);
+			//pev->angles = q.Euler();
+			//gmsgTextMsg::Send(m_pPlayer->edict(), 2, std::format("{} {} {}\n", pev->angles[0], pev->angles[1], pev->angles[2]).c_str());
+			//pev->angles.pitch *= -1.f;
+
+			pev->angles = vecSurfNorm.VectorAngles();
+			UTIL_SetController(&pev->controller[0], &ARROW_CONTROLLER, -m_pPlayer->pev->angles.yaw + pev->angles.yaw - 90.f);
+
 			g_engfuncs.pfnSetOrigin(edict(), vecAiming);
 			pev->skin = Models::targetmdl::SKIN_GREEN;
 
@@ -481,6 +486,10 @@ Task CDynamicTarget::Task_QuickEval_CarpetBombardment() noexcept
 			0.0
 		};
 		auto const flMaxDistFwd = tr2.flFraction * (CARPET_BOMBARDMENT_INTERVAL * BEACON_COUNT / 2);
+
+		Angles vecAngles{};
+		g_engfuncs.pfnVecToAngles(vecForward, vecAngles);
+		UTIL_SetController(edict(), 0, -vecAngles.yaw + pev->angles.yaw - 90.f);
 
 		for (double flFw = 0, flRt = -48; auto &&pBeacon : m_rgpBeacons)
 		{
@@ -657,9 +666,13 @@ void CDynamicTarget::UpdateEvalMethod() noexcept
 		pBeam = nullptr;
 	}
 
-	pev->body = g_rgiAirSupportSelected[m_pPlayer->entindex()];
+	auto const &iType = g_rgiAirSupportSelected[m_pPlayer->entindex()];
 
-	switch (g_rgiAirSupportSelected[m_pPlayer->entindex()])
+	m_iAirSupportTypeModel = iType;
+	m_bShowArror = (iType == CARPET_BOMBARDMENT);
+	pev->body = UTIL_CalcBody(m_rgBodyInfo);
+
+	switch (iType)
 	{
 	default:
 	case AIR_STRIKE:
@@ -743,6 +756,27 @@ CDynamicTarget *CDynamicTarget::Create(CBasePlayer *pPlayer, CBasePlayerWeapon *
 	pPrefab->pev->nextthink = 0.1f;
 
 	return pPrefab;
+}
+
+void CDynamicTarget::RetrieveModelInfo(void) noexcept
+{
+	static bool bDone = false;
+
+	[[likely]]
+	if (bDone)
+		return;
+
+	auto const pEdict = g_engfuncs.pfnCreateEntity();
+	g_engfuncs.pfnSetModel(pEdict, Models::TARGET);
+
+	auto const pstudiohdr = g_engfuncs.pfnGetModelPtr(pEdict);
+	auto pbonecontroller = (mstudiobonecontroller_t *)((byte *)pstudiohdr + pstudiohdr->bonecontrollerindex);
+
+	memcpy(&ARROW_CONTROLLER, pbonecontroller, sizeof(ARROW_CONTROLLER));
+	memcpy(&MINIATURE_CONTROLLER, ++pbonecontroller, sizeof(MINIATURE_CONTROLLER));
+
+	g_engfuncs.pfnRemoveEntity(pEdict);
+	bDone = true;
 }
 
 //

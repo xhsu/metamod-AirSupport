@@ -19,6 +19,7 @@ export struct CDynamicTarget : public Prefab_t
 	static inline constexpr char CLASSNAME[] = "info_dynamic_target";
 	static inline constexpr size_t BEACON_COUNT = 12;
 	static inline constexpr double CARPET_BOMBARDMENT_INTERVAL = 250.0;
+	static inline mstudiobonecontroller_t ARROW_CONTROLLER{}, MINIATURE_CONTROLLER{};
 
 	~CDynamicTarget() noexcept override;
 
@@ -36,6 +37,7 @@ export struct CDynamicTarget : public Prefab_t
 
 	void Spawn() noexcept override;
 	static CDynamicTarget *Create(CBasePlayer *pPlayer, CBasePlayerWeapon *pRadio) noexcept;
+	static void RetrieveModelInfo(void) noexcept;
 
 	EHANDLE<CBaseEntity> m_pTargeting{ nullptr };
 	EHANDLE<CBasePlayerWeapon> m_pRadio{ nullptr };
@@ -43,6 +45,9 @@ export struct CDynamicTarget : public Prefab_t
 	Vector m_vecLastAiming{};
 	float m_flLastValidTracking{};
 	std::array<EHANDLE<CBeam>, BEACON_COUNT> m_rgpBeacons{};
+	std::array<BodyEnumInfo_t, 3> m_rgBodyInfo{ {{0, 1}, {0, 7}, {0, 2}} };
+	int &m_iAirSupportTypeModel{ m_rgBodyInfo[1].m_index };
+	qboolean &m_bShowArror{ m_rgBodyInfo[2].m_index };
 	bool m_bFreezed{};	// Use enable/disable beacons instead.
 };
 
