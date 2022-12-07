@@ -151,7 +151,7 @@ Task CJet::Task_CarpetBombardment() noexcept
 	{
 		for (int i = 0; i < CDynamicTarget::BEACON_COUNT; ++i)
 		{
-			if (rgbBombLaunched[i])
+			if (rgbBombLaunched[i] || !m_pTarget->m_rgpBeacons[i])
 				continue;
 
 			auto const flCurDist = (m_pTarget->m_rgpBeacons[i]->EndPos().Make2D() - pev->origin.Make2D()).LengthSquared();

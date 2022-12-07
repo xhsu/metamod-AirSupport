@@ -239,6 +239,7 @@ void fw_ServerActivate_Post(edict_t *pEdictList, int edictCount, int clientMax) 
 	RetrieveMessageHandles();
 	RetrieveCVarHandles();
 	Waypoint_Read();
+	CDynamicTarget::RetrieveModelInfo();
 
 	// plugin_cfg
 

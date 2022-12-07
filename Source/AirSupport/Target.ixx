@@ -19,6 +19,7 @@ export struct CDynamicTarget : public Prefab_t
 	static inline constexpr char CLASSNAME[] = "info_dynamic_target";
 	static inline constexpr size_t BEACON_COUNT = 12;
 	static inline constexpr double CARPET_BOMBARDMENT_INTERVAL = 250.0;
+	static inline mstudiobonecontroller_t ARROW_CONTROLLER{}, MINIATURE_CONTROLLER{};
 
 	~CDynamicTarget() noexcept override;
 
@@ -36,6 +37,7 @@ export struct CDynamicTarget : public Prefab_t
 
 	void Spawn() noexcept override;
 	static CDynamicTarget *Create(CBasePlayer *pPlayer, CBasePlayerWeapon *pRadio) noexcept;
+	static void RetrieveModelInfo(void) noexcept;
 
 	EHANDLE<CBaseEntity> m_pTargeting{ nullptr };
 	EHANDLE<CBasePlayerWeapon> m_pRadio{ nullptr };
