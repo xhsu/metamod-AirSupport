@@ -429,15 +429,19 @@ Task CDynamicTarget::Task_QuickEval_CarpetBombardment() noexcept
 		{
 			// Not pressing LMB, only the main target mdl will showed up.
 
-			static double ang = 0;
-			ang += 5;
-			if (ang > 360)
-				ang -= 360;
+			//static double ang = 0;
+			//ang += 5;
+			//if (ang > 360)
+			//	ang -= 360;
+
+			//g_engfuncs.pfnVecToAngles(vecSurfNorm, pev->angles);
+			//gmsgTextMsg::Send(m_pPlayer->edict(), 2, std::format("{} {} {}\n", pev->angles[0], pev->angles[1], pev->angles[2]).c_str());
+			//auto const q = Quaternion::Rotate(Vector::Front(), vecSurfNorm) * Quaternion::AxisAngle(Vector::Front(), ang);
+			//pev->angles = q.Euler();
+			//gmsgTextMsg::Send(m_pPlayer->edict(), 2, std::format("{} {} {}\n", pev->angles[0], pev->angles[1], pev->angles[2]).c_str());
+			//pev->angles.pitch *= -1.f;
 
 			g_engfuncs.pfnVecToAngles(vecSurfNorm, pev->angles);
-			auto const q = Quaternion::Rotate(Vector::Front(), Vector::Up())*Quaternion::Rotate(Vector::Front(), vecSurfNorm) * Quaternion::AxisAngle(Vector::Front(), ang);
-			pev->angles = q.Euler();
-			//g_engfuncs.pfnVecToAngles(vecSurfNorm, pev->angles);
 			g_engfuncs.pfnSetOrigin(edict(), vecAiming);
 			pev->skin = Models::targetmdl::SKIN_GREEN;
 
@@ -481,6 +485,10 @@ Task CDynamicTarget::Task_QuickEval_CarpetBombardment() noexcept
 			0.0
 		};
 		auto const flMaxDistFwd = tr2.flFraction * (CARPET_BOMBARDMENT_INTERVAL * BEACON_COUNT / 2);
+
+		Angles vecAngles{};
+		g_engfuncs.pfnVecToAngles(vecForward, vecAngles);
+		UTIL_SetController(edict(), 0, -(pev->angles.yaw + vecAngles.yaw));
 
 		for (double flFw = 0, flRt = -48; auto &&pBeacon : m_rgpBeacons)
 		{
@@ -657,9 +665,13 @@ void CDynamicTarget::UpdateEvalMethod() noexcept
 		pBeam = nullptr;
 	}
 
-	pev->body = g_rgiAirSupportSelected[m_pPlayer->entindex()];
+	auto const &iType = g_rgiAirSupportSelected[m_pPlayer->entindex()];
 
-	switch (g_rgiAirSupportSelected[m_pPlayer->entindex()])
+	m_iAirSupportTypeModel = iType;
+	m_bShowArror = (iType == CARPET_BOMBARDMENT);
+	pev->body = UTIL_CalcBody(m_rgBodyInfo);
+
+	switch (iType)
 	{
 	default:
 	case AIR_STRIKE:
