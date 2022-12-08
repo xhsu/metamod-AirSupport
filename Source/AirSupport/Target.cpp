@@ -99,7 +99,7 @@ Task CDynamicTarget::Task_Animation() noexcept
 		if (m_pTargeting && m_pTargeting->IsPlayer())
 		{
 			vecHeadOrg = UTIL_GetHeadPosition(m_pTargeting.Get());
-			UTIL_SetController(&pev->controller[1], &MINIATURE_CONTROLLER, vecHeadOrg.z - m_pTargeting->pev->absmin.z);
+			UTIL_SetController(&pev->controller[1], &MINIATURE_CONTROLLER, (double)vecHeadOrg.z - (double)m_pTargeting->pev->absmin.z);
 		}
 		else
 			pev->controller[1] = (uint8_t)MINIATURE_CONTROLLER.rest;
@@ -439,7 +439,7 @@ Task CDynamicTarget::Task_QuickEval_CarpetBombardment() noexcept
 			// Not pressing LMB, only the main target mdl will showed up.
 
 			pev->angles = vecSurfNorm.VectorAngles();
-			UTIL_SetController(&pev->controller[0], &ARROW_CONTROLLER, -m_pPlayer->pev->angles.yaw + pev->angles.yaw - 90.f);
+			UTIL_SetController(&pev->controller[0], &ARROW_CONTROLLER, (double)-m_pPlayer->pev->angles.yaw + (double)pev->angles.yaw - 90.0);
 
 			g_engfuncs.pfnSetOrigin(edict(), vecAiming);
 			pev->skin = Models::targetmdl::SKIN_GREEN;
@@ -793,7 +793,7 @@ Task CFixedTarget::Task_AdjustMiniature() noexcept
 		if (m_pTargeting && m_pTargeting->IsPlayer())
 		{
 			vecHeadOrg = UTIL_GetHeadPosition(m_pTargeting.Get());
-			UTIL_SetController(&pev->controller[1], &MINIATURE_CONTROLLER, vecHeadOrg.z - m_pTargeting->pev->absmin.z);
+			UTIL_SetController(&pev->controller[1], &MINIATURE_CONTROLLER, (double)vecHeadOrg.z - (double)m_pTargeting->pev->absmin.z);
 		}
 		else
 			pev->controller[1] = (uint8_t)MINIATURE_CONTROLLER.rest;
