@@ -49,14 +49,16 @@ Task CJet::Task_BeamAndSound() noexcept
 
 Task CJet::Task_AirStrike() noexcept
 {
+	// #TODO make sure that it use a trace entity such that it can accurately test things out.
+
 	co_await TaskScheduler::NextFrame::Rank[0];	// yield to Task_BeamAndSound();
 
 	for (; m_pTarget;)
 	{
 		TraceResult tr{};
-		g_engfuncs.pfnTraceLine(pev->origin, m_pTarget->pev->origin, dont_ignore_monsters, edict(), &tr);
+		g_engfuncs.pfnTraceHull(pev->origin - Vector(0, 0, 2.5f), m_pTarget->pev->origin, dont_ignore_monsters, head_hull, edict(), &tr);
 
-		if (tr.flFraction > 0.99f)
+		if (tr.flFraction > 0.9f)
 		{
 			m_pTarget->m_pMissile =	// pTarget now has a missile binding to it.
 				CPrecisionAirStrike::Create(m_pPlayer, pev->origin - Vector(0, 0, 2.5f), m_pTarget->pev->origin);
@@ -149,7 +151,7 @@ Task CJet::Task_CarpetBombardment() noexcept
 	{
 		for (int i = 0; i < CDynamicTarget::BEACON_COUNT; ++i)
 		{
-			if (rgbBombLaunched[i])
+			if (rgbBombLaunched[i] || !m_pTarget->m_rgpBeacons[i])
 				continue;
 
 			auto const flCurDist = (m_pTarget->m_rgpBeacons[i]->EndPos().Make2D() - pev->origin.Make2D()).LengthSquared();

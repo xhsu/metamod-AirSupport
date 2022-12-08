@@ -227,26 +227,26 @@ Task VisualEffects(const Vector vecOrigin, float const flRadius) noexcept	// The
 	if (g_engfuncs.pfnPointContents(vecOrigin) == CONTENTS_WATER)
 		co_return;
 
-	auto const qRotation = Quaternion::Rotate(Vector(0, 0, 1), tr.vecPlaneNormal);
+	auto const qRotation = Quaternion::Rotate(Vector::Up(), tr.vecPlaneNormal);
 
 	array const rgvecVelocitys =
 	{
-		get_spherical_coord(Vector::Zero(), qRotation, 1.f, UTIL_Random(20.f, 30.f), 0),
-		get_spherical_coord(Vector::Zero(), qRotation, 1.f, UTIL_Random(20.f, 30.f), 45),
-		get_spherical_coord(Vector::Zero(), qRotation, 1.f, UTIL_Random(20.f, 30.f), 90),
-		get_spherical_coord(Vector::Zero(), qRotation, 1.f, UTIL_Random(20.f, 30.f), 135),
-		get_spherical_coord(Vector::Zero(), qRotation, 1.f, UTIL_Random(20.f, 30.f), 180),
-		get_spherical_coord(Vector::Zero(), qRotation, 1.f, UTIL_Random(20.f, 30.f), 225),
-		get_spherical_coord(Vector::Zero(), qRotation, 1.f, UTIL_Random(20.f, 30.f), 270),
-		get_spherical_coord(Vector::Zero(), qRotation, 1.f, UTIL_Random(20.f, 30.f), 315),
+		get_spherical_coord(Vector::Zero(), qRotation, UTIL_Random(300.f, 500.f), UTIL_Random(20.f, 30.f), 0),
+		get_spherical_coord(Vector::Zero(), qRotation, UTIL_Random(300.f, 500.f), UTIL_Random(20.f, 30.f), 45),
+		get_spherical_coord(Vector::Zero(), qRotation, UTIL_Random(300.f, 500.f), UTIL_Random(20.f, 30.f), 90),
+		get_spherical_coord(Vector::Zero(), qRotation, UTIL_Random(300.f, 500.f), UTIL_Random(20.f, 30.f), 135),
+		get_spherical_coord(Vector::Zero(), qRotation, UTIL_Random(300.f, 500.f), UTIL_Random(20.f, 30.f), 180),
+		get_spherical_coord(Vector::Zero(), qRotation, UTIL_Random(300.f, 500.f), UTIL_Random(20.f, 30.f), 225),
+		get_spherical_coord(Vector::Zero(), qRotation, UTIL_Random(300.f, 500.f), UTIL_Random(20.f, 30.f), 270),
+		get_spherical_coord(Vector::Zero(), qRotation, UTIL_Random(300.f, 500.f), UTIL_Random(20.f, 30.f), 315),
 	};
 
 	for (auto &&vecVelocity : rgvecVelocitys)
 	{
-		auto const flScale = UTIL_Random(0.65f, 1.f);
+		// The scale parameter seemes no-op
 
 		UTIL_BreakModel(
-			vecOrigin, Vector(flScale, flScale, flScale), vecVelocity * UTIL_Random(300.f, 500.f),
+			vecOrigin, Vector(1, 1, 1), vecVelocity,
 			UTIL_Random(0.8f, 2.f),
 			Models::m_rgLibrary[Models::GIBS_CONCRETE],
 			UTIL_Random(4, 12),
@@ -255,59 +255,43 @@ Task VisualEffects(const Vector vecOrigin, float const flRadius) noexcept	// The
 		);
 	}
 
-	co_await gpGlobals->frametime;
-
-	for (auto &&vecVelocity : rgvecVelocitys)
-	{
-		MsgBroadcast(SVC_TEMPENTITY);
-		WriteData(TE_SPRITE);
-		WriteData(vecOrigin + vecVelocity * UTIL_Random(200.f, 300.f));
-		WriteData((short)Sprites::m_rgLibrary[Sprites::SMOKE]);
-		WriteData((byte)25);
-		WriteData((byte)225);
-		MsgEnd();
-	}
+	UTIL_ExplodeModel(
+		Vector(vecOrigin.x, vecOrigin.y, vecOrigin.z + 70.0),
+		UTIL_Random(300.f, 500.f),
+		Models::m_rgLibrary[Models::GIBS_CONCRETE],
+		UTIL_Random(6, 9),
+		UTIL_Random(12.f, 15.f)
+	);
 
 	co_await gpGlobals->frametime;
 
 	array const rgvecPericoords =
 	{
-		get_spherical_coord(vecOrigin, qRotation, 128.f, UTIL_Random(85.f, 95.f), 0),
-		get_spherical_coord(vecOrigin, qRotation, 128.f, UTIL_Random(85.f, 95.f), 45),
-		get_spherical_coord(vecOrigin, qRotation, 128.f, UTIL_Random(85.f, 95.f), 90),
-		get_spherical_coord(vecOrigin, qRotation, 128.f, UTIL_Random(85.f, 95.f), 135),
-		get_spherical_coord(vecOrigin, qRotation, 128.f, UTIL_Random(85.f, 95.f), 180),
-		get_spherical_coord(vecOrigin, qRotation, 128.f, UTIL_Random(85.f, 95.f), 225),
-		get_spherical_coord(vecOrigin, qRotation, 128.f, UTIL_Random(85.f, 95.f), 270),
-		get_spherical_coord(vecOrigin, qRotation, 128.f, UTIL_Random(85.f, 95.f), 315),
+		get_spherical_coord(vecOrigin, qRotation, 160.f, UTIL_Random(85.f, 95.f), 0),
+		get_spherical_coord(vecOrigin, qRotation, 160.f, UTIL_Random(85.f, 95.f), 45),
+		get_spherical_coord(vecOrigin, qRotation, 160.f, UTIL_Random(85.f, 95.f), 90),
+		get_spherical_coord(vecOrigin, qRotation, 160.f, UTIL_Random(85.f, 95.f), 135),
+		get_spherical_coord(vecOrigin, qRotation, 160.f, UTIL_Random(85.f, 95.f), 180),
+		get_spherical_coord(vecOrigin, qRotation, 160.f, UTIL_Random(85.f, 95.f), 225),
+		get_spherical_coord(vecOrigin, qRotation, 160.f, UTIL_Random(85.f, 95.f), 270),
+		get_spherical_coord(vecOrigin, qRotation, 160.f, UTIL_Random(85.f, 95.f), 315),
 	};
 
 	for (auto &&vecPeri : rgvecPericoords)
-	{
-		//MsgBroadcast(SVC_TEMPENTITY);
-		//WriteData(TE_SPRITE);
-		//WriteData(vecPeri);
-		//WriteData((short)Sprites::m_rgLibrary[Sprites::SMOKE_2]);
-		//WriteData((byte)50);
-		//WriteData((byte)50);
-		//MsgEnd();
-
-		auto const pSmoke = Prefab_t::Create<CSmoke>(vecPeri);
-		pSmoke->LitByFlame(false);
-	}
+		Prefab_t::Create<CSmoke>(vecPeri)->LitByFlame(false);
 
 	co_await gpGlobals->frametime;
 
 	for (int i = 0; i < 8; ++i)
 	{
-		auto const pFlame = Prefab_t::Create<CFlame>(vecOrigin);
-		pFlame->pev->velocity = get_spherical_coord(flRadius * 0.75, UTIL_Random(15.0, 25.0), UTIL_Random(0.0, 359.9));
+		Prefab_t::Create<CFlame>(vecOrigin)->pev->velocity
+			= get_spherical_coord(flRadius * 0.75, UTIL_Random(15.0, 25.0), UTIL_Random(0.0, 359.9));
 	}
 }
 
 TraceResult Impact(CBasePlayer *pAttacker, CBaseEntity *pProjectile, float flDamage) noexcept
 {
-	g_engfuncs.pfnMakeVectors(pProjectile->pev->angles);
+	g_engfuncs.pfnMakeVectors(Angles{ -pProjectile->pev->angles.pitch, pProjectile->pev->angles.yaw, pProjectile->pev->angles.roll });
 
 	TraceResult tr{};
 	g_engfuncs.pfnTraceLine(pProjectile->pev->origin, pProjectile->pev->origin + gpGlobals->v_forward * 32.f, dont_ignore_monsters, ent_cast<edict_t *>(pProjectile->pev), &tr);

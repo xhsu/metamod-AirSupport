@@ -84,6 +84,7 @@ Task CDynamicTarget::Task_Animation() noexcept
 {
 	// This variable should never be a part of the class. It doesn't even being ref anywhere else.
 	auto LastAnimUpdate = std::chrono::high_resolution_clock::now();
+	auto vecHeadOrg = Vector::Zero();
 
 	for (;;)
 	{
@@ -94,6 +95,14 @@ Task CDynamicTarget::Task_Animation() noexcept
 		}
 
 		co_await TaskScheduler::NextFrame::Rank[1];	// behind coord update.
+
+		if (m_pTargeting && m_pTargeting->IsPlayer())
+		{
+			vecHeadOrg = UTIL_GetHeadPosition(m_pTargeting.Get());
+			UTIL_SetController(&pev->controller[1], &MINIATURE_CONTROLLER, (double)vecHeadOrg.z - (double)m_pTargeting->pev->absmin.z);
+		}
+		else
+			pev->controller[1] = (uint8_t)MINIATURE_CONTROLLER.rest;
 
 		if (m_bFreezed)
 		{
@@ -236,15 +245,15 @@ Task CDynamicTarget::Task_QuickEval_AirStrike() noexcept
 
 		if (m_pTargeting && !m_pTargeting->IsBSPModel() && m_pTargeting->IsAlive())
 		{
-			g_engfuncs.pfnVecToAngles(Vector::Up(), pev->angles);
+			pev->angles = Angles::Upwards();
 
-			Vector const vecCenter = m_pTargeting->Center();
+			auto const vecCenter = m_pTargeting->Center();
 			g_engfuncs.pfnSetOrigin(edict(), Vector(vecCenter.x, vecCenter.y, m_pTargeting->pev->absmin.z + 1.0));	// snap to target.
 		}
 		else
 		{
-			g_engfuncs.pfnVecToAngles(tr.vecPlaneNormal, pev->angles);
-			g_engfuncs.pfnSetOrigin(edict(), tr.vecEndPos);
+			pev->angles = tr.vecPlaneNormal.VectorAngles();
+			pev->origin = tr.vecEndPos;
 		}
 
 		// Quick Evaluation
@@ -429,7 +438,9 @@ Task CDynamicTarget::Task_QuickEval_CarpetBombardment() noexcept
 		{
 			// Not pressing LMB, only the main target mdl will showed up.
 
-			g_engfuncs.pfnVecToAngles(vecSurfNorm, pev->angles);
+			pev->angles = vecSurfNorm.VectorAngles();
+			UTIL_SetController(&pev->controller[0], &ARROW_CONTROLLER, (double)-m_pPlayer->pev->angles.yaw + (double)pev->angles.yaw - 90.0);
+
 			g_engfuncs.pfnSetOrigin(edict(), vecAiming);
 			pev->skin = Models::targetmdl::SKIN_GREEN;
 
@@ -441,8 +452,9 @@ Task CDynamicTarget::Task_QuickEval_CarpetBombardment() noexcept
 		// Is flying route available?
 		Vector vecDir((vecAiming.Make2D() - pev->origin.Make2D()).Normalize(), 0);
 
+		// Preventing math error if use just do a quick right-click instead of hold-and-drag.
 		if (vecDir == Vector::Zero())
-			vecDir = Vector::Forward();
+			vecDir = Angles{ 0, pev->angles.yaw, 0 }.Front();
 
 		g_engfuncs.pfnTraceLine(
 			vecSkyBaseOrigin - Vector(0, 0, 16),
@@ -473,6 +485,8 @@ Task CDynamicTarget::Task_QuickEval_CarpetBombardment() noexcept
 			0.0
 		};
 		auto const flMaxDistFwd = tr2.flFraction * (CARPET_BOMBARDMENT_INTERVAL * BEACON_COUNT / 2);
+
+		UTIL_SetController(&pev->controller[0], &ARROW_CONTROLLER, -vecForward.Yaw() + pev->angles.yaw - 90.f);
 
 		for (double flFw = 0, flRt = -48; auto &&pBeacon : m_rgpBeacons)
 		{
@@ -569,7 +583,7 @@ Task CDynamicTarget::Task_QuickEval_Gunship() noexcept
 
 		if (m_pTargeting && !m_pTargeting->IsBSPModel() && m_pTargeting->IsAlive())
 		{
-			g_engfuncs.pfnVecToAngles(Vector::Up(), pev->angles);
+			pev->angles = Angles::Upwards();
 
 			Vector const vecCenter = m_pTargeting->Center();
 			g_engfuncs.pfnSetOrigin(edict(), Vector(vecCenter.x, vecCenter.y, m_pTargeting->pev->absmin.z + 1.0));	// snap to target.
@@ -649,9 +663,15 @@ void CDynamicTarget::UpdateEvalMethod() noexcept
 		pBeam = nullptr;
 	}
 
-	pev->body = g_rgiAirSupportSelected[m_pPlayer->entindex()];
+	auto const &iType = g_rgiAirSupportSelected[m_pPlayer->entindex()];
 
-	switch (g_rgiAirSupportSelected[m_pPlayer->entindex()])
+	m_iAirSupportTypeModel = iType;
+	m_bShowArror = (iType == CARPET_BOMBARDMENT);
+	pev->body = UTIL_CalcBody(m_rgBodyInfo);
+
+	m_pTargeting = nullptr;
+
+	switch (iType)
 	{
 	default:
 	case AIR_STRIKE:
@@ -737,9 +757,48 @@ CDynamicTarget *CDynamicTarget::Create(CBasePlayer *pPlayer, CBasePlayerWeapon *
 	return pPrefab;
 }
 
+void CDynamicTarget::RetrieveModelInfo(void) noexcept
+{
+	static bool bDone = false;
+
+	[[likely]]
+	if (bDone)
+		return;
+
+	auto const pEdict = g_engfuncs.pfnCreateEntity();
+	g_engfuncs.pfnSetModel(pEdict, Models::TARGET);
+
+	auto const pstudiohdr = g_engfuncs.pfnGetModelPtr(pEdict);
+	auto pbonecontroller = (mstudiobonecontroller_t *)((byte *)pstudiohdr + pstudiohdr->bonecontrollerindex);
+
+	memcpy(&ARROW_CONTROLLER, pbonecontroller, sizeof(ARROW_CONTROLLER));
+	memcpy(&MINIATURE_CONTROLLER, ++pbonecontroller, sizeof(MINIATURE_CONTROLLER));
+
+	g_engfuncs.pfnRemoveEntity(pEdict);
+	bDone = true;
+}
+
 //
 // CFixedTarget
 //
+
+Task CFixedTarget::Task_AdjustMiniature() noexcept
+{
+	Vector vecHeadOrg{};
+
+	for (;;)
+	{
+		co_await TaskScheduler::NextFrame::Rank.back();	// behind coord update.
+
+		if (m_pTargeting && m_pTargeting->IsPlayer())
+		{
+			vecHeadOrg = UTIL_GetHeadPosition(m_pTargeting.Get());
+			UTIL_SetController(&pev->controller[1], &MINIATURE_CONTROLLER, (double)vecHeadOrg.z - (double)m_pTargeting->pev->absmin.z);
+		}
+		else
+			pev->controller[1] = (uint8_t)MINIATURE_CONTROLLER.rest;
+	}
+}
 
 Task CFixedTarget::Task_BeaconFx() noexcept
 {
@@ -1016,6 +1075,8 @@ void CFixedTarget::Spawn() noexcept
 	pev->frame = m_pDynamicTarget->pev->frame;
 	pev->nextthink = 0.1f;
 	pev->team = m_pPlayer->m_iTeam;
+	pev->controller[0] = m_pDynamicTarget->pev->controller[0];
+	pev->controller[1] = m_pDynamicTarget->pev->controller[1];
 
 	m_vecPlayerPosWhenCalled = m_pPlayer->pev->origin;
 	m_rgpBeacons = m_pDynamicTarget->m_rgpBeacons;
@@ -1028,6 +1089,7 @@ void CFixedTarget::Spawn() noexcept
 	m_Scheduler.Enroll(Task_PrepareJetSpawn());
 	m_Scheduler.Enroll(Task_TimeOut(), TASK_TIME_OUT);
 	m_Scheduler.Enroll(Task_UpdateOrigin());
+	m_Scheduler.Enroll(Task_AdjustMiniature());
 }
 
 void CFixedTarget::Activate() noexcept

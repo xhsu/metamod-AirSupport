@@ -14,7 +14,7 @@ namespace AirSupportPublish
 		{
 			var sz = Marshal.PtrToStringUTF8(psz);
 
-			if (sz is not null)
+			if (sz is not null && !m_rgszResources.Contains(sz))
 				m_rgszResources.Add(sz);
 
 			return m_rgszResources.Count;
@@ -25,7 +25,7 @@ namespace AirSupportPublish
 		{
 			var sz = Marshal.PtrToStringUTF8(psz);
 
-			if (sz is not null)
+			if (sz is not null && !m_rgszResources.Contains(sz))
 				m_rgszResources.Add($"sound/{sz}");
 
 			return m_rgszResources.Count;

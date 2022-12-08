@@ -13,7 +13,7 @@ export inline constexpr auto MISSILE_SOUND_CORO_KEY = 687286ul;
 export struct CPrecisionAirStrike : public Prefab_t
 {
 	static inline constexpr char CLASSNAME[] = "missile_precision";
-	static inline constexpr auto SPEED = 800.0;
+	static inline constexpr auto SPEED = 1000.0;
 
 	Task Task_Trail() noexcept;
 
@@ -38,9 +38,9 @@ export struct CClusterCharge : public Prefab_t
 	Task Task_Explo() noexcept;
 	Task Task_VisualEffects() noexcept;
 
-	void Touch_Bouncing(CBaseEntity *pOther) noexcept;
 
 	void Spawn() noexcept override;
+	void Touch(CBaseEntity *pOther) noexcept override;
 	bool ShouldCollide(EHANDLE<CBaseEntity> pOther) noexcept override;
 
 	static CClusterCharge *Create(CBasePlayer *pPlayer, Vector const &vecSpawn, float const flFuseTime) noexcept;
