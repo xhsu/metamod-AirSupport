@@ -255,7 +255,7 @@ public:
 
 public:
 	CVoiceGameMgr m_VoiceGameMgr;
-	float m_fTeamCount;
+	float m_flRestartRoundTime;			// ReGameDLL: The global time when the round is supposed to end, if this is not 0 (deprecated name m_fTeamCount)
 	float m_flCheckWinConditions;
 	float m_fRoundCount;
 	int m_iRoundTime;
