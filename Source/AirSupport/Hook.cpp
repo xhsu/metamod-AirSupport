@@ -475,7 +475,7 @@ void fw_UpdateClientData_Post(const edict_t *ent, int sendweapons, clientdata_t 
 	}
 }
 
-qboolean fw_AddToFullPack(entity_state_t *pState, int iEntIndex, edict_t *pEdict, edict_t *pClientSendTo, qboolean cl_lw, qboolean bIsPlayer, unsigned char *pSet)
+qboolean fw_AddToFullPack(entity_state_t *pState, int iEntIndex, edict_t *pEdict, edict_t *pClientSendTo, qboolean cl_lw, qboolean bIsPlayer, unsigned char *pSet) noexcept
 {
 	gpMetaGlobals->mres = MRES_IGNORED;
 
