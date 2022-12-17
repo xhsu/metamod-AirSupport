@@ -6,10 +6,10 @@ export module CBase;
 
 export import progdefs;
 export import eiface;
-import util;
+export import util;
 export import activity;
-import cdll_dll;
-import pm_materials;
+export import cdll_dll;
+export import pm_materials;
 
 // These are caps bits to indicate what an object's capabilities (currently used for save/restore and level transitions)
 export inline constexpr auto FCAP_CUSTOMSAVE = 0x00000001;
@@ -992,14 +992,6 @@ export enum struct MusicState
 	CALM,
 	INTENSE
 };
-
-export inline constexpr auto HIDEHUD_WEAPONS = (1 << 0);
-export inline constexpr auto HIDEHUD_FLASHLIGHT = (1 << 1);
-export inline constexpr auto HIDEHUD_ALL = (1 << 2);
-export inline constexpr auto HIDEHUD_HEALTH = (1 << 3);
-export inline constexpr auto HIDEHUD_TIMER = (1 << 4);
-export inline constexpr auto HIDEHUD_MONEY = (1 << 5);
-export inline constexpr auto HIDEHUD_CROSSHAIR = (1 << 6);
 
 export class CBasePlayer : public CBaseMonster
 {

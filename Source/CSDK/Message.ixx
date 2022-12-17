@@ -14,18 +14,6 @@ module;
 
 export module Message;
 
-import <cstdint>;
-
-import <algorithm>;
-import <array>;
-import <bit>;
-import <functional>;
-import <numeric>;
-import <string>;
-import <tuple>;
-import <type_traits>;
-import <utility>;
-
 import util;
 import vector;
 
@@ -60,11 +48,11 @@ export inline void WriteData(auto&& arg) noexcept
 
 	if constexpr (std::is_convertible_v<T, std::string_view>)
 		g_engfuncs.pfnWriteString(arg);
-	else if constexpr (std::is_same_v<T, Vector>)
+	else if constexpr (std::is_same_v<T, Vector> || std::is_same_v<T, Angles>)
 	{
-		g_engfuncs.pfnWriteCoord(arg.x);
-		g_engfuncs.pfnWriteCoord(arg.y);
-		g_engfuncs.pfnWriteCoord(arg.z);
+		g_engfuncs.pfnWriteCoord(arg[0]);
+		g_engfuncs.pfnWriteCoord(arg[1]);
+		g_engfuncs.pfnWriteCoord(arg[2]);
 	}
 
 	// general cases
@@ -81,7 +69,7 @@ export inline void WriteData(auto&& arg) noexcept
 		g_engfuncs.pfnWriteChar(arg);
 
 	else
-		static_assert(std::_Always_false<T>, "Invalid argument!");
+		static_assert(AlwaysFalse<T>, "Invalid argument!");
 };
 
 export __forceinline void MsgEnd(void) noexcept
@@ -102,7 +90,7 @@ inline void WriteScaledFloat(double fl) noexcept
 	WriteData(val);
 }
 
-export template <std::size_t N>
+template <std::size_t N>
 struct StringLiteral
 {
 	// Constructor
@@ -128,13 +116,13 @@ struct Message_t final
 	static inline constexpr auto NAME = _name;	// Convertible to char* at anytime.
 	static inline constexpr auto COUNT = sizeof...(Tys);
 	static inline constexpr bool HAS_STRING = AnySame<const char*, Tys...>;	// Once a string is placed, there will be no chance for a constant length message.
-	static inline constexpr bool HAS_VECTOR = AnySame<Vector, Tys...>;	// The vector uses WRITE_COORD, hence it has total size of 3*2=6 instead of 3*4=12.
+	static inline constexpr bool HAS_VECTOR = AnySame<Vector, Tys...> || AnySame<Angles, Tys...>;	// The vector uses WRITE_COORD, hence it has total size of 3*2=6 instead of 3*4=12.
 	static inline constexpr auto SIZE = (sizeof(Tys) + ... + 0);
 	static inline constexpr auto IDX_SEQ = std::index_sequence_for<Tys...>{};
 
 	// Constrains
 	static_assert(sizeof(_name.length) <= 11U, "Name of message must less than 11 characters.");
-	static_assert(SIZE <= 192U, "The size of entire message must less than 192 bytes.");
+	static_assert(SIZE < 192U, "The size of entire message must less than 192 bytes.");
 
 	// Members
 	static inline int m_iMessageIndex = 0;
@@ -159,17 +147,17 @@ struct Message_t final
 
 #ifdef _DEBUG
 		int iSize = 0;
-		m_iMessageIndex = gpMetaUtilFuncs->pfnGetUserMsgID(&gPluginInfo, NAME, &iSize);
+		m_iMessageIndex = gpMetaUtilFuncs->pfnGetUserMsgID(PLID, NAME, &iSize);
 
 		assert(iSize == -1 || iSize == SIZE);
 #else
-		m_iMessageIndex = gpMetaUtilFuncs->pfnGetUserMsgID(&gPluginInfo, NAME, nullptr);
+		m_iMessageIndex = gpMetaUtilFuncs->pfnGetUserMsgID(PLID, NAME, nullptr);
 #endif
 	}
 #endif
 
 	template <int iDest>
-	static void MarshalledBegin(const Vector &vecOrigin, edict_t *pClient, const Tys&... args) noexcept
+	static void Marshalled(const Vector &vecOrigin, edict_t *pClient, const Tys&... args) noexcept
 	{
 		assert(m_iMessageIndex > 0);
 
@@ -180,7 +168,7 @@ struct Message_t final
 		else if constexpr (iDest == MSG_PAS || iDest == MSG_PAS_R || iDest == MSG_PVS || iDest == MSG_PVS_R)
 			g_engfuncs.pfnMessageBegin(iDest, m_iMessageIndex, vecOrigin);
 		//else
-		//	static_assert(std::_Always_false<This_t>, "Invalid message casting method!");	// #INVESTIGATE
+		//	[]() noexcept { static_assert(AlwaysFalse<This_t>, "Invalid message casting method!"); }();	// #INVESTIGATE why can't I just directly static_assert that?
 
 		MsgArgs_t tplArgs = std::make_tuple(args...);
 
@@ -196,7 +184,7 @@ struct Message_t final
 	}
 
 	template <int iDest, typename... Ts>
-	static void FreeBegin(const Vector &vecOrigin, edict_t *pClient, const Ts&... args) noexcept
+	static void Unmanaged(const Vector &vecOrigin, edict_t *pClient, const Ts&... args) noexcept
 	{
 		assert(m_iMessageIndex > 0);
 
@@ -207,7 +195,7 @@ struct Message_t final
 		else if constexpr (iDest == MSG_PAS || iDest == MSG_PAS_R || iDest == MSG_PVS || iDest == MSG_PVS_R)
 			g_engfuncs.pfnMessageBegin(iDest, m_iMessageIndex, vecOrigin);
 		//else
-		//	static_assert(std::_Always_false<This_t>, "Invalid message casting method!");	// #INVESTIGATE
+		//	[]() noexcept { static_assert(AlwaysFalse<This_t>, "Invalid message casting method!"); }();	// #INVESTIGATE why can't I just directly static_assert that?
 
 		auto const tplArgs = std::make_tuple(args...);
 
@@ -222,11 +210,17 @@ struct Message_t final
 		g_engfuncs.pfnMessageEnd();
 	}
 
-	static inline void Send(edict_t *pClient, const Tys&... args) noexcept { return MarshalledBegin<MSG_ONE>(Vector::Zero(), pClient, args...); }
-	template <int _dest> static inline void Broadcast(const Tys&... args) noexcept { return MarshalledBegin<_dest>(Vector::Zero(), nullptr, args...); }
-	template <int _dest> static inline void Region(const Vector &vecOrigin, const Tys&... args) noexcept { return MarshalledBegin<_dest>(vecOrigin, nullptr, args...); }
+	static inline void Send(edict_t *pClient, const Tys&... args) noexcept { return Marshalled<MSG_ONE>(Vector::Zero(), pClient, args...); }
+	template <int _dest> static inline void Broadcast(const Tys&... args) noexcept { return Marshalled<_dest>(Vector::Zero(), nullptr, args...); }
+	template <int _dest> static inline void Region(const Vector &vecOrigin, const Tys&... args) noexcept { return Marshalled<_dest>(vecOrigin, nullptr, args...); }
 
-	/* LUNA: clinet side stuff. #UNTESTED #UNDONE
+	// Client side stuff.
+
+	using pfnReceiver_t = void(*)(std::conditional_t<sizeof(Tys) <= sizeof(std::uintptr_t), Tys, Tys const &>...) noexcept;
+
+	static void Receiver(std::conditional_t<sizeof(Tys) <= sizeof(std::uintptr_t), Tys, Tys const &>...) noexcept;	// #UPDATE_AT_MSVC_FIX cannot specialize on 19.35
+
+	/* #UNTESTED #UNDONE
 	static void Parse(void)
 	{
 		auto fnRead = [](auto &val)

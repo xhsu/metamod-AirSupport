@@ -22,7 +22,7 @@ inline constexpr plugin_info_t gPluginInfo =
 
 export inline constexpr auto PLID = &gPluginInfo;
 
-export inline void LOG_ERROR(const char *pszMessage, std::source_location const &SrcLoc = std::source_location::current()) noexcept
+export void LOG_ERROR(const char *pszMessage, std::source_location const &SrcLoc = std::source_location::current()) noexcept // #REPORT_TO_MSVC_inline cuase error here.
 {
 	gpMetaUtilFuncs->pfnLogError(PLID, "[%s => %s]: %s", SrcLoc.file_name(), SrcLoc.function_name(), pszMessage);
 	g_engfuncs.pfnServerPrint(std::format("\nError:\n\t[{} => {}()]: {}\n", SrcLoc.file_name(), SrcLoc.function_name(), pszMessage).c_str());
