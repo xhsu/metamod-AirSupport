@@ -337,5 +337,8 @@
     <ClCompile Include="Source\AirSupport\Menu.cpp">
       <Filter>Source\AirSupport</Filter>
     </ClCompile>
+    <ClCompile Include="Source\CSDK\Platform.ixx">
+      <Filter>Source\CSDK</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

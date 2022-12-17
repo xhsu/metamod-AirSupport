@@ -13,6 +13,7 @@ import Effects;
 import GameRules;
 import Hook;
 import Jet;
+import Platform;
 import Plugin;
 import Round;
 import Task;
@@ -57,7 +58,7 @@ void DeployHooks(void) noexcept
 		if (pEnt)
 			g_engfuncs.pfnRemoveEntity(pEnt);
 
-		LOG_ERROR("Failed to retrieve classtype for \"weapon_knife\".");
+		UTIL_Terminate("Failed to retrieve classtype for \"weapon_knife\".");
 		return;
 	}
 
@@ -68,7 +69,7 @@ void DeployHooks(void) noexcept
 
 	if (rgpfnCKnife == nullptr) [[unlikely]]
 	{
-		LOG_ERROR("Failed to retrieve vtable for \"weapon_knife\".");
+		UTIL_Terminate("Failed to retrieve vtable for \"weapon_knife\".");
 		return;
 	}
 
@@ -94,7 +95,7 @@ void DeployHooks(void) noexcept
 		if (pEnt)
 			g_engfuncs.pfnRemoveEntity(pEnt);
 
-		LOG_ERROR("Failed to retrieve classtype for \"info_target\".");
+		UTIL_Terminate("Failed to retrieve classtype for \"info_target\".");
 		return;
 	}
 
@@ -121,31 +122,31 @@ void DeployHooks(void) noexcept
 #else
 	[[unlikely]]
 	if (!g_pfnRadiusFlash)
-		LOG_ERROR("Function \"::RadiusFlash\" no found!");
+		UTIL_Terminate("Function \"::RadiusFlash\" no found!");
 	[[unlikely]]
 	if (!g_pfnSelectItem)
-		LOG_ERROR("Function \"CBasePlayer::SelectItem\" no found!");
+		UTIL_Terminate("Function \"CBasePlayer::SelectItem\" no found!");
 	[[unlikely]]
 	if (!g_pfnApplyMultiDamage)
-		LOG_ERROR("Function \"::ApplyMultiDamage\" no found!");
+		UTIL_Terminate("Function \"::ApplyMultiDamage\" no found!");
 	[[unlikely]]
 	if (!g_pfnClearMultiDamage)
-		LOG_ERROR("Function \"::ClearMultiDamage\" no found!");
+		UTIL_Terminate("Function \"::ClearMultiDamage\" no found!");
 	[[unlikely]]
 	if (!g_pfnAddMultiDamage)
-		LOG_ERROR("Function \"::AddMultiDamage\" no found!");
+		UTIL_Terminate("Function \"::AddMultiDamage\" no found!");
 	[[unlikely]]
 	if (!g_pfnDefaultDeploy)
-		LOG_ERROR("Function \"CBasePlayerWeapon::DefaultDeploy\" no found!");
+		UTIL_Terminate("Function \"CBasePlayerWeapon::DefaultDeploy\" no found!");
 	[[unlikely]]
 	if (!g_pfnSwitchWeapon)
-		LOG_ERROR("Function \"CBasePlayer::SwitchWeapon\" no found!");
+		UTIL_Terminate("Function \"CBasePlayer::SwitchWeapon\" no found!");
 	[[unlikely]]
 	if (!g_pfnFireBullets)
-		LOG_ERROR("Function \"CBaseEntity::FireBullets\" no found!");
+		UTIL_Terminate("Function \"CBaseEntity::FireBullets\" no found!");
 	[[unlikely]]
 	if (!g_pfnFireBullets3)
-		LOG_ERROR("Function \"CBaseEntity::FireBullets3\" no found!");
+		UTIL_Terminate("Function \"CBaseEntity::FireBullets3\" no found!");
 #endif
 
 	HookInfo::FireBullets.m_Address = g_pfnFireBullets;
@@ -261,7 +262,7 @@ void fw_ServerActivate_Post(edict_t *pEdictList, int edictCount, int clientMax) 
 #else
 		[[unlikely]]
 		if (!addr)
-			LOG_ERROR("Function \"CWorld::Precache\" no found!");
+			UTIL_Terminate("Function \"CWorld::Precache\" no found!");
 #endif
 
 		addr += (std::ptrdiff_t)(0xD29B4 - 0xD2940);

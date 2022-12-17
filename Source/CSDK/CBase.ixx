@@ -1,8 +1,8 @@
 export module CBase;
 
-#ifndef offsetof
-#define offsetof(s,m) ((::size_t)&reinterpret_cast<char const volatile&>((((s*)0)->m)))
-#endif
+//#ifndef offsetof
+//#define offsetof(s,m) ((::size_t)&reinterpret_cast<char const volatile&>((((s*)0)->m)))
+//#endif
 
 export import progdefs;
 export import eiface;
