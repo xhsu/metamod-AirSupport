@@ -1,3 +1,5 @@
+#include <assert.h>
+
 import <array>;
 import <chrono>;
 import <numbers>;
@@ -39,6 +41,22 @@ Task Task_SpriteLoop(entvars_t *const pev, short const FRAME_COUNT, double const
 	}
 }
 
+Task Task_SpriteLoop(entvars_t* const pev, uint16_t const STARTS_AT, uint16_t const FRAME_COUNT, double const FPS) noexcept
+{
+	uint16_t iFrame = STARTS_AT + UTIL_Random<uint16_t>(0, FRAME_COUNT - 1);
+
+	for (;;)
+	{
+		co_await float(1.f / FPS);
+
+		iFrame = (iFrame - STARTS_AT + 1) % FRAME_COUNT + STARTS_AT;
+
+		pev->framerate = float(1.f / FPS);
+		pev->frame = iFrame;
+		pev->animtime = gpGlobals->time;
+	}
+}
+
 Task Task_SpritePlayOnce(entvars_t *const pev, short const FRAME_COUNT, double const FPS) noexcept
 {
 	short iFrame = (short)std::clamp(pev->frame, 0.f, float(FRAME_COUNT - 1));
@@ -50,6 +68,70 @@ Task Task_SpritePlayOnce(entvars_t *const pev, short const FRAME_COUNT, double c
 		pev->framerate = float(1.f / FPS);
 		pev->frame = ++iFrame;
 		pev->animtime = gpGlobals->time;
+	}
+
+	pev->flags |= FL_KILLME;
+}
+
+Task Task_SpriteLoopOut(entvars_t* const pev, uint16_t const LOOP_STARTS_AT, uint16_t const LOOP_FRAME_COUNT, uint16_t const OUT_ENDS_AT, float const TIME, double const FPS) noexcept
+{
+	uint16_t const OUT_STARTS_AT = LOOP_STARTS_AT + LOOP_FRAME_COUNT;
+	uint16_t const& LOOP_ENDS_AT = OUT_STARTS_AT;
+	auto const FRAME_INTERVAL = float(1.f / FPS);
+
+	uint16_t iFrame = LOOP_STARTS_AT + UTIL_Random<uint16_t>(0, LOOP_FRAME_COUNT - 1);
+
+	for (auto const flTimeUp = gpGlobals->time + TIME; flTimeUp > gpGlobals->time;)
+	{
+		co_await FRAME_INTERVAL;
+
+		iFrame = (iFrame - LOOP_STARTS_AT + 1) % LOOP_FRAME_COUNT + LOOP_STARTS_AT;
+
+		pev->framerate = FRAME_INTERVAL;
+		pev->frame = iFrame;
+		pev->animtime = gpGlobals->time;
+	}
+
+	// Play all to the end of loop so we can concat to end frames.
+	for (; iFrame < LOOP_ENDS_AT;)
+	{
+		co_await FRAME_INTERVAL;
+
+		pev->framerate = FRAME_INTERVAL;
+		pev->frame = ++iFrame;
+		pev->animtime = gpGlobals->time;
+	}
+
+	assert(iFrame == OUT_STARTS_AT);
+
+	for (; iFrame < OUT_ENDS_AT;)
+	{
+		co_await FRAME_INTERVAL;
+
+		pev->framerate = FRAME_INTERVAL;
+		pev->frame = ++iFrame;
+		pev->animtime = gpGlobals->time;
+	}
+
+	pev->flags |= FL_KILLME;
+}
+
+Task Task_SqueezeDieout(entvars_t* const pev, float const AWAIT, float const DECAY, float const SQUEEZE) noexcept
+{
+	Vector const vecOriginalMin = pev->mins / pev->scale;
+	Vector const vecOriginalMax = pev->maxs / pev->scale;
+
+	co_await AWAIT;
+
+	for (; pev->scale > 0.01f && pev->renderamt > 0;)
+	{
+		co_await TaskScheduler::NextFrame::Rank.back();
+
+		pev->renderamt -= DECAY;
+		pev->scale -= SQUEEZE;
+
+		g_engfuncs.pfnSetSize(ent_cast<edict_t*>(pev), vecOriginalMin * pev->scale, vecOriginalMax * pev->scale);
+		g_engfuncs.pfnDropToFloor(ent_cast<edict_t*>(pev));
 	}
 
 	pev->flags |= FL_KILLME;
@@ -221,11 +303,14 @@ Task CFlame::Task_EmitSmoke() noexcept
 void CFlame::Spawn() noexcept
 {
 	auto const iFlameSprIndex = UTIL_Random(0u, Sprites::FLAME.size() - 1);
-	auto const iFrameCount = Sprites::Frames::FLAME[iFlameSprIndex];
+	auto const& iFrameCount = Sprites::Frames::FLAME[iFlameSprIndex];
+	static constexpr uint16_t FLAME_START_FRAME[] = { 4, 4 };
+	static constexpr uint16_t FLAME_OUT_ENDS_AT[] = { 25, 24 };
 
 	pev->rendermode = kRenderTransAdd;
 	pev->renderamt = UTIL_Random(192.f, 255.f);
-	pev->frame = (float)UTIL_Random(0, iFrameCount);
+	pev->rendercolor = Vector(255, UTIL_Random(220.0, 255.0), UTIL_Random(220.0, 255.0));	// Little variation from one to another.
+	// No more frame assignment here, moved to Task_SpriteLoopOut().
 
 	pev->solid = SOLID_TRIGGER;
 	pev->movetype = MOVETYPE_TOSS;
@@ -242,10 +327,11 @@ void CFlame::Spawn() noexcept
 
 	g_engfuncs.pfnSetOrigin(edict(), tr.vecEndPos);	// pfnSetOrigin includes the abssize setting, restoring our hitbox.
 
-	m_Scheduler.Enroll(Task_SpriteLoop(pev, iFrameCount, 30));
+	//m_Scheduler.Enroll(Task_SpriteLoop(pev, FLAME_START_FRAME[iFlameSprIndex], iFrameCount, 30));
 	//m_Scheduler.Enroll(Task_DetectGround());
 	m_Scheduler.Enroll(Task_EmitLight());
-	m_Scheduler.Enroll(Task_Remove(pev, UTIL_Random(9.f, 14.f)));
+	//m_Scheduler.Enroll(Task_SqueezeDieout(pev, 3.f, 3.f, 0.01f));
+	m_Scheduler.Enroll(Task_SpriteLoopOut(pev, FLAME_START_FRAME[iFlameSprIndex], iFrameCount, FLAME_OUT_ENDS_AT[iFlameSprIndex], UTIL_Random(9.f, 14.f), 30));
 
 	SetTouch(&CFlame::Touch_AttachingSurface);
 }

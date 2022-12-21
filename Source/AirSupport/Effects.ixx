@@ -33,7 +33,9 @@ export enum EEfxTasks : uint64_t
 };
 
 export extern "C++" Task Task_SpriteLoop(entvars_t *const pev, short const FRAME_COUNT, double const FPS) noexcept;
+export extern "C++" Task Task_SpriteLoop(entvars_t* const pev, uint16_t const STARTS_AT, uint16_t const FRAME_COUNT, double const FPS) noexcept;
 export extern "C++" Task Task_SpritePlayOnce(entvars_t *const pev, short const FRAME_COUNT, double const FPS) noexcept;
+export extern "C++" Task Task_SpriteLoopOut(entvars_t* const pev, uint16_t const LOOP_STARTS_AT, uint16_t const LOOP_FRAME_COUNT, uint16_t const OUT_ENDS_AT, float const TIME, double const FPS) noexcept;
 export extern "C++" Task Task_FadeOut(entvars_t *const pev, float const DECAY, float const ROLL) noexcept;
 export extern "C++" Task Task_Remove(entvars_t *const pev, float const TIME) noexcept;
 export extern "C++" Task Task_FadeIn(entvars_t *const pev, float const TRANSPARENT_INC, float const FINAL_VAL, float const ROLL) noexcept;

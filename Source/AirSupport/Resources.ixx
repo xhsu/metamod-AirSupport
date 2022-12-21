@@ -314,7 +314,6 @@ export namespace Sprites
 	{
 		"sprites/flame1.spr",
 		"sprites/flame2.spr",
-		"sprites/flame3.spr",
 	};
 
 	inline constexpr array BLACK_SMOKE =	// MUST be used with TE_SMOKE or you can see the effect.
@@ -346,7 +345,7 @@ export namespace Sprites
 
 	namespace Frames
 	{
-		inline constexpr array FLAME = { 17, 16, 16 };
+		inline constexpr array FLAME = { 17, 16 };
 		inline constexpr auto BLACK_SMOKE = 30;
 		//inline constexpr array GAS_EXPLO = { 15, 20, 15, 20 };
 		inline constexpr array GAS_EXPLO = { 50, 50 };
