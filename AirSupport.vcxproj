@@ -77,6 +77,10 @@
     <PostBuildEvent>
       <Command>copy /Y "$(TargetPath)" "$(SolutionDir)Bin\"</Command>
     </PostBuildEvent>
+    <PreBuildEvent>
+      <Command>cd "$(SolutionDir)Bin\"
+start Enforcer.exe</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -109,6 +113,10 @@
     <PostBuildEvent>
       <Command>copy /Y "$(TargetPath)" "$(SolutionDir)Bin\"</Command>
     </PostBuildEvent>
+    <PreBuildEvent>
+      <Command>cd "$(SolutionDir)Bin\"
+start Enforcer.exe</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\Hydrogenium\UtlConcepts.ixx" />
@@ -185,6 +193,8 @@
     <ClCompile Include="Source\AirSupport\Effects.ixx" />
     <ClCompile Include="Source\AirSupport\Weapon.ixx" />
     <ClCompile Include="Source\AirSupport\Effects.cpp" />
+    <ClCompile Include="Source\CSDK\CRC64.ixx" />
+    <ClCompile Include="Source\CSDK\FileSystem.ixx" />
     <ClCompile Include="Source\CSDK\GameRules.ixx" />
     <ClCompile Include="Source\AirSupport\Hook.ixx" />
     <ClCompile Include="Source\AirSupport\Jet.cpp" />

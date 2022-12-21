@@ -2,14 +2,67 @@ import <algorithm>;
 
 import Resources;
 
-inline void PrecacheModel(const char *psz) noexcept
+#if !defined PACKING_RESOURCES && !defined CREATING_ENFORCING_TABLE
+import CRC64;
+import FileSystem;
+
+#include "../../Enforcer/ResourceCRC64.hpp"
+
+bool CheckResource(const char* psz) noexcept
 {
-	Models::m_rgLibrary[psz] = g_engfuncs.pfnPrecacheModel(psz);
+	if (!g_rgiCRC64.contains(psz))
+		return true;
+
+	if (auto f = g_pFileSystem->Open(psz, "rb"); f)
+	{
+		g_pFileSystem->Seek(f, 0, FILESYSTEM_SEEK_TAIL);
+
+		auto const iFileSize = g_pFileSystem->Tell(f);
+		auto p = (std::byte*)malloc(iFileSize);
+
+		g_pFileSystem->Seek(f, 0, FILESYSTEM_SEEK_HEAD);
+		g_pFileSystem->Read(p, iFileSize, f);
+
+		if (auto const crc = CRC64::CheckStream(p, iFileSize); crc != g_rgiCRC64.at(psz))
+			return false;
+
+		g_pFileSystem->Close(f);
+		free(p);
+	}
+
+	return true;
 }
 
-inline void PrecacheSprite(const char *psz) noexcept
+#endif
+
+__forceinline void PrecacheModel(const char *psz) noexcept
+{
+	Models::m_rgLibrary[psz] = g_engfuncs.pfnPrecacheModel(psz);
+
+#if !defined PACKING_RESOURCES && !defined CREATING_ENFORCING_TABLE
+	if (!CheckResource(psz))
+		UTIL_Terminate("File '%s' has been altered.\nYou are not allowed to modify any file came with resource pack.", psz);
+#endif
+}
+
+__forceinline void PrecacheSprite(const char *psz) noexcept
 {
 	Sprites::m_rgLibrary[psz] = g_engfuncs.pfnPrecacheModel(psz);
+
+#if !defined PACKING_RESOURCES && !defined CREATING_ENFORCING_TABLE
+	if (!CheckResource(psz))
+		UTIL_Terminate("File '%s' has been altered.\nYou are not allowed to modify any file came with resource pack.", psz);
+#endif
+}
+
+__forceinline void PrecacheSound(const char* psz) noexcept
+{
+	g_engfuncs.pfnPrecacheSound(psz);
+
+#if !defined PACKING_RESOURCES && !defined CREATING_ENFORCING_TABLE
+	if (!CheckResource(psz))
+		UTIL_Terminate("File '%s' has been altered.\nYou are not allowed to modify any file came with resource pack.", psz);
+#endif
 }
 
 void Precache(void) noexcept
@@ -17,109 +70,109 @@ void Precache(void) noexcept
 	// Models
 
 	std::ranges::for_each(Models::PLANE, PrecacheModel);
-	Models::m_rgLibrary[Models::PROJECTILE] = g_engfuncs.pfnPrecacheModel(Models::PROJECTILE);
+	PrecacheModel(Models::PROJECTILE);
 
-	Models::m_rgLibrary[Models::V_RADIO] = g_engfuncs.pfnPrecacheModel(Models::V_RADIO);
-	Models::m_rgLibrary[Models::P_RADIO] = g_engfuncs.pfnPrecacheModel(Models::P_RADIO);
+	PrecacheModel(Models::V_RADIO);
+	PrecacheModel(Models::P_RADIO);
 
-	Models::m_rgLibrary[Models::GIBS_CONCRETE] = g_engfuncs.pfnPrecacheModel(Models::GIBS_CONCRETE);
-	Models::m_rgLibrary[Models::GIBS_METAL] = g_engfuncs.pfnPrecacheModel(Models::GIBS_METAL);
-	//Models::m_rgLibrary[Models::GIBS_RUBBLE] = g_engfuncs.pfnPrecacheModel(Models::GIBS_RUBBLE);
-	//Models::m_rgLibrary[Models::GIBS_WOOD] = g_engfuncs.pfnPrecacheModel(Models::GIBS_WOOD);
+	PrecacheModel(Models::GIBS_CONCRETE);
+	PrecacheModel(Models::GIBS_METAL);
+	//PrecacheModel(Models::GIBS_RUBBLE);
+	//PrecacheModel(Models::GIBS_WOOD);
 
-	Models::m_rgLibrary[Models::TARGET] = g_engfuncs.pfnPrecacheModel(Models::TARGET);
+	PrecacheModel(Models::TARGET);
 
-	Models::m_rgLibrary[Models::SPARK] = g_engfuncs.pfnPrecacheModel(Models::SPARK);
+	PrecacheModel(Models::SPARK);
 
 	// Sounds
 
-	std::ranges::for_each(Sounds::ACCEPTING, g_engfuncs.pfnPrecacheSound);
+	std::ranges::for_each(Sounds::ACCEPTING, PrecacheSound);
 
-	g_engfuncs.pfnPrecacheSound(Sounds::REQUESTING);
-	std::ranges::for_each(Sounds::REJECTING, g_engfuncs.pfnPrecacheSound);
-	g_engfuncs.pfnPrecacheSound(Sounds::NOISE);
+	PrecacheSound(Sounds::REQUESTING);
+	std::ranges::for_each(Sounds::REJECTING, PrecacheSound);
+	PrecacheSound(Sounds::NOISE);
 
-	g_engfuncs.pfnPrecacheSound(Sounds::TRAVEL);
+	PrecacheSound(Sounds::TRAVEL);
 
-	//g_engfuncs.pfnPrecacheSound(Sounds::PLAYER_BREATHE);
-	g_engfuncs.pfnPrecacheSound(Sounds::PLAYER_EAR_RINGING);
-	//g_engfuncs.pfnPrecacheSound(Sounds::PLAYER_HEARTBEAT);
-	g_engfuncs.pfnPrecacheSound(Sounds::PLAYER_HB_AND_ER);
+	//PrecacheSound(Sounds::PLAYER_BREATHE);
+	PrecacheSound(Sounds::PLAYER_EAR_RINGING);
+	//PrecacheSound(Sounds::PLAYER_HEARTBEAT);
+	PrecacheSound(Sounds::PLAYER_HB_AND_ER);
 
-	std::ranges::for_each(Sounds::PLAYER_COUGH, g_engfuncs.pfnPrecacheSound);
+	std::ranges::for_each(Sounds::PLAYER_COUGH, PrecacheSound);
 
-	std::ranges::for_each(Sounds::EXPLOSION, g_engfuncs.pfnPrecacheSound);
-	std::ranges::for_each(Sounds::EXPLOSION_SHORT, g_engfuncs.pfnPrecacheSound);
-	std::ranges::for_each(Sounds::JET, g_engfuncs.pfnPrecacheSound);
-	std::ranges::for_each(Sounds::WHIZZ, g_engfuncs.pfnPrecacheSound);
-	std::ranges::for_each(Sounds::BOMBER, g_engfuncs.pfnPrecacheSound);
-	std::ranges::for_each(Sounds::HIT_METAL, g_engfuncs.pfnPrecacheSound);
-	std::ranges::for_each(Sounds::EXPLOSION_BIG, g_engfuncs.pfnPrecacheSound);
+	std::ranges::for_each(Sounds::EXPLOSION, PrecacheSound);
+	std::ranges::for_each(Sounds::EXPLOSION_SHORT, PrecacheSound);
+	std::ranges::for_each(Sounds::JET, PrecacheSound);
+	std::ranges::for_each(Sounds::WHIZZ, PrecacheSound);
+	std::ranges::for_each(Sounds::BOMBER, PrecacheSound);
+	std::ranges::for_each(Sounds::HIT_METAL, PrecacheSound);
+	std::ranges::for_each(Sounds::EXPLOSION_BIG, PrecacheSound);
 
-	g_engfuncs.pfnPrecacheSound(Sounds::CLUSTER_BOMB_DROP);
+	PrecacheSound(Sounds::CLUSTER_BOMB_DROP);
 
-	std::ranges::for_each(Sounds::GRENADE_BOUNCE, g_engfuncs.pfnPrecacheSound);
+	std::ranges::for_each(Sounds::GRENADE_BOUNCE, PrecacheSound);
 
 	// namespace Gunship
 	{
-		std::ranges::for_each(Sounds::Gunship::AC130_AMBIENT, g_engfuncs.pfnPrecacheSound);
-		std::ranges::for_each(Sounds::Gunship::AC130_DEPARTURE, g_engfuncs.pfnPrecacheSound);
+		std::ranges::for_each(Sounds::Gunship::AC130_AMBIENT, PrecacheSound);
+		std::ranges::for_each(Sounds::Gunship::AC130_DEPARTURE, PrecacheSound);
 
-		g_engfuncs.pfnPrecacheSound(Sounds::Gunship::AC130_IS_IN_AIR);
-		//g_engfuncs.pfnPrecacheSound(Sounds::Gunship::UAV_IS_ONLINE);
+		PrecacheSound(Sounds::Gunship::AC130_IS_IN_AIR);
+		//PrecacheSound(Sounds::Gunship::UAV_IS_ONLINE);
 
-		std::ranges::for_each(Sounds::Gunship::KILL_CONFIRMED, g_engfuncs.pfnPrecacheSound);
+		std::ranges::for_each(Sounds::Gunship::KILL_CONFIRMED, PrecacheSound);
 
-		g_engfuncs.pfnPrecacheSound(Sounds::Gunship::NOISE_PILOT);
+		PrecacheSound(Sounds::Gunship::NOISE_PILOT);
 
-		std::ranges::for_each(Sounds::Gunship::AC130_FIRE_25MM, g_engfuncs.pfnPrecacheSound);
-		std::ranges::for_each(Sounds::Gunship::AC130_RELOAD, g_engfuncs.pfnPrecacheSound);
+		std::ranges::for_each(Sounds::Gunship::AC130_FIRE_25MM, PrecacheSound);
+		std::ranges::for_each(Sounds::Gunship::AC130_RELOAD, PrecacheSound);
 
-		g_engfuncs.pfnPrecacheSound(Sounds::Gunship::RESELECT_TARGET);
+		PrecacheSound(Sounds::Gunship::RESELECT_TARGET);
 
-		g_engfuncs.pfnPrecacheSound(Sounds::Gunship::TARGET_RAN_TO_COVER);
+		PrecacheSound(Sounds::Gunship::TARGET_RAN_TO_COVER);
 	}
 
 	// namespace FuelAirBomb
 	{
-		g_engfuncs.pfnPrecacheSound(Sounds::FuelAirBomb::GAS_LEAK_FADEOUT);
-		g_engfuncs.pfnPrecacheSound(Sounds::FuelAirBomb::GAS_LEAK_LOOP);
+		PrecacheSound(Sounds::FuelAirBomb::GAS_LEAK_FADEOUT);
+		PrecacheSound(Sounds::FuelAirBomb::GAS_LEAK_LOOP);
 
-		std::ranges::for_each(Sounds::FuelAirBomb::GAS_EXPLO, g_engfuncs.pfnPrecacheSound);
+		std::ranges::for_each(Sounds::FuelAirBomb::GAS_EXPLO, PrecacheSound);
 	}
 
 	// namespace Flame
 	{
-		//std::ranges::for_each(Sounds::Flame::FLAME, g_engfuncs.pfnPrecacheSound);
-		//g_engfuncs.pfnPrecacheSound(Sounds::Flame::FLAME_FADEOUT);
+		//std::ranges::for_each(Sounds::Flame::FLAME, PrecacheSound);
+		//PrecacheSound(Sounds::Flame::FLAME_FADEOUT);
 	}
 
 #ifdef PACKING_RESOURCES
-	g_engfuncs.pfnPrecacheSound(Sounds::ALERT_AC130);
-	g_engfuncs.pfnPrecacheSound(Sounds::ALERT_AIRSTRIKE);
-	g_engfuncs.pfnPrecacheSound(Sounds::ALERT_APACHE);
+	PrecacheSound(Sounds::ALERT_AC130);
+	PrecacheSound(Sounds::ALERT_AIRSTRIKE);
+	PrecacheSound(Sounds::ALERT_APACHE);
 #endif
 
 	// Sprite
 
-	Sprites::m_rgLibrary[Sprites::ROCKET_EXPLO] = g_engfuncs.pfnPrecacheModel(Sprites::ROCKET_EXPLO);
-	Sprites::m_rgLibrary[Sprites::ROCKET_EXPLO2] = g_engfuncs.pfnPrecacheModel(Sprites::ROCKET_EXPLO2);
-	Sprites::m_rgLibrary[Sprites::FIRE] = g_engfuncs.pfnPrecacheModel(Sprites::FIRE);
-	Sprites::m_rgLibrary[Sprites::FIRE2] = g_engfuncs.pfnPrecacheModel(Sprites::FIRE2);
-	Sprites::m_rgLibrary[Sprites::MINOR_EXPLO] = g_engfuncs.pfnPrecacheModel(Sprites::MINOR_EXPLO);
-	Sprites::m_rgLibrary[Sprites::AIRBURST] = g_engfuncs.pfnPrecacheModel(Sprites::AIRBURST);
-	Sprites::m_rgLibrary[Sprites::CARPET_FRAGMENT_EXPLO] = g_engfuncs.pfnPrecacheModel(Sprites::CARPET_FRAGMENT_EXPLO);
-	Sprites::m_rgLibrary[Sprites::SHOCKWAVE] = g_engfuncs.pfnPrecacheModel(Sprites::SHOCKWAVE);
-	Sprites::m_rgLibrary[Sprites::SPARK] = g_engfuncs.pfnPrecacheModel(Sprites::SPARK);
-	Sprites::m_rgLibrary[Sprites::LIFTED_DUST] = g_engfuncs.pfnPrecacheModel(Sprites::LIFTED_DUST);
-	Sprites::m_rgLibrary[Sprites::GROUNDED_DUST] = g_engfuncs.pfnPrecacheModel(Sprites::GROUNDED_DUST);
-	Sprites::m_rgLibrary[Sprites::GIGANTIC_EXPLO] = g_engfuncs.pfnPrecacheModel(Sprites::GIGANTIC_EXPLO);
-	Sprites::m_rgLibrary[Sprites::STATIC_SMOKE_THIN] = g_engfuncs.pfnPrecacheModel(Sprites::STATIC_SMOKE_THIN);
-	Sprites::m_rgLibrary[Sprites::STATIC_SMOKE_THICK] = g_engfuncs.pfnPrecacheModel(Sprites::STATIC_SMOKE_THICK);
+	PrecacheSprite(Sprites::ROCKET_EXPLO);
+	PrecacheSprite(Sprites::ROCKET_EXPLO2);
+	PrecacheSprite(Sprites::FIRE);
+	PrecacheSprite(Sprites::FIRE2);
+	PrecacheSprite(Sprites::MINOR_EXPLO);
+	PrecacheSprite(Sprites::AIRBURST);
+	PrecacheSprite(Sprites::CARPET_FRAGMENT_EXPLO);
+	PrecacheSprite(Sprites::SHOCKWAVE);
+	PrecacheSprite(Sprites::SPARK);
+	PrecacheSprite(Sprites::LIFTED_DUST);
+	PrecacheSprite(Sprites::GROUNDED_DUST);
+	PrecacheSprite(Sprites::GIGANTIC_EXPLO);
+	PrecacheSprite(Sprites::STATIC_SMOKE_THIN);
+	PrecacheSprite(Sprites::STATIC_SMOKE_THICK);
 
-	Sprites::m_rgLibrary[Sprites::BEAM] = g_engfuncs.pfnPrecacheModel(Sprites::BEAM);
+	PrecacheSprite(Sprites::BEAM);
 
-	Sprites::m_rgLibrary[Sprites::TRAIL] = g_engfuncs.pfnPrecacheModel(Sprites::TRAIL);
+	PrecacheSprite(Sprites::TRAIL);
 
 	std::ranges::for_each(Sprites::FLAME, PrecacheSprite);
 	std::ranges::for_each(Sprites::BLACK_SMOKE, PrecacheSprite);

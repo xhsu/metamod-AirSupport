@@ -10,6 +10,7 @@ import util;
 import UtlHook;
 
 import Effects;
+import FileSystem;
 import GameRules;
 import Hook;
 import Jet;
@@ -536,7 +537,7 @@ qboolean fw_ShouldCollide(edict_t *pentTouched, edict_t *pentOther) noexcept
 
 inline constexpr DLL_FUNCTIONS gFunctionTable =
 {
-	.pfnGameInit	= nullptr,
+	.pfnGameInit	= []() noexcept { FileSystem_Init(); },
 	.pfnSpawn		= &fw_Spawn,
 	.pfnThink		= &fw_Think,
 	.pfnUse			= nullptr,
@@ -705,7 +706,7 @@ int HookGameDLLExportedFn_Post(DLL_FUNCTIONS *pFunctionTable, int *interfaceVers
 inline constexpr NEW_DLL_FUNCTIONS gNewFunctionTable =
 {
 	.pfnOnFreeEntPrivateData	= &fw_OnFreeEntPrivateData,
-	.pfnGameShutdown			= nullptr,
+	.pfnGameShutdown			= []() noexcept { FileSystem_Shutdown(); },
 	.pfnShouldCollide			= &fw_ShouldCollide,
 	.pfnCvarValue				= nullptr,
 	.pfnCvarValue2				= nullptr,

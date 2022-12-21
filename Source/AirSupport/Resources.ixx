@@ -8,6 +8,8 @@ export import <unordered_map>;
 
 #ifdef PACKING_RESOURCES
 export import Transpiler;
+#elif defined CREATING_ENFORCING_TABLE
+export import Enforcer;
 #else
 export import util;
 #endif

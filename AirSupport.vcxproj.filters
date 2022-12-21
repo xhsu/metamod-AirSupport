@@ -340,5 +340,11 @@
     <ClCompile Include="Source\CSDK\Platform.ixx">
       <Filter>Source\CSDK</Filter>
     </ClCompile>
+    <ClCompile Include="Source\CSDK\CRC64.ixx">
+      <Filter>Source\CSDK</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\CSDK\FileSystem.ixx">
+      <Filter>Source\CSDK</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
