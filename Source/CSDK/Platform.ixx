@@ -23,7 +23,7 @@ export template <typename... Tys> [[noreturn]] void UTIL_Terminate(const char *p
 	static char sz[256]{};
 	_snprintf(sz, _countof(sz) - 1U, psz, std::forward<Tys>(args)...);
 
-	MessageBoxA(nullptr, psz, nullptr, MB_OK);
+	MessageBoxA(nullptr, sz, nullptr, MB_OK);
 	std::terminate();
 }
 
