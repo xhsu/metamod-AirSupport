@@ -10,6 +10,7 @@ import util;
 import UtlHook;
 
 import Effects;
+import Engine;
 import FileSystem;
 import GameRules;
 import Hook;
@@ -183,6 +184,15 @@ void RetrieveCVarHandles(void) noexcept
 }
 
 // Meta API
+
+void fw_GameInit_Post(void) noexcept
+{
+	FileSystem_Init();
+	Engine::Init();
+
+	if (Engine::BUILD_NUMBER < 8684)
+		UTIL_Terminate("Engine build '%d' mismatch from expected value: 8684.\nPlease use this plugin on a legal STEAM copy.", Engine::BUILD_NUMBER);
+}
 
 int fw_Spawn(edict_t *pent) noexcept
 {
@@ -537,7 +547,7 @@ qboolean fw_ShouldCollide(edict_t *pentTouched, edict_t *pentOther) noexcept
 
 inline constexpr DLL_FUNCTIONS gFunctionTable =
 {
-	.pfnGameInit	= []() noexcept { FileSystem_Init(); },
+	.pfnGameInit	= nullptr,
 	.pfnSpawn		= &fw_Spawn,
 	.pfnThink		= &fw_Think,
 	.pfnUse			= nullptr,
@@ -621,7 +631,7 @@ int HookGameDLLExportedFn(DLL_FUNCTIONS *pFunctionTable, int *interfaceVersion) 
 
 inline constexpr DLL_FUNCTIONS gFunctionTable_Post =
 {
-	.pfnGameInit	= nullptr,
+	.pfnGameInit	= &fw_GameInit_Post,
 	.pfnSpawn		= nullptr,
 	.pfnThink		= nullptr,
 	.pfnUse			= nullptr,
