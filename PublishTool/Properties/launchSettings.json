@@ -3,7 +3,8 @@
     "Publish": {
       "commandName": "Project",
       "commandLineArgs": "\"$(SolutionDir)Resource\"",
-      "workingDirectory": "$(SolutionDir)Bin\\"
+      "workingDirectory": "$(SolutionDir)Bin\\",
+      "nativeDebugging": true
     }
   }
 }

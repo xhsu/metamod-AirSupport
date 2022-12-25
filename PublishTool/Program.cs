@@ -15,7 +15,12 @@ namespace AirSupportPublish
 			var sz = Marshal.PtrToStringUTF8(psz);
 
 			if (sz is not null && !m_rgszResources.Contains(sz))
+			{
 				m_rgszResources.Add(sz);
+
+				if (sz.ToLower().EndsWith(".mdl"))
+					AddSoundFromModel(Path.Combine(Program.m_szResourceRootPath, sz));
+			}
 
 			return m_rgszResources.Count;
 		}
@@ -36,10 +41,15 @@ namespace AirSupportPublish
 
 		[DllImport("Transpiler.dll", EntryPoint = "Precache", CharSet = CharSet.Auto, CallingConvention = CallingConvention.Cdecl)]
 		public static extern void ReadResourcePool();
+
+		[DllImport("Transpiler.dll", EntryPoint = "AddSoundFromModel", CharSet = CharSet.Auto, CallingConvention = CallingConvention.StdCall)]
+		public static extern void AddSoundFromModel(string szPath);
 	}
 
 	unsafe internal class Program
 	{
+		public static string m_szResourceRootPath = "";
+
 		static void Main(string[] args)
 		{
 			if (args.Length != 1)
@@ -48,8 +58,11 @@ namespace AirSupportPublish
 				return;
 			}
 
+			m_szResourceRootPath = args[0];
+
 			Resources.TranspilerInitialize(&Resources.PrecacheModel, &Resources.PrecacheSound);
 			Resources.ReadResourcePool();
+			Resources.m_rgszResources.Sort();
 
 			Console.ForegroundColor = ConsoleColor.Cyan;
 			Console.WriteLine($"Resources Count: {Resources.m_rgszResources.Count}");
@@ -57,8 +70,7 @@ namespace AirSupportPublish
 
 			Console.Write('\n');
 
-			var szZipPath = Path.Combine(Directory.GetCurrentDirectory(), $"AirSupport-{DateTime.Now.ToString("MMM-dd-yyyy")}.zip");
-			var szResourceRootPath = args[0];
+			var szZipPath = Path.Combine(Directory.GetCurrentDirectory(), $"AirSupport-{DateTime.Now:MMM-dd-yyyy}.zip");
 
 			if (File.Exists(szZipPath))
 				File.Delete(szZipPath);
@@ -70,7 +82,7 @@ namespace AirSupportPublish
 
 				foreach (var szRelativePath in Resources.m_rgszResources)
 				{
-					var szAbsolutePath = Path.Combine(szResourceRootPath, szRelativePath);
+					var szAbsolutePath = Path.Combine(m_szResourceRootPath, szRelativePath);
 
 					if (File.Exists(szAbsolutePath))
 					{

@@ -17,11 +17,12 @@ export namespace Engine
 
 	inline const char* GetDLLName(void) noexcept
 	{
-		[[unlikely]]
-		if (!g_engfuncs.pfnEngCheckParm)
-			UTIL_Terminate("Cannot retrieve engine function 'g_engfuncs.pfnEngCheckParm'.\nEither you are using a illegal copy or you disconnected from the internet since 2009.");
-
 		// #UNDONE
+
+		//[[unlikely]]
+		//if (!g_engfuncs.pfnEngCheckParm)
+		//	UTIL_Terminate("Cannot retrieve engine function 'g_engfuncs.pfnEngCheckParm'.\nEither you are using a illegal copy or you disconnected from the internet since 2009.");
+
 		//auto const ret1 = g_engfuncs.pfnEngCheckParm("-soft", nullptr);
 		//auto const ret2 = g_engfuncs.pfnEngCheckParm("-software", nullptr);
 		//auto const ret3 = g_engfuncs.pfnEngCheckParm("-gl", nullptr);
