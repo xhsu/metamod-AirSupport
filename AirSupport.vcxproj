@@ -218,6 +218,7 @@ start Enforcer.exe</Command>
     <ClCompile Include="Source\AirSupport\Round.ixx" />
     <ClCompile Include="Source\AirSupport\Target.cpp" />
     <ClCompile Include="Source\AirSupport\Target.ixx" />
+    <ClCompile Include="Source\CSDK\Sprite.ixx" />
     <ClCompile Include="Source\CSDK\Task.ixx" />
     <ClCompile Include="Source\AirSupport\Explosion.cpp">
       <DisableSpecificWarnings Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">4244;%(DisableSpecificWarnings)</DisableSpecificWarnings>
@@ -226,6 +227,7 @@ start Enforcer.exe</Command>
     <ClCompile Include="Source\AirSupport\Waypoint.cpp" />
     <ClCompile Include="Source\AirSupport\Waypoint.ixx" />
     <ClCompile Include="Source\AirSupport\Weapon.cpp" />
+    <ClCompile Include="Source\CSDK\Wave.ixx" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -3,34 +3,108 @@ import <algorithm>;
 import Resources;
 
 #if !defined PACKING_RESOURCES && !defined CREATING_ENFORCING_TABLE
+import <span>;
+
 import CRC64;
 import FileSystem;
+import Sprite;
+import Wave;
 
-#include "../../Enforcer/ResourceCRC64.hpp"
+#include "../../Enforcer/Resource_CRC64.hpp"
+#include "../../Enforcer/Resource_ModelDetails.hpp"
+#include "../../Enforcer/Resource_SoundDetails.hpp"
+#include "../../Enforcer/Resource_SpriteDetails.hpp"
 
-bool CheckResource(const char* psz) noexcept
+bool VerifyByCRC64(const char* psz) noexcept
 {
 	if (!g_rgiCRC64.contains(psz))
 		return true;
 
-	if (auto f = g_pFileSystem->Open(psz, "rb"); f)
+	if (auto f = FileSystem::StandardOpen(psz, "rb"); f != nullptr)
 	{
-		g_pFileSystem->Seek(f, 0, FILESYSTEM_SEEK_TAIL);
+		auto const crc = CRC64::CheckFile(f);
+		fclose(f);
 
-		auto const iFileSize = g_pFileSystem->Tell(f);
-		auto p = (std::byte*)malloc(iFileSize);
-
-		g_pFileSystem->Seek(f, 0, FILESYSTEM_SEEK_HEAD);
-		g_pFileSystem->Read(p, iFileSize, f);
-
-		if (auto const crc = CRC64::CheckStream(p, iFileSize); crc != g_rgiCRC64.at(psz))
-			return false;
-
-		g_pFileSystem->Close(f);
-		free(p);
+		return crc == g_rgiCRC64.at(psz);
 	}
 
 	return true;
+}
+
+bool VerifyBySoundLength(const char* psz) noexcept
+{
+	if (!g_rgflSoundTime.contains(psz))
+		return true;
+
+	std::string const sz = std::string("sound/") + psz;
+
+	if (auto f = FileSystem::StandardOpen(sz.c_str(), "rb"); f != nullptr)
+	{
+		auto const flCurFileLength = Wave::Length(f);
+		fclose(f);
+
+		return std::abs(flCurFileLength - g_rgflSoundTime.at(psz)) < 0.1;
+	}
+
+	return true;
+}
+
+bool VerifyByModelAnimations(const char *psz) noexcept
+{
+	if (!g_rgrgflAnimTime.contains(psz))
+		return true;
+
+	if (auto f = FileSystem::StandardOpen(psz, "rb"); f != nullptr)
+	{
+		fseek(f, 0, SEEK_END);
+		auto const iSize = ftell(f);
+
+		fseek(f, 0, SEEK_SET);
+		auto pBuffer = calloc(1, iSize);
+		fread(pBuffer, iSize, 1, f);
+
+		auto const phdr = (studiohdr_t *)pBuffer;
+		auto const pseq = (mstudioseqdesc_t *)((uint8_t *)pBuffer + phdr->seqindex);
+		auto const rgSeq = std::span(pseq, phdr->numseq);
+		auto const fnCmp = [](mstudioseqdesc_t const& SeqInfo, double const& flTime) /*static*/ noexcept -> bool
+		{
+			// unlike other cmp fn, this one acts as a predicate and therefore return true means equal.
+
+			return std::abs(
+				(double)SeqInfo.numframes / (double)SeqInfo.fps - flTime
+			) < 0.01;
+		};
+
+		bool ret = false;
+
+		// One may add more animation later on, but no deletion allowed.
+		if (rgSeq.size() >= g_rgrgflAnimTime.at(psz).size())
+			ret = std::ranges::equal(rgSeq, g_rgrgflAnimTime.at(psz), fnCmp);
+
+		free(pBuffer);
+		fclose(f);
+
+		return ret;
+	}
+
+	return false;
+}
+
+bool VerifyBySpriteFrame(const char *psz) noexcept
+{
+	if (!g_rgiSpriteFrameCount.contains(psz))
+		return true;
+
+	if (auto f = FileSystem::StandardOpen(psz, "rb"); f != nullptr)
+	{
+		GoldSrc::Sprite_t hSprite{};
+		GoldSrc::Sprite_t::ReadFromFile(f, &hSprite);
+		fclose(f);
+
+		return hSprite.m_iNumOfFrames == g_rgiSpriteFrameCount.at(psz);
+	}
+
+	return false;
 }
 
 #endif
@@ -40,8 +114,8 @@ __forceinline void PrecacheModel(const char *psz) noexcept
 	Models::m_rgLibrary[psz] = g_engfuncs.pfnPrecacheModel(psz);
 
 #if !defined PACKING_RESOURCES && !defined CREATING_ENFORCING_TABLE
-	if (!CheckResource(psz))
-		UTIL_Terminate("File '%s' has been altered.\nYou are not allowed to modify any file came with resource pack.", psz);
+	if (!VerifyByModelAnimations(psz))
+		UTIL_Terminate("Critical model '%s' has been altered.\nYou are only swap it to a model with same animation length.", psz);
 #endif
 }
 
@@ -50,8 +124,8 @@ __forceinline void PrecacheSprite(const char *psz) noexcept
 	Sprites::m_rgLibrary[psz] = g_engfuncs.pfnPrecacheModel(psz);
 
 #if !defined PACKING_RESOURCES && !defined CREATING_ENFORCING_TABLE
-	if (!CheckResource(psz))
-		UTIL_Terminate("File '%s' has been altered.\nYou are not allowed to modify any file came with resource pack.", psz);
+	if (!VerifyBySpriteFrame(psz))
+		UTIL_Terminate("File '%s' has been altered.\nThe altering sprite file must have a same frame count.", psz);
 #endif
 }
 
@@ -60,8 +134,8 @@ __forceinline void PrecacheSound(const char* psz) noexcept
 	g_engfuncs.pfnPrecacheSound(psz);
 
 #if !defined PACKING_RESOURCES && !defined CREATING_ENFORCING_TABLE
-	if (!CheckResource(psz))
-		UTIL_Terminate("File '%s' has been altered.\nYou are not allowed to modify any file came with resource pack.", psz);
+	if (!VerifyBySoundLength(psz))
+		UTIL_Terminate("File '%s' has been altered.\nThe altering wave file must have a same lasting time.", psz);
 #endif
 }
 

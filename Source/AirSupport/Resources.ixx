@@ -87,7 +87,7 @@ export namespace Sounds
 
 	inline constexpr char REQUESTING[] = "airsupport/radio/radio_use.wav";
 	inline constexpr array REJECTING = { "airsupport/radio/radio_negative.wav", "airsupport/radio/radio_negative-2.wav" };
-	inline constexpr char NOISE[] = "weapons/RADIO/radio_use.wav";
+	inline constexpr char NOISE[] = "weapons/RADIO/radio_talking.wav";
 
 	inline constexpr char ALERT_AC130[] = "airsupport/radio/radio_enemy_ac130.wav";
 	inline constexpr char ALERT_AIRSTRIKE[] = "airsupport/radio/radio_enemy_airstrike.wav";

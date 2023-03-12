@@ -8,7 +8,6 @@ export import <cstddef>;
 export import <cstdio>;
 
 export import <bit>;
-export import <filesystem>;
 
 using std::bit_cast;
 
@@ -158,24 +157,30 @@ export namespace CRC64
 		return crc;
 	}
 
-	uint64_t CheckFile(const char* pszPath) noexcept
+	uint64_t CheckFile(FILE* f) noexcept
+	{
+		fseek(f, 0, SEEK_END);
+
+		auto const iFileSize = ftell(f);
+		auto p = (std::byte*)malloc(iFileSize);
+
+		fseek(f, 0, SEEK_SET);
+		fread(p, 1, iFileSize, f);
+
+		auto const crc = CheckStream(p, iFileSize);
+
+		free(p);
+		return crc;
+	}
+
+	inline uint64_t CheckFile(const char* pszPath) noexcept
 	{
 		uint64_t crc{};
 
 		if (auto f = fopen(pszPath, "rb"); f)
 		{
-			fseek(f, 0, SEEK_END);
-
-			auto const iFileSize = ftell(f);
-			auto p = (std::byte*)malloc(iFileSize);
-
-			fseek(f, 0, SEEK_SET);
-			fread(p, 1, iFileSize, f);
-
-			crc = CheckStream(p, iFileSize);
-
+			crc = CheckFile(f);
 			fclose(f);
-			free(p);
 		}
 
 		return crc;

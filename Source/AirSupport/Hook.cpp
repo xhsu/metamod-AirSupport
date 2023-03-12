@@ -187,7 +187,7 @@ void RetrieveCVarHandles(void) noexcept
 
 void fw_GameInit_Post(void) noexcept
 {
-	FileSystem_Init();
+	FileSystem::Init();
 	Engine::Init();
 
 	if (Engine::BUILD_NUMBER < 8684)
@@ -716,7 +716,7 @@ int HookGameDLLExportedFn_Post(DLL_FUNCTIONS *pFunctionTable, int *interfaceVers
 inline constexpr NEW_DLL_FUNCTIONS gNewFunctionTable =
 {
 	.pfnOnFreeEntPrivateData	= &fw_OnFreeEntPrivateData,
-	.pfnGameShutdown			= []() noexcept { FileSystem_Shutdown(); },
+	.pfnGameShutdown			= []() noexcept { FileSystem::Shutdown(); },
 	.pfnShouldCollide			= &fw_ShouldCollide,
 	.pfnCvarValue				= nullptr,
 	.pfnCvarValue2				= nullptr,

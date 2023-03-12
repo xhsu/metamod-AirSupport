@@ -38,6 +38,7 @@ void __stdcall AddSoundFromModel(const wchar_t* pszPath) noexcept
 			}
 		}
 
+		free(pBuffer);
 		fclose(f);
 	}
 }

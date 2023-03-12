@@ -170,35 +170,53 @@ public:
 	virtual void			AddSearchPathNoWrite(const char* pPath, const char* pathID) = 0;
 };
 
-export inline constexpr char FILESYSTEM_INTERFACE_VERSION[] = "VFileSystem009";
-
-export extern "C++" inline IFileSystem* g_pFileSystem = nullptr;
-export extern "C++" inline HMODULE g_pFileSystemModule = nullptr;
-
-export bool FileSystem_Init() noexcept
+namespace FileSystem
 {
-	g_pFileSystemModule = LoadLibraryA(STDIO_FILESYSTEM_LIB);
-	if (!g_pFileSystemModule) [[unlikely]]
-		return false;
+	export inline constexpr char INTERFACE_VERSION[] = "VFileSystem009";
 
-	// Get FileSystem interface
-	auto const filesystemFactoryFn = (CreateInterfaceFn)GetProcAddress(g_pFileSystemModule, CREATEINTERFACE_PROCNAME);
-	if (!filesystemFactoryFn) [[unlikely]]
-		UTIL_Terminate("Unable to find function '%s' from %s", CREATEINTERFACE_PROCNAME, STDIO_FILESYSTEM_LIB);
+	export extern "C++" inline IFileSystem* m_pObject = nullptr;
+	export extern "C++" inline HMODULE m_pModuleHandle = nullptr;
 
-	g_pFileSystem = (IFileSystem*)filesystemFactoryFn(FILESYSTEM_INTERFACE_VERSION, nullptr);
-	if (!g_pFileSystem) [[unlikely]]
-		UTIL_Terminate("Can not retrive filesystem interface version '%s'.", FILESYSTEM_INTERFACE_VERSION);
-
-	return true;
-}
-
-export void FileSystem_Shutdown() noexcept
-{
-	if (g_pFileSystemModule) [[likely]]
+	export bool Init() noexcept
 	{
-		FreeLibrary(g_pFileSystemModule);
-		g_pFileSystemModule = nullptr;
-		g_pFileSystem = nullptr;
+		m_pModuleHandle = LoadLibraryA(STDIO_FILESYSTEM_LIB);
+		if (!m_pModuleHandle) [[unlikely]]
+			return false;
+
+		// Get FileSystem interface
+		auto const filesystemFactoryFn = (CreateInterfaceFn)GetProcAddress(m_pModuleHandle, CREATEINTERFACE_PROCNAME);
+		if (!filesystemFactoryFn) [[unlikely]]
+			UTIL_Terminate("Unable to find function '%s' from %s", CREATEINTERFACE_PROCNAME, STDIO_FILESYSTEM_LIB);
+
+		m_pObject = (IFileSystem *)filesystemFactoryFn(INTERFACE_VERSION, nullptr);
+		if (!m_pObject) [[unlikely]]
+			UTIL_Terminate("Can not retrive filesystem interface version '%s'.", INTERFACE_VERSION);
+
+		return true;
 	}
-}
+
+	export std::string_view GetAbsolutePath(const char *pszRelativePath) noexcept
+	{
+		static char szBuffer[1024]{};
+		m_pObject->GetLocalPath(pszRelativePath, szBuffer, sizeof(szBuffer) - 1);
+
+		return szBuffer;
+	}
+
+	export FILE *StandardOpen(const char *pszRelativePath, const char *pszMode) noexcept
+	{
+		auto const pszAbsPath = GetAbsolutePath(pszRelativePath);
+
+		return fopen(pszAbsPath.data(), pszMode);
+	}
+
+	export void Shutdown() noexcept
+	{
+		if (m_pModuleHandle) [[likely]]
+		{
+			FreeLibrary(m_pModuleHandle);
+			m_pModuleHandle = nullptr;
+			m_pObject = nullptr;
+		}
+	}
+};

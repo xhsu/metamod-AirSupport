@@ -349,5 +349,11 @@
     <ClCompile Include="Source\CSDK\Engine.ixx">
       <Filter>Source\CSDK</Filter>
     </ClCompile>
+    <ClCompile Include="Source\CSDK\Sprite.ixx">
+      <Filter>Source\CSDK</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\CSDK\Wave.ixx">
+      <Filter>Source\CSDK</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
