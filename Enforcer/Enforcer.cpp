@@ -64,8 +64,7 @@ int AddModel(const char* psz) noexcept
 		}
 		else if (sz.ends_with(".spr") && !g_rgiSpriteFrameCount.contains(psz))
 		{
-			GoldSrc::Sprite_t hSprite{};
-			GoldSrc::Sprite_t::ReadFromFile(f, &hSprite);
+			GoldSrc::Sprite_t const hSprite{ f };
 
 			g_rgiSpriteFrameCount[psz] = hSprite.m_iNumOfFrames;
 		}

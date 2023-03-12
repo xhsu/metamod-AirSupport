@@ -168,7 +168,7 @@ export struct CFuelAirCloud : public Prefab_t
 
 	static inline list<EHANDLE<CFuelAirCloud>> s_rgpAeroClouds{};
 
-	~CFuelAirCloud() noexcept { s_rgpAeroClouds.remove(this); }
+	~CFuelAirCloud() noexcept override { s_rgpAeroClouds.remove(this); }
 
 	Task Task_FadeIn(float const TRANSPARENT_INC, float const FINAL_VAL, float const ROLL) noexcept;
 	Task Task_Ignite(void) noexcept;

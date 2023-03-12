@@ -67,6 +67,9 @@ export namespace GoldSrc
 
 		vector<Frame_t> m_rgFrames{};
 
+		Sprite_t() noexcept = default;
+		explicit Sprite_t(FILE *f) noexcept { ReadFromFile(f, this); }
+
 		static inline void ReadFromFile(FILE* f, Sprite_t* pSprite) noexcept
 		{
 			fseek(f, 0, SEEK_SET);

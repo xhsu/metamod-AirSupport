@@ -97,8 +97,7 @@ bool VerifyBySpriteFrame(const char *psz) noexcept
 
 	if (auto f = FileSystem::StandardOpen(psz, "rb"); f != nullptr)
 	{
-		GoldSrc::Sprite_t hSprite{};
-		GoldSrc::Sprite_t::ReadFromFile(f, &hSprite);
+		GoldSrc::Sprite_t const hSprite{ f };
 		fclose(f);
 
 		return hSprite.m_iNumOfFrames == g_rgiSpriteFrameCount.at(psz);
