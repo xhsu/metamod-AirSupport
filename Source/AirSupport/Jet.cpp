@@ -334,7 +334,7 @@ Task CGunship::Task_Gunship() noexcept
 	g_engfuncs.pfnEmitAmbientSound(m_pPlayer->edict(), m_pPlayer->pev->origin, Sounds::Gunship::AC130_IS_IN_AIR, VOL_NORM, ATTN_STATIC, 0, UTIL_Random(92, 108));
 	g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, Sounds::Gunship::AC130_AMBIENT[m_iAmbientSoundIndex], VOL_NORM, ATTN_NONE, 0, UTIL_Random(92, 108));
 
-	co_await TaskScheduler::NextFrame::Rank[1];
+	co_await (float)g_rgflSoundTime.at(Sounds::Gunship::AC130_IS_IN_AIR);
 
 	for (TraceResult tr{}; m_pTarget;)
 	{
@@ -354,10 +354,12 @@ Task CGunship::Task_Gunship() noexcept
 
 		if (!pEnemy->IsAlive())
 		{
-			g_engfuncs.pfnEmitSound(m_pPlayer->edict(), CHAN_STATIC, UTIL_GetRandomOne(Sounds::Gunship::KILL_CONFIRMED), VOL_NORM, ATTN_STATIC, 0, UTIL_Random(92, 108));
+			std::string_view const szKillConfirmed = UTIL_GetRandomOne(Sounds::Gunship::KILL_CONFIRMED);
+
+			g_engfuncs.pfnEmitSound(m_pPlayer->edict(), CHAN_STATIC, szKillConfirmed.data(), VOL_NORM, ATTN_STATIC, 0, UTIL_Random(92, 108));
 
 			pEnemy = nullptr;	// Only after we set it to null will the CFixedTarget to find another target.
-			co_await 0.1f;
+			co_await (float)g_rgflSoundTime.at(szKillConfirmed);
 			continue;
 		}
 

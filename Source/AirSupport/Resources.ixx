@@ -12,6 +12,7 @@ export import Transpiler;
 export import Enforcer;
 #else
 export import util;
+export import :Const;
 #endif
 
 using std::array;
@@ -295,8 +296,7 @@ export namespace Sprites
 {
 	inline constexpr char ROCKET_EXPLO[] = "sprites/rockeexplode.spr";
 	inline constexpr char ROCKET_EXPLO2[] = "sprites/zerogxplode-big1.spr";
-	inline constexpr char FIRE[] = "sprites/rockefire.spr";
-	inline constexpr char FIRE2[] = "sprites/hotglow.spr";
+	inline constexpr char ROCKET_EXHAUST_FLAME[] = "sprites/hotglow.spr";
 	inline constexpr char MINOR_EXPLO[] = "sprites/zerog-frag1.spr";
 	inline constexpr char AIRBURST[] = "sprites/exploeffect1.spr";
 	inline constexpr char CARPET_FRAGMENT_EXPLO[] = "sprites/m79grenadeex.spr";
@@ -307,6 +307,9 @@ export namespace Sprites
 	inline constexpr char GIGANTIC_EXPLO[] = "sprites/bunkerbuster_explosion.spr";
 	inline constexpr char STATIC_SMOKE_THIN[] = "sprites/static_smoke_thin_1.spr";
 	inline constexpr char STATIC_SMOKE_THICK[] = "sprites/static_smoke_thick_1.spr";
+	inline constexpr char PHOSPHORUS_TRACE_HEAD[] = "sprites/xflare1.spr";
+	inline constexpr char PHOSPHORUS_FLAME[] = "sprites/flame6.spr";
+	inline constexpr char PHOSPHORUS_SMOKE[] = "sprites/bettyspr1.spr";
 
 	inline constexpr char BEAM[] = "sprites/laserbeam.spr";
 

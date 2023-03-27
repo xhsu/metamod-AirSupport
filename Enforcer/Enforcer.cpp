@@ -102,10 +102,14 @@ int main() noexcept
 	*/
 	if (std::ofstream fout(PROJECT_DIR "Resource_CRC64.hpp"); fout && !g_rgiCRC64.empty())
 	{
-		fout << "// File Generated at: " __DATE__ " " __TIME__ "\n";
-		fout << '\n';
-		fout << "inline std::unordered_map<std::string_view, uint64_t> const g_rgiCRC64 = " << '\n';
-		fout << "{" << '\n';
+		fout
+			<< "// File Generated at: " __DATE__ " " __TIME__ "\n"
+			<< '\n'
+			//<< "#include <string_view>\n"
+			//<< "#include <unordered_map>\n"
+			//<< '\n'
+			<< "EXPORT inline std::unordered_map<std::string_view, uint64_t> const g_rgiCRC64 = " << '\n'
+			<< "{" << '\n';
 
 		auto const iter = std::ranges::max_element(g_rgiCRC64 | std::views::keys, {}, [](auto&& s) noexcept -> size_t { return s.length(); });
 		auto const iExpectedSpaceBetween = (*iter).size() + 1;	// What the fuck, MSVC?
@@ -131,7 +135,7 @@ int main() noexcept
 		fout
 			<< "// File Generated at: " __DATE__ " " __TIME__ "\n"
 			<< '\n'
-			<< "inline std::unordered_map<std::string_view, std::vector<double>> const g_rgrgflAnimTime = " << '\n'
+			<< "EXPORT inline std::unordered_map<std::string_view, std::vector<double>> const g_rgrgflAnimTime = " << '\n'
 			<< '{' << '\n';
 
 		auto const iter = std::ranges::max_element(g_rgrgflAnimTime | std::views::keys, {}, [](auto&& s) noexcept -> size_t { return s.length(); });
@@ -164,7 +168,7 @@ int main() noexcept
 		fout
 			<< "// File Generated at: " __DATE__ " " __TIME__ "\n"
 			<< '\n'
-			<< "inline std::unordered_map<std::string_view, int> const g_rgiSpriteFrameCount = " << '\n'
+			<< "EXPORT inline std::unordered_map<std::string_view, int> const g_rgiSpriteFrameCount = " << '\n'
 			<< '{' << '\n';
 
 		auto const iter = std::ranges::max_element(g_rgiSpriteFrameCount | std::views::keys, {}, [](auto&& s) noexcept -> size_t { return s.length(); });
@@ -184,7 +188,7 @@ int main() noexcept
 		fout
 			<< "// File Generated at: " __DATE__ " " __TIME__ "\n"
 			<< '\n'
-			<< "inline std::unordered_map<std::string_view, double> const g_rgflSoundTime = " << '\n'
+			<< "EXPORT inline std::unordered_map<std::string_view, double> const g_rgflSoundTime = " << '\n'
 			<< '{' << '\n';
 
 		auto const iter = std::ranges::max_element(g_rgflSoundTime | std::views::keys, {}, [](auto&& s) noexcept -> size_t { return s.length(); });

@@ -1027,7 +1027,7 @@ Task CFixedTarget::Task_TimeOut() noexcept
 	switch (m_AirSupportType)
 	{
 	case GUNSHIP_STRIKE:
-		co_await 15.f;
+		co_await 25.f;
 		gmsgTextMsg::Send(m_pPlayer->edict(), (byte)4, Localization::GUNSHIP_DESPAWNING);
 		break;
 
@@ -1101,8 +1101,11 @@ void CFixedTarget::Activate() noexcept
 
 		[[likely]]
 		if (!m_Scheduler.Exist(TASK_ACTION))
+		{
 			m_Scheduler.Enroll(Task_Gunship(), TASK_ACTION);
 			m_Scheduler.Enroll(Task_BeaconFx(), TASK_ACTION);
+		}
+
 		break;
 
 	default:

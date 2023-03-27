@@ -10,11 +10,6 @@ import FileSystem;
 import Sprite;
 import Wave;
 
-#include "../../Enforcer/Resource_CRC64.hpp"
-#include "../../Enforcer/Resource_ModelDetails.hpp"
-#include "../../Enforcer/Resource_SoundDetails.hpp"
-#include "../../Enforcer/Resource_SpriteDetails.hpp"
-
 bool VerifyByCRC64(const char* psz) noexcept
 {
 	if (!g_rgiCRC64.contains(psz))
@@ -230,8 +225,7 @@ void Precache(void) noexcept
 
 	PrecacheSprite(Sprites::ROCKET_EXPLO);
 	PrecacheSprite(Sprites::ROCKET_EXPLO2);
-	PrecacheSprite(Sprites::FIRE);
-	PrecacheSprite(Sprites::FIRE2);
+	PrecacheSprite(Sprites::ROCKET_EXHAUST_FLAME);
 	PrecacheSprite(Sprites::MINOR_EXPLO);
 	PrecacheSprite(Sprites::AIRBURST);
 	PrecacheSprite(Sprites::CARPET_FRAGMENT_EXPLO);
@@ -242,6 +236,9 @@ void Precache(void) noexcept
 	PrecacheSprite(Sprites::GIGANTIC_EXPLO);
 	PrecacheSprite(Sprites::STATIC_SMOKE_THIN);
 	PrecacheSprite(Sprites::STATIC_SMOKE_THICK);
+	PrecacheSprite(Sprites::PHOSPHORUS_TRACE_HEAD);
+	PrecacheSprite(Sprites::PHOSPHORUS_FLAME);
+	PrecacheSprite(Sprites::PHOSPHORUS_SMOKE);
 
 	PrecacheSprite(Sprites::BEAM);
 

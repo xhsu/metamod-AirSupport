@@ -30,6 +30,7 @@ export enum EEfxTasks : uint64_t
 	TASK_REFLECTING_FLAME = (1 << 4),
 	TASK_IGNITE = (1 << 5),
 	TASK_HB_AND_ER = (1 << 6),
+	TASK_FLYING = (1 << 7),
 };
 
 export extern "C++" Task Task_SpriteLoop(entvars_t *const pev, short const FRAME_COUNT, double const FPS) noexcept;
@@ -93,6 +94,19 @@ export struct CThinSmoke : public CSmoke
 	static inline constexpr char CLASSNAME[] = "env_thin_smoke";
 
 	// Methods
+
+	void Spawn() noexcept override;
+};
+
+export struct CPhosNonToxicSmoke : CThinSmoke
+{
+	// Info
+
+	static inline constexpr char CLASSNAME[] = "env_phos_nontoxic_smoke";
+
+	// Methods
+
+	Task Task_InFloatOut() noexcept;
 
 	void Spawn() noexcept override;
 };
@@ -203,4 +217,24 @@ export struct CSpriteDisplayment : public Prefab_t
 	static CSpriteDisplayment *Create(Vector const& vecOrigin, kRenderFn iRenderMethod) noexcept;
 
 	kRenderFn m_iRenderMethod{ kRenderFn::kRenderNormal };
+};
+
+export struct CPhosphorus : public Prefab_t
+{
+	static inline constexpr char CLASSNAME[] = "phosphorus_trace";
+
+	void Spawn() noexcept override;
+
+	void Touch_Flying(CBaseEntity *pOther) noexcept;
+	void Touch_Burning(CBaseEntity *pOther) noexcept;
+
+	Task Task_Flying() noexcept;
+	Task Task_EmitSmoke() noexcept;
+
+	static CPhosphorus *Create(CBasePlayer *pPlayer, Vector const &vecOrigin, Vector const &vecVelocity) noexcept;
+
+	CBasePlayer *m_pPlayer{};
+	float m_flTotalBurningTime{};
+	TraceResult m_tr{};	// trace result agaist current attached surface.
+	unordered_map<int, float> m_rgflDamageInterval{};
 };

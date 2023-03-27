@@ -39,20 +39,20 @@ Task CPrecisionAirStrike::Task_Trail() noexcept
 		);
 
 		// GoldSrc Mystery #1: The fucking v_angle and angles.
-		g_engfuncs.pfnMakeVectors(Angles(
+		pev->v_angle = Angles(
 			-pev->angles.pitch,
 			pev->angles.yaw,
-			pev->angles.roll)
+			pev->angles.roll
 		);
 
-		pev->velocity = gpGlobals->v_forward * SPEED;
+		pev->velocity = pev->v_angle.Front() * SPEED;
 
-		Vector vecOrigin = pev->origin + gpGlobals->v_forward * -48;
+		auto const vecOrigin = pev->origin + pev->v_angle.Front() * -48;
 
 		MsgPVS(SVC_TEMPENTITY, vecOrigin);
 		WriteData(TE_SPRITE);
 		WriteData(vecOrigin);
-		WriteData((short)Sprites::m_rgLibrary[Sprites::FIRE2]);
+		WriteData((short)Sprites::m_rgLibrary[Sprites::ROCKET_EXHAUST_FLAME]);
 		WriteData((byte)3);
 		WriteData((byte)255);
 		MsgEnd();
@@ -60,23 +60,7 @@ Task CPrecisionAirStrike::Task_Trail() noexcept
 		MsgPVS(SVC_TEMPENTITY, vecOrigin);
 		WriteData(TE_SPRITE);
 		WriteData(vecOrigin);
-
-		//switch (UTIL_Random(0, 2))
-		//{
-		//case 0:
-		//	WriteData((short)Sprites::m_rgLibrary[Sprites::SMOKE]);
-		//	break;
-
-		//case 1:
-		//	WriteData((short)Sprites::m_rgLibrary[Sprites::SMOKE_1]);
-		//	break;
-
-		//default:
-		//	WriteData((short)Sprites::m_rgLibrary[Sprites::SMOKE_2]);
-		//	break;
-		//}
 		WriteData(Sprites::m_rgLibrary[UTIL_GetRandomOne(Sprites::ROCKET_TRAIL_SMOKE)]);
-
 		WriteData((byte)UTIL_Random<short>(1, 10));
 		WriteData((byte)UTIL_Random<short>(50, 255));
 		MsgEnd();

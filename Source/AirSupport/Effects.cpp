@@ -541,6 +541,48 @@ void CThinSmoke::Spawn() noexcept
 	m_Scheduler.Enroll(Task_Fade(pev, 1.f, 0.055f, UTIL_Random(64.f, 96.f), 0.06f), TASK_FADE_IN | TASK_FADE_OUT);
 }
 
+Task CPhosNonToxicSmoke::Task_InFloatOut() noexcept
+{
+	auto const PEAK = UTIL_Random(64.f, 96.f);
+	auto const INC = 0.5f;
+	auto const DEC = 0.055f;
+	auto const ROLL = 0.06f;
+
+	TraceResult tr{};
+	g_engfuncs.pfnTraceLine(pev->origin, Vector(pev->origin.x, pev->origin.y, -8192), ignore_glass | ignore_monsters, nullptr, &tr);
+
+	pev->velocity = CrossProduct(tr.vecPlaneNormal, Vector(Vector2D(1, 0).Rotate(UTIL_Random(0, 359)), 0)) * UTIL_Random(3.f, 6.f);
+
+	for (; pev->renderamt < PEAK;)
+	{
+		co_await TaskScheduler::NextFrame::Rank.back();
+
+		pev->renderamt += INC;
+		pev->angles.roll += ROLL;
+
+		if (pev->velocity.Length() < 30)
+			pev->velocity *= UTIL_Random(1.01, 1.1);
+	}
+
+	for (; pev->renderamt > 0;)
+	{
+		co_await TaskScheduler::NextFrame::Rank.back();
+
+		pev->renderamt -= DEC;
+		pev->angles.roll += ROLL;
+	}
+
+	pev->flags |= FL_KILLME;
+}
+
+void CPhosNonToxicSmoke::Spawn() noexcept
+{
+	CThinSmoke::Spawn();
+
+	m_Scheduler.Clear();
+	m_Scheduler.Enroll(Task_InFloatOut(), TASK_FADE_IN | TASK_FADE_OUT);
+}
+
 //
 // CRaisedDust
 //
@@ -1221,6 +1263,10 @@ void CFuelAirCloud::OnTraceAttack(TraceResult const &tr, EHANDLE<CBaseEntity> pS
 	}
 }
 
+//
+// CSpriteDisplayment
+//
+
 void CSpriteDisplayment::Spawn() noexcept
 {
 	pev->rendermode = m_iRenderMethod;
@@ -1249,6 +1295,153 @@ CSpriteDisplayment *CSpriteDisplayment::Create(Vector const &vecOrigin, kRenderF
 	pEdict->v.origin = vecOrigin;
 
 	pPrefab->m_iRenderMethod = iRenderMethod;
+	pPrefab->Spawn();
+	pPrefab->pev->nextthink = 0.1f;
+
+	return pPrefab;
+}
+
+//
+// CPhosphorus
+//
+
+void CPhosphorus::Spawn() noexcept
+{
+	static const auto FRAME_COUNT = g_rgiSpriteFrameCount.at(Sprites::PHOSPHORUS_TRACE_HEAD);
+
+	m_flTotalBurningTime = UTIL_Random(30.f, 40.f);
+
+	pev->rendermode = kRenderTransAdd;
+	pev->renderamt = UTIL_Random(192.f, 255.f);
+	pev->rendercolor = Vector(255, UTIL_Random(220.0, 255.0), UTIL_Random(220.0, 255.0));	// Little variation from one to another.
+	// No more frame assignment here, moved to Task_SpriteLoopOut().
+
+	pev->solid = SOLID_TRIGGER;
+	pev->movetype = MOVETYPE_TOSS;
+	pev->gravity = 1.f;
+	pev->scale = 1.f;
+
+	g_engfuncs.pfnSetModel(edict(), Sprites::PHOSPHORUS_TRACE_HEAD);
+	g_engfuncs.pfnSetSize(edict(), Vector(-16, -16, -16) * pev->scale, Vector(16, 16, 16) * pev->scale);	// it is still required for pfnTraceMonsterHull
+	g_engfuncs.pfnSetOrigin(edict(), pev->origin);	// pfnSetOrigin includes the abssize setting, restoring our hitbox.
+
+	m_Scheduler.Enroll(Task_SpriteLoop(pev, FRAME_COUNT, 30), TASK_ANIMATION);
+	m_Scheduler.Enroll(Task_Remove(pev, m_flTotalBurningTime), TASK_TIME_OUT);
+	m_Scheduler.Enroll(Task_Flying(), TASK_FLYING);
+
+	SetTouch(&CPhosphorus::Touch_Flying);
+}
+
+void CPhosphorus::Touch_Flying(CBaseEntity *pOther) noexcept
+{
+	if (!pOther->IsBSPModel() || !(pev->flags & FL_ONGROUND))
+		return;
+
+	TraceResult tr{};
+	g_engfuncs.pfnTraceMonsterHull(edict(), pev->origin, pev->origin + pev->velocity * gpGlobals->frametime, ignore_monsters | ignore_glass, edict(), &tr);
+
+	if (g_engfuncs.pfnPointContents(tr.vecEndPos) == CONTENTS_SKY)
+	{
+		pev->flags |= FL_KILLME;
+		return;
+	}
+	else if (tr.flFraction == 1.f)
+		return;
+
+	g_engfuncs.pfnTraceLine(pev->origin, pev->origin + pev->velocity.Normalize() * 128.f, ignore_monsters | ignore_glass, edict(), &m_tr);
+
+	pev->velocity = Vector::Zero();
+	pev->movetype = MOVETYPE_NONE;
+
+	g_engfuncs.pfnSetModel(edict(), Sprites::PHOSPHORUS_FLAME);
+	g_engfuncs.pfnSetSize(edict(), Vector(-32, -32, -108) * pev->scale, Vector(32, 32, 108) * pev->scale);
+	g_engfuncs.pfnSetOrigin(edict(), Vector(pev->origin.x, pev->origin.y, pev->origin.z + (108.f - 16.f)));	// compensate the difference in size.
+
+	m_Scheduler.Delist(TASK_ANIMATION | TASK_FLYING);
+	m_Scheduler.Enroll(Task_SpriteLoop(pev, g_rgiSpriteFrameCount.at(Sprites::PHOSPHORUS_FLAME), 16), TASK_ANIMATION);
+	m_Scheduler.Enroll(Task_EmitSmoke(), TASK_IGNITE);
+
+	SetTouch(&CPhosphorus::Touch_Burning);
+}
+
+void CPhosphorus::Touch_Burning(CBaseEntity *pOther) noexcept
+{
+	if (!pOther || pev_valid(pOther->pev) != 2)
+		return;
+
+	if (pOther->pev->takedamage == DAMAGE_NO)
+		return;
+
+	auto const iEntIndex = ent_cast<int>(pOther->pev);
+	if (m_rgflDamageInterval[iEntIndex] >= gpGlobals->time)
+		return;
+
+	pOther->TakeDamage(
+		this->pev,
+		m_pPlayer->pev,
+		UTIL_Random(5.f, 12.f),
+		DMG_SLOWBURN
+	);
+
+	m_rgflDamageInterval[iEntIndex] = gpGlobals->time + 0.1f;	// Well, white phosphorus does the job...
+}
+
+Task CPhosphorus::Task_Flying() noexcept
+{
+	pev->angles = pev->velocity.VectorAngles();
+
+	auto const START_TIME = gpGlobals->time;
+
+	for (;;)
+	{
+		co_await TaskScheduler::NextFrame::Rank[1];
+
+		pev->angles += Angles(
+			UTIL_Random(-0.9f, 0.9f),
+			UTIL_Random(-0.9f, 0.9f),
+			UTIL_Random(-0.9f, 0.9f)
+		);
+
+		// GoldSrc Mystery #1: The fucking v_angle and angles.
+		pev->v_angle = Angles(
+			-pev->angles.pitch,
+			pev->angles.yaw,
+			pev->angles.roll
+		);
+
+		pev->velocity = pev->v_angle.Front() * 100.f;
+		pev->velocity.z -= (gpGlobals->time - START_TIME) * (float)386.08858267717;	// v = gt, this 386 is standard gravity in inches.
+
+		auto const vecOrigin = pev->origin + pev->v_angle.Front() * -48;
+
+		MsgPVS(SVC_TEMPENTITY, vecOrigin);
+		WriteData(TE_SPRITE);
+		WriteData(vecOrigin);
+		WriteData(Sprites::m_rgLibrary[UTIL_GetRandomOne(Sprites::ROCKET_TRAIL_SMOKE)]);
+		WriteData((byte)UTIL_Random<short>(1, 10));
+		WriteData((byte)UTIL_Random<short>(50, 255));
+		MsgEnd();
+	}
+}
+
+Task CPhosphorus::Task_EmitSmoke() noexcept
+{
+	for (;;)
+	{
+		co_await UTIL_Random(3.f, 5.f);
+
+		Prefab_t::Create<CPhosNonToxicSmoke>(pev->origin + Vector(0, 0, UTIL_Random(-64.0, 64.0)), Angles(0, 0, UTIL_Random(0, 360)))->LitByFlame(false);
+	}
+}
+
+CPhosphorus *CPhosphorus::Create(CBasePlayer *pPlayer, Vector const &vecOrigin, Vector const &vecVelocity) noexcept
+{
+	auto const [pEdict, pPrefab] = UTIL_CreateNamedPrefab<CPhosphorus>();
+
+	pEdict->v.origin = vecOrigin;
+	pEdict->v.velocity = vecVelocity;
+
+	pPrefab->m_pPlayer = pPlayer;
 	pPrefab->Spawn();
 	pPrefab->pev->nextthink = 0.1f;
 
