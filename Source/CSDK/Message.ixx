@@ -10,18 +10,18 @@ module;
 
 #define USING_METAMOD
 
-#include <cassert>
-
 export module Message;
 
-import util;
-import vector;
+export import <cassert>;
+
+export import util;
+export import vector;
 
 #ifdef USING_METAMOD
-import Plugin;
+export import Plugin;
 #endif
 
-import UtlConcepts;
+export import UtlConcepts;
 
 using std::bit_cast;
 
@@ -90,19 +90,17 @@ inline void WriteScaledFloat(double fl) noexcept
 	WriteData(val);
 }
 
-template <std::size_t N>
 struct StringLiteral
 {
 	// Constructor
-	consteval StringLiteral(const char(&str)[N]) noexcept { std::copy_n(str, N, m_rgsz); }
+	template <size_t N> constexpr StringLiteral(const char(&str)[N]) noexcept : m_psz(str), m_length(N) {}
 
 	// Operators
-	constexpr operator const char *() const noexcept { return &m_rgsz[0]; }	// automatically convert to char* if necessary.
-	constexpr operator char *() noexcept { return &m_rgsz[0]; }
-	constexpr decltype(auto) operator[] (std::size_t index) const noexcept { assert(index < N); return m_rgsz[index]; }
+	constexpr operator const char *() const noexcept { return m_psz; }	// automatically convert to char* if necessary.
+	constexpr char operator[] (size_t index) const noexcept { assert(index < m_length); return m_psz[index]; }
 
-	static constexpr size_t length = N - 1U;	// Remove the '\0' at the end.
-	char m_rgsz[N];
+	char const *m_psz{};
+	size_t m_length{};
 };
 
 export template <StringLiteral _name, typename... Tys>
@@ -121,7 +119,7 @@ struct Message_t final
 	static inline constexpr auto IDX_SEQ = std::index_sequence_for<Tys...>{};
 
 	// Constrains
-	static_assert(sizeof(_name.length) <= 11U, "Name of message must less than 11 characters.");
+	static_assert(_name.m_length <= 12U, "Name of message must less than 11 characters.");	// one extra for '\0'
 	static_assert(SIZE < 192U, "The size of entire message must less than 192 bytes.");
 
 	// Members
@@ -145,13 +143,16 @@ struct Message_t final
 		if (m_iMessageIndex)
 			return;
 
+		// #REPORT_TO_MSVC_address_of_constexpr
+		static const plugin_info_t pl{ .name = "Air Support" };
+
 #ifdef _DEBUG
 		int iSize = 0;
-		m_iMessageIndex = gpMetaUtilFuncs->pfnGetUserMsgID(PLID, NAME, &iSize);
+		m_iMessageIndex = gpMetaUtilFuncs->pfnGetUserMsgID(&pl, NAME, &iSize);
 
 		assert(iSize == -1 || iSize == SIZE);
 #else
-		m_iMessageIndex = gpMetaUtilFuncs->pfnGetUserMsgID(PLID, NAME, nullptr);
+		m_iMessageIndex = gpMetaUtilFuncs->pfnGetUserMsgID(&pl, NAME, nullptr);
 #endif
 	}
 #endif
