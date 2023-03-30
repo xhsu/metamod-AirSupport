@@ -30,13 +30,14 @@ export enum EEfxTasks : uint64_t
 	TASK_REFLECTING_FLAME = (1 << 4),
 	TASK_IGNITE = (1 << 5),
 	TASK_HB_AND_ER = (1 << 6),
+	TASK_FLYING = (1 << 7),
 };
 
 export extern "C++" Task Task_SpriteLoop(entvars_t *const pev, short const FRAME_COUNT, double const FPS) noexcept;
 export extern "C++" Task Task_SpriteLoop(entvars_t* const pev, uint16_t const STARTS_AT, uint16_t const FRAME_COUNT, double const FPS) noexcept;
 export extern "C++" Task Task_SpritePlayOnce(entvars_t *const pev, short const FRAME_COUNT, double const FPS) noexcept;
 export extern "C++" Task Task_SpriteLoopOut(entvars_t* const pev, uint16_t const LOOP_STARTS_AT, uint16_t const LOOP_FRAME_COUNT, uint16_t const OUT_ENDS_AT, float const TIME, double const FPS) noexcept;
-export extern "C++" Task Task_FadeOut(entvars_t *const pev, float const DECAY, float const ROLL) noexcept;
+export extern "C++" Task Task_FadeOut(entvars_t *const pev, float const AWAIT, float const DECAY, float const ROLL) noexcept;
 export extern "C++" Task Task_Remove(entvars_t *const pev, float const TIME) noexcept;
 export extern "C++" Task Task_FadeIn(entvars_t *const pev, float const TRANSPARENT_INC, float const FINAL_VAL, float const ROLL) noexcept;
 export extern "C++" Task Task_Fade(entvars_t *const pev, float const INC, float const DEC, float const PEAK, float const ROLL) noexcept;
@@ -69,6 +70,9 @@ export struct CSmoke : public Prefab_t
 	// Info
 
 	static inline constexpr char CLASSNAME[] = "env_thick_smoke";
+	static inline constexpr Vector MIN_SIZE = { -32, -32, -32 };
+	static inline constexpr Vector MAX_SIZE = { 32, 32, 32 };
+	static inline constexpr double SPHERICAL_RADIUS = 32 * std::numbers::sqrt3;
 
 	// Methods
 
@@ -97,11 +101,42 @@ export struct CThinSmoke : public CSmoke
 	void Spawn() noexcept override;
 };
 
+export struct CToxicSmoke : public CThinSmoke
+{
+	// Info
+
+	static inline constexpr char CLASSNAME[] = "env_toxic_smoke";
+
+	// Methods
+
+	Task Task_InFloatOut() noexcept;
+
+	void Spawn() noexcept override;
+};
+
+export struct CThickStaticSmoke : public CSmoke
+{
+	// Info
+
+	static inline constexpr char CLASSNAME[] = "env_thick_static_smoke";
+	static inline constexpr float FADEOUT_SPEED = 0.1f;
+
+	// Methods
+
+	Task Task_Dispatch() noexcept;
+
+	void Spawn() noexcept override;
+};
+
 export struct CFloatingDust : public Prefab_t
 {
 	static inline constexpr char CLASSNAME[] = "env_floating_dust";
 	static inline constexpr double FPS = 18.0;
 	static inline constexpr short FRAME_COUNT = 40;
+
+	static inline constexpr Vector MIN_SIZE = { -128, -128, -128 };
+	static inline constexpr Vector MAX_SIZE = { 128, 128, 128 };
+	static inline constexpr double SPHERICAL_RADIUS = 72 * std::numbers::sqrt3;
 
 	void Spawn() noexcept override;
 };
@@ -198,9 +233,27 @@ export struct CSpriteDisplayment : public Prefab_t
 {
 	static inline constexpr char CLASSNAME[] = "CSpriteDisplayment";
 
+	static CSpriteDisplayment *Create(Vector const& vecOrigin, kRenderFn iRenderMethod, std::string_view szModel) noexcept;
+};
+
+export struct CPhosphorus : public Prefab_t
+{
+	static inline constexpr char CLASSNAME[] = "phosphorus_trace";
+
 	void Spawn() noexcept override;
 
-	static CSpriteDisplayment *Create(Vector const& vecOrigin, kRenderFn iRenderMethod) noexcept;
+	void Touch_Flying(CBaseEntity *pOther) noexcept;
+	void Touch_Burning(CBaseEntity *pOther) noexcept;
 
-	kRenderFn m_iRenderMethod{ kRenderFn::kRenderNormal };
+	Task Task_Flying() noexcept;
+	Task Task_EmitSmoke() noexcept;
+
+	static CPhosphorus *Create(CBasePlayer *pPlayer, Vector const &vecOrigin, Vector2D const &vecInitVel) noexcept;
+	static CPhosphorus *Create(CBasePlayer *pPlayer, Vector const &vecOrigin, Vector const &vecTarget) noexcept;
+
+	CBasePlayer *m_pPlayer{};
+	float m_flTotalBurningTime{};
+	TraceResult m_tr{};	// trace result agaist current attached surface.
+	unordered_map<int, float> m_rgflDamageInterval{};
+	Vector2D m_vecInitVel{};
 };

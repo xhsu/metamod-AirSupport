@@ -65,10 +65,21 @@ namespace Query
 			;
 	}
 
-	export template <typename T> inline decltype(auto) is(void) noexcept
+	export template <typename... Tys> inline decltype(auto) is(void) noexcept
 	{
+		static_assert(sizeof...(Tys) > 0, "Must be at least one type to test!");
+
 		return
-			std::views::filter([](auto &&ent) noexcept -> bool { return EHANDLE<CBaseEntity>(ent).Is<T>(); });
+			std::views::filter([](auto &&ent) noexcept -> bool { auto const hdl = EHANDLE<CBaseEntity>(ent); return (... || hdl.Is<Tys>()); });
+	}
+
+	export template <typename... Tys> inline decltype(auto) exactly(void) noexcept
+	{
+		static_assert(sizeof...(Tys) > 0, "Must be at least one type to test!");
+		static_assert(requires { { (... || (MAKE_STRING(Tys::CLASSNAME) == std::ptrdiff_t{})) } -> std::same_as<bool>; }, "Must be local class!");
+
+		return
+			std::views::filter([](auto &&ent) noexcept -> bool { auto const pEdict = ent_cast<edict_t *>(ent); return (... || (MAKE_STRING(Tys::CLASSNAME) == pEdict->v.classname)); });
 	}
 
 	export template <typename T> inline decltype(auto) as(void) noexcept

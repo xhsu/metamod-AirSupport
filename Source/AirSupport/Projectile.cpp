@@ -22,6 +22,62 @@ extern Task VisualEffects(const Vector vecOrigin, float const flRadius) noexcept
 extern TraceResult Impact(CBasePlayer *pAttacker, CBaseEntity *pProjectile, float flDamage) noexcept;
 //
 
+void TraceArc(Vector const vecMin, Vector const vecMax, Vector const vecSrc, Vector const vecEnd, int const iIgnore, edict_t *const pEdict) noexcept
+{
+	auto pDummy = g_engfuncs.pfnCreateNamedEntity(MAKE_STRING("info_target"));
+	g_engfuncs.pfnSetSize(pDummy, vecMin, vecMax);
+
+	auto const vecDir = vecEnd.Make2D() - vecSrc.Make2D();
+	auto const H = vecSrc.z - vecEnd.z;
+	auto const S = vecDir.Length();
+	auto const G = 386.08858267717;
+	auto const vecVelocityInit = vecDir.Normalize() * (S * std::sqrt(G / (2 * H)));
+	static constexpr auto dx = 0.1;
+
+	auto flLastDist = (vecSrc - vecEnd).LengthSquared();
+	auto flCurDist = (vecSrc - vecEnd).LengthSquared() - 1;
+	auto vecVel = Vector{ vecDir, 0 };
+	auto vecCur = vecSrc;
+	auto vecStep = vecCur + vecVel * dx;
+	auto iCounter = 0;
+
+	for (TraceResult tr{};
+		flCurDist < flLastDist;
+		vecVel.z -= G * dx, vecCur = vecStep, vecStep += vecVel * dx, flLastDist = flCurDist, flCurDist = (vecCur - vecEnd).LengthSquared(), ++iCounter
+		)
+	{
+		g_engfuncs.pfnTraceMonsterHull(pDummy, vecCur, vecStep, iIgnore, pEdict, &tr);
+
+		//MsgBroadcast(SVC_TEMPENTITY);
+		//WriteData(TE_BEAMPOINTS);
+		//WriteData(vecCur);
+		//WriteData(vecStep);
+		//WriteData(Sprites::m_rgLibrary[Sprites::BEAM]);
+		//WriteData((byte)1);
+		//WriteData((byte)24);
+		//WriteData((byte)255);
+		//WriteData((byte)3);
+		//WriteData((byte)0);
+		//WriteData((byte)255);
+		//WriteData((byte)255);
+		//WriteData((byte)255);
+		//WriteData((byte)255);
+		//WriteData((byte)0);
+		//MsgEnd();
+
+		if (tr.flFraction < 1)
+		{
+			auto const sz = std::format("Hit wall: trace {} times and {:.1f} inches left. Last ds = {}\n", iCounter, (vecCur - vecEnd).Length(), (vecVel * dx).Length());
+			g_engfuncs.pfnServerPrint(sz.c_str());
+			g_engfuncs.pfnRemoveEntity(pDummy);
+			return;
+		}
+	}
+
+	g_engfuncs.pfnServerPrint("All good!\n");
+	g_engfuncs.pfnRemoveEntity(pDummy);
+}
+
 //
 // CPrecisionAirStrike
 //
@@ -39,20 +95,20 @@ Task CPrecisionAirStrike::Task_Trail() noexcept
 		);
 
 		// GoldSrc Mystery #1: The fucking v_angle and angles.
-		g_engfuncs.pfnMakeVectors(Angles(
+		pev->v_angle = Angles(
 			-pev->angles.pitch,
 			pev->angles.yaw,
-			pev->angles.roll)
+			pev->angles.roll
 		);
 
-		pev->velocity = gpGlobals->v_forward * SPEED;
+		pev->velocity = pev->v_angle.Front() * SPEED;
 
-		Vector vecOrigin = pev->origin + gpGlobals->v_forward * -48;
+		auto const vecOrigin = pev->origin + pev->v_angle.Front() * -48;
 
 		MsgPVS(SVC_TEMPENTITY, vecOrigin);
 		WriteData(TE_SPRITE);
 		WriteData(vecOrigin);
-		WriteData((short)Sprites::m_rgLibrary[Sprites::FIRE2]);
+		WriteData((short)Sprites::m_rgLibrary[Sprites::ROCKET_EXHAUST_FLAME]);
 		WriteData((byte)3);
 		WriteData((byte)255);
 		MsgEnd();
@@ -60,23 +116,7 @@ Task CPrecisionAirStrike::Task_Trail() noexcept
 		MsgPVS(SVC_TEMPENTITY, vecOrigin);
 		WriteData(TE_SPRITE);
 		WriteData(vecOrigin);
-
-		//switch (UTIL_Random(0, 2))
-		//{
-		//case 0:
-		//	WriteData((short)Sprites::m_rgLibrary[Sprites::SMOKE]);
-		//	break;
-
-		//case 1:
-		//	WriteData((short)Sprites::m_rgLibrary[Sprites::SMOKE_1]);
-		//	break;
-
-		//default:
-		//	WriteData((short)Sprites::m_rgLibrary[Sprites::SMOKE_2]);
-		//	break;
-		//}
 		WriteData(Sprites::m_rgLibrary[UTIL_GetRandomOne(Sprites::ROCKET_TRAIL_SMOKE)]);
-
 		WriteData((byte)UTIL_Random<short>(1, 10));
 		WriteData((byte)UTIL_Random<short>(50, 255));
 		MsgEnd();
@@ -1070,4 +1110,20 @@ CFuelAirExplosive *CFuelAirExplosive::Create(CBasePlayer *pPlayer, Vector const 
 	pPrefab->pev->nextthink = 0.1f;
 
 	return pPrefab;
+}
+
+//
+// CWPMunition
+//
+
+void CWPMunition_Explo(Vector const& vecOrigin) noexcept
+{
+	auto pThickSmoke = Prefab_t::Create<CThickStaticSmoke>(vecOrigin);
+	pThickSmoke->LitByFlame(true);
+
+	auto pSpr = Prefab_t::Create<CSpriteDisplayment>(pThickSmoke->pev->origin, kRenderFn::kRenderTransAdd, Sprites::MINOR_EXPLO);
+	pSpr->pev->scale = pThickSmoke->pev->scale * 2.f;
+	pSpr->pev->renderamt = 255.f;
+	pSpr->pev->frame = (float)3;
+	pSpr->m_Scheduler.Enroll(Task_FadeOut(pSpr->pev, 0.f, 2.f, 0.f), TASK_FADE_OUT);
 }

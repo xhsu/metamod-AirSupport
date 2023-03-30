@@ -264,7 +264,7 @@ struct EHANDLE final
 	}
 
 	template <typename U>
-	inline bool Is(void) noexcept
+	inline bool Is(void) const noexcept
 	{
 		if constexpr (std::is_base_of_v<U, T> || std::is_same_v<U, T>)
 		{
@@ -272,6 +272,13 @@ struct EHANDLE final
 		}
 		else
 		{
+			if constexpr (requires { { m_pent->v.classname == MAKE_STRING(U::CLASSNAME) } -> std::same_as<bool>; })
+			{
+				// Even the classname won't match, one can still not rule out the case of base class.
+				if (m_pent->v.classname == MAKE_STRING(U::CLASSNAME))
+					return true;
+			}
+
 			if (Get())
 			{
 				auto const p = static_cast<T *>(m_pent->pvPrivateData);

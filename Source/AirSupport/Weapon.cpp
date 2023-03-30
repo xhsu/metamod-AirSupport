@@ -189,35 +189,40 @@ void __fastcall HamF_Item_PostFrame(CBasePlayerItem *pItem, int) noexcept
 
 		pThis->m_pPlayer->m_iMenu = EMenu::Menu_AirSupport;
 	}
+
+#ifdef _DEBUG
 	else if (pThis->m_pPlayer->m_afButtonPressed & IN_USE) [[unlikely]]
 	{
 		g_engfuncs.pfnMakeVectors(pThis->m_pPlayer->pev->v_angle);
 
-		//Prefab_t::Create<CSpriteDisplayment>(
-		//	pThis->m_pPlayer->GetGunPosition() + gpGlobals->v_forward * 256.0,
-		//	(kRenderFn)g_rgiAirSupportSelected[pThis->m_pPlayer->entindex()]
-		//);
-
-		//Prefab_t::Create<CBullet>(
-		//	pThis->m_pPlayer->GetGunPosition() + gpGlobals->v_forward * 64.0,
-		//	gpGlobals->v_forward * 2048,
-		//	pThis->m_pPlayer
-		//);
-
-		TraceResult tr{};
+		[[maybe_unused]] TraceResult tr{}, tr2{};
 		auto const vecSrc = pThis->m_pPlayer->GetGunPosition();
 		auto const vecEnd = vecSrc + gpGlobals->v_forward * 4096.0;
-		g_engfuncs.pfnTraceLine(vecSrc, vecEnd, ignore_glass | ignore_monsters, nullptr, &tr);
-		//g_engfuncs.pfnTraceLine(tr.vecEndPos, Vector(tr.vecEndPos.x, tr.vecEndPos.y, 8192.0), ignore_glass | ignore_monsters, nullptr, &tr);
+		g_engfuncs.pfnTraceLine(vecSrc, vecEnd, ignore_monsters, nullptr, &tr);
+		g_engfuncs.pfnTraceLine(pThis->m_pPlayer->pev->origin, pThis->m_pPlayer->pev->origin + Vector(0, 0, 4096), ignore_monsters, pThis->m_pPlayer->edict(), &tr2);
 
-		//Prefab_t::Create<CFuelAirExplosive>(pThis->m_pPlayer, tr.vecEndPos + Vector::Down() * 3);
-		Prefab_t::Create<CFlame>(tr.vecEndPos)->pev->velocity = Vector(0, 0, 300);
-		//Prefab_t::Create<CFuelAirCloud>(tr.vecEndPos)->Ignite();
+		auto const fn = [](TraceResult tr, TraceResult tr2, Vector vecSrc, Vector vecEnd, CBasePlayerWeapon* pThis) noexcept -> Task
+		{
+			co_await 5.f;
 
-		//TaskScheduler::Enroll(CFuelAirCloud::Task_PlayerSuffocation(pThis->m_pPlayer, &g_engfuncs.pfnPEntityOfEntIndex(0)->v), TASK_HB_AND_ER);
+			auto pPhosphorus = Prefab_t::Create<CPhosphorus>(pThis->m_pPlayer, tr2.vecEndPos, tr.vecEndPos);
 
-		//Prefab_t::Create<CClusterCharge>(pThis->m_pPlayer, tr.vecEndPos + tr.vecPlaneNormal * 128.0, 2.f);
+			for (float dx = -64; dx < 64; dx += 32)
+			{
+				for (float dy = -64; dy < 64; dy += 32)
+				{
+					Prefab_t::Create<CPhosphorus>(pThis->m_pPlayer, tr2.vecEndPos + Vector(dx, dy, 0), pPhosphorus->m_vecInitVel);
+				}
+			}
+
+			co_return;
+		};
+		extern void CWPMunition_Explo(Vector const &vecOrigin) noexcept;
+		CWPMunition_Explo(tr.vecEndPos);
+
+		//TaskScheduler::Enroll(fn(tr, tr2, vecSrc, vecEnd, pThis));
 	}
+#endif
 }
 
 void __fastcall HamF_Item_Holster(CBasePlayerItem *pThis, int, int skiplocal) noexcept

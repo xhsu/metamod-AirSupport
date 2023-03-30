@@ -9,6 +9,7 @@ import <cmath>;
 import <concepts>;
 import <functional>;
 import <list>;
+import <utility>;
 
 import util;
 
@@ -17,6 +18,7 @@ export import Hook;
 export import Task;
 
 using std::list;
+using std::pair;
 
 export template <typename T>
 inline auto UTIL_CreateNamedPrefab() noexcept
@@ -38,7 +40,7 @@ inline auto UTIL_CreateNamedPrefab() noexcept
 
 	pEdict->v.classname = MAKE_STRING(T::CLASSNAME);
 
-	return std::make_pair(pEdict, pPrefab);
+	return pair{ pEdict, pPrefab };
 }
 
 export struct Prefab_t : public CBaseEntity
