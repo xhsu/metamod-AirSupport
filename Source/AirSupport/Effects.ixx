@@ -37,7 +37,7 @@ export extern "C++" Task Task_SpriteLoop(entvars_t *const pev, short const FRAME
 export extern "C++" Task Task_SpriteLoop(entvars_t* const pev, uint16_t const STARTS_AT, uint16_t const FRAME_COUNT, double const FPS) noexcept;
 export extern "C++" Task Task_SpritePlayOnce(entvars_t *const pev, short const FRAME_COUNT, double const FPS) noexcept;
 export extern "C++" Task Task_SpriteLoopOut(entvars_t* const pev, uint16_t const LOOP_STARTS_AT, uint16_t const LOOP_FRAME_COUNT, uint16_t const OUT_ENDS_AT, float const TIME, double const FPS) noexcept;
-export extern "C++" Task Task_FadeOut(entvars_t *const pev, float const DECAY, float const ROLL) noexcept;
+export extern "C++" Task Task_FadeOut(entvars_t *const pev, float const AWAIT, float const DECAY, float const ROLL) noexcept;
 export extern "C++" Task Task_Remove(entvars_t *const pev, float const TIME) noexcept;
 export extern "C++" Task Task_FadeIn(entvars_t *const pev, float const TRANSPARENT_INC, float const FINAL_VAL, float const ROLL) noexcept;
 export extern "C++" Task Task_Fade(entvars_t *const pev, float const INC, float const DEC, float const PEAK, float const ROLL) noexcept;
@@ -101,15 +101,29 @@ export struct CThinSmoke : public CSmoke
 	void Spawn() noexcept override;
 };
 
-export struct CToxicSmoke : CThinSmoke
+export struct CToxicSmoke : public CThinSmoke
 {
 	// Info
 
-	static inline constexpr char CLASSNAME[] = "env_phos_nontoxic_smoke";
+	static inline constexpr char CLASSNAME[] = "env_toxic_smoke";
 
 	// Methods
 
 	Task Task_InFloatOut() noexcept;
+
+	void Spawn() noexcept override;
+};
+
+export struct CThickStaticSmoke : public CSmoke
+{
+	// Info
+
+	static inline constexpr char CLASSNAME[] = "env_thick_static_smoke";
+	static inline constexpr float FADEOUT_SPEED = 0.1f;
+
+	// Methods
+
+	Task Task_Dispatch() noexcept;
 
 	void Spawn() noexcept override;
 };
@@ -219,11 +233,7 @@ export struct CSpriteDisplayment : public Prefab_t
 {
 	static inline constexpr char CLASSNAME[] = "CSpriteDisplayment";
 
-	void Spawn() noexcept override;
-
-	static CSpriteDisplayment *Create(Vector const& vecOrigin, kRenderFn iRenderMethod) noexcept;
-
-	kRenderFn m_iRenderMethod{ kRenderFn::kRenderNormal };
+	static CSpriteDisplayment *Create(Vector const& vecOrigin, kRenderFn iRenderMethod, std::string_view szModel) noexcept;
 };
 
 export struct CPhosphorus : public Prefab_t

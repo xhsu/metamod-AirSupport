@@ -137,8 +137,11 @@ Task Task_SqueezeDieout(entvars_t* const pev, float const AWAIT, float const DEC
 	pev->flags |= FL_KILLME;
 }
 
-Task Task_FadeOut(entvars_t *const pev, float const DECAY, float const ROLL) noexcept
+Task Task_FadeOut(entvars_t *const pev, float const AWAIT, float const DECAY, float const ROLL) noexcept
 {
+	if (AWAIT > 0)
+		co_await AWAIT;
+
 	for (; pev->renderamt > 0;)
 	{
 		co_await TaskScheduler::NextFrame::Rank.back();
@@ -519,7 +522,7 @@ void CThinSmoke::Spawn() noexcept
 	pev->movetype = MOVETYPE_NOCLIP;
 	pev->gravity = 0;
 	pev->velocity = Vector(UTIL_Random(-96, 96), UTIL_Random(-96, 96), 0).Normalize() * 12;
-	pev->scale = UTIL_Random(3.f, 5.f);
+	pev->scale = UTIL_Random(0.9f, 1.3f);
 
 	g_engfuncs.pfnSetModel(edict(), Sprites::STATIC_SMOKE_THIN);
 	g_engfuncs.pfnSetSize(edict(), MIN_SIZE * pev->scale, MAX_SIZE * pev->scale);	// it is still required for pfnTraceMonsterHull
@@ -538,7 +541,7 @@ void CThinSmoke::Spawn() noexcept
 	);
 	m_vecFlameClrToWhite = Vector(255, 255, 255) - m_vecStartingLitClr;
 
-	m_Scheduler.Enroll(Task_Fade(pev, 1.f, 0.055f, UTIL_Random(64.f, 96.f), 0.06f), TASK_FADE_IN | TASK_FADE_OUT);
+	// No default fading method.
 }
 
 Task CToxicSmoke::Task_InFloatOut() noexcept
@@ -577,10 +580,81 @@ Task CToxicSmoke::Task_InFloatOut() noexcept
 
 void CToxicSmoke::Spawn() noexcept
 {
-	CThinSmoke::Spawn();
+	pev->rendermode = kRenderTransAdd;
+	pev->renderamt = 0;
+	pev->rendercolor = Vector(255, 255, 255);
+	pev->frame = (float)UTIL_Random(0, 5);
 
-	m_Scheduler.Clear();
+	pev->solid = SOLID_NOT;
+	pev->movetype = MOVETYPE_NOCLIP;
+	pev->gravity = 0;
+	pev->velocity = Vector(UTIL_Random(-96, 96), UTIL_Random(-96, 96), 0).Normalize() * 12;
+	pev->scale = UTIL_Random(3.f, 5.f);
+
+	g_engfuncs.pfnSetModel(edict(), Sprites::STATIC_SMOKE_THIN);
+	g_engfuncs.pfnSetSize(edict(), MIN_SIZE * pev->scale, MAX_SIZE * pev->scale);	// it is still required for pfnTraceMonsterHull
+
+	// Doing this is to prevent spawning on slope and the spr just stuck and sink into ground.
+	TraceResult tr{};
+	g_engfuncs.pfnTraceMonsterHull(edict(), Vector(pev->origin.x, pev->origin.y, pev->origin.z + 32.0), Vector(pev->origin.x, pev->origin.y, 8192), ignore_monsters | ignore_glass, nullptr, &tr);
+	g_engfuncs.pfnTraceMonsterHull(edict(), tr.vecEndPos, pev->origin, ignore_monsters | ignore_glass, nullptr, &tr);
+
+	g_engfuncs.pfnSetOrigin(edict(), tr.vecEndPos);	// pfnSetOrigin includes the abssize setting, restoring our hitbox.
+
+	m_vecStartingLitClr = Vector(
+		UTIL_Random(0xC3, 0xCD),	// r
+		UTIL_Random(0x3E, 0x46),	// g
+		UTIL_Random(0x05, 0x10)		// b
+	);
+	m_vecFlameClrToWhite = Vector(255, 255, 255) - m_vecStartingLitClr;
+
 	m_Scheduler.Enroll(Task_InFloatOut(), TASK_FADE_IN | TASK_FADE_OUT);
+}
+
+Task CThickStaticSmoke::Task_Dispatch() noexcept
+{
+	for (;;)
+	{
+		Vector const vecOrigin{ pev->origin.x + UTIL_Random(-64.f, 64.f), pev->origin.y + UTIL_Random(-64.f, 64.f), pev->origin.z };
+
+		auto pChild = Prefab_t::Create<CThinSmoke>(vecOrigin, Angles(0, 0, UTIL_Random(0, 360)));
+		pChild->LitByFlame(true);
+		pChild->m_Scheduler.Enroll(Task_Fade(pChild->pev, 1.5f, FADEOUT_SPEED, this->pev->renderamt / 2.f, 0.05f), TASK_FADE_IN | TASK_FADE_OUT);
+
+		co_await UTIL_Random(2.f, 3.5f);
+	}
+}
+
+void CThickStaticSmoke::Spawn() noexcept
+{
+	pev->rendermode = kRenderTransAdd;
+	pev->renderamt = 255;
+	pev->rendercolor = Vector(255, 255, 255);
+	pev->frame = (float)UTIL_Random(0, 1);
+
+	pev->solid = SOLID_NOT;
+	pev->movetype = MOVETYPE_NONE;
+	pev->scale = UTIL_Random(1.f, 2.0f);
+
+	g_engfuncs.pfnSetModel(edict(), Sprites::STATIC_SMOKE_THICK);
+	g_engfuncs.pfnSetSize(edict(), MIN_SIZE * pev->scale, MAX_SIZE * pev->scale);	// it is still required for pfnTraceMonsterHull
+
+	// Doing this is to prevent spawning on slope and the spr just stuck and sink into ground.
+	TraceResult tr{};
+	g_engfuncs.pfnTraceMonsterHull(edict(), Vector(pev->origin.x, pev->origin.y, pev->origin.z + 32.0), Vector(pev->origin.x, pev->origin.y, 8192), ignore_monsters | ignore_glass, nullptr, &tr);
+	g_engfuncs.pfnTraceMonsterHull(edict(), tr.vecEndPos, pev->origin, ignore_monsters | ignore_glass, nullptr, &tr);
+
+	g_engfuncs.pfnSetOrigin(edict(), tr.vecEndPos);	// pfnSetOrigin includes the abssize setting, restoring our hitbox.
+
+	m_vecStartingLitClr = Vector(
+		UTIL_Random(0xC3, 0xCD),	// r
+		UTIL_Random(0x3E, 0x46),	// g
+		UTIL_Random(0x05, 0x10)		// b
+	);
+	m_vecFlameClrToWhite = Vector(255, 255, 255) - m_vecStartingLitClr;
+
+	m_Scheduler.Enroll(Task_FadeOut(pev, 7.5f, FADEOUT_SPEED, 0.f), TASK_FADE_OUT);
+	m_Scheduler.Enroll(Task_Dispatch(), TASK_ANIMATION);
 }
 
 //
@@ -605,7 +679,7 @@ void CFloatingDust::Spawn() noexcept
 	g_engfuncs.pfnSetSize(edict(), MIN_SIZE * pev->scale, MAX_SIZE * pev->scale);
 
 	m_Scheduler.Enroll(Task_SpriteLoop(pev, FRAME_COUNT, FPS));
-	m_Scheduler.Enroll(Task_FadeOut(pev, 0.07f, 0.07f));
+	m_Scheduler.Enroll(Task_FadeOut(pev, 0.f, 0.07f, 0.07f));
 }
 
 //
@@ -728,7 +802,7 @@ void CGunshotSmoke::Spawn() noexcept
 	g_engfuncs.pfnSetOrigin(edict(), m_tr.vecEndPos + m_tr.vecPlaneNormal * 24.0 * pev->scale);	// The actual SPR size will be 36 on radius. Clip the outter plain black part and it will be 24.
 
 	m_Scheduler.Enroll(Task_SpritePlayOnce(pev, Sprites::Frames::BLACK_SMOKE, FPS));
-	m_Scheduler.Enroll(Task_FadeOut(pev, 0.055f, 0.07f));
+	m_Scheduler.Enroll(Task_FadeOut(pev, 0.f, 0.055f, 0.07f));
 }
 
 CGunshotSmoke *CGunshotSmoke::Create(const TraceResult &tr) noexcept
@@ -765,7 +839,7 @@ void CGroundedDust::Spawn() noexcept
 	g_engfuncs.pfnSetOrigin(edict(), pev->origin);	// pfnSetOrigin includes the abssize setting, restoring our hitbox.
 
 	m_Scheduler.Enroll(Task_SpritePlayOnce(pev, FRAME_COUNT, FPS));
-	m_Scheduler.Enroll(Task_FadeOut(pev, 0.06f, 0.f));
+	m_Scheduler.Enroll(Task_FadeOut(pev, 0.f, 0.06f, 0.f));
 }
 
 //
@@ -801,7 +875,7 @@ pair<bool/*ShouldCough*/, bool/*Toxic*/> UTIL_AnySmokeNear(Vector const &vecSrc)
 {
 	for (auto &&pSmoke :
 		FIND_ENTITY_IN_SPHERE(vecSrc, (float)CSmoke::SPHERICAL_RADIUS)
-		| Query::exactly<CSmoke, CThinSmoke>()
+		| Query::exactly<CSmoke, CThinSmoke, CThickStaticSmoke>()
 		)
 	{
 		if (pSmoke->v.renderamt < 32)
@@ -983,7 +1057,7 @@ Task CFuelAirCloud::Task_TimeOut(void) noexcept
 	co_await 60.f;
 
 	m_Scheduler.Delist(TASK_FADE_IN);
-	m_Scheduler.Enroll(Task_FadeOut(pev, 0.06f, 0.07f), TASK_FADE_OUT);
+	m_Scheduler.Enroll(Task_FadeOut(pev, 0.f, 0.06f, 0.07f), TASK_FADE_OUT);
 }
 
 void CFuelAirCloud::Spawn() noexcept
@@ -1263,35 +1337,28 @@ void CFuelAirCloud::OnTraceAttack(TraceResult const &tr, EHANDLE<CBaseEntity> pS
 // CSpriteDisplayment
 //
 
-void CSpriteDisplayment::Spawn() noexcept
-{
-	pev->rendermode = m_iRenderMethod;
-	pev->renderamt = 128.f;
-	pev->rendercolor = Vector(255, 255, 255);
-	pev->frame = 0;
-
-	pev->solid = SOLID_NOT;
-	pev->movetype = MOVETYPE_NONE;
-	pev->gravity = 0;
-	pev->velocity = Vector::Zero();
-	pev->scale = 1.f;
-
-	g_engfuncs.pfnSetModel(edict(), Sprites::BLACK_SMOKE[0]);
-	g_engfuncs.pfnSetOrigin(edict(), pev->origin);	// pfnSetOrigin includes the abssize setting, restoring our hitbox.
-	g_engfuncs.pfnSetSize(edict(), Vector::Zero(), Vector::Zero());	// such that we can collide with fuel-air cloud.
-
-	m_Scheduler.Enroll(Task_SpritePlayOnce(pev, 15, 15));
-}
-
-CSpriteDisplayment *CSpriteDisplayment::Create(Vector const &vecOrigin, kRenderFn iRenderMethod) noexcept
+CSpriteDisplayment *CSpriteDisplayment::Create(Vector const &vecOrigin, kRenderFn iRenderMethod, std::string_view szModel) noexcept
 {
 	auto const [pEdict, pPrefab] = UTIL_CreateNamedPrefab<CSpriteDisplayment>();
 
 	pEdict->v.angles = Angles();
 	pEdict->v.origin = vecOrigin;
 
-	pPrefab->m_iRenderMethod = iRenderMethod;
-	pPrefab->Spawn();
+	pEdict->v.rendermode = iRenderMethod;
+	pEdict->v.renderamt = 128.f;
+	pEdict->v.rendercolor = Vector(255, 255, 255);
+	pEdict->v.frame = 0;
+
+	pEdict->v.solid = SOLID_NOT;
+	pEdict->v.movetype = MOVETYPE_NONE;
+	pEdict->v.gravity = 0;
+	pEdict->v.velocity = Vector::Zero();
+	pEdict->v.scale = 1.f;
+
+	g_engfuncs.pfnSetModel(pPrefab->edict(), szModel.data());
+	g_engfuncs.pfnSetOrigin(pPrefab->edict(), pEdict->v.origin);
+	g_engfuncs.pfnSetSize(pPrefab->edict(), Vector::Zero(), Vector::Zero());
+
 	pPrefab->pev->nextthink = 0.1f;
 
 	return pPrefab;
@@ -1329,21 +1396,22 @@ void CPhosphorus::Spawn() noexcept
 
 void CPhosphorus::Touch_Flying(CBaseEntity *pOther) noexcept
 {
-	if (!pOther->IsBSPModel() || !(pev->flags & FL_ONGROUND))
+	g_engfuncs.pfnTraceMonsterHull(edict(), pev->origin, pev->origin + pev->velocity * gpGlobals->frametime, ignore_monsters | ignore_glass, edict(), &m_tr);
+	if (m_tr.fStartSolid)	// Ignore the case when the entity spawn in a solid place.
 		return;
 
-	TraceResult tr{};
-	g_engfuncs.pfnTraceMonsterHull(edict(), pev->origin, pev->origin + pev->velocity * gpGlobals->frametime, ignore_monsters | ignore_glass, edict(), &tr);
-
-	if (g_engfuncs.pfnPointContents(tr.vecEndPos) == CONTENTS_SKY)
+	// This is extremely weird. Only TraceLine can hit some ghost wall present in cs_assault and cs_italy_cz CT spawn.
+	g_engfuncs.pfnTraceLine(pev->origin, pev->origin + pev->velocity.Normalize() * 32 * std::numbers::sqrt3, ignore_monsters | ignore_glass, edict(), &m_tr);
+	if (g_engfuncs.pfnPointContents(m_tr.vecEndPos) == CONTENTS_SKY)
 	{
 		pev->flags |= FL_KILLME;
 		return;
 	}
-	else if (tr.flFraction == 1.f)
+	else if (m_tr.flFraction == 1 || m_tr.vecEndPos == Vector::Zero())	// Let's penetrate ghost wall
+	{
+		g_engfuncs.pfnSetOrigin(edict(), m_tr.vecEndPos);
 		return;
-
-	g_engfuncs.pfnTraceLine(pev->origin, pev->origin + pev->velocity.Normalize() * 128.f, ignore_monsters | ignore_glass, edict(), &m_tr);
+	}
 
 	pev->velocity = Vector::Zero();
 	pev->movetype = MOVETYPE_NONE;
@@ -1420,7 +1488,8 @@ Task CPhosphorus::Task_EmitSmoke() noexcept
 	{
 		co_await UTIL_Random(3.f, 5.f);
 
-		Prefab_t::Create<CToxicSmoke>(pev->origin + Vector(0, 0, UTIL_Random(-64.0, 64.0)), Angles(0, 0, UTIL_Random(0, 360)))->LitByFlame(false);
+		if (UTIL_Random())
+			Prefab_t::Create<CToxicSmoke>(pev->origin + Vector(0, 0, UTIL_Random(-64.0, 64.0)), Angles(0, 0, UTIL_Random(0, 360)))->LitByFlame(false);
 	}
 }
 
