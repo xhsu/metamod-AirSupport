@@ -489,7 +489,7 @@ void CSmoke::Spawn() noexcept
 	pev->scale = UTIL_Random(1.f, 2.0f);
 
 	g_engfuncs.pfnSetModel(edict(), Sprites::STATIC_SMOKE_THICK);
-	g_engfuncs.pfnSetSize(edict(), Vector(-32, -32, -32) * pev->scale, Vector(32, 32, 32) * pev->scale);	// it is still required for pfnTraceMonsterHull
+	g_engfuncs.pfnSetSize(edict(), MIN_SIZE * pev->scale, MAX_SIZE * pev->scale);	// it is still required for pfnTraceMonsterHull
 
 	// Doing this is to prevent spawning on slope and the spr just stuck and sink into ground.
 	TraceResult tr{};
@@ -522,7 +522,7 @@ void CThinSmoke::Spawn() noexcept
 	pev->scale = UTIL_Random(3.f, 5.f);
 
 	g_engfuncs.pfnSetModel(edict(), Sprites::STATIC_SMOKE_THIN);
-	g_engfuncs.pfnSetSize(edict(), Vector(-32, -32, -32) * pev->scale, Vector(32, 32, 32) * pev->scale);	// it is still required for pfnTraceMonsterHull
+	g_engfuncs.pfnSetSize(edict(), MIN_SIZE * pev->scale, MAX_SIZE * pev->scale);	// it is still required for pfnTraceMonsterHull
 
 	// Doing this is to prevent spawning on slope and the spr just stuck and sink into ground.
 	TraceResult tr{};
@@ -541,7 +541,7 @@ void CThinSmoke::Spawn() noexcept
 	m_Scheduler.Enroll(Task_Fade(pev, 1.f, 0.055f, UTIL_Random(64.f, 96.f), 0.06f), TASK_FADE_IN | TASK_FADE_OUT);
 }
 
-Task CPhosNonToxicSmoke::Task_InFloatOut() noexcept
+Task CToxicSmoke::Task_InFloatOut() noexcept
 {
 	auto const PEAK = UTIL_Random(64.f, 96.f);
 	auto const INC = 0.5f;
@@ -575,7 +575,7 @@ Task CPhosNonToxicSmoke::Task_InFloatOut() noexcept
 	pev->flags |= FL_KILLME;
 }
 
-void CPhosNonToxicSmoke::Spawn() noexcept
+void CToxicSmoke::Spawn() noexcept
 {
 	CThinSmoke::Spawn();
 
@@ -602,7 +602,7 @@ void CFloatingDust::Spawn() noexcept
 
 	g_engfuncs.pfnSetModel(edict(), Sprites::LIFTED_DUST);
 	g_engfuncs.pfnSetOrigin(edict(), pev->origin);	// pfnSetOrigin includes the abssize setting, restoring our hitbox.
-	g_engfuncs.pfnSetSize(edict(), Vector(-128, -128, -128) * pev->scale, Vector(128, 128, 128) * pev->scale);
+	g_engfuncs.pfnSetSize(edict(), MIN_SIZE * pev->scale, MAX_SIZE * pev->scale);
 
 	m_Scheduler.Enroll(Task_SpriteLoop(pev, FRAME_COUNT, FPS));
 	m_Scheduler.Enroll(Task_FadeOut(pev, 0.07f, 0.07f));
@@ -800,12 +800,10 @@ void CSparkSpr::Spawn() noexcept
 pair<bool/*ShouldCough*/, bool/*Toxic*/> UTIL_AnySmokeNear(Vector const &vecSrc) noexcept
 {
 	for (auto &&pSmoke :
-		FIND_ENTITY_IN_SPHERE(vecSrc, float(32.0 * std::numbers::sqrt3)) |
-		std::views::filter([](edict_t *pEdcit) noexcept { return pEdcit->v.classname == MAKE_STRING(CSmoke::CLASSNAME); })
+		FIND_ENTITY_IN_SPHERE(vecSrc, (float)CSmoke::SPHERICAL_RADIUS)
+		| Query::exactly<CSmoke, CThinSmoke>()
 		)
 	{
-		// Any CSmoke entity near the head?
-
 		if (pSmoke->v.renderamt < 32)
 			continue;
 
@@ -813,8 +811,8 @@ pair<bool/*ShouldCough*/, bool/*Toxic*/> UTIL_AnySmokeNear(Vector const &vecSrc)
 	}
 
 	for (auto &&pFloatingDust :
-		FIND_ENTITY_IN_SPHERE(vecSrc, float(72.0 * std::numbers::sqrt3)) |
-		std::views::filter([](edict_t *pEdcit) noexcept { return pEdcit->v.classname == MAKE_STRING(CFloatingDust::CLASSNAME); })
+		FIND_ENTITY_IN_SPHERE(vecSrc, (float)CFloatingDust::SPHERICAL_RADIUS)
+		| Query::exactly<CFloatingDust>()
 		)
 	{
 		// Any CFloatingDust entity near the head?
@@ -830,14 +828,12 @@ pair<bool/*ShouldCough*/, bool/*Toxic*/> UTIL_AnySmokeNear(Vector const &vecSrc)
 		std::views::filter([](edict_t *pEdcit) noexcept { return pEdcit->v.classname == MAKE_STRING(CFlame::CLASSNAME); })
 		)
 	{
-		// Any CFlame entity near the head?
-
 		return { true, false };
 	}
 
 	for (auto &&pCloud :
-		FIND_ENTITY_IN_SPHERE(vecSrc, 72.f) |
-		std::views::filter([](edict_t *pEdcit) noexcept { return pEdcit->v.classname == MAKE_STRING(CFuelAirCloud::CLASSNAME); })
+		FIND_ENTITY_IN_SPHERE(vecSrc, 72)
+		| Query::exactly<CFuelAirCloud, CToxicSmoke>()
 		)
 	{
 		// Any CFuelAirCloud entity near the head?
@@ -1316,9 +1312,8 @@ void CPhosphorus::Spawn() noexcept
 	pev->rendercolor = Vector(255, UTIL_Random(220.0, 255.0), UTIL_Random(220.0, 255.0));	// Little variation from one to another.
 	// No more frame assignment here, moved to Task_SpriteLoopOut().
 
-	pev->solid = SOLID_TRIGGER;
-	pev->movetype = MOVETYPE_TOSS;
-	pev->gravity = 1.f;
+	pev->solid = SOLID_BBOX;
+	pev->movetype = MOVETYPE_FLY;
 	pev->scale = 1.f;
 
 	g_engfuncs.pfnSetModel(edict(), Sprites::PHOSPHORUS_TRACE_HEAD);
@@ -1388,19 +1383,14 @@ void CPhosphorus::Touch_Burning(CBaseEntity *pOther) noexcept
 
 Task CPhosphorus::Task_Flying() noexcept
 {
-	pev->angles = pev->velocity.VectorAngles();
-
 	auto const START_TIME = gpGlobals->time;
 
 	for (;;)
 	{
 		co_await TaskScheduler::NextFrame::Rank[1];
 
-		pev->angles += Angles(
-			UTIL_Random(-0.9f, 0.9f),
-			UTIL_Random(-0.9f, 0.9f),
-			UTIL_Random(-0.9f, 0.9f)
-		);
+		pev->velocity = { m_vecInitVel, (gpGlobals->time - START_TIME) * (float)-386.08858267717 * pev->gravity };
+		pev->angles = pev->velocity.VectorAngles();
 
 		// GoldSrc Mystery #1: The fucking v_angle and angles.
 		pev->v_angle = Angles(
@@ -1409,18 +1399,18 @@ Task CPhosphorus::Task_Flying() noexcept
 			pev->angles.roll
 		);
 
-		pev->velocity = pev->v_angle.Front() * 100.f;
-		pev->velocity.z -= (gpGlobals->time - START_TIME) * (float)386.08858267717;	// v = gt, this 386 is standard gravity in inches.
+		if (UTIL_Random())
+		{
+			auto const vecOrigin = pev->origin + pev->v_angle.Front() * -48;
 
-		auto const vecOrigin = pev->origin + pev->v_angle.Front() * -48;
-
-		MsgPVS(SVC_TEMPENTITY, vecOrigin);
-		WriteData(TE_SPRITE);
-		WriteData(vecOrigin);
-		WriteData(Sprites::m_rgLibrary[UTIL_GetRandomOne(Sprites::ROCKET_TRAIL_SMOKE)]);
-		WriteData((byte)UTIL_Random<short>(1, 10));
-		WriteData((byte)UTIL_Random<short>(50, 255));
-		MsgEnd();
+			MsgPVS(SVC_TEMPENTITY, vecOrigin);
+			WriteData(TE_SPRITE);
+			WriteData(vecOrigin);
+			WriteData(Sprites::m_rgLibrary[UTIL_GetRandomOne(Sprites::ROCKET_TRAIL_SMOKE)]);
+			WriteData((byte)UTIL_Random<short>(1, 10));
+			WriteData((byte)UTIL_Random<short>(50, 255));
+			MsgEnd();
+		}
 	}
 }
 
@@ -1430,18 +1420,41 @@ Task CPhosphorus::Task_EmitSmoke() noexcept
 	{
 		co_await UTIL_Random(3.f, 5.f);
 
-		Prefab_t::Create<CPhosNonToxicSmoke>(pev->origin + Vector(0, 0, UTIL_Random(-64.0, 64.0)), Angles(0, 0, UTIL_Random(0, 360)))->LitByFlame(false);
+		Prefab_t::Create<CToxicSmoke>(pev->origin + Vector(0, 0, UTIL_Random(-64.0, 64.0)), Angles(0, 0, UTIL_Random(0, 360)))->LitByFlame(false);
 	}
 }
 
-CPhosphorus *CPhosphorus::Create(CBasePlayer *pPlayer, Vector const &vecOrigin, Vector const &vecVelocity) noexcept
+CPhosphorus *CPhosphorus::Create(CBasePlayer *pPlayer, Vector const &vecOrigin, Vector2D const &vecInitVel) noexcept
 {
 	auto const [pEdict, pPrefab] = UTIL_CreateNamedPrefab<CPhosphorus>();
 
 	pEdict->v.origin = vecOrigin;
-	pEdict->v.velocity = vecVelocity;
+	pEdict->v.gravity = UTIL_Random(0.9f, 1.111f);
 
 	pPrefab->m_pPlayer = pPlayer;
+	pPrefab->m_vecInitVel = vecInitVel;
+	pPrefab->Spawn();
+	pPrefab->pev->nextthink = 0.1f;
+
+	return pPrefab;
+}
+
+CPhosphorus *CPhosphorus::Create(CBasePlayer *pPlayer, Vector const &vecOrigin, Vector const &vecTarget) noexcept
+{
+	auto const [pEdict, pPrefab] = UTIL_CreateNamedPrefab<CPhosphorus>();
+
+	pEdict->v.origin = vecOrigin;
+	pEdict->v.gravity = UTIL_Random(0.9f, 1.111f);
+
+	assert(vecTarget.z < vecOrigin.z);
+
+	auto const vecDir = vecTarget.Make2D() - vecOrigin.Make2D();
+	auto const H = vecOrigin.z - vecTarget.z;
+	auto const S = vecDir.Length();
+	auto const G = 386.08858267717 * pEdict->v.gravity;
+
+	pPrefab->m_pPlayer = pPlayer;
+	pPrefab->m_vecInitVel = vecDir.Normalize() * (S * std::sqrt(G / (2 * H)));
 	pPrefab->Spawn();
 	pPrefab->pev->nextthink = 0.1f;
 

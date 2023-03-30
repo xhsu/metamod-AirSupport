@@ -70,6 +70,9 @@ export struct CSmoke : public Prefab_t
 	// Info
 
 	static inline constexpr char CLASSNAME[] = "env_thick_smoke";
+	static inline constexpr Vector MIN_SIZE = { -32, -32, -32 };
+	static inline constexpr Vector MAX_SIZE = { 32, 32, 32 };
+	static inline constexpr double SPHERICAL_RADIUS = 32 * std::numbers::sqrt3;
 
 	// Methods
 
@@ -98,7 +101,7 @@ export struct CThinSmoke : public CSmoke
 	void Spawn() noexcept override;
 };
 
-export struct CPhosNonToxicSmoke : CThinSmoke
+export struct CToxicSmoke : CThinSmoke
 {
 	// Info
 
@@ -116,6 +119,10 @@ export struct CFloatingDust : public Prefab_t
 	static inline constexpr char CLASSNAME[] = "env_floating_dust";
 	static inline constexpr double FPS = 18.0;
 	static inline constexpr short FRAME_COUNT = 40;
+
+	static inline constexpr Vector MIN_SIZE = { -128, -128, -128 };
+	static inline constexpr Vector MAX_SIZE = { 128, 128, 128 };
+	static inline constexpr double SPHERICAL_RADIUS = 72 * std::numbers::sqrt3;
 
 	void Spawn() noexcept override;
 };
@@ -231,10 +238,12 @@ export struct CPhosphorus : public Prefab_t
 	Task Task_Flying() noexcept;
 	Task Task_EmitSmoke() noexcept;
 
-	static CPhosphorus *Create(CBasePlayer *pPlayer, Vector const &vecOrigin, Vector const &vecVelocity) noexcept;
+	static CPhosphorus *Create(CBasePlayer *pPlayer, Vector const &vecOrigin, Vector2D const &vecInitVel) noexcept;
+	static CPhosphorus *Create(CBasePlayer *pPlayer, Vector const &vecOrigin, Vector const &vecTarget) noexcept;
 
 	CBasePlayer *m_pPlayer{};
 	float m_flTotalBurningTime{};
 	TraceResult m_tr{};	// trace result agaist current attached surface.
 	unordered_map<int, float> m_rgflDamageInterval{};
+	Vector2D m_vecInitVel{};
 };

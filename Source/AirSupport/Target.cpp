@@ -634,6 +634,63 @@ Task CDynamicTarget::Task_QuickEval_Gunship() noexcept
 	}
 }
 
+Task TraceArc(Vector const vecMin, Vector const vecMax, Vector const vecSrc, Vector const vecEnd, int const iIgnore, edict_t* const pEdict) noexcept
+{
+	auto pDummy = g_engfuncs.pfnCreateNamedEntity(MAKE_STRING("info_target"));
+	g_engfuncs.pfnSetSize(pDummy, vecMin, vecMax);
+
+	auto const vecDir = vecEnd.Make2D() - vecSrc.Make2D();
+	auto const H = vecSrc.z - vecEnd.z;
+	auto const S = vecDir.Length();
+	auto const G = 386.08858267717;
+	auto const vecVelocityInit = vecDir.Normalize() * (S * std::sqrt(G / (2 * H)));
+	static constexpr auto dx = 0.1;
+
+	auto flLastDist = (vecSrc - vecEnd).LengthSquared();
+	auto flCurDist = (vecSrc - vecEnd).LengthSquared() - 1;
+	auto vecVel = Vector{ vecDir, 0 };
+	auto vecCur = vecSrc;
+	auto vecStep = vecCur + vecVel * dx;
+	auto iCounter = 0;
+
+	for (TraceResult tr{};
+		flCurDist < flLastDist;
+		vecVel.z -= G * dx, vecCur = vecStep, vecStep += vecVel * dx, flLastDist = flCurDist, flCurDist = (vecCur - vecEnd).LengthSquared(), ++iCounter
+		)
+	{
+		g_engfuncs.pfnTraceMonsterHull(pDummy, vecCur, vecStep, iIgnore, pEdict, &tr);
+
+		//MsgBroadcast(SVC_TEMPENTITY);
+		//WriteData(TE_BEAMPOINTS);
+		//WriteData(vecCur);
+		//WriteData(vecStep);
+		//WriteData(Sprites::m_rgLibrary[Sprites::BEAM]);
+		//WriteData((byte)1);
+		//WriteData((byte)24);
+		//WriteData((byte)255);
+		//WriteData((byte)3);
+		//WriteData((byte)0);
+		//WriteData((byte)255);
+		//WriteData((byte)255);
+		//WriteData((byte)255);
+		//WriteData((byte)255);
+		//WriteData((byte)0);
+		//MsgEnd();
+
+		if (tr.flFraction < 1)
+		{
+			auto const sz = std::format("Hit wall: trace {} times and {:.1f} inches left. Last ds = {}\n", iCounter, (vecCur - vecEnd).Length(), (vecVel * dx).Length());
+			g_engfuncs.pfnServerPrint(sz.c_str());
+			g_engfuncs.pfnRemoveEntity(pDummy);
+			co_return;
+		}
+	}
+
+	g_engfuncs.pfnServerPrint("All good!\n");
+	g_engfuncs.pfnRemoveEntity(pDummy);
+	co_return;
+}
+
 Task CDynamicTarget::Task_Remove() noexcept
 {
 	for (;;)

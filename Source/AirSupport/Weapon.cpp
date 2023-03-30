@@ -108,6 +108,8 @@ qboolean __fastcall HamF_Item_Deploy(CBasePlayerItem *pItem, int) noexcept
 		return g_pfnDefaultDeploy(pThis, "models/v_knife.mdl", "models/p_knife.mdl", KNIFE_DRAW, "knife", pThis->UseDecrement() != 0);
 }
 
+extern Task TraceArc(Vector const vecMin, Vector const vecMax, Vector const vecSrc, Vector const vecEnd, int const iIgnore, edict_t *const pEdict) noexcept;
+
 void __fastcall HamF_Item_PostFrame(CBasePlayerItem *pItem, int) noexcept
 {
 	auto const pThis = (CBasePlayerWeapon *)pItem;
@@ -210,12 +212,14 @@ void __fastcall HamF_Item_PostFrame(CBasePlayerItem *pItem, int) noexcept
 		auto const vecSrc = pThis->m_pPlayer->GetGunPosition();
 		auto const vecEnd = vecSrc + gpGlobals->v_forward * 4096.0;
 		g_engfuncs.pfnTraceLine(vecSrc, vecEnd, ignore_monsters, nullptr, &tr);
-		g_engfuncs.pfnTraceLine(tr.vecEndPos + Vector(0, 0, 8), Vector(tr.vecEndPos.x, tr.vecEndPos.y, 8192.0), dont_ignore_monsters, pThis->m_pPlayer->edict(), &tr2);
+		g_engfuncs.pfnTraceLine(pThis->m_pPlayer->pev->origin, pThis->m_pPlayer->pev->origin + Vector(0, 0, 4096), ignore_monsters, pThis->m_pPlayer->edict(), &tr2);
 
 		//Prefab_t::Create<CFuelAirExplosive>(pThis->m_pPlayer, tr.vecEndPos + Vector::Down() * 3);
 		//Prefab_t::Create<CFlame>(tr.vecEndPos)->pev->velocity = Vector(0, 0, 300);
 		//Prefab_t::Create<CFuelAirCloud>(tr.vecEndPos)->Ignite();
-		Prefab_t::Create<CPhosphorus>(pThis->m_pPlayer, tr2.vecEndPos - Vector(0, 0, 64), Vector::Down() * 500.f);
+
+		TraceArc(Vector(-16, -16, -16), Vector(16, 16, 16), tr2.vecEndPos - Vector(0, 0, 33), tr.vecEndPos, ignore_monsters, nullptr);
+		Prefab_t::Create<CPhosphorus>(pThis->m_pPlayer, tr2.vecEndPos - Vector(0, 0, 33), tr.vecEndPos);
 
 		//TaskScheduler::Enroll(CFuelAirCloud::Task_PlayerSuffocation(pThis->m_pPlayer, &g_engfuncs.pfnPEntityOfEntIndex(0)->v), TASK_HB_AND_ER);
 

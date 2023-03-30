@@ -413,7 +413,7 @@ public:
 		g_engfuncs.pfnSetSize(edict(), pev->mins, pev->maxs);
 		g_engfuncs.pfnSetOrigin(edict(), pev->origin);
 	}
-	void BeamInit(const char *pSpriteName, float width) noexcept
+	template <size_t N> void BeamInit(const char (&szSpriteName)[N], float width) noexcept
 	{
 		pev->flags |= FL_CUSTOMENTITY;
 
@@ -422,8 +422,8 @@ public:
 		Noise() = 0;
 		Frame() = 0;
 		ScrollRate() = 0;
-		pev->model = MAKE_STRING(pSpriteName);
-		Texture() = g_engfuncs.pfnModelIndex(pSpriteName);
+		pev->model = MAKE_STRING(szSpriteName);
+		Texture() = g_engfuncs.pfnModelIndex(szSpriteName);
 		Width() = width;
 
 		pev->skin = 0;
@@ -467,14 +467,15 @@ public:
 		RelinkBeam();
 	}
 
-	static CBeam *BeamCreate(const char *pszSpriteName, float flWidth) noexcept
+	template <size_t N>
+	static CBeam *BeamCreate(const char (&szSpriteName)[N], float flWidth) noexcept
 	{
 		EHANDLE<CBeam> pEntity = g_engfuncs.pfnCreateNamedEntity(MAKE_STRING("beam"));
 
 		if (!pEntity)
 			return nullptr;
 
-		pEntity->BeamInit(pszSpriteName, flWidth);
+		pEntity->BeamInit(szSpriteName, flWidth);
 		return pEntity;
 	}
 };
