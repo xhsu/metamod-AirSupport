@@ -52,16 +52,35 @@ void OrpheuF_CleanUpMap(CHalfLifeMultiplay *pThis) noexcept
 	for (auto &&pEnt : FIND_ENTITY_BY_CLASSNAME(CJet::CLASSNAME))
 		pEnt->v.flags |= FL_KILLME;
 
+	for (auto &&pEnt : FIND_ENTITY_BY_CLASSNAME(CPhosphorus::CLASSNAME))
+		pEnt->v.flags |= FL_KILLME;
+
 	for (auto &&pEnt : FIND_ENTITY_BY_CLASSNAME(CPrecisionAirStrike::CLASSNAME))
 		pEnt->v.flags |= FL_KILLME;
 
 	for (auto &&pEnt : FIND_ENTITY_BY_CLASSNAME(CSmoke::CLASSNAME))
 		pEnt->v.flags |= FL_KILLME;
 
+	{
+		for (auto &&pEnt : FIND_ENTITY_BY_CLASSNAME(CThickStaticSmoke::CLASSNAME))
+			pEnt->v.flags |= FL_KILLME;
+
+		for (auto &&pEnt : FIND_ENTITY_BY_CLASSNAME(CThinSmoke::CLASSNAME))
+			pEnt->v.flags |= FL_KILLME;
+
+		{
+			for (auto &&pEnt : FIND_ENTITY_BY_CLASSNAME(CToxicSmoke::CLASSNAME))
+				pEnt->v.flags |= FL_KILLME;
+		}
+	}
+
 	for (auto &&pEnt : FIND_ENTITY_BY_CLASSNAME(CSparkMdl::CLASSNAME))
 		pEnt->v.flags |= FL_KILLME;
 
 	for (auto &&pEnt : FIND_ENTITY_BY_CLASSNAME(CSparkSpr::CLASSNAME))
+		pEnt->v.flags |= FL_KILLME;
+
+	for (auto &&pEnt : FIND_ENTITY_BY_CLASSNAME(CSpriteDisplayment::CLASSNAME))
 		pEnt->v.flags |= FL_KILLME;
 }
 

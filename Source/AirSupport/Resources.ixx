@@ -313,7 +313,7 @@ export namespace Sprites
 
 	inline constexpr char BEAM[] = "sprites/laserbeam.spr";
 
-	inline constexpr char TRAIL[] = "sprites/smoke.spr";
+	inline constexpr char TRAIL[] = "sprites/tdm_smoke.spr";
 
 	inline constexpr array FLAME =
 	{

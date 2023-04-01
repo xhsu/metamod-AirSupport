@@ -582,7 +582,7 @@ void CToxicSmoke::Spawn() noexcept
 {
 	pev->rendermode = kRenderTransAdd;
 	pev->renderamt = 0;
-	pev->rendercolor = Vector(255, 255, 255);
+	pev->rendercolor = Vector(255, 255, 191); // pale yellow
 	pev->frame = (float)UTIL_Random(0, 5);
 
 	pev->solid = SOLID_NOT;
@@ -613,15 +613,29 @@ void CToxicSmoke::Spawn() noexcept
 
 Task CThickStaticSmoke::Task_Dispatch() noexcept
 {
+	// Simulating the smoke spreading process.
+
 	for (;;)
 	{
-		Vector const vecOrigin{ pev->origin.x + UTIL_Random(-64.f, 64.f), pev->origin.y + UTIL_Random(-64.f, 64.f), pev->origin.z };
+		Vector const vecOrigin{ pev->origin.x + UTIL_Random(-72.f, 72.f), pev->origin.y + UTIL_Random(-72.f, 72.f), pev->origin.z };
 
 		auto pChild = Prefab_t::Create<CThinSmoke>(vecOrigin, Angles(0, 0, UTIL_Random(0, 360)));
 		pChild->LitByFlame(true);
 		pChild->m_Scheduler.Enroll(Task_Fade(pChild->pev, 1.5f, FADEOUT_SPEED, this->pev->renderamt / 2.f, 0.05f), TASK_FADE_IN | TASK_FADE_OUT);
 
 		co_await UTIL_Random(2.f, 3.5f);
+	}
+}
+
+Task CThickStaticSmoke::Task_Scaling() noexcept
+{
+	auto const flOriginalScale = pev->scale;
+
+	for (auto flPercentage = (255.f - pev->renderamt) / 255.f;; flPercentage = (255.f - pev->renderamt) / 255.f)
+	{
+		co_await TaskScheduler::NextFrame::Rank[1];
+
+		pev->scale = flOriginalScale * (1.f + flPercentage * 0.4f);	// fade out by zooming the SPR.
 	}
 }
 
@@ -634,7 +648,7 @@ void CThickStaticSmoke::Spawn() noexcept
 
 	pev->solid = SOLID_NOT;
 	pev->movetype = MOVETYPE_NONE;
-	pev->scale = UTIL_Random(1.f, 2.0f);
+	pev->scale = UTIL_Random(1.3f, 1.7f);
 
 	g_engfuncs.pfnSetModel(edict(), Sprites::STATIC_SMOKE_THICK);
 	g_engfuncs.pfnSetSize(edict(), MIN_SIZE * pev->scale, MAX_SIZE * pev->scale);	// it is still required for pfnTraceMonsterHull
@@ -653,8 +667,9 @@ void CThickStaticSmoke::Spawn() noexcept
 	);
 	m_vecFlameClrToWhite = Vector(255, 255, 255) - m_vecStartingLitClr;
 
-	m_Scheduler.Enroll(Task_FadeOut(pev, 7.5f, FADEOUT_SPEED, 0.f), TASK_FADE_OUT);
+	m_Scheduler.Enroll(Task_FadeOut(pev, 0.f, FADEOUT_SPEED, 0.f), TASK_FADE_OUT);
 	m_Scheduler.Enroll(Task_Dispatch(), TASK_ANIMATION);
+	m_Scheduler.Enroll(Task_Scaling(), TASK_ANIMATION);
 }
 
 //
@@ -1372,23 +1387,23 @@ void CPhosphorus::Spawn() noexcept
 {
 	static const auto FRAME_COUNT = g_rgiSpriteFrameCount.at(Sprites::PHOSPHORUS_TRACE_HEAD);
 
-	m_flTotalBurningTime = UTIL_Random(30.f, 40.f);
+	pev->scale = 1.f;
+
+	g_engfuncs.pfnSetOrigin(edict(), pev->origin);	// pfnSetOrigin includes the abssize setting, restoring our hitbox.
+	g_engfuncs.pfnSetModel(edict(), Sprites::PHOSPHORUS_TRACE_HEAD);
+	g_engfuncs.pfnSetSize(edict(), Vector(-4, -4, -4), Vector(4, 4, 4));	// LUNA: the size must be exactly 2*2*2. Tried 32^3 and it gets stuck on a ghost wall in the middle of nowhere.
 
 	pev->rendermode = kRenderTransAdd;
 	pev->renderamt = UTIL_Random(192.f, 255.f);
-	pev->rendercolor = Vector(255, UTIL_Random(220.0, 255.0), UTIL_Random(220.0, 255.0));	// Little variation from one to another.
-	// No more frame assignment here, moved to Task_SpriteLoopOut().
+	pev->rendercolor = Vector(255, UTIL_Random(220.0, 255.0), UTIL_Random(220.0, 255.0));
+	pev->frame = (float)UTIL_Random(0, FRAME_COUNT - 1);	// in case it looks too overlappy..
 
-	pev->solid = SOLID_BBOX;
+	pev->solid = SOLID_TRIGGER;
 	pev->movetype = MOVETYPE_FLY;
-	pev->scale = 1.f;
-
-	g_engfuncs.pfnSetModel(edict(), Sprites::PHOSPHORUS_TRACE_HEAD);
-	g_engfuncs.pfnSetSize(edict(), Vector(-16, -16, -16) * pev->scale, Vector(16, 16, 16) * pev->scale);	// it is still required for pfnTraceMonsterHull
-	g_engfuncs.pfnSetOrigin(edict(), pev->origin);	// pfnSetOrigin includes the abssize setting, restoring our hitbox.
+	pev->takedamage = DAMAGE_NO;
 
 	m_Scheduler.Enroll(Task_SpriteLoop(pev, FRAME_COUNT, 30), TASK_ANIMATION);
-	m_Scheduler.Enroll(Task_Remove(pev, m_flTotalBurningTime), TASK_TIME_OUT);
+	m_Scheduler.Enroll(Task_Remove(pev, UTIL_Random(30.f, 40.f)), TASK_TIME_OUT);
 	m_Scheduler.Enroll(Task_Flying(), TASK_FLYING);
 
 	SetTouch(&CPhosphorus::Touch_Flying);
@@ -1396,35 +1411,48 @@ void CPhosphorus::Spawn() noexcept
 
 void CPhosphorus::Touch_Flying(CBaseEntity *pOther) noexcept
 {
-	g_engfuncs.pfnTraceMonsterHull(edict(), pev->origin, pev->origin + pev->velocity * gpGlobals->frametime, ignore_monsters | ignore_glass, edict(), &m_tr);
-	if (m_tr.fStartSolid)	// Ignore the case when the entity spawn in a solid place.
-		return;
-
-	// This is extremely weird. Only TraceLine can hit some ghost wall present in cs_assault and cs_italy_cz CT spawn.
-	g_engfuncs.pfnTraceLine(pev->origin, pev->origin + pev->velocity.Normalize() * 32 * std::numbers::sqrt3, ignore_monsters | ignore_glass, edict(), &m_tr);
+	g_engfuncs.pfnTraceLine(pev->origin, pev->origin + pev->velocity.Normalize() * 32, ignore_monsters | ignore_glass, edict(), &m_tr);
 	if (g_engfuncs.pfnPointContents(m_tr.vecEndPos) == CONTENTS_SKY)
 	{
 		pev->flags |= FL_KILLME;
 		return;
 	}
-	else if (m_tr.flFraction == 1 || m_tr.vecEndPos == Vector::Zero())	// Let's penetrate ghost wall
-	{
-		g_engfuncs.pfnSetOrigin(edict(), m_tr.vecEndPos);
+
+	if (!pOther->IsBSPModel())
 		return;
-	}
+
+	static const auto FRAME_COUNT = g_rgiSpriteFrameCount.at(Sprites::PHOSPHORUS_FLAME);
+
+	pev->frame = (float)UTIL_Random(0, FRAME_COUNT - 1);	// in case it looks too overlappy..
 
 	pev->velocity = Vector::Zero();
 	pev->movetype = MOVETYPE_NONE;
+	pev->view_ofs = pev->origin + Vector(0, 0, 64);
 
 	g_engfuncs.pfnSetModel(edict(), Sprites::PHOSPHORUS_FLAME);
 	g_engfuncs.pfnSetSize(edict(), Vector(-32, -32, -108) * pev->scale, Vector(32, 32, 108) * pev->scale);
 	g_engfuncs.pfnSetOrigin(edict(), Vector(pev->origin.x, pev->origin.y, pev->origin.z + (108.f - 16.f)));	// compensate the difference in size.
 
 	m_Scheduler.Delist(TASK_ANIMATION | TASK_FLYING);
-	m_Scheduler.Enroll(Task_SpriteLoop(pev, g_rgiSpriteFrameCount.at(Sprites::PHOSPHORUS_FLAME), 16), TASK_ANIMATION);
+	m_Scheduler.Enroll(Task_SpriteLoop(pev, FRAME_COUNT, 16), TASK_ANIMATION);
 	m_Scheduler.Enroll(Task_EmitSmoke(), TASK_IGNITE);
+	m_Scheduler.Enroll(Task_Flashing(), TASK_IGNITE);
 
 	SetTouch(&CPhosphorus::Touch_Burning);
+
+	MsgPVS(SVC_TEMPENTITY, pev->origin);
+	WriteData(TE_DLIGHT);
+	WriteData(pev->origin);	// pos
+	WriteData((byte)30);	// rad in 10's
+	WriteData((byte)255);	// r
+	WriteData((byte)255);	// g
+	WriteData((byte)255);	// b
+	WriteData((byte)8);		// life in 10's
+	WriteData((byte)60);	// decay in 10's
+	MsgEnd();
+
+	if (m_tr.pHit && m_tr.pHit->v.solid == SOLID_BSP)
+		UTIL_Decal(m_tr.pHit, m_tr.vecEndPos, UTIL_GetRandomOne(Decal::SCORCH).m_Index);
 }
 
 void CPhosphorus::Touch_Burning(CBaseEntity *pOther) noexcept
@@ -1453,11 +1481,25 @@ Task CPhosphorus::Task_Flying() noexcept
 {
 	auto const START_TIME = gpGlobals->time;
 
+	MsgBroadcast(SVC_TEMPENTITY);
+	WriteData(TE_BEAMFOLLOW);
+	WriteData(entindex());	// short (entity:attachment to follow)
+	WriteData(Sprites::m_rgLibrary[Sprites::TRAIL]);	// short (sprite index)
+	WriteData((byte)10);	// byte (life in 0.1's) 
+	WriteData((byte)3);		// byte (line width in 0.1's) 
+	WriteData((byte)255);	// r
+	WriteData((byte)255);	// g
+	WriteData((byte)191);	// b
+	WriteData((byte)255);	// byte (brightness)
+	MsgEnd();
+
 	for (;;)
 	{
 		co_await TaskScheduler::NextFrame::Rank[1];
 
-		pev->velocity = { m_vecInitVel, (gpGlobals->time - START_TIME) * (float)-386.08858267717 * pev->gravity };
+		if (pev->gravity != 0)
+			pev->velocity.z = (gpGlobals->time - START_TIME) * (float)-386.08858267717 * pev->gravity;
+
 		pev->angles = pev->velocity.VectorAngles();
 
 		// GoldSrc Mystery #1: The fucking v_angle and angles.
@@ -1467,11 +1509,11 @@ Task CPhosphorus::Task_Flying() noexcept
 			pev->angles.roll
 		);
 
-		if (UTIL_Random())
+		if (UTIL_Random(0, 2))
 		{
 			auto const vecOrigin = pev->origin + pev->v_angle.Front() * -48;
 
-			MsgPVS(SVC_TEMPENTITY, vecOrigin);
+			MsgBroadcast(SVC_TEMPENTITY);
 			WriteData(TE_SPRITE);
 			WriteData(vecOrigin);
 			WriteData(Sprites::m_rgLibrary[UTIL_GetRandomOne(Sprites::ROCKET_TRAIL_SMOKE)]);
@@ -1484,12 +1526,35 @@ Task CPhosphorus::Task_Flying() noexcept
 
 Task CPhosphorus::Task_EmitSmoke() noexcept
 {
+	if (UTIL_Random())
+		co_await 4.f;
+
 	for (;;)
 	{
-		co_await UTIL_Random(3.f, 5.f);
+		co_await UTIL_Random(4.f, 8.f);
 
 		if (UTIL_Random())
 			Prefab_t::Create<CToxicSmoke>(pev->origin + Vector(0, 0, UTIL_Random(-64.0, 64.0)), Angles(0, 0, UTIL_Random(0, 360)))->LitByFlame(false);
+	}
+}
+
+Task CPhosphorus::Task_Flashing() noexcept
+{
+	co_await UTIL_Random(0.f, 6.f);
+
+	for (;;)
+	{
+		Vector const vecGround{
+			pev->origin.x,
+			pev->origin.y,
+			pev->absmin.z + 16.0
+		};
+
+		Vector const vecVel = get_spherical_coord(1, UTIL_Random(30.0, 60.0), UTIL_Random(0, 360));
+
+		Prefab_t::Create<CShower2>(vecGround, vecVel);
+
+		co_await UTIL_Random(4.f, 8.f);
 	}
 }
 
@@ -1498,11 +1563,14 @@ CPhosphorus *CPhosphorus::Create(CBasePlayer *pPlayer, Vector const &vecOrigin, 
 	auto const [pEdict, pPrefab] = UTIL_CreateNamedPrefab<CPhosphorus>();
 
 	pEdict->v.origin = vecOrigin;
-	pEdict->v.gravity = UTIL_Random(0.9f, 1.111f);
+	pEdict->v.gravity = UTIL_Random(1.f / 1.1f, 1.1f);
+
+	auto const flSpeed = vecInitVel.Length();
 
 	pPrefab->m_pPlayer = pPlayer;
-	pPrefab->m_vecInitVel = vecInitVel;
 	pPrefab->Spawn();
+	pPrefab->pev->velocity = { vecInitVel, 0 };
+	pPrefab->pev->avelocity = { flSpeed, UTIL_Random(-flSpeed, flSpeed), 0 };
 	pPrefab->pev->nextthink = 0.1f;
 
 	return pPrefab;
@@ -1513,7 +1581,7 @@ CPhosphorus *CPhosphorus::Create(CBasePlayer *pPlayer, Vector const &vecOrigin, 
 	auto const [pEdict, pPrefab] = UTIL_CreateNamedPrefab<CPhosphorus>();
 
 	pEdict->v.origin = vecOrigin;
-	pEdict->v.gravity = UTIL_Random(0.9f, 1.111f);
+	pEdict->v.gravity = UTIL_Random(1.f / 1.1f, 1.1f);
 
 	assert(vecTarget.z < vecOrigin.z);
 
@@ -1523,9 +1591,112 @@ CPhosphorus *CPhosphorus::Create(CBasePlayer *pPlayer, Vector const &vecOrigin, 
 	auto const G = 386.08858267717 * pEdict->v.gravity;
 
 	pPrefab->m_pPlayer = pPlayer;
-	pPrefab->m_vecInitVel = vecDir.Normalize() * (S * std::sqrt(G / (2 * H)));
+	pPrefab->Spawn();
+	pPrefab->pev->velocity = { vecDir.Normalize() * (S * std::sqrt(G / (2 * H))), 0 }; auto const flSpeed = pPrefab->pev->velocity.Length();
+	pPrefab->pev->avelocity = { flSpeed, UTIL_Random(-flSpeed, flSpeed), 0 };
+	pPrefab->pev->nextthink = 0.1f;
+
+	return pPrefab;
+}
+
+CPhosphorus *CPhosphorus::Create(CBasePlayer *pPlayer, Vector const &vecOrigin) noexcept
+{
+	auto const [pEdict, pPrefab] = UTIL_CreateNamedPrefab<CPhosphorus>();
+
+	pEdict->v.origin = vecOrigin;
+	pEdict->v.gravity = UTIL_Random(1.f / 1.1f, 1.1f);
+
+	pPrefab->m_pPlayer = pPlayer;
 	pPrefab->Spawn();
 	pPrefab->pev->nextthink = 0.1f;
+
+	return pPrefab;
+}
+
+//
+// CShower2
+// Same as the original one, but with light.
+//
+
+Task CShower2::Task_Flashing() noexcept
+{
+	for (;;)
+	{
+		co_await 0.1f;
+
+		MsgPVS(SVC_TEMPENTITY, pev->origin);
+		WriteData(TE_SPARKS);
+		WriteData(pev->origin);
+		MsgEnd();
+
+		MsgPVS(SVC_TEMPENTITY, pev->origin);
+		WriteData(TE_DLIGHT);
+		WriteData(pev->origin);	// pos
+		WriteData((byte)UTIL_Random(12, 14));	// rad in 10's
+		WriteData((byte)255);	// r
+		WriteData((byte)255);	// g
+		WriteData((byte)255);	// b
+		WriteData((byte)2);	// brightness
+		WriteData((byte)0);	// life in 10's
+		WriteData((byte)1);	// decay in 10's
+		MsgEnd();
+
+		pev->speed -= 0.1f;
+
+		if (pev->speed <= 0)
+			pev->flags |= FL_KILLME;
+
+		pev->flags &= ~FL_ONGROUND;
+	}
+}
+
+void CShower2::Touch(CBaseEntity *pOther) noexcept
+{
+	TraceResult tr{};
+	g_engfuncs.pfnTraceLine(pev->origin, pev->origin + pev->velocity.Normalize() * 4, ignore_monsters | ignore_glass, nullptr, &tr);
+
+	if (tr.pHit && tr.pHit->v.solid == SOLID_BSP)
+		UTIL_Decal(tr.pHit, tr.vecEndPos, UTIL_GetRandomOne(Decal::SMALL_SCORCH).m_Index);
+
+	if (pev->flags & FL_ONGROUND)
+		pev->velocity *= 0.1;
+	else
+		pev->velocity *= 0.6;
+
+	if (pev->velocity.Length2D() < 10)
+	{
+		pev->speed = 0;
+	}
+}
+
+CShower2 *CShower2::Create(Vector const &vecOrigin, Vector const &vecDir) noexcept
+{
+	auto const [pEdict, pPrefab] = UTIL_CreateNamedPrefab<CShower2>();
+
+	pPrefab->pev->velocity = UTIL_Random(200, 300) * vecDir;
+	pPrefab->pev->velocity.x += UTIL_Random(-100, 100);
+	pPrefab->pev->velocity.y += UTIL_Random(-100, 100);
+
+	if (pPrefab->pev->velocity.z >= 0)
+		pPrefab->pev->velocity.z += 200;
+	else
+		pPrefab->pev->velocity.z -= 200;
+
+	pPrefab->pev->movetype = MOVETYPE_BOUNCE;
+	pPrefab->pev->gravity = 0.5f;
+	pPrefab->pev->solid = SOLID_NOT;
+
+	// Need a model, just use the grenade, we don't draw it anyway
+	g_engfuncs.pfnSetOrigin(pEdict, vecOrigin);
+	g_engfuncs.pfnSetModel(pEdict, "models/grenade.mdl");
+	g_engfuncs.pfnSetSize(pEdict, Vector::Zero(), Vector::Zero());
+
+	pPrefab->pev->effects |= EF_NODRAW;
+	pPrefab->pev->speed = UTIL_Random(0.5f, 1.5f);
+	pPrefab->pev->angles = pPrefab->pev->velocity.VectorAngles();
+
+	pPrefab->pev->nextthink = 0.1f;
+	pPrefab->m_Scheduler.Enroll(pPrefab->Task_Flashing());
 
 	return pPrefab;
 }

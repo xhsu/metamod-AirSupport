@@ -20,8 +20,8 @@ export import Task;
 using std::list;
 using std::pair;
 
-export template <typename T>
-inline auto UTIL_CreateNamedPrefab() noexcept
+export template <typename T, typename... Tys>
+inline auto UTIL_CreateNamedPrefab(Tys&&... args) noexcept
 {
 	auto const pEdict = g_engfuncs.pfnCreateEntity();
 
@@ -29,7 +29,7 @@ inline auto UTIL_CreateNamedPrefab() noexcept
 	assert(pEdict->pvPrivateData == nullptr);
 
 	auto const pMemBlock = g_engfuncs.pfnPvAllocEntPrivateData(pEdict, sizeof(T));	// allocate the memory from engine
-	new (pMemBlock) T{};	// "placement new"
+	new (pMemBlock) T{ std::forward<Tys>(args)... };	// "placement new"
 	auto const pPrefab = static_cast<T *>(pMemBlock);	// object lifetime started.
 
 	pPrefab->pev = &pEdict->v;
