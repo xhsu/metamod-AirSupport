@@ -124,6 +124,7 @@ export struct CThickStaticSmoke : public CSmoke
 	// Methods
 
 	Task Task_Dispatch() noexcept;
+	Task Task_Scaling() noexcept;
 
 	void Spawn() noexcept override;
 };
@@ -238,7 +239,7 @@ export struct CSpriteDisplayment : public Prefab_t
 
 export struct CPhosphorus : public Prefab_t
 {
-	static inline constexpr char CLASSNAME[] = "phosphorus_trace";
+	static inline constexpr char CLASSNAME[] = "env_phosphorus";
 
 	void Spawn() noexcept override;
 
@@ -247,13 +248,25 @@ export struct CPhosphorus : public Prefab_t
 
 	Task Task_Flying() noexcept;
 	Task Task_EmitSmoke() noexcept;
+	Task Task_Flashing() noexcept;
 
-	static CPhosphorus *Create(CBasePlayer *pPlayer, Vector const &vecOrigin, Vector2D const &vecInitVel) noexcept;
-	static CPhosphorus *Create(CBasePlayer *pPlayer, Vector const &vecOrigin, Vector const &vecTarget) noexcept;
+	static CPhosphorus *Create(CBasePlayer *pPlayer, Vector const &vecOrigin, Vector2D const &vecInitVel) noexcept;	// Start with designated velocity
+	static CPhosphorus *Create(CBasePlayer *pPlayer, Vector const &vecOrigin, Vector const &vecTarget) noexcept;	// Horizontal projectile, flying to target location.
+	static CPhosphorus *Create(CBasePlayer *pPlayer, Vector const &vecOrigin) noexcept;	// Fly towards random surrounding direction.
 
 	CBasePlayer *m_pPlayer{};
-	float m_flTotalBurningTime{};
 	TraceResult m_tr{};	// trace result agaist current attached surface.
 	unordered_map<int, float> m_rgflDamageInterval{};
-	Vector2D m_vecInitVel{};
+};
+
+export struct CShower2 : public Prefab_t
+{
+	static inline constexpr char CLASSNAME[] = "spark_shower_with_lit";
+
+	Task Task_Flashing() noexcept;
+
+	int ObjectCaps() noexcept override { return FCAP_DONT_SAVE; }
+	void Touch(CBaseEntity *pOther) noexcept override;
+
+	static CShower2 *Create(Vector const &vecOrigin, Vector const &vecDir) noexcept;
 };

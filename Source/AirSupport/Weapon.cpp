@@ -7,6 +7,7 @@ import meta_api;
 import Hook;
 import Jet;
 import Localization;
+import Math;	// optional because it's in debug.
 import Menu;
 import Projectile;
 import Query;
@@ -201,26 +202,26 @@ void __fastcall HamF_Item_PostFrame(CBasePlayerItem *pItem, int) noexcept
 		g_engfuncs.pfnTraceLine(vecSrc, vecEnd, ignore_monsters, nullptr, &tr);
 		g_engfuncs.pfnTraceLine(pThis->m_pPlayer->pev->origin, pThis->m_pPlayer->pev->origin + Vector(0, 0, 4096), ignore_monsters, pThis->m_pPlayer->edict(), &tr2);
 
-		auto const fn = [](TraceResult tr, TraceResult tr2, Vector vecSrc, Vector vecEnd, CBasePlayerWeapon* pThis) noexcept -> Task
+		auto const fn = [](TraceResult tr, TraceResult tr2, Vector vecSrc, Vector vecEnd, CBasePlayerWeapon* pThis) noexcept// -> Task
 		{
-			co_await 5.f;
+			//co_await 5.f;
 
-			auto pPhosphorus = Prefab_t::Create<CPhosphorus>(pThis->m_pPlayer, tr2.vecEndPos, tr.vecEndPos);
+			auto const vecSpawnPos = tr2.vecEndPos - Vector(0, 0, 33);
+			auto pCentered = Prefab_t::Create<CPhosphorus>(pThis->m_pPlayer, vecSpawnPos, tr.vecEndPos);
+			auto const vecInitVel = pCentered->pev->velocity.Make2D();
 
-			for (float dx = -64; dx < 64; dx += 32)
+			for (int i = 0; i < 15; ++i)
 			{
-				for (float dy = -64; dy < 64; dy += 32)
-				{
-					Prefab_t::Create<CPhosphorus>(pThis->m_pPlayer, tr2.vecEndPos + Vector(dx, dy, 0), pPhosphorus->m_vecInitVel);
-				}
+				Prefab_t::Create<CPhosphorus>(pThis->m_pPlayer, vecSpawnPos, tr.vecEndPos + get_cylindrical_coord(UTIL_Random(32, 256), UTIL_Random(0, 359), 0));
 			}
 
-			co_return;
+			//co_return;
 		};
-		extern void CWPMunition_Explo(Vector const &vecOrigin) noexcept;
-		CWPMunition_Explo(tr.vecEndPos);
+		extern void CWPMunition_Explo(CBasePlayer *m_pPlayer, Vector const &vecOrigin) noexcept;
+		//CWPMunition_Explo(pThis->m_pPlayer, tr.vecEndPos);
 
 		//TaskScheduler::Enroll(fn(tr, tr2, vecSrc, vecEnd, pThis));
+		fn(tr, tr2, vecSrc, vecEnd, pThis);
 	}
 #endif
 }

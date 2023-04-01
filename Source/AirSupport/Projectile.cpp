@@ -1116,7 +1116,7 @@ CFuelAirExplosive *CFuelAirExplosive::Create(CBasePlayer *pPlayer, Vector const 
 // CWPMunition
 //
 
-void CWPMunition_Explo(Vector const& vecOrigin) noexcept
+void CWPMunition_Explo(CBasePlayer* m_pPlayer, Vector const& vecOrigin) noexcept
 {
 	auto pThickSmoke = Prefab_t::Create<CThickStaticSmoke>(vecOrigin);
 	pThickSmoke->LitByFlame(true);
@@ -1126,4 +1126,14 @@ void CWPMunition_Explo(Vector const& vecOrigin) noexcept
 	pSpr->pev->renderamt = 255.f;
 	pSpr->pev->frame = (float)3;
 	pSpr->m_Scheduler.Enroll(Task_FadeOut(pSpr->pev, 0.f, 2.f, 0.f), TASK_FADE_OUT);
+
+	//UTIL_ExplodeModel(Vector(pev->origin.x, pev->origin.y, pev->absmax.z), 700.f, Models::m_rgLibrary[Models::GIBS_METAL], UTIL_Random(4, 6), UTIL_Random(10.f, 15.f));
+	UTIL_ExplodeModel(vecOrigin, 700.f, Models::m_rgLibrary[Models::GIBS_CONCRETE], UTIL_Random(10, 12), UTIL_Random(7.f, 12.f));
+
+	for (auto i = 0; i < 360; i += 30)
+	{
+		auto pPhosphorus = Prefab_t::Create<CPhosphorus>(m_pPlayer, vecOrigin + Vector(0, 0, 32));
+
+		pPhosphorus->pev->velocity = get_spherical_coord(UTIL_Random(300.f, 650.f), UTIL_Random(20.0, 30.0), i);
+	}
 }
