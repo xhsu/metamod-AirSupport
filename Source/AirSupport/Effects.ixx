@@ -36,8 +36,10 @@ export enum EEfxTasks : uint64_t
 export extern "C++" Task Task_SpriteLoop(entvars_t *const pev, short const FRAME_COUNT, double const FPS) noexcept;
 export extern "C++" Task Task_SpriteLoop(entvars_t* const pev, uint16_t const STARTS_AT, uint16_t const FRAME_COUNT, double const FPS) noexcept;
 export extern "C++" Task Task_SpritePlayOnce(entvars_t *const pev, short const FRAME_COUNT, double const FPS) noexcept;
+export extern "C++" Task Task_SpritePlayOnce(entvars_t *const pev, uint16_t const FRAME_COUNT, double const FPS, float const AWAIT, float const DECAY, float const ROLL, float const SCALE_INC) noexcept;
 export extern "C++" Task Task_SpriteLoopOut(entvars_t* const pev, uint16_t const LOOP_STARTS_AT, uint16_t const LOOP_FRAME_COUNT, uint16_t const OUT_ENDS_AT, float const TIME, double const FPS) noexcept;
 export extern "C++" Task Task_FadeOut(entvars_t *const pev, float const AWAIT, float const DECAY, float const ROLL) noexcept;
+export extern "C++" Task Task_FadeOut(entvars_t *const pev, float const AWAIT, float const DECAY, float const ROLL, float const SCALE_INC) noexcept;
 export extern "C++" Task Task_Remove(entvars_t *const pev, float const TIME) noexcept;
 export extern "C++" Task Task_FadeIn(entvars_t *const pev, float const TRANSPARENT_INC, float const FINAL_VAL, float const ROLL) noexcept;
 export extern "C++" Task Task_Fade(entvars_t *const pev, float const INC, float const DEC, float const PEAK, float const ROLL) noexcept;
@@ -234,6 +236,8 @@ export struct CSpriteDisplayment : public Prefab_t
 {
 	static inline constexpr char CLASSNAME[] = "CSpriteDisplayment";
 
+	bool ShouldCollide(EHANDLE<CBaseEntity> pOther) noexcept override { return false; }	// just a SPR, collide with absolutely nothing.
+
 	static CSpriteDisplayment *Create(Vector const& vecOrigin, kRenderFn iRenderMethod, std::string_view szModel) noexcept;
 };
 
@@ -247,8 +251,9 @@ export struct CPhosphorus : public Prefab_t
 	void Touch_Burning(CBaseEntity *pOther) noexcept;
 
 	Task Task_Flying() noexcept;
+	Task Task_EmitExhaust() noexcept;
 	Task Task_EmitSmoke() noexcept;
-	Task Task_Flashing() noexcept;
+	Task Task_EmitSpark() noexcept;
 
 	static CPhosphorus *Create(CBasePlayer *pPlayer, Vector const &vecOrigin, Vector2D const &vecInitVel) noexcept;	// Start with designated velocity
 	static CPhosphorus *Create(CBasePlayer *pPlayer, Vector const &vecOrigin, Vector const &vecTarget) noexcept;	// Horizontal projectile, flying to target location.

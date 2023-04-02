@@ -310,6 +310,8 @@ export namespace Sprites
 	inline constexpr char PHOSPHORUS_TRACE_HEAD[] = "sprites/xflare1.spr";
 	inline constexpr char PHOSPHORUS_FLAME[] = "sprites/flame6.spr";
 	inline constexpr char PHOSPHORUS_SMOKE[] = "sprites/bettyspr1.spr";
+	inline constexpr char PHOSPHORUS_MINOR_SPARK[] = "sprites/w_lightgranate.spr";
+	inline constexpr char PHOSPHORUS_MAJOR_SPARK[] = "sprites/fusion_p_engage.spr";
 
 	inline constexpr char BEAM[] = "sprites/laserbeam.spr";
 
@@ -331,7 +333,9 @@ export namespace Sprites
 
 	inline constexpr array ROCKET_TRAIL_SMOKE =
 	{
-		"sprites/exsmoke.spr",
+		//"sprites/exsmoke.spr",
+		"sprites/wall_puff1.spr",
+		"sprites/wall_puff2.spr",
 		"sprites/wall_puff3.spr",
 		"sprites/wall_puff4.spr",
 	};

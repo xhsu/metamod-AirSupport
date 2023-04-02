@@ -73,6 +73,38 @@ Task Task_SpritePlayOnce(entvars_t *const pev, short const FRAME_COUNT, double c
 	pev->flags |= FL_KILLME;
 }
 
+Task Task_SpritePlayOnce(entvars_t *const pev, uint16_t const FRAME_COUNT, double const FPS, float const AWAIT, float const DECAY, float const ROLL, float const SCALE_INC) noexcept
+{
+	for (auto iFrame = (uint16_t)std::clamp(pev->frame, 0.f, float(FRAME_COUNT - 1));
+		iFrame < FRAME_COUNT;)
+	{
+		co_await float(1.f / FPS);
+
+		pev->framerate = float(1.f / FPS);
+		pev->frame = ++iFrame;
+		pev->animtime = gpGlobals->time;
+	}
+
+	if (AWAIT > 0)
+		co_await AWAIT;
+
+	// Save the scale here to compatible with other behaviour.
+	auto const flOriginalScale = pev->scale;
+
+	for (auto flPercentage = (255.f - pev->renderamt) / 255.f;
+		pev->renderamt > 0;
+		flPercentage = (255.f - pev->renderamt) / 255.f)
+	{
+		co_await TaskScheduler::NextFrame::Rank.back();
+
+		pev->renderamt -= DECAY;
+		pev->angles.roll += ROLL;
+		pev->scale = flOriginalScale * (1.f + flPercentage * SCALE_INC);	// fade out by zooming the SPR.
+	}
+
+	pev->flags |= FL_KILLME;
+}
+
 Task Task_SpriteLoopOut(entvars_t* const pev, uint16_t const LOOP_STARTS_AT, uint16_t const LOOP_FRAME_COUNT, uint16_t const OUT_ENDS_AT, float const TIME, double const FPS) noexcept
 {
 	uint16_t const OUT_STARTS_AT = LOOP_STARTS_AT + LOOP_FRAME_COUNT;
@@ -148,6 +180,28 @@ Task Task_FadeOut(entvars_t *const pev, float const AWAIT, float const DECAY, fl
 
 		pev->renderamt -= DECAY;
 		pev->angles.roll += ROLL;
+	}
+
+	pev->flags |= FL_KILLME;
+}
+
+Task Task_FadeOut(entvars_t *const pev, float const AWAIT, float const DECAY, float const ROLL, float const SCALE_INC) noexcept
+{
+	if (AWAIT > 0)
+		co_await AWAIT;
+
+	// Save the scale here to compatible with other behaviour.
+	auto const flOriginalScale = pev->scale;
+
+	for (auto flPercentage = (255.f - pev->renderamt) / 255.f;
+		pev->renderamt > 0;
+		flPercentage = (255.f - pev->renderamt) / 255.f)
+	{
+		co_await TaskScheduler::NextFrame::Rank.back();
+
+		pev->renderamt -= DECAY;
+		pev->angles.roll += ROLL;
+		pev->scale = flOriginalScale * (1.f + flPercentage * SCALE_INC);	// fade out by zooming the SPR.
 	}
 
 	pev->flags |= FL_KILLME;
@@ -445,7 +499,7 @@ Task CSmoke::Task_ReflectingFlame() noexcept
 		{
 			flContribution = 0;
 
-			if (pEdict->v.classname == MAKE_STRING(CFlame::CLASSNAME))
+			if (pEdict->v.classname == MAKE_STRING(CFlame::CLASSNAME) || pEdict->v.classname == MAKE_STRING(CPhosphorus::CLASSNAME))
 				flContribution = std::clamp(1.0 - (pEdict->v.origin - tr.vecEndPos).Length() / SEARCH_RADIUS, 0.0, 0.4);
 			else if (pEdict->v.classname == MAKE_STRING(CFuelAirCloud::CLASSNAME))
 			{
@@ -1356,8 +1410,11 @@ CSpriteDisplayment *CSpriteDisplayment::Create(Vector const &vecOrigin, kRenderF
 {
 	auto const [pEdict, pPrefab] = UTIL_CreateNamedPrefab<CSpriteDisplayment>();
 
+	g_engfuncs.pfnSetOrigin(pEdict, vecOrigin);
+	g_engfuncs.pfnSetModel(pEdict, szModel.data());
+	g_engfuncs.pfnSetSize(pEdict, Vector::Zero(), Vector::Zero());
+
 	pEdict->v.angles = Angles();
-	pEdict->v.origin = vecOrigin;
 
 	pEdict->v.rendermode = iRenderMethod;
 	pEdict->v.renderamt = 128.f;
@@ -1369,10 +1426,6 @@ CSpriteDisplayment *CSpriteDisplayment::Create(Vector const &vecOrigin, kRenderF
 	pEdict->v.gravity = 0;
 	pEdict->v.velocity = Vector::Zero();
 	pEdict->v.scale = 1.f;
-
-	g_engfuncs.pfnSetModel(pPrefab->edict(), szModel.data());
-	g_engfuncs.pfnSetOrigin(pPrefab->edict(), pEdict->v.origin);
-	g_engfuncs.pfnSetSize(pPrefab->edict(), Vector::Zero(), Vector::Zero());
 
 	pPrefab->pev->nextthink = 0.1f;
 
@@ -1405,6 +1458,7 @@ void CPhosphorus::Spawn() noexcept
 	m_Scheduler.Enroll(Task_SpriteLoop(pev, FRAME_COUNT, 30), TASK_ANIMATION);
 	m_Scheduler.Enroll(Task_Remove(pev, UTIL_Random(30.f, 40.f)), TASK_TIME_OUT);
 	m_Scheduler.Enroll(Task_Flying(), TASK_FLYING);
+	m_Scheduler.Enroll(Task_EmitExhaust(), TASK_FLYING);
 
 	SetTouch(&CPhosphorus::Touch_Flying);
 }
@@ -1421,6 +1475,13 @@ void CPhosphorus::Touch_Flying(CBaseEntity *pOther) noexcept
 	if (!pOther->IsBSPModel())
 		return;
 
+	// Not a real spark, it's just a visual representation of 'too bright to properly see what's going on'
+	auto pSpark = Prefab_t::Create<CSpriteDisplayment>(Vector(pev->origin.x, pev->origin.y, pev->origin.z + 48.0), kRenderTransAdd, Sprites::PHOSPHORUS_MAJOR_SPARK);
+	pSpark->pev->renderamt = UTIL_Random(192.f, 255.f);
+	pSpark->pev->rendercolor = Vector(255, 255, UTIL_Random(192, 255));
+	pSpark->pev->scale = UTIL_Random(1.f / 1.2f, 1.2f);
+	pSpark->m_Scheduler.Enroll(Task_FadeOut(pSpark->pev, UTIL_Random(0.05f, 0.2f), 10.f, 0), TASK_ANIMATION);
+
 	static const auto FRAME_COUNT = g_rgiSpriteFrameCount.at(Sprites::PHOSPHORUS_FLAME);
 
 	pev->frame = (float)UTIL_Random(0, FRAME_COUNT - 1);	// in case it looks too overlappy..
@@ -1431,19 +1492,19 @@ void CPhosphorus::Touch_Flying(CBaseEntity *pOther) noexcept
 
 	g_engfuncs.pfnSetModel(edict(), Sprites::PHOSPHORUS_FLAME);
 	g_engfuncs.pfnSetSize(edict(), Vector(-32, -32, -108) * pev->scale, Vector(32, 32, 108) * pev->scale);
-	g_engfuncs.pfnSetOrigin(edict(), Vector(pev->origin.x, pev->origin.y, pev->origin.z + (108.f - 16.f)));	// compensate the difference in size.
+	g_engfuncs.pfnSetOrigin(edict(), Vector(pev->origin.x, pev->origin.y, pev->origin.z + 108.f));	// compensate the difference in size.
 
 	m_Scheduler.Delist(TASK_ANIMATION | TASK_FLYING);
 	m_Scheduler.Enroll(Task_SpriteLoop(pev, FRAME_COUNT, 16), TASK_ANIMATION);
 	m_Scheduler.Enroll(Task_EmitSmoke(), TASK_IGNITE);
-	m_Scheduler.Enroll(Task_Flashing(), TASK_IGNITE);
+	m_Scheduler.Enroll(Task_EmitSpark(), TASK_IGNITE);
 
 	SetTouch(&CPhosphorus::Touch_Burning);
 
-	MsgPVS(SVC_TEMPENTITY, pev->origin);
+	MsgPVS(SVC_TEMPENTITY, pev->origin);	// the light for the spark
 	WriteData(TE_DLIGHT);
 	WriteData(pev->origin);	// pos
-	WriteData((byte)30);	// rad in 10's
+	WriteData((byte)40);	// rad in 10's
 	WriteData((byte)255);	// r
 	WriteData((byte)255);	// g
 	WriteData((byte)255);	// b
@@ -1481,18 +1542,6 @@ Task CPhosphorus::Task_Flying() noexcept
 {
 	auto const START_TIME = gpGlobals->time;
 
-	MsgBroadcast(SVC_TEMPENTITY);
-	WriteData(TE_BEAMFOLLOW);
-	WriteData(entindex());	// short (entity:attachment to follow)
-	WriteData(Sprites::m_rgLibrary[Sprites::TRAIL]);	// short (sprite index)
-	WriteData((byte)10);	// byte (life in 0.1's) 
-	WriteData((byte)3);		// byte (line width in 0.1's) 
-	WriteData((byte)255);	// r
-	WriteData((byte)255);	// g
-	WriteData((byte)191);	// b
-	WriteData((byte)255);	// byte (brightness)
-	MsgEnd();
-
 	for (;;)
 	{
 		co_await TaskScheduler::NextFrame::Rank[1];
@@ -1508,19 +1557,45 @@ Task CPhosphorus::Task_Flying() noexcept
 			pev->angles.yaw,
 			pev->angles.roll
 		);
+	}
+}
 
-		if (UTIL_Random(0, 2))
-		{
-			auto const vecOrigin = pev->origin + pev->v_angle.Front() * -48;
+Task CPhosphorus::Task_EmitExhaust() noexcept
+{
+	MsgBroadcast(SVC_TEMPENTITY);
+	WriteData(TE_BEAMFOLLOW);
+	WriteData(entindex());	// short (entity:attachment to follow)
+	WriteData(Sprites::m_rgLibrary[Sprites::TRAIL]);	// short (sprite index)
+	WriteData((byte)UTIL_Random(20, 40));	// byte (life in 0.1's) 
+	WriteData((byte)3);		// byte (line width in 0.1's) 
+	WriteData((byte)255);	// r
+	WriteData((byte)255);	// g
+	WriteData((byte)191);	// b
+	WriteData((byte)255);	// byte (brightness)
+	MsgEnd();
 
-			MsgBroadcast(SVC_TEMPENTITY);
-			WriteData(TE_SPRITE);
-			WriteData(vecOrigin);
-			WriteData(Sprites::m_rgLibrary[UTIL_GetRandomOne(Sprites::ROCKET_TRAIL_SMOKE)]);
-			WriteData((byte)UTIL_Random<short>(1, 10));
-			WriteData((byte)UTIL_Random<short>(50, 255));
-			MsgEnd();
-		}
+	co_await 0.5f;
+
+	for (;;)
+	{
+		co_await UTIL_Random(0.1f, 0.2f);
+
+		auto const vecOrigin = pev->origin + pev->v_angle.Front() * -48;
+
+		//MsgBroadcast(SVC_TEMPENTITY);
+		//WriteData(TE_SPRITE);
+		//WriteData(vecOrigin);
+		//WriteData(Sprites::m_rgLibrary[UTIL_GetRandomOne(Sprites::ROCKET_TRAIL_SMOKE)]);
+		//WriteData((byte)UTIL_Random<short>(1, 10));
+		//WriteData((byte)UTIL_Random<short>(50, 255));
+		//MsgEnd();
+
+		auto pSpark = Prefab_t::Create<CSpriteDisplayment>(vecOrigin, kRenderTransAdd, Sprites::ROCKET_TRAIL_SMOKE[0]);
+		pSpark->pev->renderamt = UTIL_Random(50.f, 255.f);
+		pSpark->pev->rendercolor = Vector(255, 255, UTIL_Random(192, 255));
+		pSpark->pev->frame = (float)UTIL_Random(17, 22);
+		pSpark->pev->scale = UTIL_Random(0.3f, 1.1f);
+		pSpark->m_Scheduler.Enroll(Task_FadeOut(pSpark->pev, /*STAY*/ 0.2f, /*DECAY*/ UTIL_Random(0.1f, 0.5f), /*ROLL*/ 0, /*SCALE_INC*/ UTIL_Random(0.35f, 0.55f)), TASK_ANIMATION);
 	}
 }
 
@@ -1538,9 +1613,10 @@ Task CPhosphorus::Task_EmitSmoke() noexcept
 	}
 }
 
-Task CPhosphorus::Task_Flashing() noexcept
+Task CPhosphorus::Task_EmitSpark() noexcept
 {
-	co_await UTIL_Random(0.f, 6.f);
+	if (UTIL_Random())
+		co_await UTIL_Random(4.f, 8.f);
 
 	for (;;)
 	{
@@ -1671,6 +1747,8 @@ void CShower2::Touch(CBaseEntity *pOther) noexcept
 
 CShower2 *CShower2::Create(Vector const &vecOrigin, Vector const &vecDir) noexcept
 {
+	static const auto FRAME_COUNT = g_rgiSpriteFrameCount.at(Sprites::PHOSPHORUS_MINOR_SPARK);
+
 	auto const [pEdict, pPrefab] = UTIL_CreateNamedPrefab<CShower2>();
 
 	pPrefab->pev->velocity = UTIL_Random(200, 300) * vecDir;
@@ -1686,17 +1764,22 @@ CShower2 *CShower2::Create(Vector const &vecOrigin, Vector const &vecDir) noexce
 	pPrefab->pev->gravity = 0.5f;
 	pPrefab->pev->solid = SOLID_NOT;
 
-	// Need a model, just use the grenade, we don't draw it anyway
 	g_engfuncs.pfnSetOrigin(pEdict, vecOrigin);
-	g_engfuncs.pfnSetModel(pEdict, "models/grenade.mdl");
+	g_engfuncs.pfnSetModel(pEdict, Sprites::PHOSPHORUS_MINOR_SPARK);	// Need a model to perform all sorts of movements
 	g_engfuncs.pfnSetSize(pEdict, Vector::Zero(), Vector::Zero());
 
-	pPrefab->pev->effects |= EF_NODRAW;
+	pPrefab->pev->rendermode = kRenderTransAdd;
+	pPrefab->pev->renderamt = UTIL_Random(192.f, 255.f);
+	pPrefab->pev->rendercolor = Vector(255, UTIL_Random(220.0, 255.0), UTIL_Random(220.0, 255.0));
+	pPrefab->pev->frame = (float)UTIL_Random(0, FRAME_COUNT - 1);	// in case it looks too overlappy..
+	pPrefab->pev->scale = 0.3f;
+
 	pPrefab->pev->speed = UTIL_Random(0.5f, 1.5f);
 	pPrefab->pev->angles = pPrefab->pev->velocity.VectorAngles();
 
 	pPrefab->pev->nextthink = 0.1f;
-	pPrefab->m_Scheduler.Enroll(pPrefab->Task_Flashing());
+	pPrefab->m_Scheduler.Enroll(pPrefab->Task_Flashing(), TASK_ACTION);
+	pPrefab->m_Scheduler.Enroll(Task_SpriteLoop(pPrefab->pev, FRAME_COUNT, 24), TASK_ANIMATION);
 
 	return pPrefab;
 }

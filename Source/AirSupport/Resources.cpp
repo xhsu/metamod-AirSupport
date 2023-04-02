@@ -239,6 +239,8 @@ void Precache(void) noexcept
 	PrecacheSprite(Sprites::PHOSPHORUS_TRACE_HEAD);
 	PrecacheSprite(Sprites::PHOSPHORUS_FLAME);
 	PrecacheSprite(Sprites::PHOSPHORUS_SMOKE);
+	PrecacheSprite(Sprites::PHOSPHORUS_MINOR_SPARK);
+	PrecacheSprite(Sprites::PHOSPHORUS_MAJOR_SPARK);
 
 	PrecacheSprite(Sprites::BEAM);
 
