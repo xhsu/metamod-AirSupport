@@ -29,6 +29,7 @@ export struct CDynamicTarget : public Prefab_t
 	Task Task_QuickEval_ClusterBomb() noexcept;
 	Task Task_QuickEval_CarpetBombardment() noexcept;
 	Task Task_QuickEval_Gunship() noexcept;
+	Task Task_QuickEval_Phosphorus() noexcept;
 	Task Task_Remove() noexcept;
 
 	void UpdateEvalMethod() noexcept;

@@ -1457,7 +1457,7 @@ void CPhosphorus::Spawn() noexcept
 
 	m_Scheduler.Enroll(Task_SpriteLoop(pev, FRAME_COUNT, 30), TASK_ANIMATION);
 	m_Scheduler.Enroll(Task_Remove(pev, UTIL_Random(30.f, 40.f)), TASK_TIME_OUT);
-	m_Scheduler.Enroll(Task_Flying(), TASK_FLYING);
+	m_Scheduler.Enroll(Task_Gravity(), TASK_FLYING);
 	m_Scheduler.Enroll(Task_EmitExhaust(), TASK_FLYING);
 
 	SetTouch(&CPhosphorus::Touch_Flying);
@@ -1538,7 +1538,7 @@ void CPhosphorus::Touch_Burning(CBaseEntity *pOther) noexcept
 	m_rgflDamageInterval[iEntIndex] = gpGlobals->time + 0.1f;	// Well, white phosphorus does the job...
 }
 
-Task CPhosphorus::Task_Flying() noexcept
+Task CPhosphorus::Task_Gravity() noexcept
 {
 	auto const START_TIME = gpGlobals->time;
 
@@ -1729,7 +1729,7 @@ Task CShower2::Task_Flashing() noexcept
 void CShower2::Touch(CBaseEntity *pOther) noexcept
 {
 	TraceResult tr{};
-	g_engfuncs.pfnTraceLine(pev->origin, pev->origin + pev->velocity.Normalize() * 4, ignore_monsters | ignore_glass, nullptr, &tr);
+	g_engfuncs.pfnTraceLine(pev->origin, pev->origin + pev->velocity.Normalize() * 16, ignore_monsters | ignore_glass, nullptr, &tr);
 
 	if (tr.pHit && tr.pHit->v.solid == SOLID_BSP)
 		UTIL_Decal(tr.pHit, tr.vecEndPos, UTIL_GetRandomOne(Decal::SMALL_SCORCH).m_Index);

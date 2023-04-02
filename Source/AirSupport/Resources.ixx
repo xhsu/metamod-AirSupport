@@ -28,6 +28,7 @@ export namespace Models
 		"models/AirSupport/B-1B.mdl",
 		"models/AirSupport/AC130.mdl",
 		"models/AirSupport/F18.mdl",
+		"models/AirSupport/F18.mdl",	// #TODO what plane shooting phosphorus munition?
 	};
 
 	inline constexpr char PROJECTILE[] = "models/AirSupport/projectiles.mdl";
@@ -83,6 +84,7 @@ export namespace Sounds
 		"airsupport/radio/radio_affirm.wav",
 		"airsupport/radio/radio_affirm.wav",
 		"airsupport/radio/radio_inpos.wav",
+		"airsupport/radio/radio_affirm.wav",
 		"airsupport/radio/radio_affirm.wav",
 	};
 

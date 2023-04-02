@@ -264,7 +264,7 @@ void CJet::Spawn() noexcept
 	switch (m_AirSupportType)
 	{
 	default:
-		gmsgTextMsg::Send(m_pPlayer->edict(), 4, u8"你不應該看到這則信息 - 請聯絡作者");
+		gmsgTextMsg::Send(m_pPlayer->edict(), 4, u8"你不應該看到這則信息 - 請聯絡作者\nYou shouldn't see this text!");
 		[[fallthrough]];
 
 	case AIR_STRIKE:
@@ -285,6 +285,12 @@ void CJet::Spawn() noexcept
 	case FUEL_AIR_BOMB:
 		m_Scheduler.Enroll(Task_FuelAirBomb());
 		m_iFlyingSoundIndex = UTIL_Random(0u, Sounds::BOMBER.size() - 1);
+		break;
+
+	case PHOSPHORUS_MUNITION:
+		gmsgTextMsg::Send(m_pPlayer->edict(), 4, u8"Not\nImpl\nYet!");
+		m_Scheduler.Enroll(Task_AirStrike());
+		m_iFlyingSoundIndex = UTIL_Random(0u, Sounds::JET.size() - 1);
 		break;
 	}
 

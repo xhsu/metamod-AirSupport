@@ -250,7 +250,7 @@ export struct CPhosphorus : public Prefab_t
 	void Touch_Flying(CBaseEntity *pOther) noexcept;
 	void Touch_Burning(CBaseEntity *pOther) noexcept;
 
-	Task Task_Flying() noexcept;
+	Task Task_Gravity() noexcept;
 	Task Task_EmitExhaust() noexcept;
 	Task Task_EmitSmoke() noexcept;
 	Task Task_EmitSpark() noexcept;

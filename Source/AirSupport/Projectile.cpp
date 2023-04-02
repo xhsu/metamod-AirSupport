@@ -43,27 +43,27 @@ void TraceArc(Vector const vecMin, Vector const vecMax, Vector const vecSrc, Vec
 
 	for (TraceResult tr{};
 		flCurDist < flLastDist;
-		vecVel.z -= G * dx, vecCur = vecStep, vecStep += vecVel * dx, flLastDist = flCurDist, flCurDist = (vecCur - vecEnd).LengthSquared(), ++iCounter
+		vecVel.z -= float(G * dx), vecCur = vecStep, vecStep += vecVel * dx, flLastDist = flCurDist, flCurDist = (vecCur - vecEnd).LengthSquared(), ++iCounter
 		)
 	{
 		g_engfuncs.pfnTraceMonsterHull(pDummy, vecCur, vecStep, iIgnore, pEdict, &tr);
 
-		//MsgBroadcast(SVC_TEMPENTITY);
-		//WriteData(TE_BEAMPOINTS);
-		//WriteData(vecCur);
-		//WriteData(vecStep);
-		//WriteData(Sprites::m_rgLibrary[Sprites::BEAM]);
-		//WriteData((byte)1);
-		//WriteData((byte)24);
-		//WriteData((byte)255);
-		//WriteData((byte)3);
-		//WriteData((byte)0);
-		//WriteData((byte)255);
-		//WriteData((byte)255);
-		//WriteData((byte)255);
-		//WriteData((byte)255);
-		//WriteData((byte)0);
-		//MsgEnd();
+		MsgBroadcast(SVC_TEMPENTITY);
+		WriteData(TE_BEAMPOINTS);
+		WriteData(vecCur);
+		WriteData(vecStep);
+		WriteData(Sprites::m_rgLibrary[Sprites::BEAM]);
+		WriteData((byte)1);
+		WriteData((byte)24);
+		WriteData((byte)255);
+		WriteData((byte)3);
+		WriteData((byte)0);
+		WriteData((byte)255);
+		WriteData((byte)255);
+		WriteData((byte)255);
+		WriteData((byte)255);
+		WriteData((byte)0);
+		MsgEnd();
 
 		if (tr.flFraction < 1)
 		{

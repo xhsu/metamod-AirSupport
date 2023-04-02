@@ -318,6 +318,8 @@ Task CDynamicTarget::Task_QuickEval_ClusterBomb() noexcept
 
 		Vector const vecSrc = m_pPlayer->GetGunPosition();
 		Vector const vecEnd = vecSrc + gpGlobals->v_forward * 4096.f;
+
+		// Should really think about this. Should I limit the target to a opened space? #TODO
 		//g_engfuncs.pfnTraceMonsterHull(edict(), vecSrc, vecEnd, ignore_glass | ignore_monsters, nullptr, &tr);
 		g_engfuncs.pfnTraceLine(vecSrc, vecEnd, ignore_glass | ignore_monsters, nullptr, &tr);
 
@@ -634,6 +636,143 @@ Task CDynamicTarget::Task_QuickEval_Gunship() noexcept
 	}
 }
 
+Task CDynamicTarget::Task_QuickEval_Phosphorus() noexcept
+{
+	struct TraceArcFunctor_t final
+	{
+		TraceArcFunctor_t(void) noexcept : m_ent(g_engfuncs.pfnCreateNamedEntity(MAKE_STRING("info_target"))) {}
+		TraceArcFunctor_t(TraceArcFunctor_t const&) noexcept = delete;
+		TraceArcFunctor_t(TraceArcFunctor_t &&) noexcept = delete;
+		TraceArcFunctor_t &operator=(TraceArcFunctor_t const&) noexcept = delete;
+		TraceArcFunctor_t &operator=(TraceArcFunctor_t &&) noexcept = delete;
+		~TraceArcFunctor_t(void) noexcept { g_engfuncs.pfnRemoveEntity(m_ent); m_ent = nullptr; }
+
+		inline operator edict_t *() const noexcept { return m_ent; }
+
+		inline edict_t *operator-> () const noexcept { return m_ent; }
+		inline edict_t &operator* () const noexcept { return *m_ent; }
+
+		inline bool operator() (Vector const &vecSrc, Vector const &vecEnd, int const iIgnore, edict_t *const pEdict = nullptr) const noexcept
+		{
+			auto const vecDir = vecEnd.Make2D() - vecSrc.Make2D();
+			auto const H = vecSrc.z - vecEnd.z;
+			auto const S = vecDir.Length();
+			auto const G = 386.08858267717;
+			auto const vecVelocityInit = vecDir.Normalize() * (S * std::sqrt(G / (2 * H)));
+			static constexpr auto dx = 0.1;
+
+			auto flLastDist = (vecSrc - vecEnd).LengthSquared();
+			auto flCurDist = (vecSrc - vecEnd).LengthSquared() - 1;
+			auto vecVel = Vector{ vecDir, 0 };
+			auto vecCur = vecSrc;
+			auto vecStep = vecCur + vecVel * dx;
+
+			for (TraceResult tr{};
+				flCurDist < flLastDist;
+				vecVel.z -= float(G * dx), vecCur = vecStep, vecStep += vecVel * dx, flLastDist = flCurDist, flCurDist = (vecCur - vecEnd).LengthSquared()
+				)
+			{
+				//g_engfuncs.pfnTraceMonsterHull(m_ent, vecCur, vecStep, iIgnore, pEdict, &tr);
+				g_engfuncs.pfnTraceLine(vecCur, vecStep, iIgnore, pEdict, &tr);
+
+				if (tr.flFraction < 0.99 || tr.fStartSolid || tr.fAllSolid)
+					return false;
+			}
+
+			return true;
+		}
+
+		edict_t *m_ent{};
+	}
+	fnTraceArc{};
+
+	TraceResult tr{};
+	auto iCounter = 0;
+
+	g_engfuncs.pfnSetSize(fnTraceArc, Vector(-4, -4, -4), Vector(4, 4, 4));
+
+	for (Vector vecMyLastPos = pev->origin;;)
+	{
+		if (m_pPlayer->m_pActiveItem != m_pRadio || m_pRadio->pev->weapons != RADIO_KEY)
+		{
+			co_await Models::v_radio::time::draw;	// the model will be hidden for this long, at least.
+			continue;
+		}
+
+		// Update team info so we can hide from proper player group.
+
+		pev->team = m_pPlayer->m_iTeam;
+
+		if (m_pPlayer->pev->effects & EF_DIMLIGHT)	// The lit state will follow player flashlight
+			pev->effects |= EF_DIMLIGHT;
+		else
+			pev->effects &= ~EF_DIMLIGHT;
+
+		// Calc where does player aiming
+
+		Vector const vecSrc = m_pPlayer->GetGunPosition();
+		Vector const vecEnd = vecSrc + m_pPlayer->pev->v_angle.Front() * 4096.f;
+		g_engfuncs.pfnTraceMonsterHull(edict(), vecSrc, vecEnd, ignore_glass | ignore_monsters, nullptr, &tr);
+
+		auto const flAngleLean = std::acos(DotProduct(Vector::Up(), tr.vecPlaneNormal)/* No div len required, both len are 1. */) / std::numbers::pi * 180.0;
+
+		if (flAngleLean > 50)
+		{
+			// Surface consider wall and no cluster bomb allow against wall.
+
+			pev->skin = Models::targetmdl::SKIN_RED;
+			goto LAB_CONTINUE;	// there's no set origin.
+		}
+
+		g_engfuncs.pfnVecToAngles(tr.vecPlaneNormal, pev->angles);
+		g_engfuncs.pfnSetOrigin(edict(), tr.vecEndPos);
+
+		// Quick Evaluation
+
+		if ((pev->origin - vecMyLastPos).LengthSquared2D() > 576 /* 24 */)	// Position drifted, the old estimation could be invalidated.
+		{
+			pev->skin = Models::targetmdl::SKIN_RED;
+			vecMyLastPos = pev->origin;
+		}
+
+		// Try to get a temp spawn location above player.
+		g_engfuncs.pfnTraceLine(vecSrc, Vector(vecSrc.x, vecSrc.y, 8192.f), ignore_monsters | ignore_glass, nullptr, &tr);
+
+		if (Vector const vecSavedCandidate = tr.vecEndPos; g_engfuncs.pfnPointContents(vecSavedCandidate) == CONTENTS_SKY)
+		{
+			if (fnTraceArc(vecSavedCandidate, pev->origin, ignore_monsters | ignore_glass))
+			{
+				pev->skin = Models::targetmdl::SKIN_GREEN;
+				goto LAB_CONTINUE;
+			}
+		}
+
+		// Deep Evaluation
+
+		iCounter = 0;
+
+		for (const auto &vec : g_WaypointMgr.m_rgvecOrigins)
+		{
+			++iCounter;
+
+			if (fnTraceArc(pev->origin, vec, ignore_monsters | ignore_glass))
+			{
+				pev->skin = Models::targetmdl::SKIN_GREEN;
+				goto LAB_CONTINUE;
+			}
+
+			[[unlikely]]
+			if (!(iCounter % 128))
+			{
+				co_await TaskScheduler::NextFrame::Rank[0];	// gurentee resume next frame. div by 3 is to ensure priority
+			}
+		}
+
+	LAB_CONTINUE:;
+		co_await TaskScheduler::NextFrame::Rank[0];
+	}
+}
+
 Task CDynamicTarget::Task_Remove() noexcept
 {
 	for (;;)
@@ -693,6 +832,11 @@ void CDynamicTarget::UpdateEvalMethod() noexcept
 	case GUNSHIP_STRIKE:
 		g_engfuncs.pfnSetSize(edict(), Vector::Zero(), Vector::Zero());
 		m_Scheduler.Enroll(Task_QuickEval_Gunship(), TASK_QUICK_ANALYZE);
+		break;
+
+	case PHOSPHORUS_MUNITION:
+		g_engfuncs.pfnSetSize(edict(), Vector(-32, -32, 0), Vector(32, 32, 72));
+		m_Scheduler.Enroll(Task_QuickEval_Phosphorus(), TASK_QUICK_ANALYZE);
 		break;
 	}
 }
