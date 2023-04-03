@@ -69,31 +69,31 @@ export namespace Menu
 			;
 
 		// #TODO move to localization somehow?
-		//inline constexpr char AIRSUPPORT_TEMPLATE[] =
-		//	"\\yAir Support Selection\\w\n"
-		//	"\n"
-		//	"{}1. Precise air strike{}\n"
-		//	"{}2. Cluster bomb{}\n"
-		//	"{}3. Carpet bombardment{}\n"
-		//	"{}4. Gunship strike{}\n"
-		//	"{}5. Thermobaric weapon{}\n"
-		//	"{}6. White phosphorus bomb{}\n"
-		//	"\n"
-		//	"\\w0. Exit\n"
-		//	;
-
 		inline constexpr char AIRSUPPORT_TEMPLATE[] =
-			u8"\\y空襲類別選單\\w\n"
-			u8"\n"
-			u8"{}1. 精確導彈打擊{}\n"
-			u8"{}2. 集束炸藥{}\n"
-			u8"{}3. 地毯式轟炸{}\n"
-			u8"{}4. 空中炮艦支援{}\n"
-			u8"{}5. 雲爆彈{}\n"
-			u8"{}6. 白磷彈{}\n"
-			u8"\n"
-			u8"\\w0. 離開\n"
+			"\\yAir Support Selection\\w\n"
+			"\n"
+			"{}1. Precise air strike{}\n"
+			"{}2. Cluster bomb{}\n"
+			"{}3. Carpet bombardment{}\n"
+			"{}4. Gunship strike{}\n"
+			"{}5. Thermobaric weapon{}\n"
+			"{}6. White phosphorus bomb{}\n"
+			"\n"
+			"\\w0. Exit\n"
 			;
+
+		//inline constexpr char AIRSUPPORT_TEMPLATE[] =
+		//	u8"\\y空襲類別選單\\w\n"
+		//	u8"\n"
+		//	u8"{}1. 精確導彈打擊{}\n"
+		//	u8"{}2. 集束炸藥{}\n"
+		//	u8"{}3. 地毯式轟炸{}\n"
+		//	u8"{}4. 空中炮艦支援{}\n"
+		//	u8"{}5. 雲爆彈{}\n"
+		//	u8"{}6. 白磷彈{}\n"
+		//	u8"\n"
+		//	u8"\\w0. 離開\n"
+		//	;
 	};
 
 	namespace Key

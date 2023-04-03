@@ -85,6 +85,7 @@ export struct CSmoke : public Prefab_t
 	void DriftToWhite(double const flPercentage) noexcept;	// [0-1]
 
 	void Spawn() noexcept override;
+	void Touch(CBaseEntity *pOther) noexcept override;
 
 	// Members
 
@@ -114,6 +115,7 @@ export struct CToxicSmoke : public CThinSmoke
 	Task Task_InFloatOut() noexcept;
 
 	void Spawn() noexcept override;
+	void Touch(CBaseEntity *pOther) noexcept override;
 };
 
 export struct CThickStaticSmoke : public CSmoke
@@ -142,6 +144,7 @@ export struct CFloatingDust : public Prefab_t
 	static inline constexpr double SPHERICAL_RADIUS = 72 * std::numbers::sqrt3;
 
 	void Spawn() noexcept override;
+	void Touch(CBaseEntity *pOther) noexcept override;
 };
 
 export struct CDebris : public Prefab_t
@@ -195,8 +198,6 @@ export struct CSparkSpr : public Prefab_t
 
 	void Spawn() noexcept override;
 };
-
-export extern "C++" Task Task_GlobalCoughThink() noexcept;
 
 export struct CFuelAirCloud : public Prefab_t
 {

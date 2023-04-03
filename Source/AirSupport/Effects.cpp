@@ -8,6 +8,7 @@ import edict;
 import shake;
 import util;
 
+import DamageOverTime;
 import Effects;
 import Math;
 import Projectile;
@@ -450,6 +451,9 @@ void CFlame::Touch_DealBurnDmg(CBaseEntity *pOther) noexcept
 	);
 
 	m_rgflDamageInterval[iEntIndex] = gpGlobals->time + 0.5f;
+
+	if (pOther->IsPlayer())
+		Gas::TryCough((CBasePlayer *)pOther);
 }
 
 //
@@ -539,8 +543,8 @@ void CSmoke::Spawn() noexcept
 	pev->rendercolor = Vector(255, 255, 255);
 	pev->frame = (float)UTIL_Random(0, 1);//(float)UTIL_Random(0, 5);
 
-	pev->solid = SOLID_NOT;
-	pev->movetype = MOVETYPE_NOCLIP;
+	pev->solid = SOLID_TRIGGER;
+	pev->movetype = MOVETYPE_FLY;
 	pev->gravity = 0;
 	pev->velocity = Vector(UTIL_Random(-96, 96), UTIL_Random(-96, 96), 0).Normalize() * 12;
 	pev->scale = UTIL_Random(1.f, 2.0f);
@@ -565,6 +569,16 @@ void CSmoke::Spawn() noexcept
 	m_Scheduler.Enroll(Task_Fade(pev, 1.5f, 0.055f, UTIL_Random(96.f, 128.f), UTIL_Random() ? 0.05f : -0.05f), TASK_FADE_IN | TASK_FADE_OUT);
 }
 
+void CSmoke::Touch(CBaseEntity *pOther) noexcept
+{
+	if (!pOther->IsPlayer())
+		return;
+
+	auto const pPlayer = (CBasePlayer *)pOther;
+
+	Gas::TryCough(pPlayer);
+}
+
 void CThinSmoke::Spawn() noexcept
 {
 	pev->rendermode = kRenderTransAdd;
@@ -572,8 +586,8 @@ void CThinSmoke::Spawn() noexcept
 	pev->rendercolor = Vector(255, 255, 255);
 	pev->frame = (float)UTIL_Random(0, 5);
 
-	pev->solid = SOLID_NOT;
-	pev->movetype = MOVETYPE_NOCLIP;
+	pev->solid = SOLID_TRIGGER;
+	pev->movetype = MOVETYPE_FLY;
 	pev->gravity = 0;
 	pev->velocity = Vector(UTIL_Random(-96, 96), UTIL_Random(-96, 96), 0).Normalize() * 12;
 	pev->scale = UTIL_Random(0.9f, 1.3f);
@@ -639,8 +653,8 @@ void CToxicSmoke::Spawn() noexcept
 	pev->rendercolor = Vector(255, 255, 191); // pale yellow
 	pev->frame = (float)UTIL_Random(0, 5);
 
-	pev->solid = SOLID_NOT;
-	pev->movetype = MOVETYPE_NOCLIP;
+	pev->solid = SOLID_TRIGGER;
+	pev->movetype = MOVETYPE_FLY;
 	pev->gravity = 0;
 	pev->velocity = Vector(UTIL_Random(-96, 96), UTIL_Random(-96, 96), 0).Normalize() * 12;
 	pev->scale = UTIL_Random(3.f, 5.f);
@@ -663,6 +677,17 @@ void CToxicSmoke::Spawn() noexcept
 	m_vecFlameClrToWhite = Vector(255, 255, 255) - m_vecStartingLitClr;
 
 	m_Scheduler.Enroll(Task_InFloatOut(), TASK_FADE_IN | TASK_FADE_OUT);
+}
+
+void CToxicSmoke::Touch(CBaseEntity *pOther) noexcept
+{
+	if (!pOther->IsPlayer())
+		return;
+
+	auto const pPlayer = (CBasePlayer *)pOther;
+
+	Gas::TryCough(pPlayer);
+	Gas::Intoxicate(pPlayer, this->pev, nullptr, 5.f);
 }
 
 Task CThickStaticSmoke::Task_Dispatch() noexcept
@@ -700,8 +725,8 @@ void CThickStaticSmoke::Spawn() noexcept
 	pev->rendercolor = Vector(255, 255, 255);
 	pev->frame = (float)UTIL_Random(0, 1);
 
-	pev->solid = SOLID_NOT;
-	pev->movetype = MOVETYPE_NONE;
+	pev->solid = SOLID_TRIGGER;
+	pev->movetype = MOVETYPE_FLY;
 	pev->scale = UTIL_Random(1.3f, 1.7f);
 
 	g_engfuncs.pfnSetModel(edict(), Sprites::STATIC_SMOKE_THICK);
@@ -737,8 +762,8 @@ void CFloatingDust::Spawn() noexcept
 	pev->rendercolor = Vector(255, 255, 255);
 	pev->frame = (float)UTIL_Random(0, FRAME_COUNT - 1);
 
-	pev->solid = SOLID_NOT;
-	pev->movetype = MOVETYPE_NOCLIP;
+	pev->solid = SOLID_TRIGGER;
+	pev->movetype = MOVETYPE_FLY;
 	pev->gravity = 0;
 	pev->velocity = Vector(UTIL_Random(-96, 96), UTIL_Random(-96, 96), 0).Normalize() * UTIL_Random(12.0, 18.0);
 	pev->scale = UTIL_Random(2.f, 3.f);
@@ -749,6 +774,16 @@ void CFloatingDust::Spawn() noexcept
 
 	m_Scheduler.Enroll(Task_SpriteLoop(pev, FRAME_COUNT, FPS));
 	m_Scheduler.Enroll(Task_FadeOut(pev, 0.f, 0.07f, 0.07f));
+}
+
+void CFloatingDust::Touch(CBaseEntity *pOther) noexcept
+{
+	if (!pOther->IsPlayer())
+		return;
+
+	auto const pPlayer = (CBasePlayer *)pOther;
+
+	Gas::TryCough(pPlayer);
 }
 
 //
@@ -936,96 +971,6 @@ void CSparkSpr::Spawn() noexcept
 }
 
 //
-// PlayerCough
-//
-
-[[nodiscard]]
-pair<bool/*ShouldCough*/, bool/*Toxic*/> UTIL_AnySmokeNear(Vector const &vecSrc) noexcept
-{
-	for (auto &&pSmoke :
-		FIND_ENTITY_IN_SPHERE(vecSrc, (float)CSmoke::SPHERICAL_RADIUS)
-		| Query::exactly<CSmoke, CThinSmoke, CThickStaticSmoke>()
-		)
-	{
-		if (pSmoke->v.renderamt < 32)
-			continue;
-
-		return { true, false };
-	}
-
-	for (auto &&pFloatingDust :
-		FIND_ENTITY_IN_SPHERE(vecSrc, (float)CFloatingDust::SPHERICAL_RADIUS)
-		| Query::exactly<CFloatingDust>()
-		)
-	{
-		// Any CFloatingDust entity near the head?
-
-		if (pFloatingDust->v.renderamt < 32)
-			continue;
-
-		return { true, false };
-	}
-
-	for (auto &&pFlame :
-		FIND_ENTITY_IN_SPHERE(vecSrc, 72.f) |
-		std::views::filter([](edict_t *pEdcit) noexcept { return pEdcit->v.classname == MAKE_STRING(CFlame::CLASSNAME); })
-		)
-	{
-		return { true, false };
-	}
-
-	for (auto &&pCloud :
-		FIND_ENTITY_IN_SPHERE(vecSrc, 72)
-		| Query::exactly<CFuelAirCloud, CToxicSmoke>()
-		)
-	{
-		// Any CFuelAirCloud entity near the head?
-		// It's quite toxic so the transparency doesn't matter.
-
-		return { true, true };
-	}
-
-	return { false, false };
-}
-
-Task Task_GlobalCoughThink() noexcept
-{
-	array<float, 33> rgflTimeNextCough{};
-	array<float, 33> rgflTimeNextInhale{};
-	auto const pevWorld = &g_engfuncs.pfnPEntityOfEntIndex(0)->v;
-
-	co_await 0.1f;
-
-	for (;;)
-	{
-		for (CBasePlayer *pPlayer : Query::all_living_players())	// #INVESTIGATE #POTENTIAL_BUG awaiting in this loop can cause CTD in release mod. WHY???
-		{
-			auto const [bShouldCough, bIsToxic] = UTIL_AnySmokeNear(pPlayer->EyePosition());
-
-			if (bShouldCough)
-			{
-				if (auto const iIndex = pPlayer->entindex(); rgflTimeNextCough[iIndex] < gpGlobals->time)
-				{
-					rgflTimeNextCough[iIndex] = gpGlobals->time + UTIL_Random(3.f, 3.5f);
-					g_engfuncs.pfnEmitSound(pPlayer->edict(), CHAN_AUTO, UTIL_GetRandomOne(Sounds::PLAYER_COUGH), VOL_NORM, ATTN_STATIC, 0, UTIL_Random(92, 116));
-				}
-			}
-
-			if (bIsToxic && pPlayer->pev->takedamage != DAMAGE_NO)
-			{
-				if (auto const iIndex = pPlayer->entindex(); rgflTimeNextInhale[iIndex] < gpGlobals->time)
-				{
-					rgflTimeNextInhale[iIndex] = gpGlobals->time + UTIL_Random(1.5f, 2.5f);
-					pPlayer->TakeDamage(pevWorld, pevWorld, 5.f, DMG_POISON);
-				}
-			}
-		}
-
-		co_await 0.1f;
-	}
-}
-
-//
 // CFuelAirCloud
 //
 
@@ -1173,6 +1118,12 @@ void CFuelAirCloud::Touch(CBaseEntity *pOther) noexcept
 		{
 			// Save for the explosion think.
 			pGrenade->m_pBombDefuser = this;
+		}
+		else if (pOther->IsPlayer())
+		{
+			auto const pPlayer = (CBasePlayer *)pOther;
+			Gas::TryCough(pPlayer);
+			Gas::Intoxicate(pPlayer, this->pev, m_pPlayer->pev, 5.f);
 		}
 
 		return;
@@ -1744,15 +1695,7 @@ void CShower2::Touch(CBaseEntity *pOther) noexcept
 	if (tr.pHit && tr.pHit->v.solid == SOLID_BSP)
 		UTIL_Decal(tr.pHit, tr.vecEndPos, UTIL_GetRandomOne(Decal::SMALL_SCORCH).m_Index);
 
-	if (pev->flags & FL_ONGROUND)
-		pev->velocity *= 0.1;
-	else
-		pev->velocity *= 0.6;
-
-	if (pev->velocity.Length2D() < 10)
-	{
-		pev->speed = 0;
-	}
+	// #TODO player hurt or ignite when touch with it.
 }
 
 CShower2 *CShower2::Create(Vector const &vecOrigin, Vector const &vecDir) noexcept
@@ -1772,7 +1715,7 @@ CShower2 *CShower2::Create(Vector const &vecOrigin, Vector const &vecDir) noexce
 
 	pPrefab->pev->movetype = MOVETYPE_BOUNCE;
 	pPrefab->pev->gravity = 0.5f;
-	pPrefab->pev->solid = SOLID_NOT;
+	pPrefab->pev->solid = SOLID_TRIGGER;
 
 	g_engfuncs.pfnSetOrigin(pEdict, vecOrigin);
 	g_engfuncs.pfnSetModel(pEdict, Sprites::PHOSPHORUS_MINOR_SPARK);	// Need a model to perform all sorts of movements
