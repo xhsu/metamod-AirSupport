@@ -292,6 +292,14 @@ export namespace Sounds
 
 		inline constexpr char FLAME_FADEOUT[] = "ambience/fire_loop_fadeout_01.wav";
 	};
+
+	namespace Thermite
+	{
+		inline constexpr char COMPOSED[] = "weapons/an_m14_burn.wav";
+		inline constexpr char BURNING_LOOP[] = "weapons/an_m14_burn_loop.wav";
+		inline constexpr char BURNING_END[] = "weapons/an_m14_burn_loop_end.wav";
+		inline constexpr char DETONATE[] = "weapons/an_m14_detonate.wav";
+	};
 };
 
 export namespace Sprites

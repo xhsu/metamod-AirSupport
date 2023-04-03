@@ -245,6 +245,8 @@ export struct CPhosphorus : public Prefab_t
 {
 	static inline constexpr char CLASSNAME[] = "proj_phosphorus";
 
+	~CPhosphorus() noexcept override;
+
 	void Spawn() noexcept override;
 
 	void Touch_Flying(CBaseEntity *pOther) noexcept;

@@ -1080,9 +1080,9 @@ Task CIncendiaryMunition::Task_Deviation() noexcept
 		co_await TaskScheduler::NextFrame::Rank[0];
 
 		pev->angles += Angles(
-			UTIL_Random(-0.35f, 0.35f),
-			UTIL_Random(-0.35f, 0.35f),
-			UTIL_Random(-0.35f, 0.35f)
+			UTIL_Random(-0.4, 0.4),
+			UTIL_Random(-0.4, 0.4),
+			UTIL_Random(-0.4, 0.4)
 		);
 
 		// GoldSrc Mystery #1: The fucking v_angle and angles.
@@ -1120,7 +1120,7 @@ Task CIncendiaryMunition::Task_EmitExhaust() noexcept
 
 	for (;;)
 	{
-		co_await UTIL_Random(0.06f, 0.12f);
+		co_await UTIL_Random(0.04f, 0.08f);
 
 		auto const vecOrigin = pev->origin + pev->v_angle.Front() * -48;
 
@@ -1153,11 +1153,16 @@ Task CIncendiaryMunition::Task_Fuse() noexcept
 		WriteData(TE_EXPLFLAG_NONE);
 		MsgEnd();
 
-		auto pCentered = Prefab_t::Create<CPhosphorus>(m_pPlayer, pev->origin, m_vecTarget);
-		auto const vecInitVel = pCentered->pev->velocity.Make2D();
+		auto pPhosphorus = Prefab_t::Create<CPhosphorus>(m_pPlayer, pev->origin);	// One of the shower guarantees to hit the goal.
+		pPhosphorus->pev->gravity = 0.f;
+		pPhosphorus->pev->velocity = (m_vecTarget - pev->origin).Normalize() * 500;
 
 		for (int i = 0; i < 15; ++i)
-			Prefab_t::Create<CPhosphorus>(m_pPlayer, pev->origin, m_vecTarget + get_cylindrical_coord(UTIL_Random(32, 256), UTIL_Random(0, 359), 0));
+		{
+			pPhosphorus = Prefab_t::Create<CPhosphorus>(m_pPlayer, pev->origin);
+			pPhosphorus->pev->gravity = UTIL_Random(0.1f, 0.25f);
+			pPhosphorus->pev->velocity = ((m_vecTarget + get_cylindrical_coord(UTIL_Random(32, 256), UTIL_Random(0, 359), 0)) - pev->origin).Normalize() * 500;
+		}
 
 		g_engfuncs.pfnEmitAmbientSound(edict(), pev->origin, Sounds::TRAVEL, VOL_NORM, 0.3f, SND_STOP, UTIL_Random(94, 112));
 		pev->flags |= FL_KILLME;
@@ -1184,8 +1189,24 @@ void CIncendiaryMunition::Spawn() noexcept
 
 void CIncendiaryMunition::Touch(CBaseEntity *pOther) noexcept
 {
+	TraceResult tr{};
+	g_engfuncs.pfnTraceMonsterHull(edict(), pev->origin, pev->origin + pev->velocity, ignore_glass | ignore_monsters, nullptr, &tr);
+
 	g_engfuncs.pfnEmitAmbientSound(edict(), pev->origin, Sounds::TRAVEL, VOL_NORM, 0.3f, SND_STOP, UTIL_Random(94, 112));
 	pev->flags |= FL_KILLME;
+
+	if (tr.flFraction == 1)
+		return;
+
+	for (int i = 0; i < 16; ++i)
+	{
+		Vector const vecNoise = CrossProduct(
+			Vector{ UTIL_Random(-1.0, 1.0), UTIL_Random(-1.0, 1.0), UTIL_Random(-1.0, 1.0) },
+			tr.vecPlaneNormal);
+
+		auto pPhosphorus = Prefab_t::Create<CPhosphorus>(m_pPlayer, pev->origin + tr.vecPlaneNormal * 3);
+		pPhosphorus->pev->velocity = (tr.vecPlaneNormal + vecNoise).Normalize() * UTIL_Random(450.0, 550.0);
+	}
 }
 
 CIncendiaryMunition *CIncendiaryMunition::Create(CBasePlayer *pPlayer, Vector const &vecOrigin, Vector const &vecTarget) noexcept

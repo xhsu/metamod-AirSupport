@@ -1436,6 +1436,12 @@ CSpriteDisplay *CSpriteDisplay::Create(Vector const &vecOrigin, kRenderFn iRende
 // CPhosphorus
 //
 
+CPhosphorus::~CPhosphorus() noexcept
+{
+	g_engfuncs.pfnEmitAmbientSound(edict(), pev->origin, Sounds::Thermite::BURNING_LOOP, 0.75f, ATTN_STATIC, SND_STOP, UTIL_Random(88, 112));
+	g_engfuncs.pfnEmitAmbientSound(edict(), pev->origin, Sounds::Thermite::BURNING_END, 0.75f, ATTN_STATIC, 0, UTIL_Random(88, 112));
+}
+
 void CPhosphorus::Spawn() noexcept
 {
 	static const auto FRAME_COUNT = g_rgiSpriteFrameCount.at(Sprites::PHOSPHORUS_TRACE_HEAD);
@@ -1514,6 +1520,8 @@ void CPhosphorus::Touch_Flying(CBaseEntity *pOther) noexcept
 
 	if (m_tr.pHit && m_tr.pHit->v.solid == SOLID_BSP)
 		UTIL_Decal(m_tr.pHit, m_tr.vecEndPos, UTIL_GetRandomOne(Decal::SCORCH).m_Index);
+
+	g_engfuncs.pfnEmitAmbientSound(edict(), pev->origin, Sounds::Thermite::BURNING_LOOP, 0.75f, ATTN_STATIC, 0, UTIL_Random(88, 112));
 }
 
 void CPhosphorus::Touch_Burning(CBaseEntity *pOther) noexcept
@@ -1547,7 +1555,8 @@ Task CPhosphorus::Task_Gravity() noexcept
 		co_await TaskScheduler::NextFrame::Rank[1];
 
 		if (pev->gravity != 0)
-			pev->velocity.z = (gpGlobals->time - START_TIME) * (float)-386.08858267717 * pev->gravity;
+			//pev->velocity.z = (gpGlobals->time - START_TIME) * (float)-386.08858267717 * pev->gravity;
+			pev->velocity.z -= float(gpGlobals->frametime * 386.08858267717 * pev->gravity);
 
 		pev->angles = pev->velocity.VectorAngles();
 
@@ -1574,7 +1583,8 @@ Task CPhosphorus::Task_EmitExhaust() noexcept
 	WriteData((byte)255);	// byte (brightness)
 	MsgEnd();
 
-	co_await 0.5f;
+	// If the phosphorus gets spawned directly from the sky, then we actually needs to wait.
+	//co_await 0.5f;
 
 	for (;;)
 	{

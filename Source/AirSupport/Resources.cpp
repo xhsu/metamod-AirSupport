@@ -215,6 +215,12 @@ void Precache(void) noexcept
 		//PrecacheSound(Sounds::Flame::FLAME_FADEOUT);
 	}
 
+	// namespace Thermite
+	{
+		PrecacheSound(Sounds::Thermite::BURNING_LOOP);
+		PrecacheSound(Sounds::Thermite::BURNING_END);
+	}
+
 #ifdef PACKING_RESOURCES
 	PrecacheSound(Sounds::ALERT_AC130);
 	PrecacheSound(Sounds::ALERT_AIRSTRIKE);
