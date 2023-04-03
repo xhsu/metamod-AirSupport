@@ -184,7 +184,8 @@ void __fastcall HamF_Item_PostFrame(CBasePlayerItem *pItem, int) noexcept
 				iIndex == CLUSTER_BOMB ? "\\d" : "\\w", iIndex == CLUSTER_BOMB ? " - Selected" : "",
 				iIndex == CARPET_BOMBARDMENT ? "\\d" : "\\w", iIndex == CARPET_BOMBARDMENT ? " - Selected" : "",
 				iIndex == GUNSHIP_STRIKE ? "\\d" : "\\w", iIndex == GUNSHIP_STRIKE ? " - Selected" : "",
-				iIndex == FUEL_AIR_BOMB ? "\\d" : "\\w", iIndex == FUEL_AIR_BOMB ? " - Selected" : ""
+				iIndex == FUEL_AIR_BOMB ? "\\d" : "\\w", iIndex == FUEL_AIR_BOMB ? " - Selected" : "",
+				iIndex == PHOSPHORUS_MUNITION ? "\\d" : "\\w", iIndex == PHOSPHORUS_MUNITION ? " - Selected" : ""
 			)
 		);
 
@@ -217,8 +218,6 @@ void __fastcall HamF_Item_PostFrame(CBasePlayerItem *pItem, int) noexcept
 
 			//co_return;
 		};
-		extern void CWPMunition_Explo(CBasePlayer *m_pPlayer, Vector const &vecOrigin) noexcept;
-		//CWPMunition_Explo(pThis->m_pPlayer, tr.vecEndPos);
 
 		//TaskScheduler::Enroll(fn(tr, tr2, vecSrc, vecEnd, pThis));
 		fn(tr, tr2, vecSrc, vecEnd, pThis);

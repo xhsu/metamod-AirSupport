@@ -36,8 +36,10 @@ export enum EEfxTasks : uint64_t
 export extern "C++" Task Task_SpriteLoop(entvars_t *const pev, short const FRAME_COUNT, double const FPS) noexcept;
 export extern "C++" Task Task_SpriteLoop(entvars_t* const pev, uint16_t const STARTS_AT, uint16_t const FRAME_COUNT, double const FPS) noexcept;
 export extern "C++" Task Task_SpritePlayOnce(entvars_t *const pev, short const FRAME_COUNT, double const FPS) noexcept;
+export extern "C++" Task Task_SpritePlayOnce(entvars_t *const pev, uint16_t const FRAME_COUNT, double const FPS, float const AWAIT, float const DECAY, float const ROLL, float const SCALE_INC) noexcept;
 export extern "C++" Task Task_SpriteLoopOut(entvars_t* const pev, uint16_t const LOOP_STARTS_AT, uint16_t const LOOP_FRAME_COUNT, uint16_t const OUT_ENDS_AT, float const TIME, double const FPS) noexcept;
 export extern "C++" Task Task_FadeOut(entvars_t *const pev, float const AWAIT, float const DECAY, float const ROLL) noexcept;
+export extern "C++" Task Task_FadeOut(entvars_t *const pev, float const AWAIT, float const DECAY, float const ROLL, float const SCALE_INC) noexcept;
 export extern "C++" Task Task_Remove(entvars_t *const pev, float const TIME) noexcept;
 export extern "C++" Task Task_FadeIn(entvars_t *const pev, float const TRANSPARENT_INC, float const FINAL_VAL, float const ROLL) noexcept;
 export extern "C++" Task Task_Fade(entvars_t *const pev, float const INC, float const DEC, float const PEAK, float const ROLL) noexcept;
@@ -83,6 +85,7 @@ export struct CSmoke : public Prefab_t
 	void DriftToWhite(double const flPercentage) noexcept;	// [0-1]
 
 	void Spawn() noexcept override;
+	void Touch(CBaseEntity *pOther) noexcept override;
 
 	// Members
 
@@ -112,6 +115,7 @@ export struct CToxicSmoke : public CThinSmoke
 	Task Task_InFloatOut() noexcept;
 
 	void Spawn() noexcept override;
+	void Touch(CBaseEntity *pOther) noexcept override;
 };
 
 export struct CThickStaticSmoke : public CSmoke
@@ -140,6 +144,7 @@ export struct CFloatingDust : public Prefab_t
 	static inline constexpr double SPHERICAL_RADIUS = 72 * std::numbers::sqrt3;
 
 	void Spawn() noexcept override;
+	void Touch(CBaseEntity *pOther) noexcept override;
 };
 
 export struct CDebris : public Prefab_t
@@ -194,8 +199,6 @@ export struct CSparkSpr : public Prefab_t
 	void Spawn() noexcept override;
 };
 
-export extern "C++" Task Task_GlobalCoughThink() noexcept;
-
 export struct CFuelAirCloud : public Prefab_t
 {
 	static inline constexpr char CLASSNAME[] = "fuel_air_cloud";
@@ -230,25 +233,30 @@ export struct CFuelAirCloud : public Prefab_t
 	std::uint8_t m_iIgnitedCounts{};
 };
 
-export struct CSpriteDisplayment : public Prefab_t
+export struct CSpriteDisplay : public Prefab_t
 {
-	static inline constexpr char CLASSNAME[] = "CSpriteDisplayment";
+	static inline constexpr char CLASSNAME[] = "CSpriteDisplay";
 
-	static CSpriteDisplayment *Create(Vector const& vecOrigin, kRenderFn iRenderMethod, std::string_view szModel) noexcept;
+	bool ShouldCollide(EHANDLE<CBaseEntity> pOther) noexcept override { return false; }	// just a SPR, collide with absolutely nothing.
+
+	static CSpriteDisplay *Create(Vector const& vecOrigin, kRenderFn iRenderMethod, std::string_view szModel) noexcept;
 };
 
 export struct CPhosphorus : public Prefab_t
 {
-	static inline constexpr char CLASSNAME[] = "env_phosphorus";
+	static inline constexpr char CLASSNAME[] = "proj_phosphorus";
+
+	~CPhosphorus() noexcept override;
 
 	void Spawn() noexcept override;
 
 	void Touch_Flying(CBaseEntity *pOther) noexcept;
 	void Touch_Burning(CBaseEntity *pOther) noexcept;
 
-	Task Task_Flying() noexcept;
+	Task Task_Gravity() noexcept;
+	Task Task_EmitExhaust() noexcept;
 	Task Task_EmitSmoke() noexcept;
-	Task Task_Flashing() noexcept;
+	Task Task_EmitSpark() noexcept;
 
 	static CPhosphorus *Create(CBasePlayer *pPlayer, Vector const &vecOrigin, Vector2D const &vecInitVel) noexcept;	// Start with designated velocity
 	static CPhosphorus *Create(CBasePlayer *pPlayer, Vector const &vecOrigin, Vector const &vecTarget) noexcept;	// Horizontal projectile, flying to target location.

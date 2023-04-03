@@ -4,10 +4,13 @@ export import <cstdint>;
 
 export import <array>;
 import <coroutine>;
+import <exception>;
 import <functional>;
 import <list>;
 
 import progdefs;
+
+import Platform;
 
 using namespace std;
 
@@ -17,7 +20,22 @@ export struct Task final
 	{
 		float m_flNextThink{ gpGlobals->time + 3600 };
 
-		static constexpr void unhandled_exception(void) noexcept {}	// Fixed name. What to do in a case of an exception.
+		static void unhandled_exception(void) noexcept	// Fixed name. What to do in a case of an exception.
+		{
+			try
+			{
+				if (auto pEx = std::current_exception(); pEx)
+					std::rethrow_exception(pEx);
+			}
+			catch (const std::exception &e)
+			{
+				UTIL_Terminate("Unhandled exception on Task: %s", e.what());
+			}
+			catch (...)
+			{
+				UTIL_Terminate("Unhandled exception on Task with unknown type.");
+			}
+		}
 		Task get_return_object(void) noexcept { return Task{ this }; }	// Fixed name. Coroutine creation.
 		static constexpr suspend_never initial_suspend(void) noexcept { return {}; }	// Fixed name. Startup.
 		suspend_always yield_value(float flTimeFrame) noexcept { m_flNextThink = gpGlobals->time + flTimeFrame; return {}; }	// Fixed name. Value from co_yield

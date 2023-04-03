@@ -22,76 +22,20 @@ extern Task VisualEffects(const Vector vecOrigin, float const flRadius) noexcept
 extern TraceResult Impact(CBasePlayer *pAttacker, CBaseEntity *pProjectile, float flDamage) noexcept;
 //
 
-void TraceArc(Vector const vecMin, Vector const vecMax, Vector const vecSrc, Vector const vecEnd, int const iIgnore, edict_t *const pEdict) noexcept
-{
-	auto pDummy = g_engfuncs.pfnCreateNamedEntity(MAKE_STRING("info_target"));
-	g_engfuncs.pfnSetSize(pDummy, vecMin, vecMax);
-
-	auto const vecDir = vecEnd.Make2D() - vecSrc.Make2D();
-	auto const H = vecSrc.z - vecEnd.z;
-	auto const S = vecDir.Length();
-	auto const G = 386.08858267717;
-	auto const vecVelocityInit = vecDir.Normalize() * (S * std::sqrt(G / (2 * H)));
-	static constexpr auto dx = 0.1;
-
-	auto flLastDist = (vecSrc - vecEnd).LengthSquared();
-	auto flCurDist = (vecSrc - vecEnd).LengthSquared() - 1;
-	auto vecVel = Vector{ vecDir, 0 };
-	auto vecCur = vecSrc;
-	auto vecStep = vecCur + vecVel * dx;
-	auto iCounter = 0;
-
-	for (TraceResult tr{};
-		flCurDist < flLastDist;
-		vecVel.z -= G * dx, vecCur = vecStep, vecStep += vecVel * dx, flLastDist = flCurDist, flCurDist = (vecCur - vecEnd).LengthSquared(), ++iCounter
-		)
-	{
-		g_engfuncs.pfnTraceMonsterHull(pDummy, vecCur, vecStep, iIgnore, pEdict, &tr);
-
-		//MsgBroadcast(SVC_TEMPENTITY);
-		//WriteData(TE_BEAMPOINTS);
-		//WriteData(vecCur);
-		//WriteData(vecStep);
-		//WriteData(Sprites::m_rgLibrary[Sprites::BEAM]);
-		//WriteData((byte)1);
-		//WriteData((byte)24);
-		//WriteData((byte)255);
-		//WriteData((byte)3);
-		//WriteData((byte)0);
-		//WriteData((byte)255);
-		//WriteData((byte)255);
-		//WriteData((byte)255);
-		//WriteData((byte)255);
-		//WriteData((byte)0);
-		//MsgEnd();
-
-		if (tr.flFraction < 1)
-		{
-			auto const sz = std::format("Hit wall: trace {} times and {:.1f} inches left. Last ds = {}\n", iCounter, (vecCur - vecEnd).Length(), (vecVel * dx).Length());
-			g_engfuncs.pfnServerPrint(sz.c_str());
-			g_engfuncs.pfnRemoveEntity(pDummy);
-			return;
-		}
-	}
-
-	g_engfuncs.pfnServerPrint("All good!\n");
-	g_engfuncs.pfnRemoveEntity(pDummy);
-}
-
 //
 // CPrecisionAirStrike
 //
 
-Task CPrecisionAirStrike::Task_Trail() noexcept
+Task CPrecisionAirStrike::Task_Deviation() noexcept
 {
 	for (;;)
 	{
-		co_await TaskScheduler::NextFrame::Rank[1];
+		co_await TaskScheduler::NextFrame::Rank[0];
 
 		pev->angles += Angles(
-			UTIL_Random(-0.35f, 0.35f),
-			UTIL_Random(-0.35f, 0.35f),
-			UTIL_Random(-0.35f, 0.35f)
+			UTIL_Random(-0.2f, 0.2f),
+			UTIL_Random(-0.2f, 0.2f),
+			UTIL_Random(-0.2f, 0.2f)
 		);
 
 		// GoldSrc Mystery #1: The fucking v_angle and angles.
@@ -112,14 +56,41 @@ Task CPrecisionAirStrike::Task_Trail() noexcept
 		WriteData((byte)3);
 		WriteData((byte)255);
 		MsgEnd();
+	}
+}
 
-		MsgPVS(SVC_TEMPENTITY, vecOrigin);
-		WriteData(TE_SPRITE);
-		WriteData(vecOrigin);
-		WriteData(Sprites::m_rgLibrary[UTIL_GetRandomOne(Sprites::ROCKET_TRAIL_SMOKE)]);
-		WriteData((byte)UTIL_Random<short>(1, 10));
-		WriteData((byte)UTIL_Random<short>(50, 255));
-		MsgEnd();
+Task CPrecisionAirStrike::Task_EmitExhaust() noexcept
+{
+	pev->effects = EF_LIGHT | EF_BRIGHTLIGHT;
+
+	g_engfuncs.pfnEmitAmbientSound(edict(), pev->origin, Sounds::TRAVEL, VOL_NORM, 0.3f, 0, UTIL_Random(94, 112));
+
+	co_await 0.25f;	// The entity must flying into the world before the beam can correctly displayed.
+
+	MsgAll(SVC_TEMPENTITY);
+	WriteData(TE_BEAMFOLLOW);
+	WriteData(entindex());	// short (entity:attachment to follow)
+	WriteData(Sprites::m_rgLibrary[Sprites::TRAIL]);	// short (sprite index)
+	WriteData((byte)UTIL_Random(20, 40));	// byte (life in 0.1's) 
+	WriteData((byte)3);		// byte (line width in 0.1's) 
+	WriteData((byte)255);	// r
+	WriteData((byte)255);	// g
+	WriteData((byte)191);	// b
+	WriteData((byte)255);	// byte (brightness)
+	MsgEnd();
+
+	for (;;)
+	{
+		co_await UTIL_Random(0.04f, 0.08f);
+
+		auto const vecOrigin = pev->origin + pev->v_angle.Front() * -48;
+
+		auto pSpark = Prefab_t::Create<CSpriteDisplay>(vecOrigin, kRenderTransAdd, Sprites::ROCKET_TRAIL_SMOKE[0]);
+		pSpark->pev->renderamt = UTIL_Random(50.f, 255.f);
+		pSpark->pev->rendercolor = Vector(255, 255, UTIL_Random(192, 255));
+		pSpark->pev->frame = (float)UTIL_Random(17, 22);
+		pSpark->pev->scale = UTIL_Random(0.3f, 1.1f);
+		pSpark->m_Scheduler.Enroll(Task_FadeOut(pSpark->pev, /*STAY*/ 0.2f, /*DECAY*/ UTIL_Random(0.1f, 0.5f), /*ROLL*/ 0, /*SCALE_INC*/ UTIL_Random(0.35f, 0.55f)), TASK_ANIMATION);
 	}
 }
 
@@ -133,37 +104,23 @@ void CPrecisionAirStrike::Spawn() noexcept
 	pev->solid = SOLID_BBOX;
 	pev->movetype = MOVETYPE_TOSS;
 	pev->velocity = (m_vecTarget - pev->origin).Normalize() * SPEED;
-	g_engfuncs.pfnVecToAngles(pev->velocity, pev->angles);
+	pev->angles = pev->velocity.VectorAngles();
 	pev->body = AIR_STRIKE;
 
-	pev->effects = EF_LIGHT | EF_BRIGHTLIGHT;
-
-	MsgBroadcast(SVC_TEMPENTITY);
-	WriteData(TE_BEAMFOLLOW);
-	WriteData(entindex());
-	WriteData(Sprites::m_rgLibrary[Sprites::TRAIL]);
-	WriteData((byte)10);
-	WriteData((byte)3);
-	WriteData((byte)255);
-	WriteData((byte)255);
-	WriteData((byte)255);
-	WriteData((byte)255);
-	MsgEnd();
-
-	g_engfuncs.pfnEmitAmbientSound(edict(), pev->origin, Sounds::TRAVEL, VOL_NORM, 0.3f, 0, UTIL_Random(94, 112));
-
-	m_Scheduler.Enroll(Task_Trail());
+	m_Scheduler.Enroll(Task_Deviation());
+	m_Scheduler.Enroll(Task_EmitExhaust());
 }
 
 void CPrecisionAirStrike::Touch(CBaseEntity *pOther) noexcept
 {
+	g_engfuncs.pfnEmitAmbientSound(edict(), pev->origin, Sounds::TRAVEL, VOL_NORM, 0.3f, SND_STOP, UTIL_Random(94, 112));
+
 	if (g_engfuncs.pfnPointContents(pev->origin) == CONTENTS_SKY)
 	{
 		pev->flags |= FL_KILLME;
 		return;
 	}
 
-	g_engfuncs.pfnEmitAmbientSound(edict(), pev->origin, Sounds::TRAVEL, VOL_NORM, 0.3f, SND_STOP, UTIL_Random(94, 112));
 	g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, UTIL_GetRandomOne(Sounds::EXPLOSION), VOL_NORM, 0.3f, 0, UTIL_Random(92, 116));
 
 	Impact(m_pPlayer, this, 500.f);
@@ -1113,15 +1070,166 @@ CFuelAirExplosive *CFuelAirExplosive::Create(CBasePlayer *pPlayer, Vector const 
 }
 
 //
-// CWPMunition
+// CIncendiaryMunition
 //
+
+Task CIncendiaryMunition::Task_Deviation() noexcept
+{
+	for (;;)
+	{
+		co_await TaskScheduler::NextFrame::Rank[0];
+
+		pev->angles += Angles(
+			UTIL_Random(-0.4, 0.4),
+			UTIL_Random(-0.4, 0.4),
+			UTIL_Random(-0.4, 0.4)
+		);
+
+		// GoldSrc Mystery #1: The fucking v_angle and angles.
+		pev->v_angle = Angles(
+			-pev->angles.pitch,
+			pev->angles.yaw,
+			pev->angles.roll
+		);
+
+		pev->velocity = pev->v_angle.Front() * SPEED;
+	}
+}
+
+Task CIncendiaryMunition::Task_EmitExhaust() noexcept
+{
+	pev->effects = EF_LIGHT | EF_BRIGHTLIGHT;
+
+	g_engfuncs.pfnEmitAmbientSound(edict(), pev->origin, Sounds::TRAVEL, VOL_NORM, 0.3f, 0, UTIL_Random(94, 112));
+
+	co_await 0.25f;	// The entity must flying into the world before the beam can correctly displayed.
+
+	MsgAll(SVC_TEMPENTITY);
+	WriteData(TE_BEAMFOLLOW);
+	WriteData(entindex());	// short (entity:attachment to follow)
+	WriteData(Sprites::m_rgLibrary[Sprites::TRAIL]);	// short (sprite index)
+	WriteData((byte)UTIL_Random(20, 40));	// byte (life in 0.1's) 
+	WriteData((byte)3);		// byte (line width in 0.1's) 
+	WriteData((byte)255);	// r
+	WriteData((byte)255);	// g
+	WriteData((byte)191);	// b
+	WriteData((byte)255);	// byte (brightness)
+	MsgEnd();
+
+	co_await 0.25f;
+
+	for (;;)
+	{
+		co_await UTIL_Random(0.04f, 0.08f);
+
+		auto const vecOrigin = pev->origin + pev->v_angle.Front() * -48;
+
+		auto pSpark = Prefab_t::Create<CSpriteDisplay>(vecOrigin, kRenderTransAdd, Sprites::ROCKET_TRAIL_SMOKE[0]);
+		pSpark->pev->renderamt = UTIL_Random(50.f, 255.f);
+		pSpark->pev->rendercolor = Vector(255, 255, UTIL_Random(192, 255));
+		pSpark->pev->frame = (float)UTIL_Random(17, 22);
+		pSpark->pev->scale = UTIL_Random(0.3f, 1.1f);
+		pSpark->m_Scheduler.Enroll(Task_FadeOut(pSpark->pev, /*STAY*/ 0.2f, /*DECAY*/ UTIL_Random(0.1f, 0.5f), /*ROLL*/ 0, /*SCALE_INC*/ UTIL_Random(0.35f, 0.55f)), TASK_ANIMATION);
+	}
+}
+
+Task CIncendiaryMunition::Task_Fuse() noexcept
+{
+	auto const FUSE_DIST = (m_vecStartingPos - m_vecTarget).LengthSquared() * 0.375;
+
+	for (;;)
+	{
+		co_await 0.1f;
+
+		if ((pev->origin - m_vecStartingPos).LengthSquared() < FUSE_DIST)
+			continue;
+
+		MsgBroadcast(SVC_TEMPENTITY);
+		WriteData(TE_EXPLOSION);
+		WriteData(pev->origin);
+		WriteData(Sprites::m_rgLibrary[Sprites::MINOR_EXPLO]);
+		WriteData((byte)UTIL_Random(10, 20));
+		WriteData((byte)20);
+		WriteData(TE_EXPLFLAG_NONE);
+		MsgEnd();
+
+		auto pPhosphorus = Prefab_t::Create<CPhosphorus>(m_pPlayer, pev->origin);	// One of the shower guarantees to hit the goal.
+		pPhosphorus->pev->gravity = 0.f;
+		pPhosphorus->pev->velocity = (m_vecTarget - pev->origin).Normalize() * 500;
+
+		for (int i = 0; i < 15; ++i)
+		{
+			pPhosphorus = Prefab_t::Create<CPhosphorus>(m_pPlayer, pev->origin);
+			pPhosphorus->pev->gravity = UTIL_Random(0.1f, 0.25f);
+			pPhosphorus->pev->velocity = ((m_vecTarget + get_cylindrical_coord(UTIL_Random(32, 256), UTIL_Random(0, 359), 0)) - pev->origin).Normalize() * 500;
+		}
+
+		g_engfuncs.pfnEmitAmbientSound(edict(), pev->origin, Sounds::TRAVEL, VOL_NORM, 0.3f, SND_STOP, UTIL_Random(94, 112));
+		pev->flags |= FL_KILLME;
+	}
+}
+
+void CIncendiaryMunition::Spawn() noexcept
+{
+	g_engfuncs.pfnSetOrigin(edict(), pev->origin);
+	g_engfuncs.pfnSetModel(edict(), Models::PROJECTILE);
+	g_engfuncs.pfnSetSize(edict(), Vector(-2, -2, -2), Vector(2, 2, 2));
+
+	pev->owner = m_pPlayer->edict();
+	pev->solid = SOLID_BBOX;
+	pev->movetype = MOVETYPE_FLY;
+	pev->velocity = (m_vecTarget - pev->origin).Normalize() * SPEED;
+	pev->angles = pev->velocity.VectorAngles();
+	pev->body = PHOSPHORUS_MUNITION;
+
+	m_Scheduler.Enroll(Task_Deviation());
+	m_Scheduler.Enroll(Task_EmitExhaust());
+	m_Scheduler.Enroll(Task_Fuse());
+}
+
+void CIncendiaryMunition::Touch(CBaseEntity *pOther) noexcept
+{
+	TraceResult tr{};
+	g_engfuncs.pfnTraceMonsterHull(edict(), pev->origin, pev->origin + pev->velocity, ignore_glass | ignore_monsters, nullptr, &tr);
+
+	g_engfuncs.pfnEmitAmbientSound(edict(), pev->origin, Sounds::TRAVEL, VOL_NORM, 0.3f, SND_STOP, UTIL_Random(94, 112));
+	pev->flags |= FL_KILLME;
+
+	if (tr.flFraction == 1)
+		return;
+
+	for (int i = 0; i < 16; ++i)
+	{
+		Vector const vecNoise = CrossProduct(
+			Vector{ UTIL_Random(-1.0, 1.0), UTIL_Random(-1.0, 1.0), UTIL_Random(-1.0, 1.0) },
+			tr.vecPlaneNormal);
+
+		auto pPhosphorus = Prefab_t::Create<CPhosphorus>(m_pPlayer, pev->origin + tr.vecPlaneNormal * 3);
+		pPhosphorus->pev->velocity = (tr.vecPlaneNormal + vecNoise).Normalize() * UTIL_Random(450.0, 550.0);
+	}
+}
+
+CIncendiaryMunition *CIncendiaryMunition::Create(CBasePlayer *pPlayer, Vector const &vecOrigin, Vector const &vecTarget) noexcept
+{
+	auto const [pEdict, pPrefab] = UTIL_CreateNamedPrefab<CIncendiaryMunition>();
+
+	pEdict->v.origin = vecOrigin;
+
+	pPrefab->m_pPlayer = pPlayer;
+	pPrefab->m_vecTarget = vecTarget;
+	pPrefab->m_vecStartingPos = vecOrigin;
+	pPrefab->Spawn();
+	pPrefab->pev->nextthink = 0.1f;
+
+	return pPrefab;
+}
 
 void CWPMunition_Explo(CBasePlayer* m_pPlayer, Vector const& vecOrigin) noexcept
 {
 	auto pThickSmoke = Prefab_t::Create<CThickStaticSmoke>(vecOrigin);
 	pThickSmoke->LitByFlame(true);
 
-	auto pSpr = Prefab_t::Create<CSpriteDisplayment>(pThickSmoke->pev->origin, kRenderFn::kRenderTransAdd, Sprites::MINOR_EXPLO);
+	auto pSpr = Prefab_t::Create<CSpriteDisplay>(pThickSmoke->pev->origin, kRenderFn::kRenderTransAdd, Sprites::MINOR_EXPLO);
 	pSpr->pev->scale = pThickSmoke->pev->scale * 2.f;
 	pSpr->pev->renderamt = 255.f;
 	pSpr->pev->frame = (float)3;

@@ -358,5 +358,14 @@
     <ClCompile Include="Source\AirSupport\Resources.Const.ixx">
       <Filter>Source\AirSupport</Filter>
     </ClCompile>
+    <ClCompile Include="Source\CSDK\Ray.ixx">
+      <Filter>Source\CSDK</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\AirSupport\DamageOverTime.ixx">
+      <Filter>Source\AirSupport</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\AirSupport\DamageOverTime.cpp">
+      <Filter>Source\AirSupport</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

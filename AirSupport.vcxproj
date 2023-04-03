@@ -190,6 +190,7 @@ start Enforcer.exe</Command>
     <ClCompile Include="Source\AirSupport\Menu.cpp" />
     <ClCompile Include="Source\AirSupport\Menu.ixx" />
     <ClCompile Include="Source\AirSupport\Resources.Const.ixx" />
+    <ClCompile Include="Source\AirSupport\DamageOverTime.cpp" />
     <ClCompile Include="Source\CSDK\Beam.ixx" />
     <ClCompile Include="Source\AirSupport\ClientCommand.cpp" />
     <ClCompile Include="Source\AirSupport\Effects.ixx" />
@@ -229,7 +230,13 @@ start Enforcer.exe</Command>
     <ClCompile Include="Source\AirSupport\Waypoint.cpp" />
     <ClCompile Include="Source\AirSupport\Waypoint.ixx" />
     <ClCompile Include="Source\AirSupport\Weapon.cpp" />
+    <ClCompile Include="Source\CSDK\Ray.ixx" />
     <ClCompile Include="Source\CSDK\Wave.ixx" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Source\AirSupport\DamageOverTime.ixx">
+      <FileType>Document</FileType>
+    </ClCompile>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

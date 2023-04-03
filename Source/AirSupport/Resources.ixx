@@ -28,6 +28,7 @@ export namespace Models
 		"models/AirSupport/B-1B.mdl",
 		"models/AirSupport/AC130.mdl",
 		"models/AirSupport/F18.mdl",
+		"models/AirSupport/F18.mdl",	// #TODO what plane shooting phosphorus munition?
 	};
 
 	inline constexpr char PROJECTILE[] = "models/AirSupport/projectiles.mdl";
@@ -83,6 +84,7 @@ export namespace Sounds
 		"airsupport/radio/radio_affirm.wav",
 		"airsupport/radio/radio_affirm.wav",
 		"airsupport/radio/radio_inpos.wav",
+		"airsupport/radio/radio_affirm.wav",
 		"airsupport/radio/radio_affirm.wav",
 	};
 
@@ -269,7 +271,7 @@ export namespace Sounds
 
 	namespace Length::Radio
 	{
-		inline constexpr array ACCEPTING = { 2.564f, 2.564f, 2.564f, 2.409f, 2.564f };
+		inline constexpr array ACCEPTING = { 2.564f, 2.564f, 2.564f, 2.409f, 2.564f, 2.564f };
 		inline constexpr float REQUESTING = 1.003f;
 		inline constexpr array REJECTING = { 2.603f, 2.947f };
 	}
@@ -289,6 +291,14 @@ export namespace Sounds
 		};
 
 		inline constexpr char FLAME_FADEOUT[] = "ambience/fire_loop_fadeout_01.wav";
+	};
+
+	namespace Thermite
+	{
+		inline constexpr char COMPOSED[] = "weapons/an_m14_burn.wav";
+		inline constexpr char BURNING_LOOP[] = "weapons/an_m14_burn_loop.wav";
+		inline constexpr char BURNING_END[] = "weapons/an_m14_burn_loop_end.wav";
+		inline constexpr char DETONATE[] = "weapons/an_m14_detonate.wav";
 	};
 };
 
@@ -310,6 +320,8 @@ export namespace Sprites
 	inline constexpr char PHOSPHORUS_TRACE_HEAD[] = "sprites/xflare1.spr";
 	inline constexpr char PHOSPHORUS_FLAME[] = "sprites/flame6.spr";
 	inline constexpr char PHOSPHORUS_SMOKE[] = "sprites/bettyspr1.spr";
+	inline constexpr char PHOSPHORUS_MINOR_SPARK[] = "sprites/w_lightgranate.spr";
+	inline constexpr char PHOSPHORUS_MAJOR_SPARK[] = "sprites/fusion_p_engage.spr";
 
 	inline constexpr char BEAM[] = "sprites/laserbeam.spr";
 
@@ -331,7 +343,9 @@ export namespace Sprites
 
 	inline constexpr array ROCKET_TRAIL_SMOKE =
 	{
-		"sprites/exsmoke.spr",
+		//"sprites/exsmoke.spr",
+		"sprites/wall_puff1.spr",
+		"sprites/wall_puff2.spr",
 		"sprites/wall_puff3.spr",
 		"sprites/wall_puff4.spr",
 	};

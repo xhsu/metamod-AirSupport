@@ -2,6 +2,7 @@
 import Menu;
 import Message;
 import Projectile;
+import Ray;
 import Resources;
 import Round;
 
@@ -27,13 +28,13 @@ Task CJet::Task_BeamAndSound() noexcept
 		break;
 	}
 
-	co_await 0.01f;
+	co_await 0.1f;
 
 	for (auto i = 0x1000; i <= 0x4000; i += 0x1000)
 	{
 		unsigned short const iEntAtt = (entindex() & 0x0FFF) | i;	// Attachment index start from 1 until 4. index == 0 just means pev->origin
 
-		MsgBroadcast(SVC_TEMPENTITY);
+		MsgAll(SVC_TEMPENTITY);
 		WriteData(TE_BEAMFOLLOW);
 		WriteData(iEntAtt);
 		WriteData((short)Sprites::m_rgLibrary[Sprites::TRAIL]);
@@ -49,28 +50,24 @@ Task CJet::Task_BeamAndSound() noexcept
 
 Task CJet::Task_AirStrike() noexcept
 {
-	// #TODO make sure that it use a trace entity such that it can accurately test things out.
+	co_await TaskScheduler::NextFrame::Rank[1];	// yield to Task_BeamAndSound();
 
-	co_await TaskScheduler::NextFrame::Rank[0];	// yield to Task_BeamAndSound();
+	trace_hull_functor_t fnTraceHull{ Vector(-7, -7, -7), Vector(7, 7, 7) };
 
-	for (; m_pTarget;)
+	for (TraceResult tr{}; m_pTarget;)
 	{
-		TraceResult tr{};
-		g_engfuncs.pfnTraceHull(pev->origin - Vector(0, 0, 2.5f), m_pTarget->pev->origin, dont_ignore_monsters, head_hull, edict(), &tr);
+		fnTraceHull(pev->origin - Vector(0, 0, 8), m_pTarget->pev->origin, dont_ignore_monsters, edict(), &tr);
 
-		if (tr.flFraction > 0.9f)
+		if (tr.flFraction > 0.95f && !tr.fAllSolid && !tr.fStartSolid && tr.fInOpen)
 		{
 			m_pTarget->m_pMissile =	// pTarget now has a missile binding to it.
-				CPrecisionAirStrike::Create(m_pPlayer, pev->origin - Vector(0, 0, 2.5f), m_pTarget->pev->origin);
+				CPrecisionAirStrike::Create(m_pPlayer, pev->origin - Vector(0, 0, 8), m_pTarget->pev->origin);
 
 			break;
 		}
 
-		co_await TaskScheduler::NextFrame::Rank[0];	// try it every other frame.
-	}
+		co_await TaskScheduler::NextFrame::Rank[1];	// try it every other frame.
 
-	for (;;)
-	{
 		[[unlikely]]
 		if (!IsInWorld())
 		{
@@ -82,8 +79,6 @@ Task CJet::Task_AirStrike() noexcept
 			pev->flags |= FL_KILLME;
 			co_return;
 		}
-
-		co_await 0.1f;
 	}
 }
 
@@ -247,6 +242,44 @@ Task CJet::Task_FuelAirBomb() noexcept
 	}
 }
 
+Task CJet::Task_Phosphorus() noexcept
+{
+	co_await TaskScheduler::NextFrame::Rank[1];	// yield to Task_BeamAndSound();
+
+	trace_hull_functor_t fnTraceHull{ Vector(-7, -7, -7), Vector(7, 7, 7) };
+
+	for (TraceResult tr{}; m_pTarget;)
+	{
+		if (auto const flDist = (pev->origin - m_pTarget->pev->origin).Length(); flDist < 800)
+			goto LAB_CONTINUE;
+
+		fnTraceHull(pev->origin - Vector(0, 0, 8), m_pTarget->pev->origin, dont_ignore_monsters, edict(), &tr);
+
+		if (tr.flFraction > 0.95f && !tr.fAllSolid && !tr.fStartSolid && tr.fInOpen)
+		{
+			m_pTarget->m_pMissile =	// pTarget now has a missile binding to it.
+				CIncendiaryMunition::Create(m_pPlayer, pev->origin - Vector(0, 0, 8), m_pTarget->pev->origin);
+
+			break;
+		}
+
+	LAB_CONTINUE:;
+		co_await TaskScheduler::NextFrame::Rank[1];	// try it every other frame.
+
+		[[unlikely]]
+		if (!IsInWorld())
+		{
+			MsgBroadcast(SVC_TEMPENTITY);
+			WriteData(TE_KILLBEAM);
+			WriteData((short)entindex());
+			MsgEnd();
+
+			pev->flags |= FL_KILLME;
+			co_return;
+		}
+	}
+}
+
 void CJet::Spawn() noexcept
 {
 	auto const vecDir = Vector(m_pTarget->pev->origin.x, m_pTarget->pev->origin.y, pev->origin.z) - pev->origin;
@@ -264,7 +297,7 @@ void CJet::Spawn() noexcept
 	switch (m_AirSupportType)
 	{
 	default:
-		gmsgTextMsg::Send(m_pPlayer->edict(), 4, u8"你不應該看到這則信息 - 請聯絡作者");
+		gmsgTextMsg::Send(m_pPlayer->edict(), 4, u8"你不應該看到這則信息 - 請聯絡作者\nYou shouldn't see this text!");
 		[[fallthrough]];
 
 	case AIR_STRIKE:
@@ -285,6 +318,11 @@ void CJet::Spawn() noexcept
 	case FUEL_AIR_BOMB:
 		m_Scheduler.Enroll(Task_FuelAirBomb());
 		m_iFlyingSoundIndex = UTIL_Random(0u, Sounds::BOMBER.size() - 1);
+		break;
+
+	case PHOSPHORUS_MUNITION:
+		m_Scheduler.Enroll(Task_Phosphorus());
+		m_iFlyingSoundIndex = UTIL_Random(0u, Sounds::JET.size() - 1);
 		break;
 	}
 

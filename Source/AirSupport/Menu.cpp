@@ -25,7 +25,7 @@ void OnMenuSelection(CBasePlayer *pPlayer, int iSlot) noexcept
 	switch (pPlayer->m_iMenu)
 	{
 	case Menu_AirSupport:
-		if (iSlot >= 1 && iSlot <= 5)
+		if (iSlot >= 1 && iSlot <= 6)
 		{
 			g_rgiAirSupportSelected[pPlayer->entindex()] = EAirSupportTypes(iSlot - 1);
 			if (auto const &pWeapon = pPlayer->m_pActiveItem; pWeapon && pWeapon->m_iId == WEAPON_KNIFE && pWeapon->pev->weapons == RADIO_KEY)

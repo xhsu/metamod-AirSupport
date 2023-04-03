@@ -49,6 +49,9 @@ void OrpheuF_CleanUpMap(CHalfLifeMultiplay *pThis) noexcept
 	for (auto &&pEnt : FIND_ENTITY_BY_CLASSNAME(CGunshotSmoke::CLASSNAME))
 		pEnt->v.flags |= FL_KILLME;
 
+	for (auto &&pEnt : FIND_ENTITY_BY_CLASSNAME(CIncendiaryMunition::CLASSNAME))
+		pEnt->v.flags |= FL_KILLME;
+
 	for (auto &&pEnt : FIND_ENTITY_BY_CLASSNAME(CJet::CLASSNAME))
 		pEnt->v.flags |= FL_KILLME;
 
@@ -80,8 +83,14 @@ void OrpheuF_CleanUpMap(CHalfLifeMultiplay *pThis) noexcept
 	for (auto &&pEnt : FIND_ENTITY_BY_CLASSNAME(CSparkSpr::CLASSNAME))
 		pEnt->v.flags |= FL_KILLME;
 
-	for (auto &&pEnt : FIND_ENTITY_BY_CLASSNAME(CSpriteDisplayment::CLASSNAME))
+	for (auto &&pEnt : FIND_ENTITY_BY_CLASSNAME(CSpriteDisplay::CLASSNAME))
 		pEnt->v.flags |= FL_KILLME;
+}
+
+void Task_GetWorld(void) noexcept
+{
+	g_pEdictWorld = g_engfuncs.pfnPEntityOfEntIndex(0);
+	g_pevWorld = &g_pEdictWorld->v;
 }
 
 Task Task_UpdateTeams(void) noexcept
