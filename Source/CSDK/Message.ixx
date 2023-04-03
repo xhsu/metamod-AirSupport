@@ -30,6 +30,11 @@ export inline void MsgSend(entvars_t *pev, int iMessageIndex) noexcept
 	g_engfuncs.pfnMessageBegin(MSG_ONE, iMessageIndex, nullptr, ent_cast<edict_t *>(pev));
 }
 
+export inline void MsgAll(int iMessageIndex) noexcept
+{
+	g_engfuncs.pfnMessageBegin(MSG_ALL, iMessageIndex, nullptr, nullptr);
+}
+
 export inline void MsgBroadcast(int iMessageIndex) noexcept
 {
 	g_engfuncs.pfnMessageBegin(MSG_BROADCAST, iMessageIndex, nullptr, nullptr);

@@ -218,8 +218,6 @@ void __fastcall HamF_Item_PostFrame(CBasePlayerItem *pItem, int) noexcept
 
 			//co_return;
 		};
-		extern void CWPMunition_Explo(CBasePlayer *m_pPlayer, Vector const &vecOrigin) noexcept;
-		//CWPMunition_Explo(pThis->m_pPlayer, tr.vecEndPos);
 
 		//TaskScheduler::Enroll(fn(tr, tr2, vecSrc, vecEnd, pThis));
 		fn(tr, tr2, vecSrc, vecEnd, pThis);

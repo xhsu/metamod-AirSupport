@@ -271,7 +271,7 @@ export namespace Sounds
 
 	namespace Length::Radio
 	{
-		inline constexpr array ACCEPTING = { 2.564f, 2.564f, 2.564f, 2.409f, 2.564f };
+		inline constexpr array ACCEPTING = { 2.564f, 2.564f, 2.564f, 2.409f, 2.564f, 2.564f };
 		inline constexpr float REQUESTING = 1.003f;
 		inline constexpr array REJECTING = { 2.603f, 2.947f };
 	}

@@ -24,7 +24,8 @@ export struct CDynamicTarget : public Prefab_t
 	~CDynamicTarget() noexcept override;
 
 	Task Task_Animation() noexcept;
-	Task Task_DeepEvaluation() noexcept;
+	Task Task_DeepEval_AirStrike() noexcept;
+	Task Task_DeepEval_Phosphorus() noexcept;
 	Task Task_QuickEval_AirStrike() noexcept;
 	Task Task_QuickEval_ClusterBomb() noexcept;
 	Task Task_QuickEval_CarpetBombardment() noexcept;

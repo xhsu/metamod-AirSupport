@@ -8,6 +8,7 @@ import Jet;
 import Localization;
 import Projectile;
 import Query;
+import Ray;
 import Resources;
 import Round;
 import Target;
@@ -130,7 +131,7 @@ Task CDynamicTarget::Task_Animation() noexcept
 	}
 }
 
-Task CDynamicTarget::Task_DeepEvaluation() noexcept
+Task CDynamicTarget::Task_DeepEval_AirStrike() noexcept
 {
 	size_t iCounter = 0;
 	TraceResult tr{};
@@ -190,6 +191,53 @@ Task CDynamicTarget::Task_DeepEvaluation() noexcept
 			if (!(iCounter % 256))
 			{
 				co_await(gpGlobals->frametime / 3.f);	// gurentee resume next frame. div by 3 is to ensure priority
+			}
+		}
+	}
+}
+
+Task CDynamicTarget::Task_DeepEval_Phosphorus() noexcept
+{
+	trace_arc_functor_t fnTraceArc{};
+	size_t iCounter = 0;
+
+	g_engfuncs.pfnSetSize(fnTraceArc, Vector(-4, -4, -4), Vector(4, 4, 4));
+
+	for (;;)
+	{
+		co_await TaskScheduler::NextFrame::Rank[0];
+
+		if (m_pPlayer->m_pActiveItem != m_pRadio || m_pRadio->pev->weapons != RADIO_KEY)
+		{
+			co_await Models::v_radio::time::draw;	// the model will be hidden for this long, at least.
+			continue;
+		}
+
+		[[unlikely]]
+		if (pev->skin == Models::targetmdl::SKIN_GREEN)
+		{
+			co_return;	// It's done, stop current evaluation.
+		}
+
+		iCounter = 0;
+
+		for (const auto &vec : g_WaypointMgr.m_rgvecOrigins)
+		{
+			++iCounter;
+
+			[[unlikely]]
+			if (fnTraceArc(vec, pev->origin, ignore_monsters | ignore_glass))
+			{
+				co_await 0.1f;	// avoid red-green flashing.
+
+				pev->skin = Models::targetmdl::SKIN_GREEN;
+				co_return;
+			}
+
+			[[unlikely]]
+			if (!(iCounter % 192))
+			{
+				co_await TaskScheduler::NextFrame::Rank[0];
 			}
 		}
 	}
@@ -274,7 +322,7 @@ Task CDynamicTarget::Task_QuickEval_AirStrike() noexcept
 			if (g_engfuncs.pfnPointContents(tr.vecEndPos) != CONTENTS_SKY)
 			{
 				// Start on deep analyze
-				m_Scheduler.Enroll(Task_DeepEvaluation(), TASK_DEEP_ANALYZE);
+				m_Scheduler.Enroll(Task_DeepEval_AirStrike(), TASK_DEEP_ANALYZE);
 
 				pev->skin = Models::targetmdl::SKIN_RED;
 			}
@@ -568,14 +616,13 @@ Task CDynamicTarget::Task_QuickEval_Gunship() noexcept
 		{
 			// One cannot ask air support to 'hit the sky'
 
-			m_Scheduler.Delist(TASK_DEEP_ANALYZE);	// Stop evaluation now.
 			m_pTargeting = nullptr;
 
 			pev->skin = Models::targetmdl::SKIN_RED;
 			continue;	// there's no set origin.
 		}
 
-		if (pev_valid(tr.pHit) != 2 && m_flLastValidTracking < gpGlobals->time - 0.5f)	// Snapping: compensenting bad aiming
+		if (pev_valid(tr.pHit) != 2 && m_flLastValidTracking < gpGlobals->time - 0.5f)	// Snapping: compensating bad aiming
 			m_pTargeting = tr.pHit;
 		else if (pev_valid(tr.pHit) == 2)
 		{
@@ -638,60 +685,13 @@ Task CDynamicTarget::Task_QuickEval_Gunship() noexcept
 
 Task CDynamicTarget::Task_QuickEval_Phosphorus() noexcept
 {
-	struct TraceArcFunctor_t final
-	{
-		TraceArcFunctor_t(void) noexcept : m_ent(g_engfuncs.pfnCreateNamedEntity(MAKE_STRING("info_target"))) {}
-		TraceArcFunctor_t(TraceArcFunctor_t const&) noexcept = delete;
-		TraceArcFunctor_t(TraceArcFunctor_t &&) noexcept = delete;
-		TraceArcFunctor_t &operator=(TraceArcFunctor_t const&) noexcept = delete;
-		TraceArcFunctor_t &operator=(TraceArcFunctor_t &&) noexcept = delete;
-		~TraceArcFunctor_t(void) noexcept { g_engfuncs.pfnRemoveEntity(m_ent); m_ent = nullptr; }
-
-		inline operator edict_t *() const noexcept { return m_ent; }
-
-		inline edict_t *operator-> () const noexcept { return m_ent; }
-		inline edict_t &operator* () const noexcept { return *m_ent; }
-
-		inline bool operator() (Vector const &vecSrc, Vector const &vecEnd, int const iIgnore, edict_t *const pEdict = nullptr) const noexcept
-		{
-			auto const vecDir = vecEnd.Make2D() - vecSrc.Make2D();
-			auto const H = vecSrc.z - vecEnd.z;
-			auto const S = vecDir.Length();
-			auto const G = 386.08858267717;
-			auto const vecVelocityInit = vecDir.Normalize() * (S * std::sqrt(G / (2 * H)));
-			static constexpr auto dx = 0.1;
-
-			auto flLastDist = (vecSrc - vecEnd).LengthSquared();
-			auto flCurDist = (vecSrc - vecEnd).LengthSquared() - 1;
-			auto vecVel = Vector{ vecDir, 0 };
-			auto vecCur = vecSrc;
-			auto vecStep = vecCur + vecVel * dx;
-
-			for (TraceResult tr{};
-				flCurDist < flLastDist;
-				vecVel.z -= float(G * dx), vecCur = vecStep, vecStep += vecVel * dx, flLastDist = flCurDist, flCurDist = (vecCur - vecEnd).LengthSquared()
-				)
-			{
-				//g_engfuncs.pfnTraceMonsterHull(m_ent, vecCur, vecStep, iIgnore, pEdict, &tr);
-				g_engfuncs.pfnTraceLine(vecCur, vecStep, iIgnore, pEdict, &tr);
-
-				if (tr.flFraction < 0.99 || tr.fStartSolid || tr.fAllSolid)
-					return false;
-			}
-
-			return true;
-		}
-
-		edict_t *m_ent{};
-	}
-	fnTraceArc{};
-
-	TraceResult tr{};
+	trace_arc_functor_t fnTraceArc{};
+	TraceResult tr{}, tr2{};
 	auto iCounter = 0;
 
 	g_engfuncs.pfnSetSize(fnTraceArc, Vector(-4, -4, -4), Vector(4, 4, 4));
 
-	for (Vector vecMyLastPos = pev->origin;;)
+	for (;;)
 	{
 		if (m_pPlayer->m_pActiveItem != m_pRadio || m_pRadio->pev->weapons != RADIO_KEY)
 		{
@@ -713,12 +713,16 @@ Task CDynamicTarget::Task_QuickEval_Phosphorus() noexcept
 		Vector const vecSrc = m_pPlayer->GetGunPosition();
 		Vector const vecEnd = vecSrc + m_pPlayer->pev->v_angle.Front() * 4096.f;
 		g_engfuncs.pfnTraceMonsterHull(edict(), vecSrc, vecEnd, ignore_glass | ignore_monsters, nullptr, &tr);
+		g_engfuncs.pfnTraceLine(tr.vecEndPos, Vector(tr.vecEndPos.x, tr.vecEndPos.y, 8192), ignore_glass | ignore_monsters, nullptr, &tr2);	// measure the distance between the aiming pos and the sky.
 
-		auto const flAngleLean = std::acos(DotProduct(Vector::Up(), tr.vecPlaneNormal)/* No div len required, both len are 1. */) / std::numbers::pi * 180.0;
-
-		if (flAngleLean > 50)
+		if (auto const flAngleLean = std::acos(DotProduct(Vector::Up(), tr.vecPlaneNormal)/* No div len required, both len are 1. */) / std::numbers::pi * 180.0;
+			flAngleLean > 50 || (tr2.vecEndPos.z - tr.vecEndPos.z) < 800.f)
 		{
 			// Surface consider wall and no cluster bomb allow against wall.
+			// or
+			// The place is too close to the skybox, the phosphorus cannot spread properly.
+
+			m_Scheduler.Delist(TASK_DEEP_ANALYZE);	// Stop evaluation now.
 
 			pev->skin = Models::targetmdl::SKIN_RED;
 			goto LAB_CONTINUE;	// there's no set origin.
@@ -729,47 +733,31 @@ Task CDynamicTarget::Task_QuickEval_Phosphorus() noexcept
 
 		// Quick Evaluation
 
-		if ((pev->origin - vecMyLastPos).LengthSquared2D() > 576 /* 24 */)	// Position drifted, the old estimation could be invalidated.
+		if ((pev->origin - m_vecLastAiming).LengthSquared2D() > 576 /* 24 */)	// Position drifted, the old estimation could be invalidated.
 		{
-			pev->skin = Models::targetmdl::SKIN_RED;
-			vecMyLastPos = pev->origin;
-		}
+			// Remove old deep think
+			m_Scheduler.Delist(TASK_DEEP_ANALYZE);
 
-		// Try to get a temp spawn location above player.
-		g_engfuncs.pfnTraceLine(vecSrc, Vector(vecSrc.x, vecSrc.y, 8192.f), ignore_monsters | ignore_glass, nullptr, &tr);
+			// Try to get a temp spawn location above player.
+			g_engfuncs.pfnTraceLine(vecSrc, Vector(vecSrc.x, vecSrc.y, 8192.f), ignore_monsters | ignore_glass, nullptr, &tr);
 
-		if (Vector const vecSavedCandidate = tr.vecEndPos; g_engfuncs.pfnPointContents(vecSavedCandidate) == CONTENTS_SKY)
-		{
-			if (fnTraceArc(vecSavedCandidate, pev->origin, ignore_monsters | ignore_glass))
+			if (g_engfuncs.pfnPointContents(tr.vecEndPos) == CONTENTS_SKY && fnTraceArc(tr.vecEndPos, pev->origin, ignore_monsters | ignore_glass))
 			{
 				pev->skin = Models::targetmdl::SKIN_GREEN;
-				goto LAB_CONTINUE;
 			}
-		}
-
-		// Deep Evaluation
-
-		iCounter = 0;
-
-		for (const auto &vec : g_WaypointMgr.m_rgvecOrigins)
-		{
-			++iCounter;
-
-			if (fnTraceArc(pev->origin, vec, ignore_monsters | ignore_glass))
+			else
 			{
-				pev->skin = Models::targetmdl::SKIN_GREEN;
-				goto LAB_CONTINUE;
+				// Start on deep analyze
+				m_Scheduler.Enroll(Task_DeepEval_Phosphorus(), TASK_DEEP_ANALYZE);
+
+				pev->skin = Models::targetmdl::SKIN_RED;
 			}
 
-			[[unlikely]]
-			if (!(iCounter % 128))
-			{
-				co_await TaskScheduler::NextFrame::Rank[0];	// gurentee resume next frame. div by 3 is to ensure priority
-			}
+			m_vecLastAiming = pev->origin;
 		}
 
 	LAB_CONTINUE:;
-		co_await TaskScheduler::NextFrame::Rank[0];
+		co_await TaskScheduler::NextFrame::Rank[1];
 	}
 }
 
@@ -792,7 +780,7 @@ Task CDynamicTarget::Task_Remove() noexcept
 
 void CDynamicTarget::UpdateEvalMethod() noexcept
 {
-	m_Scheduler.Delist(TASK_QUICK_ANALYZE);
+	m_Scheduler.Delist(TASK_QUICK_ANALYZE | TASK_DEEP_ANALYZE);
 
 	for (auto &&pBeam : m_rgpBeacons)
 	{

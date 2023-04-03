@@ -229,6 +229,7 @@ start Enforcer.exe</Command>
     <ClCompile Include="Source\AirSupport\Waypoint.cpp" />
     <ClCompile Include="Source\AirSupport\Waypoint.ixx" />
     <ClCompile Include="Source\AirSupport\Weapon.cpp" />
+    <ClCompile Include="Source\CSDK\Ray.ixx" />
     <ClCompile Include="Source\CSDK\Wave.ixx" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

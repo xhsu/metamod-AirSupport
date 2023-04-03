@@ -1403,12 +1403,12 @@ void CFuelAirCloud::OnTraceAttack(TraceResult const &tr, EHANDLE<CBaseEntity> pS
 }
 
 //
-// CSpriteDisplayment
+// CSpriteDisplay
 //
 
-CSpriteDisplayment *CSpriteDisplayment::Create(Vector const &vecOrigin, kRenderFn iRenderMethod, std::string_view szModel) noexcept
+CSpriteDisplay *CSpriteDisplay::Create(Vector const &vecOrigin, kRenderFn iRenderMethod, std::string_view szModel) noexcept
 {
-	auto const [pEdict, pPrefab] = UTIL_CreateNamedPrefab<CSpriteDisplayment>();
+	auto const [pEdict, pPrefab] = UTIL_CreateNamedPrefab<CSpriteDisplay>();
 
 	g_engfuncs.pfnSetOrigin(pEdict, vecOrigin);
 	g_engfuncs.pfnSetModel(pEdict, szModel.data());
@@ -1476,7 +1476,7 @@ void CPhosphorus::Touch_Flying(CBaseEntity *pOther) noexcept
 		return;
 
 	// Not a real spark, it's just a visual representation of 'too bright to properly see what's going on'
-	auto pSpark = Prefab_t::Create<CSpriteDisplayment>(Vector(pev->origin.x, pev->origin.y, pev->origin.z + 48.0), kRenderTransAdd, Sprites::PHOSPHORUS_MAJOR_SPARK);
+	auto pSpark = Prefab_t::Create<CSpriteDisplay>(Vector(pev->origin.x, pev->origin.y, pev->origin.z + 48.0), kRenderTransAdd, Sprites::PHOSPHORUS_MAJOR_SPARK);
 	pSpark->pev->renderamt = UTIL_Random(192.f, 255.f);
 	pSpark->pev->rendercolor = Vector(255, 255, UTIL_Random(192, 255));
 	pSpark->pev->scale = UTIL_Random(1.f / 1.2f, 1.2f);
@@ -1590,7 +1590,7 @@ Task CPhosphorus::Task_EmitExhaust() noexcept
 		//WriteData((byte)UTIL_Random<short>(50, 255));
 		//MsgEnd();
 
-		auto pSpark = Prefab_t::Create<CSpriteDisplayment>(vecOrigin, kRenderTransAdd, Sprites::ROCKET_TRAIL_SMOKE[0]);
+		auto pSpark = Prefab_t::Create<CSpriteDisplay>(vecOrigin, kRenderTransAdd, Sprites::ROCKET_TRAIL_SMOKE[0]);
 		pSpark->pev->renderamt = UTIL_Random(50.f, 255.f);
 		pSpark->pev->rendercolor = Vector(255, 255, UTIL_Random(192, 255));
 		pSpark->pev->frame = (float)UTIL_Random(17, 22);

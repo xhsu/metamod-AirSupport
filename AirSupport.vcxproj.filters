@@ -358,5 +358,8 @@
     <ClCompile Include="Source\AirSupport\Resources.Const.ixx">
       <Filter>Source\AirSupport</Filter>
     </ClCompile>
+    <ClCompile Include="Source\CSDK\Ray.ixx">
+      <Filter>Source\CSDK</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

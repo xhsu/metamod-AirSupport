@@ -15,7 +15,8 @@ export struct CPrecisionAirStrike : public Prefab_t
 	static inline constexpr char CLASSNAME[] = "missile_precision";
 	static inline constexpr auto SPEED = 1000.0;
 
-	Task Task_Trail() noexcept;
+	Task Task_Deviation() noexcept;
+	Task Task_EmitExhaust() noexcept;
 
 	void Spawn() noexcept override;
 	void Touch(CBaseEntity *pOther) noexcept override;
@@ -121,4 +122,22 @@ export struct CFuelAirExplosive : public Prefab_t
 	CBasePlayer *m_pPlayer{};
 	std::list<EHANDLE<CFuelAirCloud>> m_rgpCloud{};
 	bool m_bReleasingGas{ false }, m_bGasAllOut{ false }, m_bTouched{ false };
+};
+
+export struct CIncendiaryMunition : public Prefab_t
+{
+	static inline constexpr char CLASSNAME[] = "proj_incendiary_bomb";
+	static inline constexpr auto SPEED = 800.0;
+
+	Task Task_Deviation() noexcept;
+	Task Task_EmitExhaust() noexcept;
+	Task Task_Fuse() noexcept;
+
+	void Spawn() noexcept override;
+	void Touch(CBaseEntity *pOther) noexcept override;
+
+	static CIncendiaryMunition *Create(CBasePlayer *pPlayer, Vector const &vecOrigin, Vector const &vecTarget) noexcept;
+
+	Vector m_vecTarget{}, m_vecStartingPos{};
+	CBasePlayer *m_pPlayer{};
 };
