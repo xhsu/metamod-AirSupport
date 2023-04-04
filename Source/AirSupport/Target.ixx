@@ -3,6 +3,7 @@ export module Target;
 export import <array>;
 
 export import Beam;
+export import Effects;
 export import Menu;
 export import Prefab;
 
@@ -36,6 +37,8 @@ export struct CDynamicTarget : public Prefab_t
 	void UpdateEvalMethod() noexcept;
 	void EnableBeacons() noexcept;
 	void DisableBeacons() noexcept;
+	void EnableFireSphere() noexcept;
+	void DisableFireSphere() noexcept;
 
 	void Spawn() noexcept override;
 	static CDynamicTarget *Create(CBasePlayer *pPlayer, CBasePlayerWeapon *pRadio) noexcept;
@@ -46,11 +49,12 @@ export struct CDynamicTarget : public Prefab_t
 	CBasePlayer *m_pPlayer{};
 	Vector m_vecLastAiming{};
 	float m_flLastValidTracking{};
+	std::array<EHANDLE<CSpriteDisplay>, 4> m_rgpAttachedSpr{};	// 4 == maxium attachment count on vanilla GoldSrc.
 	std::array<EHANDLE<CBeam>, BEACON_COUNT> m_rgpBeacons{};
 	std::array<BodyEnumInfo_t, 3> m_rgBodyInfo{ {{0, 1}, {0, 7}, {0, 2}} };
 	int &m_iAirSupportTypeModel{ m_rgBodyInfo[1].m_index };
 	qboolean &m_bShowArror{ m_rgBodyInfo[2].m_index };
-	bool m_bFreezed{};	// Use enable/disable beacons instead.
+	bool m_bFreezed{};	// Use enable/disable beacons instead. Indicator of carpet bombardment direction.
 };
 
 export struct CFixedTarget : public Prefab_t
@@ -81,4 +85,5 @@ export struct CFixedTarget : public Prefab_t
 	EHANDLE<CDynamicTarget> m_pDynamicTarget{ nullptr };	// Warning: only available in Spawn()!
 	EAirSupportTypes m_AirSupportType{ AIR_STRIKE };
 	decltype(CDynamicTarget::m_rgpBeacons) m_rgpBeacons{};
+	//decltype(CDynamicTarget::m_rgpAttachedSpr) m_rgpAttachedSpr{};	// I don't think we need it. The weak_ptr inside the tasks of SPR is quite messy to transfer at the same time.
 };

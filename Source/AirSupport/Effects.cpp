@@ -258,6 +258,72 @@ Task Task_Fade(entvars_t *const pev, float const INC, float const DEC, float con
 	pev->flags |= FL_KILLME;
 }
 
+Task Task_SpriteOnEnt_NotOwned(entvars_t *const pev, EHANDLE<CBaseEntity> pEnt, uint16_t const ATTACHMENT, Vector const vecOfs, float const INC, float const PEAK, float const DECAY) noexcept
+{
+	Vector vecAttOrigin{};
+	Angles vecAttAngles{};
+	auto me = ent_cast<edict_t *>(pev);
+
+	for (; pEnt;)	// Must be a post-awaiting. Otherwise the validity of entity is subject to change after the check.
+	{
+		g_engfuncs.pfnGetAttachment(pEnt.Get(), ATTACHMENT, vecAttOrigin, vecAttAngles);
+		g_engfuncs.pfnSetOrigin(me, vecAttOrigin + vecOfs);
+
+		if (pev->renderamt < PEAK)
+			pev->renderamt = std::min(pev->renderamt + INC, PEAK);
+
+		co_await TaskScheduler::NextFrame::Rank[0];
+	}
+
+	for (; pev->renderamt > 0; pev->renderamt -= DECAY)
+	{
+		co_await TaskScheduler::NextFrame::Rank[0];
+	}
+
+	// We are not owning this entity, DO NOT remove it!
+	co_return;
+}
+
+Task Task_SpriteEnterLoopOut(entvars_t *const pev, EHANDLE<CBaseEntity> pEnt, uint16_t const LOOP_START_POS, uint16_t const LOOP_END_POS_EXC, uint16_t const FRAME_COUNT, float const FPS) noexcept
+{
+	uint16_t iFrame = 0;
+
+	co_await float(1.0 / FPS);
+
+	for (; pEnt && iFrame < LOOP_START_POS;)
+	{
+		pev->framerate = float(1.0 / FPS);
+		pev->frame = ++iFrame;
+		pev->animtime = gpGlobals->time;
+
+		co_await float(1.0 / FPS);
+	}
+
+	auto const iLoopFrameCount = LOOP_END_POS_EXC - LOOP_START_POS;
+
+	for (; pEnt;)
+	{
+		iFrame = (iFrame + 1) % iLoopFrameCount;
+
+		pev->framerate = float(1.0 / FPS);
+		pev->frame = float(LOOP_START_POS + iFrame);
+		pev->animtime = gpGlobals->time;
+
+		co_await float(1.0 / FPS);
+	}
+
+	for (iFrame += LOOP_START_POS; iFrame < FRAME_COUNT; ++iFrame)
+	{
+		pev->framerate = float(1.0 / FPS);
+		pev->frame = iFrame;
+		pev->animtime = gpGlobals->time;
+
+		co_await float(1.0 / FPS);
+	}
+
+	pev->flags |= FL_KILLME;
+}
+
 //
 // CFlame
 //
