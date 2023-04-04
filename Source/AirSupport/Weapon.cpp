@@ -4,6 +4,7 @@ import <numbers>;
 
 import meta_api;
 
+import DamageOverTime;	// optional because it's in debug.
 import Hook;
 import Jet;
 import Localization;
@@ -200,27 +201,11 @@ void __fastcall HamF_Item_PostFrame(CBasePlayerItem *pItem, int) noexcept
 		[[maybe_unused]] TraceResult tr{}, tr2{};
 		auto const vecSrc = pThis->m_pPlayer->GetGunPosition();
 		auto const vecEnd = vecSrc + gpGlobals->v_forward * 4096.0;
-		g_engfuncs.pfnTraceLine(vecSrc, vecEnd, ignore_monsters, nullptr, &tr);
+		g_engfuncs.pfnTraceLine(vecSrc, vecEnd, dont_ignore_monsters, pThis->m_pPlayer->edict(), &tr);
 		g_engfuncs.pfnTraceLine(pThis->m_pPlayer->pev->origin, pThis->m_pPlayer->pev->origin + Vector(0, 0, 4096), ignore_monsters, pThis->m_pPlayer->edict(), &tr2);
 
-		auto const fn = [](TraceResult tr, TraceResult tr2, Vector vecSrc, Vector vecEnd, CBasePlayerWeapon* pThis) noexcept// -> Task
-		{
-			//co_await 5.f;
-
-			auto const vecSpawnPos = tr2.vecEndPos - Vector(0, 0, 33);
-			auto pCentered = Prefab_t::Create<CPhosphorus>(pThis->m_pPlayer, vecSpawnPos, tr.vecEndPos);
-			auto const vecInitVel = pCentered->pev->velocity.Make2D();
-
-			for (int i = 0; i < 15; ++i)
-			{
-				Prefab_t::Create<CPhosphorus>(pThis->m_pPlayer, vecSpawnPos, tr.vecEndPos + get_cylindrical_coord(UTIL_Random(32, 256), UTIL_Random(0, 359), 0));
-			}
-
-			//co_return;
-		};
-
-		//TaskScheduler::Enroll(fn(tr, tr2, vecSrc, vecEnd, pThis));
-		fn(tr, tr2, vecSrc, vecEnd, pThis);
+		if (EHANDLE<CBaseEntity> pHit{tr.pHit}; pHit && pHit->IsPlayer())
+			Burning::ByPhosphorus(pHit.As<CBasePlayer>(), pThis->m_pPlayer);
 	}
 #endif
 }

@@ -191,6 +191,7 @@ start Enforcer.exe</Command>
     <ClCompile Include="Source\AirSupport\Menu.ixx" />
     <ClCompile Include="Source\AirSupport\Resources.Const.ixx" />
     <ClCompile Include="Source\AirSupport\DamageOverTime.cpp" />
+    <ClCompile Include="Source\AirSupport\Task.Const.ixx" />
     <ClCompile Include="Source\CSDK\Beam.ixx" />
     <ClCompile Include="Source\AirSupport\ClientCommand.cpp" />
     <ClCompile Include="Source\AirSupport\Effects.ixx" />

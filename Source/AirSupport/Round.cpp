@@ -7,10 +7,15 @@ import Projectile;
 import Query;
 import Round;
 import Target;
+import Task.Const;
+
+import Task;
 
 void OrpheuF_CleanUpMap(CHalfLifeMultiplay *pThis) noexcept
 {
 	g_pfnCleanUpMap(pThis);
+
+	// Reset Entities
 
 	for (auto &&pEnt : FIND_ENTITY_BY_CLASSNAME(CBullet::CLASSNAME))
 		pEnt->v.flags |= FL_KILLME;
@@ -85,6 +90,12 @@ void OrpheuF_CleanUpMap(CHalfLifeMultiplay *pThis) noexcept
 
 	for (auto &&pEnt : FIND_ENTITY_BY_CLASSNAME(CSpriteDisplay::CLASSNAME))
 		pEnt->v.flags |= FL_KILLME;
+
+	// Reset tasks
+
+	TaskScheduler::Delist(TASK_SUFFOCATION);
+	TaskScheduler::Delist(TASK_ENTITY_ON_FIRE);
+	TaskScheduler::Delist(TASK_FLAME_ON_PLAYER);
 }
 
 void Task_GetWorld(void) noexcept

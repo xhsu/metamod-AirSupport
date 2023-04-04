@@ -367,5 +367,8 @@
     <ClCompile Include="Source\AirSupport\DamageOverTime.cpp">
       <Filter>Source\AirSupport</Filter>
     </ClCompile>
+    <ClCompile Include="Source\AirSupport\Task.Const.ixx">
+      <Filter>Source\AirSupport</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

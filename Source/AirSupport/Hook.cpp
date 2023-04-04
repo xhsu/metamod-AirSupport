@@ -18,6 +18,7 @@ import Jet;
 import Platform;
 import Plugin;
 import Round;
+import Task.Const;
 import Task;
 import Weapon;
 
@@ -491,8 +492,7 @@ qboolean fw_AddToFullPack(entity_state_t *pState, int iEntIndex, edict_t *pEdict
 {
 	gpMetaGlobals->mres = MRES_IGNORED;
 
-	[[unlikely]]
-	if (pEdict->v.classname == MAKE_STRING(CDynamicTarget::CLASSNAME) || pEdict->v.classname == MAKE_STRING(CFixedTarget::CLASSNAME))
+	if (pEdict->v.classname == MAKE_STRING(CDynamicTarget::CLASSNAME) || pEdict->v.classname == MAKE_STRING(CFixedTarget::CLASSNAME)) [[unlikely]]
 	{
 		auto const pClient = (CBasePlayer *)pClientSendTo->pvPrivateData;
 
@@ -500,6 +500,18 @@ qboolean fw_AddToFullPack(entity_state_t *pState, int iEntIndex, edict_t *pEdict
 		{
 			gpMetaGlobals->mres = MRES_SUPERCEDE;
 			return false;
+		}
+	}
+	else if (bIsPlayer) [[unlikely]]
+	{
+		// White phosphorus munitions will burn into your bone.
+
+		if (uint64_t const iPlayerTaskId = TASK_ENTITY_ON_FIRE | (1ull << uint64_t(iEntIndex + 32ull)); TaskScheduler::Exist(iPlayerTaskId, false))
+		{
+			pState->renderfx = kRenderFxGlowShell;
+			pState->rendercolor = color24{ 192, 0, 0 };
+			pState->renderamt = 15;
+			pState->rendermode = kRenderNormal;
 		}
 	}
 

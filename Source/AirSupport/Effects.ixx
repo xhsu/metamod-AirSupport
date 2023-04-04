@@ -5,6 +5,7 @@ export import <list>;
 export import <unordered_map>;
 
 export import Prefab;
+export import Task.Const;
 
 using std::array;
 using std::list;
@@ -19,18 +20,6 @@ export namespace Color
 		color24{0xAD, 0xC9, 0xEB},	// TEAM_CT
 		color24{0xC0, 0xC0, 0xC0},	// TEAM_SPECTATOR
 	};
-};
-
-export enum EEfxTasks : uint64_t
-{
-	TASK_ANIMATION = (1 << 0),
-	TASK_FADE_OUT = (1 << 1),
-	TASK_FADE_IN = (1 << 2),
-	TASK_COLOR_DRIFT = (1 << 3),
-	TASK_REFLECTING_FLAME = (1 << 4),
-	TASK_IGNITE = (1 << 5),
-	TASK_HB_AND_ER = (1 << 6),
-	TASK_FLYING = (1 << 7),
 };
 
 export extern "C++" Task Task_SpriteLoop(entvars_t *const pev, short const FRAME_COUNT, double const FPS) noexcept;
@@ -259,6 +248,7 @@ export struct CPhosphorus : public Prefab_t
 	Task Task_EmitExhaust() noexcept;
 	Task Task_EmitSmoke() noexcept;
 	Task Task_EmitSpark() noexcept;
+	Task Task_EmitLight() noexcept;
 
 	static CPhosphorus *Create(CBasePlayer *pPlayer, Vector const &vecOrigin, Vector2D const &vecInitVel) noexcept;	// Start with designated velocity
 	static CPhosphorus *Create(CBasePlayer *pPlayer, Vector const &vecOrigin, Vector const &vecTarget) noexcept;	// Horizontal projectile, flying to target location.
@@ -278,5 +268,7 @@ export struct CShower2 : public Prefab_t
 	int ObjectCaps() noexcept override { return FCAP_DONT_SAVE; }
 	void Touch(CBaseEntity *pOther) noexcept override;
 
-	static CShower2 *Create(Vector const &vecOrigin, Vector const &vecDir) noexcept;
+	static CShower2 *Create(CBasePlayer *pPlayer, Vector const &vecOrigin, Vector const &vecDir) noexcept;
+
+	CBasePlayer *m_pPlayer{};
 };
