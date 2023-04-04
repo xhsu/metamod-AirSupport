@@ -43,6 +43,8 @@ export extern "C++" Task Task_FadeOut(entvars_t *const pev, float const AWAIT, f
 export extern "C++" Task Task_Remove(entvars_t *const pev, float const TIME) noexcept;
 export extern "C++" Task Task_FadeIn(entvars_t *const pev, float const TRANSPARENT_INC, float const FINAL_VAL, float const ROLL) noexcept;
 export extern "C++" Task Task_Fade(entvars_t *const pev, float const INC, float const DEC, float const PEAK, float const ROLL) noexcept;
+export extern "C++" Task Task_SpriteOnEnt_NotOwned(entvars_t *const pev, EHANDLE<CBaseEntity> pEnt, uint16_t const ATTACHMENT, Vector const vecOfs, float const INC, float const PEAK, float const DECAY) noexcept;
+export extern "C++" Task Task_SpriteEnterLoopOut(entvars_t *const pev, EHANDLE<CBaseEntity> pEnt, uint16_t const LOOP_START_POS, uint16_t const LOOP_END_POS_EXC, uint16_t const FRAME_COUNT, float const FPS) noexcept;
 
 export struct CFlame : public Prefab_t
 {

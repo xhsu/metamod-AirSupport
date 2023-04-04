@@ -782,13 +782,8 @@ void CDynamicTarget::UpdateEvalMethod() noexcept
 {
 	m_Scheduler.Delist(TASK_QUICK_ANALYZE | TASK_DEEP_ANALYZE);
 
-	for (auto &&pBeam : m_rgpBeacons)
-	{
-		if (pBeam)
-			pBeam->pev->flags |= FL_KILLME;
-
-		pBeam = nullptr;
-	}
+	DisableBeacons();
+	DisableFireSphere();
 
 	auto const &iType = g_rgiAirSupportSelected[m_pPlayer->entindex()];
 
@@ -825,6 +820,7 @@ void CDynamicTarget::UpdateEvalMethod() noexcept
 	case PHOSPHORUS_MUNITION:
 		g_engfuncs.pfnSetSize(edict(), Vector(-32, -32, 0), Vector(32, 32, 72));
 		m_Scheduler.Enroll(Task_QuickEval_Phosphorus(), TASK_QUICK_ANALYZE);
+		EnableFireSphere();
 		break;
 	}
 }
@@ -835,6 +831,8 @@ void CDynamicTarget::EnableBeacons() noexcept
 
 	for (auto &&pBeacon : m_rgpBeacons)
 	{
+		assert(!pBeacon);	// check leaking.
+
 		pBeacon = CBeam::BeamCreate(Sprites::BEAM, 32.f);
 
 		pBeacon->SetFlags(BEAM_FSHADEOUT);	// fade out on rear end.
@@ -856,6 +854,35 @@ void CDynamicTarget::DisableBeacons() noexcept
 	for (auto &&pBeacon : m_rgpBeacons)
 		if (pBeacon) [[likely]]
 			pBeacon->pev->flags |= FL_KILLME;
+}
+
+void CDynamicTarget::EnableFireSphere() noexcept
+{
+	Vector vecOrigin{};
+	Angles vecAngles{};
+	int idx{};
+
+	for (auto &&pSphere : m_rgpAttachedSpr)
+	{
+		assert(!pSphere);
+
+		g_engfuncs.pfnGetAttachment(edict(), idx, vecOrigin, vecAngles);
+
+		pSphere = CSpriteDisplay::Create(vecOrigin, kRenderTransAdd, Sprites::FLAME[1]);	// flame2.spr is smaller thus fits better.
+		pSphere->pev->renderamt = 0;
+		pSphere->pev->scale = 0.2f;
+		pSphere->m_Scheduler.Enroll(Task_SpriteOnEnt_NotOwned(pSphere->pev, this, idx, { 0, 0, 8 }, 2.f, 220.f, 3.f), TASK_ANIMATION);
+		pSphere->m_Scheduler.Enroll(Task_SpriteEnterLoopOut(pSphere->pev, this, 3, 20, 24, 24), TASK_ANIMATION);
+
+		++idx;
+	}
+}
+
+void CDynamicTarget::DisableFireSphere() noexcept
+{
+	for (auto &&pSphere : m_rgpAttachedSpr)
+		if (pSphere) [[likely]]
+			pSphere->pev->flags |= FL_KILLME;
 }
 
 void CDynamicTarget::Spawn() noexcept
