@@ -1,6 +1,7 @@
 export module Query;
 
 export import <ranges>;
+export import <span>;
 
 export import eiface;
 export import progdefs;
@@ -14,8 +15,8 @@ namespace Query
 	export inline decltype(auto) all_players(void) noexcept
 	{
 		return
-			std::views::iota(1, gpGlobals->maxClients + 1) |	// from 1 to 32 actually, iota parsed as [1, 33)
-			std::views::transform([](int idx) noexcept { auto const pent = g_engfuncs.pfnPEntityOfEntIndex(idx); return pent ? (CBasePlayer *)pent->pvPrivateData : nullptr; }) |
+			std::span(g_engfuncs.pfnPEntityOfEntIndex(1), gpGlobals->maxClients) |	// from 1 to 32 actually, iota parsed as [1, 33)
+			std::views::transform([](edict_t &ent) noexcept { return ent.free ? nullptr : (CBasePlayer *)ent.pvPrivateData; }) |
 			std::views::filter([](void *p) noexcept { return p != nullptr; }) |
 
 			// Connected but not necessary alive.
@@ -27,8 +28,8 @@ namespace Query
 	export inline decltype(auto) all_living_players(void) noexcept
 	{
 		return
-			std::views::iota(1, gpGlobals->maxClients + 1) |
-			std::views::transform([](int idx) noexcept { auto const pent = g_engfuncs.pfnPEntityOfEntIndex(idx); return pent ? (CBasePlayer *)pent->pvPrivateData : nullptr; }) |
+			std::span(g_engfuncs.pfnPEntityOfEntIndex(1), gpGlobals->maxClients) |
+			std::views::transform([](edict_t &ent) noexcept { return ent.free ? nullptr : (CBasePlayer *)ent.pvPrivateData; }) |
 			std::views::filter([](void *p) noexcept { return p != nullptr; }) |
 
 			// Only player who is alive, and connected. Disconnected player will be marked as DEAD_DEAD therefore filtered.
@@ -40,8 +41,8 @@ namespace Query
 	export inline decltype(auto) all_entities(void) noexcept
 	{
 		return
-			std::views::iota(0, gpGlobals->maxEntities + 1) |
-			std::views::transform([](int idx) noexcept { auto const pent = g_engfuncs.pfnPEntityOfEntIndex(idx); return pent ? (CBaseEntity *)pent->pvPrivateData : nullptr; }) |
+			std::span(g_engfuncs.pfnPEntityOfEntIndex(0), gpGlobals->maxEntities) |
+			std::views::transform([](edict_t& ent) noexcept { return ent.free ? nullptr : (CBaseEntity *)ent.pvPrivateData; }) |
 			std::views::filter([](void *p) noexcept { return p != nullptr; })
 			;
 	}
@@ -50,8 +51,8 @@ namespace Query
 	export inline decltype(auto) all_nonplayer_entities(void) noexcept
 	{
 		return
-			std::views::iota(33, gpGlobals->maxEntities + 1) |
-			std::views::transform([](int idx) noexcept { auto const pent = g_engfuncs.pfnPEntityOfEntIndex(idx); return pent ? (CBaseEntity *)pent->pvPrivateData : nullptr; }) |
+			std::span(g_engfuncs.pfnPEntityOfEntIndex(gpGlobals->maxClients + 1), gpGlobals->maxEntities - (gpGlobals->maxClients + 1)) |
+			std::views::transform([](edict_t &ent) noexcept { return ent.free ? nullptr : (CBaseEntity *)ent.pvPrivateData; }) |
 			std::views::filter([](void *p) noexcept { return p != nullptr; })
 			;
 	}

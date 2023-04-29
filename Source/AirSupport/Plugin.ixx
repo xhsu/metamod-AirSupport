@@ -1,6 +1,5 @@
 export module Plugin;
 
-export import <format>;
 export import <source_location>;
 
 export import meta_api;

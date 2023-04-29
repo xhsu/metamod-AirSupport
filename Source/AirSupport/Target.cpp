@@ -1,5 +1,6 @@
 #include <cassert>
 
+import <chrono>;
 import <numbers>;
 
 import Beam;

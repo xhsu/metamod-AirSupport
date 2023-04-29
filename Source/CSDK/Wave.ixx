@@ -1,10 +1,9 @@
 export module Wave;
 
-export import <cstdint>;
-export import <cstring>;
+export import <stdint.h>;
+export import <string.h>;
 
 export import <algorithm>;
-export import <filesystem>;
 export import <fstream>;
 export import <string_view>;
 
