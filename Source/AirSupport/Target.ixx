@@ -6,14 +6,7 @@ export import Beam;
 export import Effects;
 export import Menu;
 export import Prefab;
-
-export enum ETargetTasks : uint64_t
-{
-	TASK_QUICK_ANALYZE = (1 << 8),
-	TASK_DEEP_ANALYZE = (1 << 9),
-	TASK_TIME_OUT = (1 << 10),
-	TASK_ACTION = (1 << 11),
-};
+export import Task.Const;
 
 export struct CDynamicTarget : public Prefab_t
 {

@@ -98,34 +98,62 @@ export struct TaskScheduler_t final
 		}
 	}
 
-	inline size_t Delist(uint64_t iCoroutineMarker) noexcept
+	inline size_t Delist(uint64_t iCoroutineMarker, bool bUsingBits = true) noexcept
 	{
 		if (!m_List.empty())
-			return m_List.remove_if([=](Task const &obj) noexcept { return (obj.m_iCoroutineMarker & iCoroutineMarker) != 0; });
+		{
+			if (bUsingBits)
+				return m_List.remove_if([=](Task const &obj) noexcept { return (obj.m_iCoroutineMarker & iCoroutineMarker) != 0; });
+			else
+				return m_List.remove_if([=](Task const &obj) noexcept { return obj.m_iCoroutineMarker == iCoroutineMarker; });
+		}
 
 		return 0;
 	}
 
-	inline size_t Count(uint64_t iCoroutineMarker) noexcept
+	inline size_t Count(uint64_t iCoroutineMarker, bool bUsingBits = true) noexcept
 	{
 		size_t ret{};
 
-		for (auto const &obj : m_List)
+		if (bUsingBits)
 		{
-			if ((obj.m_iCoroutineMarker & iCoroutineMarker) != 0)
-				++ret;
+			for (auto const &obj : m_List)
+			{
+				if ((obj.m_iCoroutineMarker & iCoroutineMarker) != 0)
+					++ret;
+			}
+		}
+		else
+		{
+			for (auto const &obj : m_List)
+			{
+				if (obj.m_iCoroutineMarker == iCoroutineMarker)
+					++ret;
+			}
 		}
 
 		return ret;
 	}
 
-	inline bool Exist(uint64_t iCoroutineMarker) noexcept
+	inline bool Exist(uint64_t iCoroutineMarker, bool bUsingBits = true) noexcept
 	{
-		for (auto const &obj : m_List)
+		if (bUsingBits)
 		{
-			[[unlikely]]
-			if ((obj.m_iCoroutineMarker & iCoroutineMarker) != 0)
-				return true;
+			for (auto const &obj : m_List)
+			{
+				[[unlikely]]
+				if ((obj.m_iCoroutineMarker & iCoroutineMarker) != 0)
+					return true;
+			}
+		}
+		else
+		{
+			for (auto const &obj : m_List)
+			{
+				[[unlikely]]
+				if (obj.m_iCoroutineMarker == iCoroutineMarker)
+					return true;
+			}
 		}
 
 		return false;
@@ -145,11 +173,11 @@ export namespace TaskScheduler
 
 	inline decltype(auto) Enroll(Task &&obj, uint64_t iCoroutineMarker = 0ull) noexcept { return m_GlobalScheduler.Enroll(std::forward<Task>(obj), iCoroutineMarker); }
 
-	inline decltype(auto) Delist(uint64_t iCoroutineMarker) noexcept { return m_GlobalScheduler.Delist(iCoroutineMarker); }
+	inline decltype(auto) Delist(uint64_t iCoroutineMarker, bool bUsingBits = true) noexcept { return m_GlobalScheduler.Delist(iCoroutineMarker, bUsingBits); }
 
-	inline decltype(auto) Count(uint64_t iCoroutineMarker) noexcept { return m_GlobalScheduler.Count(iCoroutineMarker); }
+	inline decltype(auto) Count(uint64_t iCoroutineMarker, bool bUsingBits = true) noexcept { return m_GlobalScheduler.Count(iCoroutineMarker, bUsingBits); }
 
-	inline decltype(auto) Exist(uint64_t iCoroutineMarker) noexcept { return m_GlobalScheduler.Exist(iCoroutineMarker); }
+	inline decltype(auto) Exist(uint64_t iCoroutineMarker, bool bUsingBits = true) noexcept { return m_GlobalScheduler.Exist(iCoroutineMarker, bUsingBits); }
 
 	inline decltype(auto) Clear(void) noexcept { return m_GlobalScheduler.Clear(); }
 };

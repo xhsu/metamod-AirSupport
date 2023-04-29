@@ -322,6 +322,7 @@ export namespace Sprites
 	inline constexpr char PHOSPHORUS_SMOKE[] = "sprites/bettyspr1.spr";
 	inline constexpr char PHOSPHORUS_MINOR_SPARK[] = "sprites/w_lightgranate.spr";
 	inline constexpr char PHOSPHORUS_MAJOR_SPARK[] = "sprites/fusion_p_engage.spr";
+	inline constexpr char FLAME_ON_PLAYER[] = "sprites/zombieriot/flame.spr";
 
 	inline constexpr char BEAM[] = "sprites/laserbeam.spr";
 
