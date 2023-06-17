@@ -13,17 +13,24 @@ module;
 export module Platform;
 
 export import <algorithm>;
+export import <bit>;
 export import <codecvt>;
 export import <locale>;
+export import <stacktrace>;
 
 export inline std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> g_utf_converter;
 
 export template <typename... Tys> [[noreturn]] void UTIL_Terminate(const char *psz, Tys&&... args) noexcept
 {
+	auto const StackTraceObject = std::stacktrace::current();
+	auto const szStackTraceInfo = std::to_string(StackTraceObject);
+
 	static char sz[256]{};
 	_snprintf(sz, _countof(sz) - 1U, psz, std::forward<Tys>(args)...);
 
-	MessageBoxA(nullptr, sz, nullptr, MB_OK);
+	auto const szMergedInfo = szStackTraceInfo + "\n\nWith information: " + sz;
+
+	MessageBoxA(nullptr, szMergedInfo.c_str(), nullptr, MB_OK);
 	std::terminate();
 }
 
@@ -47,9 +54,14 @@ export template <typename... Tys> [[noreturn]] void UTIL_Terminate(const wchar_t
 			return arg;
 	};
 
+	auto const StackTraceObject = std::stacktrace::current();
+	auto const wszStackTraceInfo = std::bit_cast<std::wstring>(g_utf_converter.from_bytes(std::to_string(StackTraceObject)));
+
 	static wchar_t wsz[256]{};
 	_snwprintf(wsz, _countof(wsz) - 1U, psz, fnArgHandle(args)...);
 
-	MessageBoxW(nullptr, wsz, nullptr, MB_OK);
+	auto const szMergedInfo = wszStackTraceInfo + L"\n\nWith information: " + wsz;
+
+	MessageBoxW(nullptr, szMergedInfo.c_str(), nullptr, MB_OK);
 	std::terminate();
 }
