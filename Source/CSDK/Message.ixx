@@ -148,16 +148,13 @@ struct Message_t final
 		if (m_iMessageIndex)
 			return;
 
-		// #REPORT_TO_MSVC_address_of_constexpr
-		static const plugin_info_t pl{ .name = "Air Support" };
-
 #ifdef _DEBUG
 		int iSize = 0;
 		m_iMessageIndex = gpMetaUtilFuncs->pfnGetUserMsgID(&pl, NAME, &iSize);
 
 		assert(iSize == -1 || iSize == SIZE);
 #else
-		m_iMessageIndex = gpMetaUtilFuncs->pfnGetUserMsgID(&pl, NAME, nullptr);
+		m_iMessageIndex = gpMetaUtilFuncs->pfnGetUserMsgID(PLID, NAME, nullptr);
 #endif
 	}
 #endif
@@ -174,7 +171,7 @@ struct Message_t final
 		else if constexpr (iDest == MSG_PAS || iDest == MSG_PAS_R || iDest == MSG_PVS || iDest == MSG_PVS_R)
 			g_engfuncs.pfnMessageBegin(iDest, m_iMessageIndex, vecOrigin);
 		//else
-		//	[]() noexcept { static_assert(AlwaysFalse<This_t>, "Invalid message casting method!"); }();	// #INVESTIGATE why can't I just directly static_assert that?
+		//	[]() noexcept { static_assert(AlwaysFalse<This_t>, "Invalid message casting method!"); }();	// #UPDATE_AT_CPP23 CWG2518 allowing static_assert(false)
 
 		MsgArgs_t tplArgs = std::make_tuple(args...);
 
