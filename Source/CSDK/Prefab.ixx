@@ -29,8 +29,8 @@ inline auto UTIL_CreateNamedPrefab(Tys&&... args) noexcept
 	assert(pEdict->pvPrivateData == nullptr);
 
 	auto const pMemBlock = g_engfuncs.pfnPvAllocEntPrivateData(pEdict, sizeof(T));	// allocate the memory from engine
-	new (pMemBlock) T{ std::forward<Tys>(args)... };	// "placement new"
-	auto const pPrefab = static_cast<T *>(pMemBlock);	// object lifetime started.
+	new (pMemBlock) T{ std::forward<Tys>(args)... };					// "placement new"
+	auto const pPrefab = std::launder(reinterpret_cast<T*>(pMemBlock));	// object lifetime started.
 
 	pPrefab->pev = &pEdict->v;
 

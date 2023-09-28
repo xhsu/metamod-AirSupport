@@ -91,26 +91,7 @@ void DeployHooks(void) noexcept
 	g_pfnFireBullets = (fnFireBullets_t)UTIL_SearchPattern("mp.dll", FIRE_BULLETS_FN_PATTERN, 1);
 	g_pfnFireBullets3 = (fnFireBullets3_t)UTIL_SearchPattern("mp.dll", FIRE_BULLETS_3_FN_PATTERN, 1);
 
-	pEnt = g_engfuncs.pfnCreateNamedEntity(MAKE_STRING("info_target"));	// Technically this is not CBaseEntity, but it is the closest one. It overrides Spawn() and ObjectCaps(), so it is still pure enough.
-
-	if (!pEnt || !pEnt->pvPrivateData) [[unlikely]]
-	{
-		if (pEnt)
-			g_engfuncs.pfnRemoveEntity(pEnt);
-
-		UTIL_Terminate("Failed to retrieve classtype for \"info_target\".");
-		return;
-	}
-
-	g_pfnEntityTraceAttack = (fnEntityTraceAttack_t)UTIL_RetrieveVirtualFunction(pEnt->pvPrivateData, VFTIDX_CBASE_TRACEATTACK);
-	g_pfnEntityTakeDamage = (fnEntityTakeDamage_t)UTIL_RetrieveVirtualFunction(pEnt->pvPrivateData, VFTIDX_CBASE_TAKEDAMAGE);
-	g_pfnEntityKilled = (fnEntityKilled_t)UTIL_RetrieveVirtualFunction(pEnt->pvPrivateData, VFTIDX_CBASE_KILLED);
-	g_pfnEntityTraceBleed = (fnEntityTraceBleed_t)UTIL_RetrieveVirtualFunction(pEnt->pvPrivateData, VFTIDX_CBASE_TRACEBLEED);
-	g_pfnEntityDamageDecal = (fnEntityDamageDecal_t)UTIL_RetrieveVirtualFunction(pEnt->pvPrivateData, VFTIDX_CBASE_DAMAGEDECAL);
-	g_pfnEntityGetNextTarget = (fnEntityGetNextTarget_t)UTIL_RetrieveVirtualFunction(pEnt->pvPrivateData, VFTIDX_CBASE_GETNEXTTARGET);
-
-	g_engfuncs.pfnRemoveEntity(pEnt);
-	pEnt = nullptr;
+	VTFRetrieve();
 
 #ifdef _DEBUG
 	assert(g_pfnRadiusFlash != nullptr);

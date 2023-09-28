@@ -370,5 +370,8 @@
     <ClCompile Include="Source\AirSupport\Task.Const.ixx">
       <Filter>Source\AirSupport</Filter>
     </ClCompile>
+    <ClCompile Include="Source\CSDK\VTFH.ixx">
+      <Filter>Source\CSDK</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
