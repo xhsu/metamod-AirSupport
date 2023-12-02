@@ -150,7 +150,7 @@ struct Message_t final
 
 #ifdef _DEBUG
 		int iSize = 0;
-		m_iMessageIndex = gpMetaUtilFuncs->pfnGetUserMsgID(&pl, NAME, &iSize);
+		m_iMessageIndex = gpMetaUtilFuncs->pfnGetUserMsgID(PLID, NAME, &iSize);
 
 		assert(iSize == -1 || iSize == SIZE);
 #else

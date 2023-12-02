@@ -67,6 +67,8 @@ export struct TaskScheduler_t final
 	{
 		while (!m_List.empty())
 		{
+			// #PLANNED should it be sorted and therefore have a O(nlogn) complx or just execute all suitable tasks one by one?
+			// Does the execution order actually matter?
 			m_List.sort();
 
 			while (!m_List.empty() && m_List.front().Done())

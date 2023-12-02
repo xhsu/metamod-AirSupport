@@ -81,15 +81,15 @@ void DeployHooks(void) noexcept
 	UTIL_VirtualTableInjection(rgpfnCKnife, VFTIDX_ITEM_POSTFRAME, &HamF_Item_PostFrame, (void **)&g_pfnItemPostFrame);
 	UTIL_VirtualTableInjection(rgpfnCKnife, VFTIDX_ITEM_HOLSTER, &HamF_Item_Holster, (void **)&g_pfnItemHolster);
 
-	g_pfnRadiusFlash = (fnRadiusFlash_t)UTIL_SearchPattern("mp.dll", RADIUS_FLASH_FN_PATTERN, 1);
-	g_pfnSelectItem = (fnSelectItem_t)UTIL_SearchPattern("mp.dll", SELECT_ITEM_FN_PATTERN, 1);
-	g_pfnApplyMultiDamage = (fnApplyMultiDamage_t)UTIL_SearchPattern("mp.dll", APPLY_MULTI_DAMAGE_FN_PATTERN, 1);
-	g_pfnClearMultiDamage = (fnClearMultiDamage_t)UTIL_SearchPattern("mp.dll", CLEAR_MULTI_DAMAGE_FN_PATTERN, 1);
-	g_pfnAddMultiDamage = (fnAddMultiDamage_t)UTIL_SearchPattern("mp.dll", ADD_MULTI_DAMAGE_FN_PATTERN, 1);
-	g_pfnDefaultDeploy = (fnDefaultDeploy_t)UTIL_SearchPattern("mp.dll", DEFAULT_DEPLOY_FN_PATTERN, 1);
-	g_pfnSwitchWeapon = (fnSwitchWeapon_t)UTIL_SearchPattern("mp.dll", SWITCH_WEAPON_FN_PATTERN, 1);
-	g_pfnFireBullets = (fnFireBullets_t)UTIL_SearchPattern("mp.dll", FIRE_BULLETS_FN_PATTERN, 1);
-	g_pfnFireBullets3 = (fnFireBullets3_t)UTIL_SearchPattern("mp.dll", FIRE_BULLETS_3_FN_PATTERN, 1);
+	g_pfnRadiusFlash = (fnRadiusFlash_t)UTIL_SearchPattern("mp.dll", 1, RADIUS_FLASH_FN_NEW_PATTERN, RADIUS_FLASH_FN_ANNIV_PATTERN);
+	g_pfnSelectItem = (fnSelectItem_t)UTIL_SearchPattern("mp.dll", 1, SELECT_ITEM_FN_NEW_PATTERN, SELECT_ITEM_FN_ANNIV_PATTERN);
+	g_pfnApplyMultiDamage = (fnApplyMultiDamage_t)UTIL_SearchPattern("mp.dll", 1, APPLY_MULTI_DAMAGE_FN_NEW_PATTERN, APPLY_MULTI_DAMAGE_FN_ANNIV_PATTERN);
+	g_pfnClearMultiDamage = (fnClearMultiDamage_t)UTIL_SearchPattern("mp.dll", 1, CLEAR_MULTI_DAMAGE_FN_NEW_PATTERN, CLEAR_MULTI_DAMAGE_FN_ANNIV_PATTERN);
+	g_pfnAddMultiDamage = (fnAddMultiDamage_t)UTIL_SearchPattern("mp.dll", 1, ADD_MULTI_DAMAGE_FN_NEW_PATTERN, ADD_MULTI_DAMAGE_FN_ANNIV_PATTERN);
+	g_pfnDefaultDeploy = (fnDefaultDeploy_t)UTIL_SearchPattern("mp.dll", 1, DEFAULT_DEPLOY_FN_NEW_PATTERN, DEFAULT_DEPLOY_FN_ANNIV_PATTERN);
+	g_pfnSwitchWeapon = (fnSwitchWeapon_t)UTIL_SearchPattern("mp.dll", 1, SWITCH_WEAPON_FN_NEW_PATTERN, SWITCH_WEAPON_FN_ANNIV_PATTERN);
+	g_pfnFireBullets = (fnFireBullets_t)UTIL_SearchPattern("mp.dll", 1, FIRE_BULLETS_FN_NEW_PATTERN, FIRE_BULLETS_FN_ANNIV_PATTERN);
+	g_pfnFireBullets3 = (fnFireBullets3_t)UTIL_SearchPattern("mp.dll", 1, FIRE_BULLETS_3_FN_NEW_PATTERN, FIRE_BULLETS_3_FN_ANNIV_PATTERN);
 
 	VTFRetrieve();
 
@@ -248,7 +248,7 @@ void fw_ServerActivate_Post(edict_t *pEdictList, int edictCount, int clientMax) 
 	// Therefore we must hook it every time.
 	if (!g_pGameRules)
 	{
-		auto addr = (std::uintptr_t)UTIL_SearchPattern("mp.dll", CWORLD_PRECACHE_FN_PATTERN, 1);
+		auto addr = (std::uintptr_t)UTIL_SearchPattern("mp.dll", 1, CWORLD_PRECACHE_FN_NEW_PATTERN, CWORLD_PRECACHE_FN_ANNIV_PATTERN);
 
 #ifdef _DEBUG
 		assert(addr != 0);
@@ -257,9 +257,11 @@ void fw_ServerActivate_Post(edict_t *pEdictList, int edictCount, int clientMax) 
 		if (!addr)
 			UTIL_Terminate("Function \"CWorld::Precache\" no found!");
 #endif
+		static constexpr std::ptrdiff_t ofs_anniv = 0xC24E3 - 0xC2440;
+		static constexpr std::ptrdiff_t ofs_new = 0xD29B4 - 0xD2940;
 
-		addr += (std::ptrdiff_t)(0xD29B4 - 0xD2940);
-		g_pGameRules = *(CHalfLifeMultiplay **)(void **)(*(long *)addr);
+		addr += Engine::BUILD_NUMBER >= Engine::ANNIVERSARY ? ofs_anniv : ofs_new;
+		auto const v = g_pGameRules = *(CHalfLifeMultiplay **)(void **)(*(long *)addr);
 
 		assert(g_pGameRules != nullptr);
 
