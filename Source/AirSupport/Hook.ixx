@@ -49,7 +49,7 @@ export using fnDefaultDeploy_t = qboolean(__thiscall *)(CBasePlayerWeapon *pThis
 export using fnSwitchWeapon_t = qboolean(__thiscall *)(CBasePlayer *pThis, CBasePlayerItem *pWeapon) noexcept;
 export using fnCleanUpMap_t = void(__thiscall *)(CHalfLifeMultiplay *) noexcept;
 export using fnFireBullets_t = void(__thiscall *)(CBaseEntity *pThis, unsigned long cShots, Vector vecSrc, Vector vecDirShooting, Vector vecSpread, float flDistance, int iBulletType, int iTracerFreq, int iDamage, entvars_t *pevAttacker) noexcept;
-export using fnFireBullets3_t = Vector(__fastcall *)(long argument1, long argument2, Vector vecSrc, Vector vecDirShooting, float flSpread, float flDistance, int iPenetration, int iBulletType, int iDamage, float flRangeModifier, entvars_t *pevAttacker, bool bPistol, int shared_rand) noexcept;	// This one is extremely wierd.
+export using fnFireBullets3_t = Vector*(__fastcall *)(CBaseEntity *pThis, void* edx, Vector* pret, Vector vecSrc, Vector vecDirShooting, float flSpread, float flDistance, int iPenetration, int iBulletType, int iDamage, float flRangeModifier, entvars_t *pevAttacker, qboolean bPistol, int shared_rand) noexcept; // check the comment of its callback for more info.
 
 export inline fnItemAddToPlayer_t g_pfnItemAddToPlayer = nullptr;
 export inline fnItemDeploy_t g_pfnItemDeploy = nullptr;

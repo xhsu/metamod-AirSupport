@@ -408,18 +408,18 @@ void __fastcall OrpheuF_FireBullets(CBaseEntity *pThis, int, unsigned long cShot
 	g_bIsSomeoneShooting = false;
 }
 
-Vector __fastcall OrpheuF_FireBullets3(long argument1, long argument2, Vector vecSrc, Vector vecDirShooting, float flSpread, float flDistance, int iPenetration, int iBulletType, int iDamage, float flRangeModifier, entvars_t *pevAttacker, bool bPistol, int shared_rand) noexcept
+Vector *__fastcall OrpheuF_FireBullets3(CBaseEntity* pThis, void* edx, Vector* pret, Vector vecSrc, Vector vecDirShooting, float flSpread, float flDistance, int iPenetration, int iBulletType, int iDamage, float flRangeModifier, entvars_t* pevAttacker, qboolean bPistol, int shared_rand) noexcept
 {
-	// LUNA: this hook is VERY wierd and cannot be served as any other purpose
-	// unlike other __fastcall, the 'this' pointer is still stuck in register ecx and the first two arguments remains unknown.
-	// So does the return value, it's a array of constant mumbo-jumbo 4-byte data.
-	// According to IDA, it consists of 16 arguments (excluding 'this' and 'edx') but only 15 arguments are meaningful.
-
-	//_asm mov pThis, ecx;
+	// LUNA: for any C++ function, the return value was already prepared at caller side,
+	// with its value passed into the callee as if it were an argument.
+	// for example:
+	// Vector fn(void) => Vector* fn(Vector* pret)
+	// where the return value and the pret argument have exactly same address.
+	// edx register must be pass on, or it might invokes content loss.
 
 	g_bIsSomeoneShooting = true;
 	UTIL_UndoPatch(g_pfnFireBullets3, HookInfo::FireBullets3.m_OriginalBytes);
-	auto const ret = g_pfnFireBullets3(argument1, argument2, vecSrc, vecDirShooting, flSpread, flDistance, iPenetration, iBulletType, iDamage, flRangeModifier, pevAttacker, bPistol, shared_rand);
+	auto const ret = g_pfnFireBullets3(pThis, edx, pret, vecSrc, vecDirShooting, flSpread, flDistance, iPenetration, iBulletType, iDamage, flRangeModifier, pevAttacker, bPistol, shared_rand);
 	UTIL_DoPatch(g_pfnFireBullets3, HookInfo::FireBullets3.m_PatchedBytes);
 	g_bIsSomeoneShooting = false;
 	return ret;
