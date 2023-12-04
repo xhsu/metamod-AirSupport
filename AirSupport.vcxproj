@@ -238,6 +238,7 @@ start Enforcer.exe</Command>
     <ClCompile Include="Source\AirSupport\Weapon.cpp" />
     <ClCompile Include="Source\CSDK\Ray.ixx" />
     <ClCompile Include="Source\CSDK\Wave.ixx" />
+    <ClCompile Include="Source\CSDK\ZBot.ixx" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\AirSupport\DamageOverTime.ixx">

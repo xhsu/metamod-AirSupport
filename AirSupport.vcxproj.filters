@@ -373,5 +373,8 @@
     <ClCompile Include="Source\CSDK\VTFH.ixx">
       <Filter>Source\CSDK</Filter>
     </ClCompile>
+    <ClCompile Include="Source\CSDK\ZBot.ixx">
+      <Filter>Source\CSDK</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

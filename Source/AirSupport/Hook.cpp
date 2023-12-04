@@ -261,7 +261,7 @@ void fw_ServerActivate_Post(edict_t *pEdictList, int edictCount, int clientMax) 
 		static constexpr std::ptrdiff_t ofs_new = 0xD29B4 - 0xD2940;
 
 		addr += Engine::BUILD_NUMBER >= Engine::ANNIVERSARY ? ofs_anniv : ofs_new;
-		auto const v = g_pGameRules = *(CHalfLifeMultiplay **)(void **)(*(long *)addr);
+		g_pGameRules = *(CHalfLifeMultiplay **)(void **)(*(long *)addr);
 
 		assert(g_pGameRules != nullptr);
 
