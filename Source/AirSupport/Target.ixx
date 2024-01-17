@@ -15,6 +15,9 @@ export struct CDynamicTarget : public Prefab_t
 	static inline constexpr double CARPET_BOMBARDMENT_INTERVAL = 250.0;
 	static inline mstudiobonecontroller_t ARROW_CONTROLLER{}, MINIATURE_CONTROLLER{};
 
+	// The beam have no its own class.
+	static inline constexpr char BEAM_CLASSNAME[] = "info_airsupport_beam";
+
 	~CDynamicTarget() noexcept override;
 
 	Task Task_Animation() noexcept;

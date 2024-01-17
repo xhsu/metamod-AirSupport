@@ -839,7 +839,7 @@ void CDynamicTarget::EnableBeacons() noexcept
 		pBeacon->SetFlags(BEAM_FSHADEOUT);	// fade out on rear end.
 		pBeacon->PointsInit(pev->origin, Vector(0, 0, 32));
 
-		pBeacon->pev->classname = MAKE_STRING("Beacon");
+		pBeacon->pev->classname = MAKE_STRING(BEAM_CLASSNAME);
 		pBeacon->pev->renderfx = kRenderFxNone;
 		pBeacon->pev->effects |= EF_NODRAW;
 		pBeacon->pev->nextthink = 0.1f;

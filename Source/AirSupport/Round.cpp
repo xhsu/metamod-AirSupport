@@ -31,6 +31,9 @@ void OrpheuF_CleanUpMap(CHalfLifeMultiplay *pThis) noexcept
 
 	// CDynamicTarget does not required to be clear up
 
+	for (auto&& pEnt : Query::all_nonplayer_entities() | Query::with_classname_of(CDynamicTarget::BEAM_CLASSNAME))
+		pEnt->pev->flags |= FL_KILLME;	// Fixing the but when player calls a carpet bombardment during round ending.
+
 	for (auto &&pEnt : FIND_ENTITY_BY_CLASSNAME(CFixedTarget::CLASSNAME))
 		pEnt->v.flags |= FL_KILLME;
 

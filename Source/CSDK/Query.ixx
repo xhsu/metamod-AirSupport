@@ -88,4 +88,10 @@ namespace Query
 		return
 			std::views::transform([](auto &&ent) noexcept -> T* { return EHANDLE<CBaseEntity>(ent).As<T>(); });
 	}
+
+	export template <size_t N> inline decltype(auto) with_classname_of(const char (&szClassname)[N]) noexcept
+	{
+		return
+			std::views::filter([&](auto&& ent) noexcept -> bool { auto const pEdict = ent_cast<edict_t*>(ent); return MAKE_STRING(szClassname) == pEdict->v.classname; });
+	}
 }
