@@ -1,6 +1,9 @@
 // Enforcer.cpp : This file contains the 'main' function. Program execution begins and ends there.
 //
 
+// Should output timepoint?
+//#define SHOW_TIME_POINT
+
 import <cstdint>;
 import <cstdio>;
 import <cstdlib>;
@@ -103,7 +106,9 @@ int main() noexcept
 	if (std::ofstream fout(PROJECT_DIR "Resource_CRC64.hpp"); fout && !g_rgiCRC64.empty())
 	{
 		fout
+#ifdef SHOW_TIME_POINT
 			<< "// File Generated at: " __DATE__ " " __TIME__ "\n"
+#endif
 			<< '\n'
 			//<< "#include <string_view>\n"
 			//<< "#include <unordered_map>\n"
@@ -133,7 +138,9 @@ int main() noexcept
 	if (std::ofstream fout(PROJECT_DIR "Resource_ModelDetails.hpp"); fout && !g_rgrgflAnimTime.empty())
 	{
 		fout
+#ifdef SHOW_TIME_POINT
 			<< "// File Generated at: " __DATE__ " " __TIME__ "\n"
+#endif
 			<< '\n'
 			<< "EXPORT inline std::unordered_map<std::string_view, std::vector<double>> const g_rgrgflAnimTime = " << '\n'
 			<< '{' << '\n';
@@ -166,7 +173,9 @@ int main() noexcept
 	if (std::ofstream fout(PROJECT_DIR "Resource_SpriteDetails.hpp"); fout && !g_rgiSpriteFrameCount.empty())
 	{
 		fout
+#ifdef SHOW_TIME_POINT
 			<< "// File Generated at: " __DATE__ " " __TIME__ "\n"
+#endif
 			<< '\n'
 			<< "EXPORT inline std::unordered_map<std::string_view, int> const g_rgiSpriteFrameCount = " << '\n'
 			<< '{' << '\n';
@@ -186,7 +195,9 @@ int main() noexcept
 	if (std::ofstream fout(PROJECT_DIR "Resource_SoundDetails.hpp"); fout && !g_rgflSoundTime.empty())
 	{
 		fout
+#ifdef SHOW_TIME_POINT
 			<< "// File Generated at: " __DATE__ " " __TIME__ "\n"
+#endif
 			<< '\n'
 			<< "EXPORT inline std::unordered_map<std::string_view, double> const g_rgflSoundTime = " << '\n'
 			<< '{' << '\n';

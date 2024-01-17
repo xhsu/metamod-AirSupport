@@ -329,7 +329,7 @@ public:
 		{
 			if (pev->owner)
 			{
-				EHANDLE<CBaseEntity> pOwner = pev->owner;
+				EHANDLE<CBaseEntity> pOwner{ pev->owner };
 				pOwner->Use(pOther, this, USE_TOGGLE, 0);
 			}
 

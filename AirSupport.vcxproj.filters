@@ -376,5 +376,11 @@
     <ClCompile Include="Source\CSDK\ZBot.ixx">
       <Filter>Source\CSDK</Filter>
     </ClCompile>
+    <ClCompile Include="..\metamod-p\hlsdk\dlls\monsterevent.ixx">
+      <Filter>HLSDK\dlls</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\CSDK\ConditionZero.ixx">
+      <Filter>Source\CSDK</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

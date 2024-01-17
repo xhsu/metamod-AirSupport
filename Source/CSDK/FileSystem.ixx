@@ -177,6 +177,7 @@ namespace FileSystem
 	export extern "C++" inline IFileSystem* m_pObject = nullptr;
 	export extern "C++" inline HMODULE m_pModuleHandle = nullptr;
 
+	// Call once in GameInit_Post()
 	export bool Init() noexcept
 	{
 		m_pModuleHandle = LoadLibraryA(STDIO_FILESYSTEM_LIB);

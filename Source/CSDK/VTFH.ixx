@@ -29,17 +29,17 @@ export inline fnEntityTraceBleed_t g_pfnEntityTraceBleed = nullptr;
 export inline fnEntityDamageDecal_t g_pfnEntityDamageDecal = nullptr;
 export inline fnEntityGetNextTarget_t g_pfnEntityGetNextTarget = nullptr;
 
-export bool VTFRetrieve() noexcept
+export void RetrieveCBaseVirtualFn() noexcept
 {
-	auto pEnt = g_engfuncs.pfnCreateNamedEntity(MAKE_STRING("info_target"));	// Technically this is not CBaseEntity, but it is the closest one. It overrides Spawn() and ObjectCaps(), so it is still pure enough.
+	auto const pEnt = g_engfuncs.pfnCreateNamedEntity(MAKE_STRING("info_target"));	// Technically this is not CBaseEntity, but it is the closest one. It overrides Spawn() and ObjectCaps(), so it is still pure enough.
 
-	if (!pEnt || !pEnt->pvPrivateData) [[unlikely]]
+	[[unlikely]]
+	if (!pEnt || !pEnt->pvPrivateData)
 	{
 		if (pEnt)
 			g_engfuncs.pfnRemoveEntity(pEnt);
 
 		UTIL_Terminate("Failed to retrieve classtype for \"info_target\".");
-		return false;
 	}
 
 	g_pfnEntityTraceAttack = (fnEntityTraceAttack_t)UTIL_RetrieveVirtualFunction(pEnt->pvPrivateData, VFTIDX_CBASE_TRACEATTACK);
@@ -50,6 +50,4 @@ export bool VTFRetrieve() noexcept
 	g_pfnEntityGetNextTarget = (fnEntityGetNextTarget_t)UTIL_RetrieveVirtualFunction(pEnt->pvPrivateData, VFTIDX_CBASE_GETNEXTTARGET);
 
 	g_engfuncs.pfnRemoveEntity(pEnt);
-
-	return true;
 }

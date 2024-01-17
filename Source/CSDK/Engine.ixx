@@ -1,5 +1,9 @@
 export module Engine;
 
+import <charconv>;
+import <ranges>;
+import <string_view>;
+
 export import eiface;
 
 export import Platform;
@@ -14,6 +18,7 @@ export namespace Engine
 
 	inline constexpr int MODERN = 3248;
 	inline constexpr int NEW = 6153;
+	inline constexpr int LEGACY = 8684;
 	inline constexpr int ANNIVERSARY = 9000;	// 9899, DEC 01 2023
 
 	inline int(*m_pfnBuildNumber)(void) = nullptr;
@@ -35,6 +40,7 @@ export namespace Engine
 		return "hw.dll";
 	}
 
+	// Call once in GameInit_Post()
 	void Init(void) noexcept
 	{
 		m_pfnBuildNumber = (decltype(m_pfnBuildNumber))UTIL_SearchPattern(
@@ -52,5 +58,50 @@ export namespace Engine
 		}
 
 		BUILD_NUMBER = m_pfnBuildNumber();
+	}
+
+	constexpr auto LocalBuildNumber(void) noexcept
+	{
+#define COMPILE_DATE __DATE__
+
+		// #UPDATE_AT_CPP23 P2647R1
+		constexpr auto today_m = std::string_view{ COMPILE_DATE, 3 };
+		constexpr auto today_d = []() consteval { int d{}; std::from_chars(&COMPILE_DATE[4], &COMPILE_DATE[6], d); return d; }();
+		constexpr auto today_y = []() consteval { int d{}; std::from_chars(&COMPILE_DATE[7], &COMPILE_DATE[11], d); return d; }();
+
+		constexpr std::string_view mon[12] =
+		{ "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
+		constexpr char mond[12] =
+		{ 31,    28,    31,    30,    31,    30,    31,    31,    30,    31,    30,    31 };
+
+		int m = 0;
+		int d = 0;
+		int y = 0;
+
+		for (auto&& [szMonth, iDayCount] : std::views::zip(mon, mond))
+		{
+			if (today_m == szMonth)
+				break;
+
+			d += iDayCount;
+		}
+
+		d += today_d - 1;
+		y = today_y - 1900;
+
+		auto m_nBuildNumber = d + static_cast<int>((y - 1) * 365.25);
+
+		if (((y % 4) == 0) && m > 1)
+		{
+			m_nBuildNumber += 1;
+		}
+
+		//m_nBuildNumber -= 34995; // Oct 24 1996 (Quake)
+		//m_nBuildNumber -= 35739;  // Nov 7 1998 (HL1 Gold Date)
+		m_nBuildNumber -= 37679;	// Mar 01 2004 (Condition Zero)
+
+		return m_nBuildNumber;
+
+#undef COMPILE_DATE
 	}
 };

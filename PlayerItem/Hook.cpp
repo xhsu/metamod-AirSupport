@@ -1,160 +1,29 @@
-#include <cassert>
+import eiface;
 
-import <cstring>;
+import meta_api;
 
-import <string>;
-
-import progdefs;	// edict_t
-import util;
-
-import UtlHook;
-
-import Effects;
+import CBase;
+import ConditionZero;
 import Engine;
 import FileSystem;
 import GameRules;
-import Hook;
-import Jet;
-import Platform;
+import Message;
 import Plugin;
-import Round;
-import Task.Const;
+#ifndef __INTELLISENSE__
 import Task;
-import Weapon;
-
-// Resources.cpp
-extern void Precache(void) noexcept;
-//
-
-// Weapon.cpp
-extern qboolean __fastcall HamF_Item_AddToPlayer(CBasePlayerItem *pThis, int, CBasePlayer *pPlayer) noexcept;
-extern qboolean __fastcall HamF_Item_Deploy(CBasePlayerItem *pItem, int) noexcept;
-extern void __fastcall HamF_Item_PostFrame(CBasePlayerItem *pItem, int) noexcept;
-extern void __fastcall HamF_Item_Holster(CBasePlayerItem *pThis, int, int skiplocal) noexcept;
-extern void __fastcall OrpheuF_FireBullets(CBaseEntity *pThis, int, unsigned long cShots, Vector vecSrc, Vector vecDirShooting, Vector vecSpread, float flDistance, int iBulletType, int iTracerFreq, int iDamage, entvars_t *pevAttacker) noexcept;
-extern Vector* __fastcall OrpheuF_FireBullets3(CBaseEntity* pThis, void* edx, Vector* pret, Vector vecSrc, Vector vecDirShooting, float flSpread, float flDistance, int iPenetration, int iBulletType, int iDamage, float flRangeModifier, entvars_t* pevAttacker, qboolean bPistol, int shared_rand) noexcept;
-//
-
-// Round.cpp
-extern void OrpheuF_CleanUpMap(CHalfLifeMultiplay *pThis) noexcept;
-//
-
-// Waypoint.cpp
-extern Task Waypoint_Scan(void) noexcept;
-extern void Waypoint_Read(void) noexcept;
-//
-
-inline bool g_bShouldPrecache = true;
-
-void DeployHooks(void) noexcept
-{
-	static bool bHooksPerformed = false;
-
-	[[likely]]
-	if (bHooksPerformed)
-		return;
-
-	edict_t *pEnt = g_engfuncs.pfnCreateNamedEntity(MAKE_STRING("weapon_knife"));
-
-	if (!pEnt || !pEnt->pvPrivateData) [[unlikely]]
-	{
-		if (pEnt)
-			g_engfuncs.pfnRemoveEntity(pEnt);
-
-		UTIL_Terminate("Failed to retrieve classtype for \"weapon_knife\".");
-		return;
-	}
-
-	auto const rgpfnCKnife = UTIL_RetrieveVirtualFunctionTable(pEnt->pvPrivateData);
-
-	g_engfuncs.pfnRemoveEntity(pEnt);
-	pEnt = nullptr;
-
-	if (rgpfnCKnife == nullptr) [[unlikely]]
-	{
-		UTIL_Terminate("Failed to retrieve vtable for \"weapon_knife\".");
-		return;
-	}
-
-	UTIL_VirtualTableInjection(rgpfnCKnife, VFTIDX_ITEM_ADDTOPLAYER, &HamF_Item_AddToPlayer, (void **)&g_pfnItemAddToPlayer);
-	UTIL_VirtualTableInjection(rgpfnCKnife, VFTIDX_ITEM_DEPLOY, &HamF_Item_Deploy, (void **)&g_pfnItemDeploy);
-	UTIL_VirtualTableInjection(rgpfnCKnife, VFTIDX_ITEM_POSTFRAME, &HamF_Item_PostFrame, (void **)&g_pfnItemPostFrame);
-	UTIL_VirtualTableInjection(rgpfnCKnife, VFTIDX_ITEM_HOLSTER, &HamF_Item_Holster, (void **)&g_pfnItemHolster);
-
-	g_pfnRadiusFlash = (fnRadiusFlash_t)UTIL_SearchPattern("mp.dll", 1, RADIUS_FLASH_FN_NEW_PATTERN, RADIUS_FLASH_FN_ANNIV_PATTERN);
-	g_pfnSelectItem = (fnSelectItem_t)UTIL_SearchPattern("mp.dll", 1, SELECT_ITEM_FN_NEW_PATTERN, SELECT_ITEM_FN_ANNIV_PATTERN);
-	g_pfnApplyMultiDamage = (fnApplyMultiDamage_t)UTIL_SearchPattern("mp.dll", 1, APPLY_MULTI_DAMAGE_FN_NEW_PATTERN, APPLY_MULTI_DAMAGE_FN_ANNIV_PATTERN);
-	g_pfnClearMultiDamage = (fnClearMultiDamage_t)UTIL_SearchPattern("mp.dll", 1, CLEAR_MULTI_DAMAGE_FN_NEW_PATTERN, CLEAR_MULTI_DAMAGE_FN_ANNIV_PATTERN);
-	g_pfnAddMultiDamage = (fnAddMultiDamage_t)UTIL_SearchPattern("mp.dll", 1, ADD_MULTI_DAMAGE_FN_NEW_PATTERN, ADD_MULTI_DAMAGE_FN_ANNIV_PATTERN);
-	g_pfnDefaultDeploy = (fnDefaultDeploy_t)UTIL_SearchPattern("mp.dll", 1, DEFAULT_DEPLOY_FN_NEW_PATTERN, DEFAULT_DEPLOY_FN_ANNIV_PATTERN);
-	g_pfnSwitchWeapon = (fnSwitchWeapon_t)UTIL_SearchPattern("mp.dll", 1, SWITCH_WEAPON_FN_NEW_PATTERN, SWITCH_WEAPON_FN_ANNIV_PATTERN);
-	g_pfnFireBullets = (fnFireBullets_t)UTIL_SearchPattern("mp.dll", 1, FIRE_BULLETS_FN_NEW_PATTERN, FIRE_BULLETS_FN_ANNIV_PATTERN);
-	g_pfnFireBullets3 = (fnFireBullets3_t)UTIL_SearchPattern("mp.dll", 1, FIRE_BULLETS_3_FN_NEW_PATTERN, FIRE_BULLETS_3_FN_ANNIV_PATTERN);
-
-	RetrieveCBaseVirtualFn();
-
-#ifdef _DEBUG
-	assert(g_pfnRadiusFlash != nullptr);
-	assert(g_pfnSelectItem != nullptr);
-	assert(g_pfnApplyMultiDamage != nullptr);
-	assert(g_pfnClearMultiDamage != nullptr);
-	assert(g_pfnAddMultiDamage != nullptr);
-	assert(g_pfnDefaultDeploy != nullptr);
-	assert(g_pfnSwitchWeapon != nullptr);
-	assert(g_pfnFireBullets != nullptr);
-	assert(g_pfnFireBullets3 != nullptr);
-#else
-	[[unlikely]]
-	if (!g_pfnRadiusFlash)
-		UTIL_Terminate("Function \"::RadiusFlash\" no found!");
-	[[unlikely]]
-	if (!g_pfnSelectItem)
-		UTIL_Terminate("Function \"CBasePlayer::SelectItem\" no found!");
-	[[unlikely]]
-	if (!g_pfnApplyMultiDamage)
-		UTIL_Terminate("Function \"::ApplyMultiDamage\" no found!");
-	[[unlikely]]
-	if (!g_pfnClearMultiDamage)
-		UTIL_Terminate("Function \"::ClearMultiDamage\" no found!");
-	[[unlikely]]
-	if (!g_pfnAddMultiDamage)
-		UTIL_Terminate("Function \"::AddMultiDamage\" no found!");
-	[[unlikely]]
-	if (!g_pfnDefaultDeploy)
-		UTIL_Terminate("Function \"CBasePlayerWeapon::DefaultDeploy\" no found!");
-	[[unlikely]]
-	if (!g_pfnSwitchWeapon)
-		UTIL_Terminate("Function \"CBasePlayer::SwitchWeapon\" no found!");
-	[[unlikely]]
-	if (!g_pfnFireBullets)
-		UTIL_Terminate("Function \"CBaseEntity::FireBullets\" no found!");
-	[[unlikely]]
-	if (!g_pfnFireBullets3)
-		UTIL_Terminate("Function \"CBaseEntity::FireBullets3\" no found!");
 #endif
+import VTFH;
+import ZBot;
 
-	HookInfo::FireBullets.m_Address = g_pfnFireBullets;
-	HookInfo::FireBullets3.m_Address = g_pfnFireBullets3;
 
-	UTIL_PreparePatch(g_pfnFireBullets, &OrpheuF_FireBullets, HookInfo::FireBullets.m_PatchedBytes, HookInfo::FireBullets.m_OriginalBytes);
-	UTIL_PreparePatch(g_pfnFireBullets3, &OrpheuF_FireBullets3, HookInfo::FireBullets3.m_PatchedBytes, HookInfo::FireBullets3.m_OriginalBytes);
-
-	UTIL_DoPatch(g_pfnFireBullets, HookInfo::FireBullets.m_PatchedBytes);
-	UTIL_DoPatch(g_pfnFireBullets3, HookInfo::FireBullets3.m_PatchedBytes);
-
-	bHooksPerformed = true;
-}
-
-void RetrieveCVarHandles(void) noexcept
+META_RES fw_ClientCommand(EHANDLE<CBasePlayer> pPlayer) noexcept
 {
-	gcvarFriendlyFire = g_engfuncs.pfnCVarGetPointer("mp_friendlyfire");
-	gcvarMaxSpeed = g_engfuncs.pfnCVarGetPointer("sv_maxspeed");
-	gcvarMaxVelocity = g_engfuncs.pfnCVarGetPointer("sv_maxvelocity");
+	// pre event
+
+	return MRES_IGNORED;
 }
 
-// Meta API
-
-void fw_GameInit_Post(void) noexcept
+void fw_GameInit_Post() noexcept
 {
 	gpMetaGlobals->mres = MRES_IGNORED;
 	// post event
@@ -166,348 +35,28 @@ void fw_GameInit_Post(void) noexcept
 		UTIL_Terminate("Engine build '%d' mismatch from expected value: %d.\nPlease use this plugin on a legal STEAM copy.", Engine::BUILD_NUMBER, Engine::NEW);
 }
 
-int fw_Spawn(edict_t *pent) noexcept
-{
-	gpMetaGlobals->mres = MRES_IGNORED;
-
-	[[likely]]
-	if (!g_bShouldPrecache)
-		return 0;
-
-	// plugin_precache
-
-	Precache();
-
-	g_bShouldPrecache = false;
-	return 0;
-}
-
-void fw_Think(edict_t *pent) noexcept
-{
-	[[unlikely]]
-	if (auto const pGrenade = EHANDLE<CBaseEntity>(pent).As<CGrenade>();
-		pGrenade != nullptr && !pGrenade->m_bIsC4 && pGrenade->pev->dmgtime < gpGlobals->time)
-	{
-		// This should be our cloud, if everything goes with the plan.
-		if (auto const pCloud = pGrenade->m_pBombDefuser.As<CFuelAirCloud>();
-			pCloud != nullptr && !pCloud->m_bIgnited)
-		{
-			pCloud->Ignite();
-		}
-	}
-}
-
-extern META_RES OnClientCommand(CBasePlayer *pPlayer, const std::string &szCommand) noexcept;
-void fw_ClientCommand(edict_t *pEdict) noexcept
-{
-	gpMetaGlobals->mres = MRES_IGNORED;
-
-	[[unlikely]]
-	if (pev_valid(pEdict) != 2)
-		return;
-
-	if (auto const pEntity = (CBaseEntity *)pEdict->pvPrivateData; !pEntity->IsPlayer())
-		return;
-
-	gpMetaGlobals->mres = OnClientCommand((CBasePlayer *)pEdict->pvPrivateData, g_engfuncs.pfnCmd_Argv(0));
-	// pre
-}
-
 void fw_ServerActivate_Post(edict_t* pEdictList, int edictCount, int clientMax) noexcept
 {
 	gpMetaGlobals->mres = MRES_IGNORED;
+	// post event
 
-	// plugin_init
-
-	DeployHooks();
-	RetrieveMessageHandles();
-	RetrieveCVarHandles();
-	Waypoint_Read();
-	CDynamicTarget::RetrieveModelInfo();
-	Task_GetWorld();	// Not a task, sorry. Historical issue.
+	RetrieveCBaseVirtualFn();
+	RetrieveConditionZeroFn();
 	RetrieveGameRules();
-
-	// plugin_cfg
-
-	g_engfuncs.pfnCvar_DirectSet(gcvarMaxSpeed, "99999.0");
-	g_engfuncs.pfnCvar_DirectSet(gcvarMaxVelocity, "99999.0");
-
-	TaskScheduler::Enroll(Task_UpdateTeams());
-	TaskScheduler::Enroll(CFuelAirCloud::Task_AirPressure());
-
-	// The hook of CGameRules is very special, since it is actually delete-newed in each new game.
-	// Therefore we must hook it during every server reloading.
-
-	// However, the hook status remains even if the game reloaded.
-	// Still need this method to make sure the hooks are happened only once.
-
-	static bool bGameRuleHooked = false;
-
-	[[unlikely]]
-	if (!bGameRuleHooked)
-	{
-		auto const rgpfnCHalfLifeMultiplay = UTIL_RetrieveVirtualFunctionTable(g_pGameRules);
-
-		UTIL_VirtualTableInjection(rgpfnCHalfLifeMultiplay, VFTIDX_CHalfLifeMultiplay_CleanUpMap, UTIL_CreateTrampoline(true, 0, OrpheuF_CleanUpMap), (void**)&g_pfnCleanUpMap);
-
-		bGameRuleHooked = true;
-	}
+	RetrieveMessageHandles();
+	ZBot::RetrieveManager();
 }
 
-void fw_ServerDeactivate_Post(void) noexcept
+void fw_ServerDeactivate_Post() noexcept
 {
-	// Precache should be done across on every map change.
-	g_bShouldPrecache = true;
+	gpMetaGlobals->mres = MRES_IGNORED;
+	// post event
 
 	// CGameRules class is re-install every map change. Hence we should re-hook it everytime.
 	g_pGameRules = nullptr;
 
 	// Remove ALL existing tasks.
 	TaskScheduler::Clear();
-	
-	/************ Regular Re-zero Actions ************/
-
-	g_rgiAirSupportSelected.fill(AIR_STRIKE);
-	g_rgpPlayersOfCT.clear();
-	g_rgpPlayersOfTerrorist.clear();
-}
-
-void fw_PlayerPostThink(edict_t *pEntity) noexcept
-{
-	gpMetaGlobals->mres = MRES_IGNORED;
-	// pre
-}
-
-int fw_PrecacheSound(const char *s) noexcept
-{
-	static constexpr std::array rgszRemoveSoundsPrecache =
-	{
-		"items/suitcharge1.wav",
-		"items/suitchargeno1.wav",
-		"items/suitchargeok1.wav",
-		"player/geiger6.wav",
-		"player/geiger5.wav",
-		"player/geiger4.wav",
-		"player/geiger3.wav",
-		"player/geiger2.wav",
-		"player/geiger1.wav",
-		"weapons/bullet_hit1.wav",
-		"weapons/bullet_hit2.wav",
-		"items/weapondrop1.wav",
-		"weapons/generic_reload.wav",
-		"buttons/bell1.wav",
-		"buttons/blip1.wav",
-		"buttons/blip2.wav",
-		"buttons/button11.wav",
-		"buttons/latchunlocked2.wav",
-		"buttons/lightswitch2.wav",
-		"ambience/quail1.wav",
-		"events/tutor_msg.wav",
-		"events/enemy_died.wav",
-		"events/friend_died.wav",
-		"events/task_complete.wav",
-		"weapons/ak47_clipout.wav",
-		"weapons/ak47_clipin.wav",
-		"weapons/ak47_boltpull.wav",
-		"weapons/aug_clipout.wav",
-		"weapons/aug_clipin.wav",
-		"weapons/aug_boltpull.wav",
-		"weapons/aug_boltslap.wav",
-		"weapons/aug_forearm.wav",
-		"weapons/c4_click.wav",
-		"weapons/c4_beep1.wav",
-		"weapons/c4_beep2.wav",
-		"weapons/c4_beep3.wav",
-		"weapons/c4_beep4.wav",
-		"weapons/c4_beep5.wav",
-		"weapons/c4_explode1.wav",
-		"weapons/c4_plant.wav",
-		"weapons/c4_disarm.wav",
-		"weapons/c4_disarmed.wav",
-		"weapons/elite_reloadstart.wav",
-		"weapons/elite_leftclipin.wav",
-		"weapons/elite_clipout.wav",
-		"weapons/elite_sliderelease.wav",
-		"weapons/elite_rightclipin.wav",
-		"weapons/elite_deploy.wav",
-		"weapons/famas_clipout.wav",
-		"weapons/famas_clipin.wav",
-		"weapons/famas_boltpull.wav",
-		"weapons/famas_boltslap.wav",
-		"weapons/famas_forearm.wav",
-		"weapons/g3sg1_slide.wav",
-		"weapons/g3sg1_clipin.wav",
-		"weapons/g3sg1_clipout.wav",
-		"weapons/galil_clipout.wav",
-		"weapons/galil_clipin.wav",
-		"weapons/galil_boltpull.wav",
-		"weapons/m4a1_clipin.wav",
-		"weapons/m4a1_clipout.wav",
-		"weapons/m4a1_boltpull.wav",
-		"weapons/m4a1_deploy.wav",
-		"weapons/m4a1_silencer_on.wav",
-		"weapons/m4a1_silencer_off.wav",
-		"weapons/m249_boxout.wav",
-		"weapons/m249_boxin.wav",
-		"weapons/m249_chain.wav",
-		"weapons/m249_coverup.wav",
-		"weapons/m249_coverdown.wav",
-		"weapons/mac10_clipout.wav",
-		"weapons/mac10_clipin.wav",
-		"weapons/mac10_boltpull.wav",
-		"weapons/mp5_clipout.wav",
-		"weapons/mp5_clipin.wav",
-		"weapons/mp5_slideback.wav",
-		"weapons/p90_clipout.wav",
-		"weapons/p90_clipin.wav",
-		"weapons/p90_boltpull.wav",
-		"weapons/p90_cliprelease.wav",
-		"weapons/p228_clipout.wav",
-		"weapons/p228_clipin.wav",
-		"weapons/p228_sliderelease.wav",
-		"weapons/p228_slidepull.wav",
-		"weapons/scout_bolt.wav",
-		"weapons/scout_clipin.wav",
-		"weapons/scout_clipout.wav",
-		"weapons/sg550_boltpull.wav",
-		"weapons/sg550_clipin.wav",
-		"weapons/sg550_clipout.wav",
-		"weapons/sg552_clipout.wav",
-		"weapons/sg552_clipin.wav",
-		"weapons/sg552_boltpull.wav",
-		"weapons/ump45_clipout.wav",
-		"weapons/ump45_clipin.wav",
-		"weapons/ump45_boltslap.wav",
-		"weapons/usp_clipout.wav",
-		"weapons/usp_clipin.wav",
-		"weapons/usp_silencer_on.wav",
-		"weapons/usp_silencer_off.wav",
-		"weapons/usp_sliderelease.wav",
-		"weapons/usp_slideback.wav",
-	};
-
-	for (auto &&psz : rgszRemoveSoundsPrecache)
-	{
-		if (!strcmp(s, psz))
-		{
-			gpMetaGlobals->mres = MRES_SUPERCEDE;
-			return 0;
-		}
-	}
-
-	gpMetaGlobals->mres = MRES_IGNORED;
-	return 0;
-}
-
-void fw_TraceLine_Post(const float *v1, const float *v2, int fNoMonsters, edict_t *pentToSkip, TraceResult *ptr) noexcept
-{
-	gpMetaGlobals->mres = MRES_IGNORED;
-	// post
-
-	if (g_bIsSomeoneShooting)
-		CFuelAirCloud::OnTraceAttack(*ptr, pentToSkip);
-}
-
-int fw_CheckVisibility(const edict_t *entity, unsigned char *pset) noexcept
-{
-	if (entity->v.classname == MAKE_STRING(CJet::CLASSNAME))
-	{
-		gpMetaGlobals->mres = MRES_SUPERCEDE;
-		return true;
-	}
-
-	gpMetaGlobals->mres = MRES_IGNORED;
-	return false;
-	// pre
-}
-
-void fw_SetGroupMask_Post(int mask, int op) noexcept
-{
-	gpMetaGlobals->mres = MRES_IGNORED;
-	// post
-}
-
-void fw_UpdateClientData_Post(const edict_t *ent, int sendweapons, clientdata_t *cd) noexcept
-{
-	gpMetaGlobals->mres = MRES_IGNORED;
-	// post
-
-	if (EHANDLE<CBasePlayer> pPlayer(ent->v.pContainingEntity);	// fuck the constness
-		cd->deadflag == DEAD_NO &&
-		cd->m_iId == WEAPON_KNIFE &&
-		pPlayer->m_pActiveItem &&
-		pPlayer->m_pActiveItem->pev->weapons == RADIO_KEY &&
-		pPlayer->m_flNextAttack <= 0)
-	{
-		cd->m_iId = WEAPON_NONE;	// remove client prediction.
-	}
-}
-
-qboolean fw_AddToFullPack(entity_state_t *pState, int iEntIndex, edict_t *pEdict, edict_t *pClientSendTo, qboolean cl_lw, qboolean bIsPlayer, unsigned char *pSet) noexcept
-{
-	gpMetaGlobals->mres = MRES_IGNORED;
-
-	if (pEdict->v.classname == MAKE_STRING(CDynamicTarget::CLASSNAME) || pEdict->v.classname == MAKE_STRING(CFixedTarget::CLASSNAME)) [[unlikely]]
-	{
-		auto const pClient = (CBasePlayer *)pClientSendTo->pvPrivateData;
-
-		if (pEdict->v.team != pClient->m_iTeam)
-		{
-			gpMetaGlobals->mres = MRES_SUPERCEDE;
-			return false;
-		}
-	}
-	else if (bIsPlayer) [[unlikely]]
-	{
-		// White phosphorus munitions will burn into your bone.
-
-		if (uint64_t const iPlayerTaskId = TASK_ENTITY_ON_FIRE | (1ull << uint64_t(iEntIndex + 32ull)); TaskScheduler::Exist(iPlayerTaskId, false))
-		{
-			pState->renderfx = kRenderFxGlowShell;
-			pState->rendercolor = color24{ 192, 0, 0 };
-			pState->renderamt = 15;
-			pState->rendermode = kRenderNormal;
-		}
-	}
-
-	return true;
-}
-
-void fw_OnFreeEntPrivateData(edict_t *pEdict) noexcept
-{
-	gpMetaGlobals->mres = MRES_IGNORED;
-
-	[[likely]]
-	if (auto const pEntity = (CBaseEntity *)pEdict->pvPrivateData; pEntity != nullptr)
-	{
-		[[unlikely]]
-		if (auto const pPrefab = dynamic_cast<Prefab_t *>(pEntity); pPrefab != nullptr)
-		{
-			if (gpMetaGlobals->prev_mres == MRES_SUPERCEDE)	// It had been handled by other similar plugins.
-				return;
-
-			std::destroy_at(pPrefab);	// Thanks to C++17 we can finally patch up this old game.
-			gpMetaGlobals->mres = MRES_SUPERCEDE;
-		}
-	}
-}
-
-qboolean fw_ShouldCollide(edict_t *pentTouched, edict_t *pentOther) noexcept
-{
-	gpMetaGlobals->mres = MRES_IGNORED;
-
-	if (gpMetaGlobals->prev_mres == MRES_SUPERCEDE)
-		return *(int *)gpMetaGlobals->orig_ret;
-
-	EHANDLE<CBaseEntity> pEntity(pentTouched), pOther(pentOther);
-
-	if (auto const pPrefab = pEntity.As<Prefab_t>(); pPrefab && pOther)
-	{
-		gpMetaGlobals->mres = MRES_SUPERCEDE;
-		return pPrefab->ShouldCollide(pOther);
-	}
-
-	return *(int *)gpMetaGlobals->orig_ret;
 }
 
 // Register Meta Hooks
@@ -515,8 +64,8 @@ qboolean fw_ShouldCollide(edict_t *pentTouched, edict_t *pentOther) noexcept
 inline constexpr DLL_FUNCTIONS gFunctionTable =
 {
 	.pfnGameInit	= nullptr,
-	.pfnSpawn		= &fw_Spawn,
-	.pfnThink		= &fw_Think,
+	.pfnSpawn		= nullptr,
+	.pfnThink		= nullptr,
 	.pfnUse			= nullptr,
 	.pfnTouch		= nullptr,
 	.pfnBlocked		= nullptr,
@@ -536,13 +85,13 @@ inline constexpr DLL_FUNCTIONS gFunctionTable =
 	.pfnClientDisconnect	= nullptr,
 	.pfnClientKill			= nullptr,
 	.pfnClientPutInServer	= nullptr,
-	.pfnClientCommand		= &fw_ClientCommand,
+	.pfnClientCommand		= +[](edict_t* pPlayer) noexcept { gpMetaGlobals->mres = fw_ClientCommand(pPlayer); },
 	.pfnClientUserInfoChanged= nullptr,
 	.pfnServerActivate		= nullptr,
 	.pfnServerDeactivate	= nullptr,
 
 	.pfnPlayerPreThink	= nullptr,
-	.pfnPlayerPostThink	= &fw_PlayerPostThink,
+	.pfnPlayerPostThink	= nullptr,
 
 	.pfnStartFrame		= nullptr,
 	.pfnParmsNewLevel	= nullptr,
@@ -563,7 +112,7 @@ inline constexpr DLL_FUNCTIONS gFunctionTable =
 
 	.pfnSetupVisibility	= nullptr,
 	.pfnUpdateClientData= nullptr,
-	.pfnAddToFullPack	= &fw_AddToFullPack,
+	.pfnAddToFullPack	= nullptr,
 	.pfnCreateBaseline	= nullptr,
 	.pfnRegisterEncoders= nullptr,
 	.pfnGetWeaponData	= nullptr,
@@ -646,7 +195,7 @@ inline constexpr DLL_FUNCTIONS gFunctionTable_Post =
 	.pfnPM_FindTextureType	= nullptr,
 
 	.pfnSetupVisibility	= nullptr,
-	.pfnUpdateClientData= &fw_UpdateClientData_Post,
+	.pfnUpdateClientData= nullptr,
 	.pfnAddToFullPack	= nullptr,
 	.pfnCreateBaseline	= nullptr,
 	.pfnRegisterEncoders= nullptr,
@@ -682,9 +231,9 @@ int HookGameDLLExportedFn_Post(DLL_FUNCTIONS *pFunctionTable, int *interfaceVers
 
 inline constexpr NEW_DLL_FUNCTIONS gNewFunctionTable =
 {
-	.pfnOnFreeEntPrivateData	= &fw_OnFreeEntPrivateData,
-	.pfnGameShutdown			= []() noexcept { FileSystem::Shutdown(); },
-	.pfnShouldCollide			= &fw_ShouldCollide,
+	.pfnOnFreeEntPrivateData	= nullptr,
+	.pfnGameShutdown			= nullptr,
+	.pfnShouldCollide			= nullptr,
 	.pfnCvarValue				= nullptr,
 	.pfnCvarValue2				= nullptr,
 };
@@ -712,7 +261,7 @@ int HookGameDLLNewFn(NEW_DLL_FUNCTIONS *pFunctionTable, int *interfaceVersion) n
 inline constexpr enginefuncs_t gHookEngFns = 
 {
 	.pfnPrecacheModel	= nullptr,
-	.pfnPrecacheSound	= &fw_PrecacheSound,
+	.pfnPrecacheSound	= nullptr,
 	.pfnSetModel		= nullptr,
 	.pfnModelIndex		= nullptr,
 	.pfnModelFrames		= nullptr,
@@ -871,7 +420,7 @@ inline constexpr enginefuncs_t gHookEngFns =
 	.pfnSetFatPVS		= nullptr,
 	.pfnSetFatPAS		= nullptr,
 
-	.pfnCheckVisibility	= &fw_CheckVisibility,
+	.pfnCheckVisibility	= nullptr,
 
 	.pfnDeltaSetField			= nullptr,
 	.pfnDeltaUnsetField			= nullptr,
@@ -983,7 +532,7 @@ inline constexpr enginefuncs_t gHookEngFns_Post =
 	.pfnEmitSound		= nullptr,
 	.pfnEmitAmbientSound= nullptr,
 
-	.pfnTraceLine		= &fw_TraceLine_Post,
+	.pfnTraceLine		= nullptr,
 	.pfnTraceToss		= nullptr,
 	.pfnTraceMonsterHull= nullptr,
 	.pfnTraceHull		= nullptr,
@@ -1114,7 +663,7 @@ inline constexpr enginefuncs_t gHookEngFns_Post =
 	.pfnDeltaSetFieldByIndex	= nullptr,
 	.pfnDeltaUnsetFieldByIndex	= nullptr,
 
-	.pfnSetGroupMask			= &fw_SetGroupMask_Post,
+	.pfnSetGroupMask			= nullptr,
 
 	.pfnCreateInstancedBaseline	= nullptr,
 	.pfnCvar_DirectSet			= nullptr,

@@ -113,7 +113,14 @@ META_RES OnClientCommand(CBasePlayer *pPlayer, const string &szCommand) noexcept
 #ifndef _MSC_FULL_VER
 #error "This project is exclusive to MSVC. Fvck clang, GCC and Apple stuff."
 #endif
-		g_engfuncs.pfnServerPrint(std::format("Compiled with MSVC {0} and C++ {1}L\n", _MSC_FULL_VER, __cplusplus).c_str());
+		g_engfuncs.pfnServerPrint(std::format(
+			"\tCompiled with MSVC {0} and C++ {1}L\n"
+			"\tPlugin build number {2}\n",
+
+			_MSC_FULL_VER, __cplusplus,
+			Engine::LocalBuildNumber()
+		).c_str());
+
 		return MRES_SUPERCEDE;
 	}
 

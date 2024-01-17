@@ -47,19 +47,15 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <OutDir>C:\Program Files (x86)\Steam\steamapps\common\Half-Life\czero\addons\metamod\dlls\</OutDir>
-    <IntDir>$(SolutionDir)Bin\$(ProjectName)-$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <OutDir>C:\Program Files (x86)\Steam\steamapps\common\Half-Life\czero\addons\metamod\dlls\</OutDir>
-    <IntDir>$(SolutionDir)Bin\$(ProjectName)-$(Configuration)\</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING;_DEBUG;AIRSUPPORT_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpplatest</LanguageStandard>
-      <ScanSourceForModuleDependencies>true</ScanSourceForModuleDependencies>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <ExceptionHandling>false</ExceptionHandling>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -75,7 +71,7 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
-      <ModuleDefinitionFile>export.def</ModuleDefinitionFile>
+      <ModuleDefinitionFile>$(SolutionDir)export.def</ModuleDefinitionFile>
     </Link>
     <PostBuildEvent>
       <Command>copy /Y "$(TargetPath)" "$(SolutionDir)Bin\"</Command>
@@ -92,8 +88,6 @@ start Enforcer.exe</Command>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING;NDEBUG;AIRSUPPORT_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpplatest</LanguageStandard>
-      <ScanSourceForModuleDependencies>true</ScanSourceForModuleDependencies>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <ExceptionHandling>false</ExceptionHandling>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -114,7 +108,7 @@ start Enforcer.exe</Command>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
-      <ModuleDefinitionFile>export.def</ModuleDefinitionFile>
+      <ModuleDefinitionFile>$(SolutionDir)export.def</ModuleDefinitionFile>
     </Link>
     <PostBuildEvent>
       <Command>copy /Y "$(TargetPath)" "$(SolutionDir)Bin\"</Command>
@@ -168,6 +162,7 @@ start Enforcer.exe</Command>
     <ClCompile Include="..\metamod-p\hlsdk\dlls\activity.ixx" />
     <ClCompile Include="..\metamod-p\hlsdk\dlls\cdll_dll.ixx" />
     <ClCompile Include="..\metamod-p\hlsdk\dlls\extdll.ixx" />
+    <ClCompile Include="..\metamod-p\hlsdk\dlls\monsterevent.ixx" />
     <ClCompile Include="..\metamod-p\hlsdk\dlls\util.ixx" />
     <ClCompile Include="..\metamod-p\hlsdk\dlls\vector.ixx" />
     <ClCompile Include="..\metamod-p\hlsdk\engine\archtypes.ixx" />
@@ -202,6 +197,7 @@ start Enforcer.exe</Command>
     <ClCompile Include="Source\AirSupport\Effects.ixx" />
     <ClCompile Include="Source\AirSupport\Weapon.ixx" />
     <ClCompile Include="Source\AirSupport\Effects.cpp" />
+    <ClCompile Include="Source\CSDK\ConditionZero.ixx" />
     <ClCompile Include="Source\CSDK\CRC64.ixx" />
     <ClCompile Include="Source\CSDK\Engine.ixx" />
     <ClCompile Include="Source\CSDK\FileSystem.ixx" />

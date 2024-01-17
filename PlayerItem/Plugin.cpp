@@ -5,11 +5,11 @@ import engine_api;
 import Plugin;
 
 // Hook.cpp
-extern int HookEngineAPI(enginefuncs_t *pengfuncsFromEngine, int *interfaceVersion) noexcept;
-extern int HookEngineAPI_Post(enginefuncs_t *pengfuncsFromEngine, int *interfaceVersion) noexcept;
-extern int HookGameDLLNewFn(NEW_DLL_FUNCTIONS *pFunctionTable, int *interfaceVersion) noexcept;
-extern int HookGameDLLExportedFn(DLL_FUNCTIONS *pFunctionTable, int *interfaceVersion) noexcept;
-extern int HookGameDLLExportedFn_Post(DLL_FUNCTIONS *pFunctionTable, int *interfaceVersion) noexcept;
+extern int HookEngineAPI(enginefuncs_t* pengfuncsFromEngine, int* interfaceVersion) noexcept;
+extern int HookEngineAPI_Post(enginefuncs_t* pengfuncsFromEngine, int* interfaceVersion) noexcept;
+extern int HookGameDLLNewFn(NEW_DLL_FUNCTIONS* pFunctionTable, int* interfaceVersion) noexcept;
+extern int HookGameDLLExportedFn(DLL_FUNCTIONS* pFunctionTable, int* interfaceVersion) noexcept;
+extern int HookGameDLLExportedFn_Post(DLL_FUNCTIONS* pFunctionTable, int* interfaceVersion) noexcept;
 //
 
 // From SDK dlls/h_export.cpp:

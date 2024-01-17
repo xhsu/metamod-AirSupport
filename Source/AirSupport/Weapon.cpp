@@ -24,16 +24,6 @@ using std::array;
 
 import Effects;
 
-enum EWeaponState
-{
-	WPNSTATE_USP_SILENCED = (1 << 0),
-	WPNSTATE_GLOCK18_BURST_MODE = (1 << 1),
-	WPNSTATE_M4A1_SILENCED = (1 << 2),
-	WPNSTATE_ELITE_LEFT = (1 << 3),
-	WPNSTATE_FAMAS_BURST_MODE = (1 << 4),
-	WPNSTATE_SHIELD_DRAWN = (1 << 5),
-};
-
 enum EVKnife
 {
 	KNIFE_IDLE,

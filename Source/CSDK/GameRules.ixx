@@ -1,6 +1,16 @@
+module;
+
+#ifdef _DEBUG
+#include <cassert>
+#endif
+
 export module GameRules;
 
+export import UtlHook;
+
 export import CBase;
+export import Engine;
+export import Platform;
 
 export enum ECounterStrikeTeam
 {
@@ -331,4 +341,40 @@ public:
 	bool m_bSkipSpawn;
 };
 
+// Reset this value to nullptr during ServerDeactivate_Post
 export inline CHalfLifeMultiplay *g_pGameRules = nullptr;
+
+export inline constexpr unsigned char CWORLD_PRECACHE_FN_NEW_PATTERN[] = "\x90\x55\x57\x33\xFF\x68\x2A\x2A\x2A\x2A\x68\x2A\x2A\x2A\x2A\x8B\xE9\x89\x3D\x2A\x2A\x2A\x2A\x89\x3D\x2A\x2A\x2A\x2A\x89\x3D";
+export inline constexpr unsigned char CWORLD_PRECACHE_FN_ANNIV_PATTERN[] = "\xCC\x55\x8B\xEC\x51\x57\x68\x2A\x2A\x2A\x2A\x68\x2A\x2A\x2A\x2A\x8B\xF9\xC7\x05";
+
+// This hook is very special, since it is actually delete-newed in each new game.
+// Therefore we must hook it every time.
+export void RetrieveGameRules() noexcept
+{
+	auto addr = (std::uintptr_t)UTIL_SearchPattern("mp.dll", 1, CWORLD_PRECACHE_FN_NEW_PATTERN, CWORLD_PRECACHE_FN_ANNIV_PATTERN);
+
+#ifdef _DEBUG
+	assert(addr != 0);
+#else
+	[[unlikely]]
+	if (!addr)
+		UTIL_Terminate("Function \"CWorld::Precache\" no found!");
+#endif
+
+	static constexpr std::ptrdiff_t ofs_anniv = 0xC24E3 - 0xC2440;
+	static constexpr std::ptrdiff_t ofs_new = 0xD29B4 - 0xD2940;
+
+	addr += Engine::BUILD_NUMBER >= Engine::ANNIVERSARY ? ofs_anniv : ofs_new;
+	g_pGameRules = *(CHalfLifeMultiplay**)(void**)(*(long*)addr);
+
+#ifdef _DEBUG
+	assert(g_pGameRules != nullptr);
+#else
+	[[unlikely]]
+	if (!g_pGameRules)
+		UTIL_Terminate("Pointer \"g_pGameRules\" remains nullptr after pattern searching!");
+#endif
+
+	// However, the hook status remains even if the game reloaded.
+	// Still need this method to make sure the hooks are happened only once.
+}

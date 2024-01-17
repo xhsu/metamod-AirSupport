@@ -422,7 +422,7 @@ export namespace ZBot
 
 	inline CBotManager** ppTheBots{ nullptr };
 
-	// Need to be retrieve every new game.
+	// Need to be retrieve every new game. #UNTESTED #FIXME
 	void RetrieveManager(void) noexcept
 	{
 		auto addr = (std::uintptr_t)UTIL_SearchPattern("mp.dll", INSTALL_BOT_CONTROL_FN_ANNIV_PATTERN, 1);
@@ -433,7 +433,7 @@ export namespace ZBot
 			UTIL_Terminate("Function \"::InstallBotControl\" no found!");
 		}
 
-		static constexpr std::ptrdiff_t ofs_anniv = 0x1F3BC - 0x1F330;
+		static constexpr std::ptrdiff_t ofs_anniv = 0x1F357 - 0x1F330;
 
 		addr += ofs_anniv;
 		//auto v = *(CBotManager**)(void**)(*(long*)addr);

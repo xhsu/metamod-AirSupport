@@ -1,3 +1,9 @@
+module;
+
+#ifdef __INTELLISENSE__
+#include <array>
+#endif
+
 export module Task;
 
 export import <cstdint>;
@@ -171,6 +177,7 @@ export namespace TaskScheduler
 {
 	inline TaskScheduler_t m_GlobalScheduler{};
 
+	// StartFrame_Post
 	inline decltype(auto) Think(void) noexcept { return m_GlobalScheduler.Think(); }
 
 	inline decltype(auto) Enroll(Task &&obj, uint64_t iCoroutineMarker = 0ull) noexcept { return m_GlobalScheduler.Enroll(std::forward<Task>(obj), iCoroutineMarker); }
@@ -181,12 +188,19 @@ export namespace TaskScheduler
 
 	inline decltype(auto) Exist(uint64_t iCoroutineMarker, bool bUsingBits = true) noexcept { return m_GlobalScheduler.Exist(iCoroutineMarker, bUsingBits); }
 
+	// ServerDeactivate_Post
 	inline decltype(auto) Clear(void) noexcept { return m_GlobalScheduler.Clear(); }
 };
 
 export namespace TaskScheduler::NextFrame
 {
-	inline constexpr array Rank{
+	// #FIXME_INTELLISENSE
+#ifdef __INTELLISENSE__
+	inline constexpr array<decltype(gpGlobals->time), 10> Rank
+#else
+	inline constexpr array Rank
+#endif
+	{
 		std::numeric_limits<decltype(gpGlobals->time)>::epsilon(),
 		std::numeric_limits<decltype(gpGlobals->time)>::epsilon() * 2.f,
 		std::numeric_limits<decltype(gpGlobals->time)>::epsilon() * 3.f,

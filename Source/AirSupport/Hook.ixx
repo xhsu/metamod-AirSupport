@@ -29,8 +29,6 @@ export inline constexpr unsigned char DEFAULT_DEPLOY_FN_NEW_PATTERN[] = "\x90\x5
 export inline constexpr unsigned char DEFAULT_DEPLOY_FN_ANNIV_PATTERN[] = "\xCC\x55\x8B\xEC\x56\x8B\xF1\x8B\x06\xFF\x90\x2A\x2A\x2A\x2A\x85\xC0";
 export inline constexpr unsigned char SWITCH_WEAPON_FN_NEW_PATTERN[] = "\x90\x83\xEC\x0C\x56\x57\x8B\x7C\x24\x18\x8B\xF1\x8B\xCF\x8B\x07\xFF\x90\xF8\x00\x00\x00";
 export inline constexpr unsigned char SWITCH_WEAPON_FN_ANNIV_PATTERN[] = "\xCC\x55\x8B\xEC\x56\x57\x8B\x7D\x08\x8B\xF1\x8B\xCF\x8B\x07\xFF\x90";
-export inline constexpr unsigned char CWORLD_PRECACHE_FN_NEW_PATTERN[] = "\x90\x55\x57\x33\xFF\x68\x2A\x2A\x2A\x2A\x68\x2A\x2A\x2A\x2A\x8B\xE9\x89\x3D\x2A\x2A\x2A\x2A\x89\x3D\x2A\x2A\x2A\x2A\x89\x3D";
-export inline constexpr unsigned char CWORLD_PRECACHE_FN_ANNIV_PATTERN[] = "\xCC\x55\x8B\xEC\x51\x57\x68\x2A\x2A\x2A\x2A\x68\x2A\x2A\x2A\x2A\x8B\xF9\xC7\x05";
 export inline constexpr unsigned char FIRE_BULLETS_FN_NEW_PATTERN[] = "\x90\x81\xEC\x2A\x2A\x2A\x2A\xA1\x2A\x2A\x2A\x2A\x53\x55\x8B\xE9\x8B\x48\x40\x8B\x50\x44\x89\x8C\x24\x8C\x00\x00\x00\x8B\x48\x48\x89\x94\x24\x90\x00\x00\x00";
 export inline constexpr unsigned char FIRE_BULLETS_FN_ANNIV_PATTERN[] = "\xCC\x55\x8B\xEC\x83\xEC\x78\xA1\x2A\x2A\x2A\x2A\x53\x56\x57\xF3\x0F\x10\x40\x2A\x8B";
 export inline constexpr unsigned char FIRE_BULLETS_3_FN_NEW_PATTERN[] = "\x90\x81\xEC\x2A\x2A\x2A\x2A\x8B\x84\x24\x00\x01\x00\x00\x53\x55\x89\x44\x24\x0C\xA1\x2A\x2A\x2A\x2A\x56\x57\x8B\xF9\x8B\x48\x40\x8B\x50\x44";
@@ -65,15 +63,6 @@ export inline fnSwitchWeapon_t g_pfnSwitchWeapon = nullptr;
 export inline fnCleanUpMap_t g_pfnCleanUpMap = nullptr;
 export inline fnFireBullets_t g_pfnFireBullets = nullptr;
 export inline fnFireBullets3_t g_pfnFireBullets3 = nullptr;
-
-export using gmsgScreenFade = Message_t<"ScreenFade", uint16_t, uint16_t, uint16_t, byte, byte, byte, byte>;
-export using gmsgScreenShake = Message_t<"ScreenShake", uint16_t, uint16_t, uint16_t>;
-export using gmsgBarTime = Message_t<"BarTime", int16_t>;
-export using gmsgWeaponAnim = Message_t<"WeapAnim", byte, byte>;	// actually no such message exist. pure wrapper.
-export using gmsgWeaponList = Message_t<"WeaponList", const char*, byte, byte, byte, byte, byte, byte, byte, byte>;
-export using gmsgWeapPickup = Message_t<"WeapPickup", byte>;
-export using gmsgTextMsg = Message_t<"TextMsg", byte, const char *>;	// 4 args more actually, but whatever.
-export using gmsgShowMenu = Message_t<"ShowMenu", uint16_t, int8_t, byte, const char*>;
 
 export inline cvar_t *gcvarMaxSpeed = nullptr;
 export inline cvar_t *gcvarMaxVelocity = nullptr;

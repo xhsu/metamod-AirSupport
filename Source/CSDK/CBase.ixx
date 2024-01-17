@@ -1,16 +1,26 @@
 export module CBase;
 
+// LUNA: This module consists of multiple portions.
+//		 The other one contains the runtime extension, like the hash table functions.
+//		 Find more in ConditionZero.ixx
+//		 For virtual functions, they are located in VTFH.ixx
+
 //#ifndef offsetof
 //#define offsetof(s,m) ((::size_t)&reinterpret_cast<char const volatile&>((((s*)0)->m)))
 //#endif
+export import <cassert>;
 export import <cstddef>;
 
-export import progdefs;
-export import eiface;
-export import util;
+export import <concepts>;
+export import <span>;
+
 export import activity;
 export import cdll_dll;
+export import eiface;
+export import monsterevent;
 export import pm_materials;
+export import progdefs;
+export import util;
 
 // These are caps bits to indicate what an object's capabilities (currently used for save/restore and level transitions)
 export inline constexpr auto FCAP_CUSTOMSAVE = 0x00000001;
@@ -122,13 +132,53 @@ public:
 	virtual qboolean FVisible(CBaseEntity *pEntity) = 0;
 	virtual qboolean FVisible(const Vector &vecOrigin) = 0;
 
-//public:
-//	void EXPORT SUB_Remove(void);
-//	void EXPORT SUB_DoNothing(void);
+public:
+	void __declspec(dllexport) SUB_Remove(void) noexcept
+	{
+		if (pev->health > 0)
+		{
+			// this situation can screw up monsters who can't tell their entity pointers are invalid.
+			pev->health = 0;
+			g_engfuncs.pfnAlertMessage(at_aiconsole, "SUB_Remove called on entity with health > 0\n");
+		}
+
+		g_engfuncs.pfnRemoveEntity(edict());
+	}
+	void __declspec(dllexport) SUB_DoNothing(void) noexcept {};
 //	void EXPORT SUB_StartFadeOut(void);
 //	void EXPORT SUB_FadeOut(void);
 //	void EXPORT SUB_CallUseToggle(void) { Use(this, this, USE_TOGGLE, 0); }
 //	void SUB_UseTargets(CBaseEntity *pActivator, USE_TYPE useType, float value);
+
+	// LUNA: Templated type-safe version, from ReGameDLL
+
+	__forceinline void SetThink(std::nullptr_t) noexcept { m_pfnThink = nullptr; }
+	template <std::derived_from<CBaseEntity> T>
+	__forceinline void SetThink(void (T::* pfn)()) noexcept
+	{
+		m_pfnThink = static_cast<decltype(m_pfnThink)>(pfn);
+	}
+
+	__forceinline void SetTouch(std::nullptr_t) noexcept { m_pfnTouch = nullptr; }
+	template <std::derived_from<CBaseEntity> T>
+	__forceinline void SetTouch(void (T::* pfn)(CBaseEntity* pOther)) noexcept
+	{
+		m_pfnTouch = static_cast<decltype(m_pfnTouch)>(pfn);
+	}
+
+	__forceinline void SetUse(std::nullptr_t) noexcept { m_pfnTouch = nullptr; }
+	template <std::derived_from<CBaseEntity> T>
+	__forceinline void SetUse(void (T::* pfn)(CBaseEntity* pActivator, CBaseEntity* pCaller, USE_TYPE useType, float value)) noexcept
+	{
+		m_pfnUse = static_cast<decltype(m_pfnUse)>(pfn);
+	}
+
+	__forceinline void SetBlocked(std::nullptr_t) noexcept { m_pfnTouch = nullptr; }
+	template <std::derived_from<CBaseEntity> T>
+	__forceinline void SetBlocked(void (T::* pfn)(CBaseEntity* pOther)) noexcept
+	{
+		m_pfnBlocked = static_cast<decltype(m_pfnBlocked)>(pfn);
+	}
 
 //public:
 //	void UpdateOnRemove(void);
@@ -166,9 +216,9 @@ public:
 //	}
 //
 
-//
-//	static CBaseEntity *Create(char *szName, const Vector &vecOrigin, const Vector &vecAngles, edict_t *pentOwner = NULL);
-//
+
+	static CBaseEntity *Create(char const *szName, const Vector &vecOrigin, const Angles &vecAngles, edict_t *pentOwner = nullptr) noexcept;
+
 	__forceinline edict_t *edict(void) const noexcept { return pev->pContainingEntity; }
 	__forceinline int eoffset(void) const noexcept { return g_engfuncs.pfnEntOffsetOfPEntity(edict()); }
 	__forceinline short entindex(void) const noexcept { return g_engfuncs.pfnIndexOfEdict(edict()); }
@@ -347,8 +397,15 @@ struct EHANDLE final
 
 		return pEntity;
 	}
-	inline T *operator-> () const noexcept { auto const pent = Get(); return pent ? (T *)pent->pvPrivateData : nullptr; }
-	inline T &operator* () const noexcept { return *(T *)Get()->pvPrivateData; }
+
+	// Using a faster version under release mode.
+#ifdef _DEBUG
+	inline T* operator-> () const noexcept { auto const pent = Get(); assert(pent != nullptr); return pent ? (T*)pent->pvPrivateData : nullptr; }
+	inline T& operator* () const noexcept { auto const pent = Get(); assert(pent != nullptr); return *(T*)pent->pvPrivateData; }
+#else
+	inline T* operator-> () const noexcept { return m_pent ? (T*)m_pent->pvPrivateData : nullptr; }
+	inline T& operator* () const noexcept { return *(T*)m_pent->pvPrivateData; }
+#endif
 
 	// ent comperasion
 	//inline bool operator== (short iIndex) noexcept { auto const pent = Get(); return pent && ent_cast<short>(pent) == iIndex; }
@@ -369,8 +426,8 @@ public:
 	int Save(void *save) = 0;	// CSave &
 	int Restore(void *restore) = 0;	// CRestore &
 
-//public:
-//	void SUB_UseTargets(CBaseEntity *pActivator, USE_TYPE useType, float value);
+public:
+	void SUB_UseTargets(CBaseEntity *pActivator, USE_TYPE useType, float value) noexcept;
 
 //public:
 //	void EXPORT DelayThink(void);
@@ -379,8 +436,8 @@ public:
 //	static TYPEDESCRIPTION m_SaveData[];
 
 public:
-	float m_flDelay;
-	int m_iszKillTarget;
+	float m_flDelay{};
+	int m_iszKillTarget{};
 };
 
 export class CBaseAnimating : public CBaseDelay
@@ -388,7 +445,7 @@ export class CBaseAnimating : public CBaseDelay
 public:
 	virtual int Save(void *save) = 0;	// CSave &
 	virtual int Restore(void *restore) = 0;	// CRestore &
-	virtual void HandleAnimEvent(void *pEvent) = 0;	// MonsterEvent_t *
+	virtual void HandleAnimEvent(MonsterEvent_t* pEvent) = 0;
 
 //public:
 //	float StudioFrameAdvance(float flInterval = 0);
@@ -414,11 +471,11 @@ public:
 //	static TYPEDESCRIPTION m_SaveData[];
 
 public:
-	float m_flFrameRate;
-	float m_flGroundSpeed;
-	float m_flLastEventCheck;
-	qboolean m_fSequenceFinished;
-	qboolean m_fSequenceLoops;
+	float m_flFrameRate{};
+	float m_flGroundSpeed{};
+	float m_flLastEventCheck{};
+	qboolean m_fSequenceFinished{};
+	qboolean m_fSequenceLoops{};
 };
 
 export enum WeaponIdType
@@ -457,6 +514,35 @@ export enum WeaponIdType
 	WEAPON_SHIELDGUN = 99
 };
 
+export struct ItemInfo
+{
+	int iSlot{};
+	int iPosition{};
+	const char* pszAmmo1{};
+	int iMaxAmmo1{};
+	const char* pszAmmo2{};
+	int iMaxAmmo2{};
+	const char* pszName{};
+	int iMaxClip{};
+	int iId{};
+	int iFlags{};
+	int iWeight{};
+};
+
+export struct AmmoInfo
+{
+	const char* pszName{};
+	int iId{};
+};
+
+export inline constexpr auto WEAPON_NOCLIP = -1;
+
+export inline constexpr auto ITEM_FLAG_SELECTONEMPTY = 1;
+export inline constexpr auto ITEM_FLAG_NOAUTORELOAD = 2;
+export inline constexpr auto ITEM_FLAG_NOAUTOSWITCHEMPTY = 4;
+export inline constexpr auto ITEM_FLAG_LIMITINWORLD = 8;
+export inline constexpr auto ITEM_FLAG_EXHAUSTIBLE = 16; // A player can totally exhaust their ammo supply and lose this weapon
+
 export class CBasePlayerItem : public CBaseAnimating
 {
 public:
@@ -465,7 +551,7 @@ public:
 	virtual void SetObjectCollisionBox(void) = 0;
 	virtual int AddToPlayer(CBasePlayer *pPlayer) = 0;
 	virtual int AddDuplicate(CBasePlayerItem *pItem) = 0;
-	virtual int GetItemInfo(void *p) = 0;	// ItemInfo *
+	virtual int GetItemInfo(ItemInfo* p) = 0;
 	virtual qboolean CanDeploy(void) = 0;
 	virtual qboolean CanDrop(void) = 0;
 	virtual qboolean Deploy(void) = 0;
@@ -485,36 +571,66 @@ public:
 	virtual float GetMaxSpeed(void) = 0;
 	virtual int iItemSlot(void) = 0;
 
-//public:
+public:
 //	void EXPORT DestroyItem(void);
-//	void EXPORT DefaultTouch(CBaseEntity *pOther);
+	void __declspec(dllexport) DefaultTouch(CBaseEntity *pOther) noexcept;
 //	void EXPORT FallThink(void);
-//	void EXPORT Materialize(void);
-//	void EXPORT AttemptToMaterialize(void);
+	void __declspec(dllexport) Materialize(void) noexcept;
+	void __declspec(dllexport) AttemptToMaterialize(void) noexcept;
 //	CBaseEntity *Respawn(void);
 //	void FallInit(void);
 //	void CheckRespawn(void);
 
-//public:
+public:
 //	static TYPEDESCRIPTION m_SaveData[];
-//	static ItemInfo ItemInfoArray[MAX_WEAPONS];
-//	static AmmoInfo AmmoInfoArray[MAX_AMMO_SLOTS];
+	static inline std::span<ItemInfo/*, MAX_WEAPONS*/> ItemInfoArray;	// LUNA: default constructor disallowed in fixed extent
+	static inline std::span<AmmoInfo/*, MAX_AMMO_SLOTS*/> AmmoInfoArray;
 
 public:
-	CBasePlayer *m_pPlayer;
-	CBasePlayerItem *m_pNext;
-	int m_iId;
+	CBasePlayer* m_pPlayer{};
+	CBasePlayerItem* m_pNext{};
+	int m_iId{};
 
-//public:
-//	int iItemPosition(void) { return ItemInfoArray[m_iId].iPosition; }
-//	const char *pszAmmo1(void) { return ItemInfoArray[m_iId].pszAmmo1; }
-//	int iMaxAmmo1(void) { return ItemInfoArray[m_iId].iMaxAmmo1; }
-//	const char *pszAmmo2(void) { return ItemInfoArray[m_iId].pszAmmo2; }
-//	int iMaxAmmo2(void) { return ItemInfoArray[m_iId].iMaxAmmo2; }
-//	const char *pszName(void) { return ItemInfoArray[m_iId].pszName; }
-//	int iMaxClip(void) { return ItemInfoArray[m_iId].iMaxClip; }
-//	int iWeight(void) { return ItemInfoArray[m_iId].iWeight; }
-//	int iFlags(void) { return ItemInfoArray[m_iId].iFlags; }
+public:
+	int			iItemPosition(void)	const noexcept { return ItemInfoArray[m_iId].iPosition; }
+	const char*	pszAmmo1(void)		const noexcept { return ItemInfoArray[m_iId].pszAmmo1; }
+	int			iMaxAmmo1(void)		const noexcept { return ItemInfoArray[m_iId].iMaxAmmo1; }
+	const char*	pszAmmo2(void)		const noexcept { return ItemInfoArray[m_iId].pszAmmo2; }
+	int			iMaxAmmo2(void)		const noexcept { return ItemInfoArray[m_iId].iMaxAmmo2; }
+	const char*	pszName(void)		const noexcept { return ItemInfoArray[m_iId].pszName; }
+	int			iMaxClip(void)		const noexcept { return ItemInfoArray[m_iId].iMaxClip; }
+	int			iWeight(void)		const noexcept { return ItemInfoArray[m_iId].iWeight; }
+	int			iFlags(void)		const noexcept { return ItemInfoArray[m_iId].iFlags; }
+};
+
+export enum EWeaponState
+{
+	WPNSTATE_USP_SILENCED = (1 << 0),
+	WPNSTATE_GLOCK18_BURST_MODE = (1 << 1),
+	WPNSTATE_M4A1_SILENCED = (1 << 2),
+	WPNSTATE_ELITE_LEFT = (1 << 3),
+	WPNSTATE_FAMAS_BURST_MODE = (1 << 4),
+	WPNSTATE_SHIELD_DRAWN = (1 << 5),
+};
+
+export enum Bullet
+{
+	BULLET_NONE,
+	BULLET_PLAYER_9MM,
+	BULLET_PLAYER_MP5,
+	BULLET_PLAYER_357,
+	BULLET_PLAYER_BUCKSHOT,
+	BULLET_PLAYER_CROWBAR,
+	BULLET_MONSTER_9MM,
+	BULLET_MONSTER_MP5,
+	BULLET_MONSTER_12MM,
+	BULLET_PLAYER_45ACP,
+	BULLET_PLAYER_338MAG,
+	BULLET_PLAYER_762MM,
+	BULLET_PLAYER_556MM,
+	BULLET_PLAYER_50AE,
+	BULLET_PLAYER_57MM,
+	BULLET_PLAYER_357SIG,
 };
 
 export class CBasePlayerWeapon : public CBasePlayerItem
@@ -550,55 +666,55 @@ public:
 //	BOOL DefaultDeploy(char *szViewModel, char *szWeaponModel, int iAnim, char *szAnimExt, int skiplocal = 0);
 //	int DefaultReload(int iClipSize, int iAnim, float fDelay, int body = 0);
 //	void ReloadSound(void);
-//	BOOL AddPrimaryAmmo(int iCount, char *szName, int iMaxClip, int iMaxCarry);
-//	BOOL AddSecondaryAmmo(int iCount, char *szName, int iMaxCarry);
+	qboolean AddPrimaryAmmo(int iCount, const char* szName, int iMaxClip, int iMaxCarry) noexcept;
+	qboolean AddSecondaryAmmo(int iCount, const char* szName, int iMaxCarry) noexcept;
 //	int PrimaryAmmoIndex(void);
 //	int SecondaryAmmoIndex(void);
-//	void EjectBrassLate(void);
+	void EjectBrassLate(void) noexcept;
 //	void KickBack(float up_base, float lateral_base, float up_modifier, float lateral_modifier, float up_max, float lateral_max, int direction_change);
-//	void FireRemaining(int &shotsFired, float &shootTime, BOOL isGlock18);
+	void FireRemaining(int &shotsFired, float &shootTime, bool isGlock18) noexcept;
 //	void SetPlayerShieldAnim(void);
 //	void ResetPlayerShieldAnim(void);
 //	bool ShieldSecondaryFire(int up_anim, int down_anim);
-//	bool HasSecondaryAttack(void);
+	bool HasSecondaryAttack(void) const noexcept;
 
 //public:
 //	static TYPEDESCRIPTION m_SaveData[];
 
 public:
-	int m_iPlayEmptySound;
-	int m_fFireOnEmpty;
-	float m_flNextPrimaryAttack;
-	float m_flNextSecondaryAttack;
-	float m_flTimeWeaponIdle;
-	int m_iPrimaryAmmoType;
-	int m_iSecondaryAmmoType;
-	int m_iClip;
-	int m_iClientClip;
-	int m_iClientWeaponState;
-	int m_fInReload;
-	int m_fInSpecialReload;
-	int m_iDefaultAmmo;
-	int m_iShellId;
-	float m_fMaxSpeed;
-	bool m_bDelayFire;
-	qboolean m_iDirection;
-	bool m_bSecondarySilencerOn;
-	float m_flAccuracy;
-	float m_flLastFire;
-	int m_iShotsFired;
-	Vector m_vVecAiming;
-	string_t model_name;
-	float m_flGlock18Shoot;
-	int m_iGlock18ShotsFired;
-	float m_flFamasShoot;
-	int m_iFamasShotsFired;
-	float m_fBurstSpread;
-	int m_iWeaponState;
-	float m_flNextReload;
-	float m_flDecreaseShotsFired;
-	unsigned short m_usFireGlock18;
-	unsigned short m_usFireFamas;
+	int m_iPlayEmptySound{};
+	int m_fFireOnEmpty{};
+	float m_flNextPrimaryAttack{};
+	float m_flNextSecondaryAttack{};
+	float m_flTimeWeaponIdle{};
+	int m_iPrimaryAmmoType{};
+	int m_iSecondaryAmmoType{};
+	int m_iClip{};
+	int m_iClientClip{};
+	int m_iClientWeaponState{};
+	int m_fInReload{};
+	int m_fInSpecialReload{};
+	int m_iDefaultAmmo{};
+	int m_iShellId{};
+	float m_fMaxSpeed{};
+	bool m_bDelayFire{};
+	qboolean m_iDirection{};
+	bool m_bSecondarySilencerOn{};
+	float m_flAccuracy{};
+	float m_flLastFire{};
+	int m_iShotsFired{};
+	Vector m_vVecAiming{};
+	string_t model_name{};
+	float m_flGlock18Shoot{};
+	int m_iGlock18ShotsFired{};
+	float m_flFamasShoot{};
+	int m_iFamasShotsFired{};
+	float m_fBurstSpread{};
+	int m_iWeaponState{};
+	float m_flNextReload{};
+	float m_flDecreaseShotsFired{};
+	unsigned short m_usFireGlock18{};
+	unsigned short m_usFireFamas{};
 };
 
 export class CBasePlayerAmmo : public CBaseEntity
@@ -1076,7 +1192,7 @@ public:
 //	void DropPlayerItem(const char *pszItemName) override;
 //	void ThrowPrimary(void) override;
 //	void ThrowWeapon(char *pszWeaponName) override;
-//	qboolean HasPlayerItem(CBasePlayerItem *pCheckItem) override;
+	qboolean HasPlayerItem(CBasePlayerItem *pCheckItem) const noexcept;
 //	qboolean HasNamedPlayerItem(const char *pszItemName) override;
 //	qboolean HasWeapons(void) override;
 //	void SelectPrevItem(int iItem) override;
@@ -1101,14 +1217,14 @@ public:
 //	void CheckTimeBasedDamage(void) override;
 //	void BarnacleVictimBitten(entvars_t *pevBarnacle) override;
 //	void BarnacleVictimReleased(void) override;
-//	static int GetAmmoIndex(const char *psz) override;
-//	int AmmoInventory(int iAmmoIndex) override;
+	static int GetAmmoIndex(const char *psz) noexcept;
+	int AmmoInventory(int iAmmoIndex) const noexcept;
 //	void ResetAutoaim(void) override;
 //	Vector AutoaimDeflection(Vector &vecSrc, float flDist, float flDelta) override;
 //	void ForceClientDllUpdate(void) override;
 //	void SetCustomDecalFrames(int nFrames) override;
 //	int GetCustomDecalFrames(void) override;
-//	void TabulateAmmo(void) override;
+	void TabulateAmmo(void) noexcept;
 //	void SetProgressBarTime(int iTime) override;
 //	void SetProgressBarTime2(int iTime, float flLastTime) override;
 //	void SetPlayerModel(qboolean HasC4) override;
@@ -1154,7 +1270,7 @@ public:
 //	bool IsThrowingGrenade(void) override;
 //	void StopReload(void) override;
 //	void DrawnShiled(void) override;
-//	bool HasShield(void) override;
+	bool HasShield(void) const noexcept { return m_bOwnsShield; }
 //	void UpdateShieldCrosshair(bool bShieldDrawn) override;
 //	void DropShield(bool bDeploy) override;
 //	void GiveShield(bool bRetire) override;

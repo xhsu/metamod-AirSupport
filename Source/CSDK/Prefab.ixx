@@ -14,8 +14,8 @@ import <utility>;
 import util;
 
 export import CBase;
-export import Hook;
 export import Task;
+export import VTFH;
 
 using std::list;
 using std::pair;
@@ -40,6 +40,7 @@ inline auto UTIL_CreateNamedPrefab(Tys&&... args) noexcept
 
 	pEdict->v.classname = MAKE_STRING(T::CLASSNAME);
 
+	// #PLANNED add to CS hash table.
 	return pair{ pEdict, pPrefab };
 }
 
@@ -275,34 +276,11 @@ export struct Prefab_t : public CBaseEntity
 	// Forwarding all arguments to the Create() of that class.
 	template <typename T, typename... Tys>
 	static __forceinline T *Create(Tys&&... args)
-		noexcept(noexcept(T::Create(std::forward<Tys>(args)...)))
-		requires(requires{ { T::Create(std::forward<Tys>(args)...) } -> std::same_as<T *>; })
+		noexcept (noexcept(T::Create(std::forward<Tys>(args)...)))
+		requires (requires{ { T::Create(std::forward<Tys>(args)...) } -> std::same_as<T *>; })
 	{
 		return T::Create(std::forward<Tys>(args)...);
 	}
 
 	TaskScheduler_t m_Scheduler{};
-
-	// Move these to original CBaseEntity?
-
-	__forceinline void SetTouch(std::nullptr_t) noexcept { m_pfnTouch = nullptr; }
-	template <typename T>
-	__forceinline void SetTouch(void (T:: *pfn)(CBaseEntity *pOther)) noexcept
-	{
-		m_pfnTouch = reinterpret_cast<decltype(m_pfnTouch)>(pfn);
-	}
-
-	__forceinline void SetUse(std::nullptr_t) noexcept { m_pfnTouch = nullptr; }
-	template <typename T>
-	__forceinline void SetUse(void (T:: *pfn)(CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value)) noexcept
-	{
-		m_pfnUse = reinterpret_cast<decltype(m_pfnUse)>(pfn);
-	}
-
-	__forceinline void SetBlocked(std::nullptr_t) noexcept { m_pfnTouch = nullptr; }
-	template <typename T>
-	__forceinline void SetBlocked(void (T:: *pfn)(CBaseEntity *pOther)) noexcept
-	{
-		m_pfnBlocked = reinterpret_cast<decltype(m_pfnBlocked)>(pfn);
-	}
 };

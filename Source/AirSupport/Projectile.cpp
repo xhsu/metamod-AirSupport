@@ -713,7 +713,7 @@ Task CBullet::Task_Touch() noexcept
 
 	if (tr.pHit && tr.pHit->v.takedamage != DAMAGE_NO)
 	{
-		EHANDLE<CBaseEntity> pVictim = tr.pHit;
+		EHANDLE<CBaseEntity> pVictim{ tr.pHit };
 
 		g_pfnClearMultiDamage();
 		pVictim->TraceAttack(m_pShooter->pev, 100.f, pev->velocity.Normalize(), &tr, DMG_BULLET);
@@ -781,7 +781,7 @@ Task CBullet::Task_Fly() noexcept
 
 		if (tr.pHit && tr.pHit->v.takedamage != DAMAGE_NO)
 		{
-			EHANDLE<CBaseEntity> pVictim = tr.pHit;
+			EHANDLE<CBaseEntity> pVictim{ tr.pHit };
 
 			g_pfnClearMultiDamage();
 			pVictim->TraceAttack(m_pShooter->pev, 100.f, pev->velocity.Normalize(), &tr, DMG_BULLET);

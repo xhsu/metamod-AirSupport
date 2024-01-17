@@ -13,6 +13,7 @@ module;
 export module Message;
 
 export import <cassert>;
+export import <cstdint>;
 
 export import util;
 export import vector;
@@ -24,6 +25,13 @@ export import Plugin;
 export import UtlConcepts;
 
 using std::bit_cast;
+
+// A wrapper that force pfnWriteAngle
+export struct msg_angle_t final
+{
+	constexpr msg_angle_t(float val) noexcept : m_angle_data{ val } {}
+	float m_angle_data{};
+};
 
 export inline void MsgSend(entvars_t *pev, int iMessageIndex) noexcept
 {
@@ -59,6 +67,8 @@ export inline void WriteData(auto&& arg) noexcept
 		g_engfuncs.pfnWriteCoord(arg[1]);
 		g_engfuncs.pfnWriteCoord(arg[2]);
 	}
+	else if constexpr (std::is_same_v<T, msg_angle_t>)
+		g_engfuncs.pfnWriteAngle(arg.m_angle_data);
 
 	// general cases
 
@@ -167,16 +177,16 @@ struct Message_t final
 		if constexpr (iDest == MSG_ONE || iDest == MSG_ONE_UNRELIABLE || iDest == MSG_INIT)
 			g_engfuncs.pfnMessageBegin(iDest, m_iMessageIndex, nullptr, pClient);
 		else if constexpr (iDest == MSG_ALL || iDest == MSG_BROADCAST || iDest == MSG_SPEC)
-			g_engfuncs.pfnMessageBegin(iDest, m_iMessageIndex);
+			g_engfuncs.pfnMessageBegin(iDest, m_iMessageIndex, nullptr, nullptr);
 		else if constexpr (iDest == MSG_PAS || iDest == MSG_PAS_R || iDest == MSG_PVS || iDest == MSG_PVS_R)
-			g_engfuncs.pfnMessageBegin(iDest, m_iMessageIndex, vecOrigin);
+			g_engfuncs.pfnMessageBegin(iDest, m_iMessageIndex, vecOrigin, nullptr);
 		//else
 		//	[]() noexcept { static_assert(AlwaysFalse<This_t>, "Invalid message casting method!"); }();	// #UPDATE_AT_CPP23 CWG2518 allowing static_assert(false)
 
 		MsgArgs_t tplArgs = std::make_tuple(args...);
 
 		// No panic, this is a instant-called lambda function.
-		// De facto static_for.
+		// De facto static_for. #UPDATE_AT_CPP26 pack indexing?
 		[&]<size_t... I>(std::index_sequence<I...>) noexcept
 		{
 			(WriteData(std::get<I>(tplArgs)), ...);
@@ -265,3 +275,36 @@ struct Message_t final
 	}
 	*/
 };
+
+#ifdef USING_METAMOD
+
+export using gmsgBarTime = Message_t<"BarTime", int16_t>;
+export using gmsgBrass = Message_t<"Brass", Vector/*origin*/, Vector/*velocity*/, msg_angle_t/*rotation*/, int16_t/*model*/, uint8_t/*soundtype*/, uint8_t/*entityIndex*/>;
+export using gmsgCurWeapon = Message_t<"CurWeapon", uint8_t/*state*/, uint8_t/*iId*/, uint8_t/*iClip*/>;
+export using gmsgScreenFade = Message_t<"ScreenFade", uint16_t, uint16_t, uint16_t, uint8_t, uint8_t, uint8_t, uint8_t>;
+export using gmsgScreenShake = Message_t<"ScreenShake", uint16_t, uint16_t, uint16_t>;
+export using gmsgShowMenu = Message_t<"ShowMenu", uint16_t, int8_t, uint8_t, const char*>;
+export using gmsgTextMsg = Message_t<"TextMsg", uint8_t, const char*>;	// 4 args more actually, but whatever.
+export using gmsgWeapPickup = Message_t<"WeapPickup", uint8_t>;
+export using gmsgWeaponAnim = Message_t<"WeapAnim", uint8_t, uint8_t>;	// actually no such message exist. pure wrapper.
+export using gmsgWeaponList = Message_t<"WeaponList", const char*, uint8_t, uint8_t, uint8_t, uint8_t, uint8_t, uint8_t, uint8_t, uint8_t>;
+
+
+// Goal: Retrieve commonly used messages.
+// Call once in ServerActivate_Post.
+export void RetrieveMessageHandles(void) noexcept
+{
+	gmsgBarTime::Retrieve();
+	gmsgBrass::Retrieve();
+	gmsgCurWeapon::Retrieve();
+	gmsgScreenFade::Retrieve();
+	gmsgScreenShake::Retrieve();
+	gmsgShowMenu::Retrieve();
+	gmsgTextMsg::Retrieve();
+	gmsgWeapPickup::Retrieve();
+	gmsgWeaponList::Retrieve();
+
+	gmsgWeaponAnim::m_iMessageIndex = SVC_WEAPONANIM;
+}
+
+#endif
