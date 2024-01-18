@@ -14,6 +14,7 @@ import CBase;
 import GameRules;	// only used in CBase extensions.
 import Message;	// only used in CBase extensions.
 import Platform;
+import Uranus;	// runtime hook compatibility
 
 import UtlHook;
 import UtlRandom;
@@ -28,12 +29,10 @@ export inline constexpr unsigned char CSCZ_SUB_USE_TARGETS_FN_ANNIV_PATTERN[] = 
 
 export inline constexpr unsigned char PRECACHE_OTHER_WPN_FN_ANNIV_PATTERN[] = "\xCC\x55\x8B\xEC\xA1\x2A\x2A\x2A\x2A\x83\xEC\x2C\x8B\x4D\x08\x2B\x88\x2A\x2A\x2A\x2A\x56\x51\xE8\x2A\x2A\x2A\x2A\x8B\xF0\x83\xC4\x04";
 export inline constexpr std::ptrdiff_t ITEM_INFO_ARRAY_OFS = 0x100C18FC - 0x100C1860;
-export inline std::span<ItemInfo> g_rgItemInfo;
 
 export inline constexpr unsigned char ADD_AMMO_REG_FN_ANNIV_PATTERN[] = "\xCC\x55\x8B\xEC\x53\x8B\x1D\x2A\x2A\x2A\x2A\x56\x57\x8B\x7D\x08\xBE\x2A\x2A\x2A\x2A\x8B\x06\x85\xC0\x74\x0B\x57\x50\xFF\xD3\x83\xC4\x08";
 export inline constexpr std::ptrdiff_t AMMO_INFO_ARRAY_OFS = 0x100BDF30 - 0x100BDF20;
 export inline constexpr std::ptrdiff_t GI_AMMO_INDEX_OFS = 0x100BDF51 - 0x100BDF20;
-export inline std::span<AmmoInfo> g_rgAmmoInfo;
 export inline std::int32_t* gpiAmmoIndex = nullptr;
 
 export using fnEmptyEntityHashTable_t = void(__cdecl*)(void) noexcept;
@@ -72,8 +71,8 @@ export void RetrieveConditionZeroFn() noexcept
 		GI_AMMO_INDEX_OFS
 	);
 
-	CBasePlayerItem::ItemInfoArray = g_rgItemInfo = std::span{ pItemInfo, MAX_WEAPONS };
-	CBasePlayerItem::AmmoInfoArray = g_rgAmmoInfo = std::span{ pAmmoInfo, MAX_AMMO_SLOTS };
+	CBasePlayerItem::ItemInfoArray = std::span{ pItemInfo, MAX_WEAPONS };
+	CBasePlayerItem::AmmoInfoArray = std::span{ pAmmoInfo, MAX_AMMO_SLOTS };
 
 #ifdef _DEBUG
 	assert(pItemInfo && pAmmoInfo && gpiAmmoIndex);
@@ -93,6 +92,21 @@ export void RetrieveConditionZeroFn() noexcept
 /////////////////
 // CBaseEntity //
 /////////////////
+
+Vector CBaseEntity::FireBullets3(Vector vecSrc, Vector vecDirShooting, float flSpread, float flDistance, int iPenetration, int iBulletType, int iDamage, float flRangeModifier, entvars_t* pevAttacker, qboolean bPistol, int shared_rand)
+{
+	Vector ret{};
+	gClassFunctions.pfnFireBullets3(
+		this, nullptr, &ret,
+		vecSrc, vecDirShooting, flSpread, flDistance,
+		iPenetration, iBulletType, iDamage, flRangeModifier,
+		pevAttacker,
+		bPistol,
+		shared_rand
+	);
+
+	return ret;
+}
 
 CBaseEntity* CBaseEntity::Create(char const* szName, const Vector& vecOrigin, const Angles& vecAngles, edict_t* pentOwner) noexcept
 {
@@ -356,6 +370,11 @@ bool CBasePlayerWeapon::HasSecondaryAttack(void) const noexcept
 /////////////////
 // CBasePlayer //
 /////////////////
+
+void CBasePlayer::SetAnimation(PLAYER_ANIM playerAnim) noexcept
+{
+	gClassFunctions.pfnSetAnimation(this, 0, playerAnim);
+}
 
 qboolean CBasePlayer::HasPlayerItem(CBasePlayerItem* pCheckItem) const noexcept
 {

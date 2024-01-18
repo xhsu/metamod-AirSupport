@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -13,8 +13,8 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{1a4e6990-7261-4bff-be9b-f4efc0dd0cb3}</ProjectGuid>
-    <RootNamespace>PlayerItem</RootNamespace>
+    <ProjectGuid>{171189c0-07fe-44b5-9706-8c66b03dbd0e}</ProjectGuid>
+    <RootNamespace>Uranus</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -55,13 +55,13 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;_DEBUG;PLAYERITEM_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
     </ClCompile>
     <Link>
-      <SubSystem>Windows</SubSystem>
+      <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <EnableUAC>false</EnableUAC>
-      <ModuleDefinitionFile>$(SolutionDir)export.def</ModuleDefinitionFile>
+      <ModuleDefinitionFile>$(ProjectDir)export.def</ModuleDefinitionFile>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -70,15 +70,15 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;NDEBUG;PLAYERITEM_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
     </ClCompile>
     <Link>
-      <SubSystem>Windows</SubSystem>
+      <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <EnableUAC>false</EnableUAC>
-      <ModuleDefinitionFile>$(SolutionDir)export.def</ModuleDefinitionFile>
+      <ModuleDefinitionFile>$(ProjectDir)export.def</ModuleDefinitionFile>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -152,7 +152,6 @@
     <ClCompile Include="..\..\metamod-p\metamod\plinfo.ixx" />
     <ClCompile Include="..\Source\CSDK\Beam.ixx" />
     <ClCompile Include="..\Source\CSDK\CBase.ixx" />
-    <ClCompile Include="..\Source\CSDK\ConditionZero.ixx" />
     <ClCompile Include="..\Source\CSDK\CRC64.ixx" />
     <ClCompile Include="..\Source\CSDK\Engine.ixx" />
     <ClCompile Include="..\Source\CSDK\FileSystem.ixx" />
@@ -170,12 +169,15 @@
     </ClCompile>
     <ClCompile Include="..\Source\CSDK\Wave.ixx" />
     <ClCompile Include="..\Source\CSDK\ZBot.ixx" />
-    <ClCompile Include="..\Uranus\Uranus.Functions.ixx" />
-    <ClCompile Include="..\Uranus\Uranus.ixx" />
     <ClCompile Include="Hook.cpp" />
-    <ClCompile Include="PlayerItem.ixx" />
     <ClCompile Include="Plugin.cpp" />
     <ClCompile Include="Plugin.ixx" />
+    <ClCompile Include="Uranus.cpp" />
+    <ClCompile Include="Uranus.Functions.ixx" />
+    <ClCompile Include="Uranus.ixx" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="export.def" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

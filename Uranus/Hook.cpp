@@ -2,64 +2,9 @@ import eiface;
 
 import meta_api;
 
-import CBase;
-import ConditionZero;
-import Engine;
-import FileSystem;
-import GameRules;
-import Message;
 import Plugin;
-#ifndef __INTELLISENSE__
-import Task;
-#endif
-import Uranus;
-import VTFH;
-import ZBot;
 
 
-META_RES fw_ClientCommand(EHANDLE<CBasePlayer> pPlayer) noexcept
-{
-	// pre event
-
-	return MRES_IGNORED;
-}
-
-void fw_GameInit_Post() noexcept
-{
-	gpMetaGlobals->mres = MRES_IGNORED;
-	// post event
-
-	FileSystem::Init();
-	Engine::Init();
-
-	if (Engine::BUILD_NUMBER < Engine::NEW)
-		UTIL_Terminate("Engine build '%d' mismatch from expected value: %d.\nPlease use this plugin on a legal STEAM copy.", Engine::BUILD_NUMBER, Engine::NEW);
-}
-
-void fw_ServerActivate_Post(edict_t* pEdictList, int edictCount, int clientMax) noexcept
-{
-	gpMetaGlobals->mres = MRES_IGNORED;
-	// post event
-
-	RetrieveCBaseVirtualFn();
-	RetrieveConditionZeroFn();
-	RetrieveGameRules();
-	RetrieveMessageHandles();
-	ZBot::RetrieveManager();
-	RetrieveUranus();
-}
-
-void fw_ServerDeactivate_Post() noexcept
-{
-	gpMetaGlobals->mres = MRES_IGNORED;
-	// post event
-
-	// CGameRules class is re-install every map change. Hence we should re-hook it everytime.
-	g_pGameRules = nullptr;
-
-	// Remove ALL existing tasks.
-	TaskScheduler::Clear();
-}
 
 // Register Meta Hooks
 
@@ -87,7 +32,7 @@ inline constexpr DLL_FUNCTIONS gFunctionTable =
 	.pfnClientDisconnect	= nullptr,
 	.pfnClientKill			= nullptr,
 	.pfnClientPutInServer	= nullptr,
-	.pfnClientCommand		= +[](edict_t* pPlayer) noexcept { gpMetaGlobals->mres = fw_ClientCommand(pPlayer); },
+	.pfnClientCommand		= nullptr,
 	.pfnClientUserInfoChanged= nullptr,
 	.pfnServerActivate		= nullptr,
 	.pfnServerDeactivate	= nullptr,
@@ -149,7 +94,7 @@ int HookGameDLLExportedFn(DLL_FUNCTIONS *pFunctionTable, int *interfaceVersion) 
 
 inline constexpr DLL_FUNCTIONS gFunctionTable_Post =
 {
-	.pfnGameInit	= &fw_GameInit_Post,
+	.pfnGameInit	= nullptr,
 	.pfnSpawn		= nullptr,
 	.pfnThink		= nullptr,
 	.pfnUse			= nullptr,
@@ -173,13 +118,13 @@ inline constexpr DLL_FUNCTIONS gFunctionTable_Post =
 	.pfnClientPutInServer	= nullptr,
 	.pfnClientCommand		= nullptr,
 	.pfnClientUserInfoChanged= nullptr,
-	.pfnServerActivate		= &fw_ServerActivate_Post,
-	.pfnServerDeactivate	= &fw_ServerDeactivate_Post,
+	.pfnServerActivate		= nullptr,
+	.pfnServerDeactivate	= nullptr,
 
 	.pfnPlayerPreThink	= nullptr,
 	.pfnPlayerPostThink	= nullptr,
 
-	.pfnStartFrame		= &TaskScheduler::Think,
+	.pfnStartFrame		= nullptr,
 	.pfnParmsNewLevel	= nullptr,
 	.pfnParmsChangeLevel= nullptr,
 

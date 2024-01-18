@@ -184,7 +184,7 @@ public:
 //	void UpdateOnRemove(void);
 //	int ShouldToggle(USE_TYPE useType, qboolean currentState);
 //	void FireBullets(ULONG cShots, Vector vecSrc, Vector vecDirShooting, Vector vecSpread, float flDistance, int iBulletType, int iTracerFreq = 4, int iDamage = 0, entvars_t *pevAttacker = NULL);
-//	Vector FireBullets3(Vector vecSrc, Vector vecDirShooting, float flSpread, float flDistance, int iPenetration, int iBulletType, int iDamage, float flRangeModifier, entvars_t *pevAttacker, qboolean bPistol, int shared_rand = 0);
+	Vector FireBullets3(Vector vecSrc, Vector vecDirShooting, float flSpread, float flDistance, int iPenetration, int iBulletType, int iDamage, float flRangeModifier, entvars_t *pevAttacker, qboolean bPistol, int shared_rand = 0);
 	bool Intersects(CBaseEntity *pOther) noexcept { return (pOther->pev->absmin.x > pev->absmax.x || pOther->pev->absmin.y > pev->absmax.y || pOther->pev->absmin.z > pev->absmax.z || pOther->pev->absmax.x < pev->absmin.x || pOther->pev->absmax.y < pev->absmin.y || pOther->pev->absmax.z < pev->absmin.z); }
 //	void MakeDormant(void);
 //	int IsDormant(void);
@@ -1174,7 +1174,7 @@ public:
 //	void FlashlightTurnOff(void) override;
 //	void UpdatePlayerSound(void) override;
 //	void DeathSound(void) override;
-//	void SetAnimation(PLAYER_ANIM playerAnim) override;
+	void SetAnimation(PLAYER_ANIM playerAnim) noexcept;
 //	void SetWeaponAnimType(const char *szExtention) override;
 //	void CheatImpulseCommands(int iImpulse) override;
 //	void StartDeathCam(void) override;

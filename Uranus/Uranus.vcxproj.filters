@@ -2,41 +2,47 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <Filter Include="Source">
-      <UniqueIdentifier>{0b767dd7-a849-42b2-bac3-858b367c332f}</UniqueIdentifier>
+      <UniqueIdentifier>{272270d0-aeeb-44d9-adc2-2bf03bbde474}</UniqueIdentifier>
     </Filter>
     <Filter Include="HLSDK">
-      <UniqueIdentifier>{ca3e3cac-a88e-47f7-a1f5-6b48be306048}</UniqueIdentifier>
+      <UniqueIdentifier>{9c24c2ea-1eef-4f5a-85b9-7ab2aebc6bcb}</UniqueIdentifier>
     </Filter>
     <Filter Include="HLSDK\cl_dll">
-      <UniqueIdentifier>{233cad08-063b-4765-b1e4-4d9d9fd6b1ec}</UniqueIdentifier>
+      <UniqueIdentifier>{b1c0ce6d-cd80-4489-914d-f171c73760b5}</UniqueIdentifier>
     </Filter>
     <Filter Include="HLSDK\common">
-      <UniqueIdentifier>{c38be4ea-fc19-46fc-80ed-f028396173a9}</UniqueIdentifier>
+      <UniqueIdentifier>{925cdbd2-47a7-4d8a-ad5f-f8ed7aa2ae04}</UniqueIdentifier>
     </Filter>
     <Filter Include="HLSDK\dlls">
-      <UniqueIdentifier>{05585932-3664-4be3-b1e8-3701ebe45d0a}</UniqueIdentifier>
+      <UniqueIdentifier>{25a97694-6ff7-47cb-b54e-b1f83b4c05d1}</UniqueIdentifier>
     </Filter>
     <Filter Include="HLSDK\engine">
-      <UniqueIdentifier>{78516069-17a1-4769-bf67-cb83a1437015}</UniqueIdentifier>
+      <UniqueIdentifier>{6fca67ea-243f-4ae3-8623-e3198f2332e4}</UniqueIdentifier>
     </Filter>
     <Filter Include="HLSDK\pm_shared">
-      <UniqueIdentifier>{8e447597-8422-4673-92bd-c18264b90a51}</UniqueIdentifier>
+      <UniqueIdentifier>{32442d28-765b-4965-800f-8041ba64cb69}</UniqueIdentifier>
     </Filter>
     <Filter Include="Hydrogenium">
-      <UniqueIdentifier>{80343d74-d20e-4a67-bc8d-a64c1555b176}</UniqueIdentifier>
+      <UniqueIdentifier>{9ae25249-76ca-426d-861a-8a9e78fd6769}</UniqueIdentifier>
     </Filter>
     <Filter Include="MetaMod">
-      <UniqueIdentifier>{3b84a9da-a62f-47ab-a5df-21292251b728}</UniqueIdentifier>
+      <UniqueIdentifier>{2f850e84-8751-4569-8f0e-b830851b6ac1}</UniqueIdentifier>
     </Filter>
     <Filter Include="CSDK">
-      <UniqueIdentifier>{4e91cd9e-ca10-4bd9-ac5d-9a5b196657b6}</UniqueIdentifier>
+      <UniqueIdentifier>{dc183ae3-e409-4d7f-9c2f-aa3f1518b50a}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Uranus">
-      <UniqueIdentifier>{6c7cef7d-f0dd-45e7-8fb9-c2bea1afe2f9}</UniqueIdentifier>
+    <Filter Include="Resources">
+      <UniqueIdentifier>{d4503ca6-ee5e-43de-8840-fd3db91ec635}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Hook.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
     <ClCompile Include="Plugin.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Plugin.ixx">
       <Filter>Source</Filter>
     </ClCompile>
     <ClCompile Include="..\..\metamod-p\hlsdk\cl_dll\hud_iface.ixx">
@@ -243,16 +249,16 @@
     <ClCompile Include="..\..\metamod-p\metamod\plinfo.ixx">
       <Filter>MetaMod</Filter>
     </ClCompile>
-    <ClCompile Include="Plugin.ixx">
+    <ClCompile Include="Uranus.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="Hook.cpp">
-      <Filter>Source</Filter>
-    </ClCompile>
-    <ClCompile Include="PlayerItem.ixx">
+    <ClCompile Include="Uranus.ixx">
       <Filter>Source</Filter>
     </ClCompile>
     <ClCompile Include="..\Source\CSDK\Beam.ixx">
+      <Filter>CSDK</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Source\CSDK\CBase.ixx">
       <Filter>CSDK</Filter>
     </ClCompile>
     <ClCompile Include="..\Source\CSDK\CRC64.ixx">
@@ -270,6 +276,9 @@
     <ClCompile Include="..\Source\CSDK\Math.ixx">
       <Filter>CSDK</Filter>
     </ClCompile>
+    <ClCompile Include="..\Source\CSDK\Message.ixx">
+      <Filter>CSDK</Filter>
+    </ClCompile>
     <ClCompile Include="..\Source\CSDK\Platform.ixx">
       <Filter>CSDK</Filter>
     </ClCompile>
@@ -279,10 +288,7 @@
     <ClCompile Include="..\Source\CSDK\Query.ixx">
       <Filter>CSDK</Filter>
     </ClCompile>
-    <ClCompile Include="..\Source\CSDK\CBase.ixx">
-      <Filter>CSDK</Filter>
-    </ClCompile>
-    <ClCompile Include="..\Source\CSDK\Message.ixx">
+    <ClCompile Include="..\Source\CSDK\Ray.ixx">
       <Filter>CSDK</Filter>
     </ClCompile>
     <ClCompile Include="..\Source\CSDK\Sprite.ixx">
@@ -291,7 +297,7 @@
     <ClCompile Include="..\Source\CSDK\Task.ixx">
       <Filter>CSDK</Filter>
     </ClCompile>
-    <ClCompile Include="..\Source\CSDK\Ray.ixx">
+    <ClCompile Include="..\Source\CSDK\VTFH.ixx">
       <Filter>CSDK</Filter>
     </ClCompile>
     <ClCompile Include="..\Source\CSDK\Wave.ixx">
@@ -300,17 +306,13 @@
     <ClCompile Include="..\Source\CSDK\ZBot.ixx">
       <Filter>CSDK</Filter>
     </ClCompile>
-    <ClCompile Include="..\Source\CSDK\VTFH.ixx">
-      <Filter>CSDK</Filter>
+    <ClCompile Include="Uranus.Functions.ixx">
+      <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="..\Source\CSDK\ConditionZero.ixx">
-      <Filter>CSDK</Filter>
-    </ClCompile>
-    <ClCompile Include="..\Uranus\Uranus.ixx">
-      <Filter>Uranus</Filter>
-    </ClCompile>
-    <ClCompile Include="..\Uranus\Uranus.Functions.ixx">
-      <Filter>Uranus</Filter>
-    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="export.def">
+      <Filter>Resources</Filter>
+    </None>
   </ItemGroup>
 </Project>
