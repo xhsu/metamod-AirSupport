@@ -31,6 +31,7 @@ void fw_GameInit_Post() noexcept
 
 	FileSystem::Init();
 	Engine::Init();
+	Uranus::RetrieveUranusLocal();
 
 	if (Engine::BUILD_NUMBER < Engine::NEW)
 		UTIL_Terminate("Engine build '%d' mismatch from expected value: %d.\nPlease use this plugin on a legal STEAM copy.", Engine::BUILD_NUMBER, Engine::NEW);
@@ -46,7 +47,6 @@ void fw_ServerActivate_Post(edict_t* pEdictList, int edictCount, int clientMax) 
 	RetrieveGameRules();
 	RetrieveMessageHandles();
 	ZBot::RetrieveManager();
-	RetrieveUranus();
 }
 
 void fw_ServerDeactivate_Post() noexcept

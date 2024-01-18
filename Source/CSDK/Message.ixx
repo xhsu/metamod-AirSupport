@@ -10,10 +10,19 @@ module;
 
 #define USING_METAMOD
 
+#ifdef __INTELLISENSE__
+#include <cassert>
+#include <cstdint>
+
+#include <bit>
+#endif
+
 export module Message;
 
+#ifndef __INTELLISENSE__
 export import <cassert>;
 export import <cstdint>;
+#endif
 
 export import util;
 export import vector;
@@ -109,6 +118,8 @@ struct StringLiteral
 {
 	// Constructor
 	template <size_t N> constexpr StringLiteral(const char(&str)[N]) noexcept : m_psz(str), m_length(N) {}
+	constexpr StringLiteral(StringLiteral const&) noexcept = default;
+	constexpr StringLiteral& operator= (StringLiteral const&) noexcept = default;
 
 	// Operators
 	constexpr operator const char *() const noexcept { return m_psz; }	// automatically convert to char* if necessary.

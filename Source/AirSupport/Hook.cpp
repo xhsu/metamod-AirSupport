@@ -20,6 +20,7 @@ import Plugin;
 import Round;
 import Task.Const;
 import Task;
+import Uranus;
 import Weapon;
 
 // Resources.cpp
@@ -159,6 +160,7 @@ void fw_GameInit_Post(void) noexcept
 	gpMetaGlobals->mres = MRES_IGNORED;
 	// post event
 
+	Uranus::RetrieveUranusLocal();
 	FileSystem::Init();
 	Engine::Init();
 

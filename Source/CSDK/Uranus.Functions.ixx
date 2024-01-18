@@ -1,18 +1,26 @@
+module;
+
+#ifdef __INTELLISENSE__
+#include <tuple>
+#endif
+
 export module Uranus:Functions;
 
+#ifndef __INTELLISENSE__
 export import <tuple>;
+#endif
 
 export import CBase;
 
-export struct uranus_func_2_t final
+export struct uranus_func_collection_t final
 {
 	std::uintptr_t m_iVersion = 1;
 
-	Vector* (__fastcall* pfnFireBullets3)(CBaseEntity* pThis, void* edx, Vector* pret, Vector vecSrc, Vector vecDirShooting, float flSpread, float flDistance, int iPenetration, int iBulletType, int iDamage, float flRangeModifier, entvars_t* pevAttacker, qboolean bPistol, int shared_rand) noexcept = nullptr;
-	void (__fastcall* pfnSetAnimation)(CBasePlayer* pPlayer, int, PLAYER_ANIM playerAnim) noexcept = nullptr;
+	Vector*	(__fastcall* pfnFireBullets3)	(CBaseEntity* pThis, void* edx, Vector* pret, Vector vecSrc, Vector vecDirShooting, float flSpread, float flDistance, int iPenetration, int iBulletType, int iDamage, float flRangeModifier, entvars_t* pevAttacker, qboolean bPistol, int shared_rand) noexcept = nullptr;
+	void	(__fastcall* pfnSetAnimation)	(CBasePlayer* pPlayer, std::intptr_t, PLAYER_ANIM playerAnim) noexcept = nullptr;
 };
 
-export inline uranus_func_2_t gClassFunctions2;
+export inline uranus_func_collection_t gUranusCollection;
 
 // #UPDATE_AT_CPP23 static operator()
 export namespace Uranus
@@ -29,7 +37,7 @@ export namespace Uranus
 				std::cref("\xCC\x55\x8B\xEC\x83\xEC\x74\xA1\x2A\x2A\x2A\x2A\x53\x56\x57\xF3\x0F\x10\x40\x2A\x8B"),	// ANNIV
 			};
 			static inline constexpr std::ptrdiff_t DISPLACEMENT = 1;
-			static inline auto& pfn = gClassFunctions2.pfnFireBullets3;
+			static inline auto& pfn = gUranusCollection.pfnFireBullets3;
 
 			inline Vector operator() (CBaseEntity* pThis, Vector vecSrc, Vector vecDirShooting, float flSpread, float flDistance, int iPenetration, int iBulletType, int iDamage, float flRangeModifier, entvars_t* pevAttacker, qboolean bPistol, int shared_rand) const noexcept
 			{
@@ -60,7 +68,7 @@ export namespace Uranus
 				std::cref("\xCC\x55\x8B\xEC\x83\xE4\xF8\x83\xEC\x54\xA1\x2A\x2A\x2A\x2A\x33\xC4\x89\x44\x24\x50"),	// ANNIV
 			};
 			static inline constexpr std::ptrdiff_t DISPLACEMENT = 1;
-			static inline auto& pfn = gClassFunctions2.pfnSetAnimation;
+			static inline auto& pfn = gUranusCollection.pfnSetAnimation;
 
 			inline void operator() (CBasePlayer* pPlayer, PLAYER_ANIM playerAnim) const noexcept
 			{

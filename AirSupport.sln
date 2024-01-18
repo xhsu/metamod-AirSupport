@@ -20,8 +20,6 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Enforcer", "Enforcer\Enforc
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PlayerItem", "PlayerItem\PlayerItem.vcxproj", "{1A4E6990-7261-4BFF-BE9B-F4EFC0DD0CB3}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Uranus", "Uranus\Uranus.vcxproj", "{171189C0-07FE-44B5-9706-8C66B03DBD0E}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|CSharp = Debug|CSharp
@@ -60,12 +58,6 @@ Global
 		{1A4E6990-7261-4BFF-BE9B-F4EFC0DD0CB3}.Release|CSharp.ActiveCfg = Release|x64
 		{1A4E6990-7261-4BFF-BE9B-F4EFC0DD0CB3}.Release|Win32.ActiveCfg = Release|Win32
 		{1A4E6990-7261-4BFF-BE9B-F4EFC0DD0CB3}.Release|Win32.Build.0 = Release|Win32
-		{171189C0-07FE-44B5-9706-8C66B03DBD0E}.Debug|CSharp.ActiveCfg = Debug|Win32
-		{171189C0-07FE-44B5-9706-8C66B03DBD0E}.Debug|Win32.ActiveCfg = Debug|Win32
-		{171189C0-07FE-44B5-9706-8C66B03DBD0E}.Debug|Win32.Build.0 = Debug|Win32
-		{171189C0-07FE-44B5-9706-8C66B03DBD0E}.Release|CSharp.ActiveCfg = Release|Win32
-		{171189C0-07FE-44B5-9706-8C66B03DBD0E}.Release|Win32.ActiveCfg = Release|Win32
-		{171189C0-07FE-44B5-9706-8C66B03DBD0E}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

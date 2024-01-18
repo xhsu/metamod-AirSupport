@@ -165,13 +165,13 @@
     <ClCompile Include="..\Source\CSDK\Ray.ixx" />
     <ClCompile Include="..\Source\CSDK\Sprite.ixx" />
     <ClCompile Include="..\Source\CSDK\Task.ixx" />
+    <ClCompile Include="..\Source\CSDK\Uranus.Functions.ixx" />
+    <ClCompile Include="..\Source\CSDK\Uranus.ixx" />
     <ClCompile Include="..\Source\CSDK\VTFH.ixx">
       <FileType>Document</FileType>
     </ClCompile>
     <ClCompile Include="..\Source\CSDK\Wave.ixx" />
     <ClCompile Include="..\Source\CSDK\ZBot.ixx" />
-    <ClCompile Include="..\Uranus\Uranus.Functions.ixx" />
-    <ClCompile Include="..\Uranus\Uranus.ixx" />
     <ClCompile Include="Hook.cpp" />
     <ClCompile Include="PlayerItem.ixx" />
     <ClCompile Include="Plugin.cpp" />

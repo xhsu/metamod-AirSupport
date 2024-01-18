@@ -31,9 +31,6 @@
     <Filter Include="CSDK">
       <UniqueIdentifier>{4e91cd9e-ca10-4bd9-ac5d-9a5b196657b6}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Uranus">
-      <UniqueIdentifier>{6c7cef7d-f0dd-45e7-8fb9-c2bea1afe2f9}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Plugin.cpp">
@@ -306,11 +303,11 @@
     <ClCompile Include="..\Source\CSDK\ConditionZero.ixx">
       <Filter>CSDK</Filter>
     </ClCompile>
-    <ClCompile Include="..\Uranus\Uranus.ixx">
-      <Filter>Uranus</Filter>
+    <ClCompile Include="..\Source\CSDK\Uranus.Functions.ixx">
+      <Filter>CSDK</Filter>
     </ClCompile>
-    <ClCompile Include="..\Uranus\Uranus.Functions.ixx">
-      <Filter>Uranus</Filter>
+    <ClCompile Include="..\Source\CSDK\Uranus.ixx">
+      <Filter>CSDK</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

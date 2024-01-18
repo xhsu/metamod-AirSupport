@@ -96,7 +96,7 @@ export void RetrieveConditionZeroFn() noexcept
 Vector CBaseEntity::FireBullets3(Vector vecSrc, Vector vecDirShooting, float flSpread, float flDistance, int iPenetration, int iBulletType, int iDamage, float flRangeModifier, entvars_t* pevAttacker, qboolean bPistol, int shared_rand)
 {
 	Vector ret{};
-	gClassFunctions.pfnFireBullets3(
+	gUranusCollection.pfnFireBullets3(
 		this, nullptr, &ret,
 		vecSrc, vecDirShooting, flSpread, flDistance,
 		iPenetration, iBulletType, iDamage, flRangeModifier,
@@ -373,7 +373,7 @@ bool CBasePlayerWeapon::HasSecondaryAttack(void) const noexcept
 
 void CBasePlayer::SetAnimation(PLAYER_ANIM playerAnim) noexcept
 {
-	gClassFunctions.pfnSetAnimation(this, 0, playerAnim);
+	gUranusCollection.pfnSetAnimation(this, 0, playerAnim);
 }
 
 qboolean CBasePlayer::HasPlayerItem(CBasePlayerItem* pCheckItem) const noexcept

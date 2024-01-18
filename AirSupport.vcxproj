@@ -235,8 +235,8 @@ start Enforcer.exe</Command>
     <ClCompile Include="Source\CSDK\Ray.ixx" />
     <ClCompile Include="Source\CSDK\Wave.ixx" />
     <ClCompile Include="Source\CSDK\ZBot.ixx" />
-    <ClCompile Include="Uranus\Uranus.Functions.ixx" />
-    <ClCompile Include="Uranus\Uranus.ixx" />
+    <ClCompile Include="Source\CSDK\Uranus.Functions.ixx" />
+    <ClCompile Include="Source\CSDK\Uranus.ixx" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\AirSupport\DamageOverTime.ixx">

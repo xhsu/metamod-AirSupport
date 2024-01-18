@@ -35,9 +35,6 @@
     <Filter Include="Source\CSDK">
       <UniqueIdentifier>{65756158-87ab-47bc-b3f3-0ea944cdfb8e}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Uranus">
-      <UniqueIdentifier>{ee8904a4-98be-4f5f-b758-c3deddd61ec5}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\metamod-p\hlsdk\cl_dll\hud_iface.ixx">
@@ -385,11 +382,11 @@
     <ClCompile Include="Source\CSDK\ConditionZero.ixx">
       <Filter>Source\CSDK</Filter>
     </ClCompile>
-    <ClCompile Include="Uranus\Uranus.ixx">
-      <Filter>Uranus</Filter>
+    <ClCompile Include="Source\CSDK\Uranus.Functions.ixx">
+      <Filter>Source\CSDK</Filter>
     </ClCompile>
-    <ClCompile Include="Uranus\Uranus.Functions.ixx">
-      <Filter>Uranus</Filter>
+    <ClCompile Include="Source\CSDK\Uranus.ixx">
+      <Filter>Source\CSDK</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
