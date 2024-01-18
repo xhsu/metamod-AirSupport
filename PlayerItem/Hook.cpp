@@ -43,7 +43,7 @@ void fw_ServerActivate_Post(edict_t* pEdictList, int edictCount, int clientMax) 
 	// post event
 
 	RetrieveCBaseVirtualFn();
-	RetrieveConditionZeroFn();
+	RetrieveConditionZeroVar();
 	RetrieveGameRules();
 	RetrieveMessageHandles();
 	ZBot::RetrieveManager();

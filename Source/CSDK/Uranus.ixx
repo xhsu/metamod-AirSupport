@@ -22,7 +22,7 @@ void UTIL_SearchPatterns(void) noexcept
 	std::array<const char*, sizeof...(Tys)> const InvalidFunctions{ (Tys::pfn ? nullptr : Tys::NAME)... };
 
 #ifdef _DEBUG
-	assert((... && (Tys::pfn != nullptr)))
+	assert((... && (Tys::pfn != nullptr)));
 #else
 	[[unlikely]]
 	if ((... || (Tys::pfn == nullptr)))
@@ -45,17 +45,21 @@ void UTIL_SearchPatterns(void) noexcept
 #endif
 }
 
-// Should be call as early as possible.
-// put it in GiveFnptrsToDll() to be 100% confidence.
-
 export namespace Uranus
 {
+	// Should be call as early as possible.
+	// put it in GiveFnptrsToDll() for 100% confidence.
 	inline void RetrieveUranusLocal() noexcept
 	{
 		using namespace Uranus;
 
 		UTIL_SearchPatterns<
+			EmptyEntityHashTable,
+			AddEntityHashValue,
+			RemoveEntityHashValue,
+			BaseEntity::Create,
 			BaseEntity::FireBullets3,
+			BaseDelay::SUB_UseTargets,
 			BasePlayer::SetAnimation
 		>();
 	}

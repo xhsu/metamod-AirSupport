@@ -19,13 +19,6 @@ import Uranus;	// runtime hook compatibility
 import UtlHook;
 import UtlRandom;
 
-export using fnCBaseCreate_t = CBaseEntity * (__cdecl*)(const char* pszName, Vector const& vecOrigin, Angles const& vecAngles, edict_t* pentOwner) noexcept;
-export inline fnCBaseCreate_t g_pfnCSCZCBaseCreate = nullptr;
-export inline constexpr unsigned char CSCZ_CBASE_CREATE_FN_ANNIV_PATTERN[] = "\xCC\x55\x8B\xEC\xA1\x2A\x2A\x2A\x2A\x83\xEC\x0C\x56\x8B\x75\x08\x2B\xB0\x2A\x2A\x2A\x2A\x57\x56\xFF\x15\x2A\x2A\x2A\x2A\x8B\xF8\x83\xC4\x04";
-
-export using fnSUB_UseTargets_t = void(__thiscall*)(CBaseDelay*, CBaseEntity* pActivator, USE_TYPE useType, float value) noexcept;
-export inline fnSUB_UseTargets_t g_pfnSUB_UseTargets = nullptr;
-export inline constexpr unsigned char CSCZ_SUB_USE_TARGETS_FN_ANNIV_PATTERN[] = "\xCC\x55\x8B\xEC\x57\x8B\xF9\x8B\x4F\x04\x83\xB9\x2A\x2A\x2A\x2A\x2A\x75\x0D\x83\xBF\x2A\x2A\x2A\x2A\x2A\x0F\x84\x2A\x2A\x2A\x2A\xF3\x0F\x10\x8F";
 
 export inline constexpr unsigned char PRECACHE_OTHER_WPN_FN_ANNIV_PATTERN[] = "\xCC\x55\x8B\xEC\xA1\x2A\x2A\x2A\x2A\x83\xEC\x2C\x8B\x4D\x08\x2B\x88\x2A\x2A\x2A\x2A\x56\x51\xE8\x2A\x2A\x2A\x2A\x8B\xF0\x83\xC4\x04";
 export inline constexpr std::ptrdiff_t ITEM_INFO_ARRAY_OFS = 0x100C18FC - 0x100C1860;
@@ -35,27 +28,9 @@ export inline constexpr std::ptrdiff_t AMMO_INFO_ARRAY_OFS = 0x100BDF30 - 0x100B
 export inline constexpr std::ptrdiff_t GI_AMMO_INDEX_OFS = 0x100BDF51 - 0x100BDF20;
 export inline std::int32_t* gpiAmmoIndex = nullptr;
 
-export using fnEmptyEntityHashTable_t = void(__cdecl*)(void) noexcept;
-export inline fnEmptyEntityHashTable_t g_pfnEmptyEntityHashTable = nullptr;
-export inline constexpr unsigned char EMPTY_ENT_HASH_TABLE_FN_ANNIV_PATTERN[] = "\xCC\xA1\x2A\x2A\x2A\x2A\x56\x33\xF6\x85\xC0\x0F\x8E\x2A\x2A\x2A\x2A\x53\x57\x8B\x3D\x2A\x2A\x2A\x2A\x33\xDB\x66\x0F\x1F\x44\x00";
 
-export using fnAddEntityHashValue_t = void(__cdecl*)(entvars_t* pev, const char* pszClassname, int32_t) noexcept;
-export inline fnAddEntityHashValue_t g_pfnAddEntityHashValue = nullptr;
-export inline constexpr unsigned char ADD_ENT_HASH_TABLE_FN_ANNIV_PATTERN[] = "\xCC\x55\x8B\xEC\x51\x83\x7D\x10\x00\x0F\x85\x2A\x2A\x2A\x2A\x53\x8B\x5D\x08\x83\x3B\x00\x0F\x84\x2A\x2A\x2A\x2A\xA1";
-
-export using fnRemoveEntityHashValue_t = void(__cdecl*)(entvars_t* pev, const char* pszClassname, int32_t) noexcept;
-export inline fnRemoveEntityHashValue_t g_pfnRemoveEntityHashValue = nullptr;
-export inline constexpr unsigned char REMOVE_ENT_HASH_TABLE_FN_ANNIV_PATTERN[] = "\xCC\x55\x8B\xEC\x8B\x4D\x0C\x33\xD2\x56\x57\x8A\x01\x84\xC0\x74\x18\x0F\xBE\xF0\x03\xD2\x2C\x41\x3C\x19\x77\x03\x83\xC2\x20\x8A\x41\x01";
-
-
-export void RetrieveConditionZeroFn() noexcept
+export void RetrieveConditionZeroVar() noexcept
 {
-	g_pfnCSCZCBaseCreate = (fnCBaseCreate_t)UTIL_SearchPattern("mp.dll", 1, CSCZ_CBASE_CREATE_FN_ANNIV_PATTERN);
-	g_pfnSUB_UseTargets = (fnSUB_UseTargets_t)UTIL_SearchPattern("mp.dll", 1, CSCZ_SUB_USE_TARGETS_FN_ANNIV_PATTERN);
-	g_pfnEmptyEntityHashTable = (fnEmptyEntityHashTable_t)UTIL_SearchPattern("mp.dll", 1, EMPTY_ENT_HASH_TABLE_FN_ANNIV_PATTERN);
-	g_pfnAddEntityHashValue = (fnAddEntityHashValue_t)UTIL_SearchPattern("mp.dll", 1, ADD_ENT_HASH_TABLE_FN_ANNIV_PATTERN);
-	g_pfnRemoveEntityHashValue = (fnRemoveEntityHashValue_t)UTIL_SearchPattern("mp.dll", 1, REMOVE_ENT_HASH_TABLE_FN_ANNIV_PATTERN);
-
 	auto const pItemInfo = UTIL_RetrieveGlobalVariable<ItemInfo>(
 		UTIL_SearchPattern("mp.dll", 1, PRECACHE_OTHER_WPN_FN_ANNIV_PATTERN),
 		ITEM_INFO_ARRAY_OFS
@@ -110,7 +85,7 @@ Vector CBaseEntity::FireBullets3(Vector vecSrc, Vector vecDirShooting, float flS
 
 CBaseEntity* CBaseEntity::Create(char const* szName, const Vector& vecOrigin, const Angles& vecAngles, edict_t* pentOwner) noexcept
 {
-	return g_pfnCSCZCBaseCreate(szName, vecOrigin, vecAngles, pentOwner);
+	return gUranusCollection.pfnCreate(szName, vecOrigin, vecAngles, pentOwner);
 }
 
 ////////////////
@@ -119,7 +94,7 @@ CBaseEntity* CBaseEntity::Create(char const* szName, const Vector& vecOrigin, co
 
 void CBaseDelay::SUB_UseTargets(CBaseEntity* pActivator, USE_TYPE useType, float value) noexcept
 {
-	g_pfnSUB_UseTargets(this, pActivator, useType, value);
+	gUranusCollection.pfnSUB_UseTargets(this, pActivator, useType, value);
 }
 
 /////////////////////
@@ -299,7 +274,7 @@ void CBasePlayerWeapon::FireRemaining(int& shotsFired, float& shootTime, bool bI
 
 	if (bIsGlock)
 	{
-		vecDir = m_pPlayer->FireBullets3(vecSrc, gpGlobals->v_forward, 0.05, 8192, 1, BULLET_PLAYER_9MM, 18, 0.9, m_pPlayer->pev, true, m_pPlayer->random_seed);
+		vecDir = m_pPlayer->FireBullets3(vecSrc, gpGlobals->v_forward, 0.05f, 8192, 1, BULLET_PLAYER_9MM, 18, 0.9f, m_pPlayer->pev, true, m_pPlayer->random_seed);
 		--m_pPlayer->ammo_9mm;
 
 		g_engfuncs.pfnPlaybackEvent(
@@ -312,7 +287,7 @@ void CBasePlayerWeapon::FireRemaining(int& shotsFired, float& shootTime, bool bI
 	}
 	else
 	{
-		vecDir = m_pPlayer->FireBullets3(vecSrc, gpGlobals->v_forward, m_fBurstSpread, 8192, 2, BULLET_PLAYER_556MM, 30, 0.96, m_pPlayer->pev, false, m_pPlayer->random_seed);
+		vecDir = m_pPlayer->FireBullets3(vecSrc, gpGlobals->v_forward, m_fBurstSpread, 8192, 2, BULLET_PLAYER_556MM, 30, 0.96f, m_pPlayer->pev, false, m_pPlayer->random_seed);
 		--m_pPlayer->ammo_556nato;
 
 		g_engfuncs.pfnPlaybackEvent(
