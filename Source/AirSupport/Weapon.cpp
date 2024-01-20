@@ -15,6 +15,7 @@ import Query;
 import Resources;
 import Target;
 import Task;
+import Uranus;
 import Weapon;
 
 import UtlHook;
@@ -95,9 +96,9 @@ qboolean __fastcall HamF_Item_Deploy(CBasePlayerItem *pItem, int) noexcept
 	g_engfuncs.pfnEmitSound(ent_cast<edict_t *>(pThis->pev), CHAN_ITEM, "weapons/knife_deploy1.wav", 0.3f, 2.4f, 0, PITCH_NORM);
 
 	if (pThis->m_pPlayer->m_bOwnsShield)
-		return g_pfnDefaultDeploy(pThis, "models/shield/v_shield_knife.mdl", "models/shield/p_shield_knife.mdl", KNIFE_SHIELD_DRAW, "shieldknife", pThis->UseDecrement() != 0);
+		return gUranusCollection.pfnDefaultDeploy(pThis, "models/shield/v_shield_knife.mdl", "models/shield/p_shield_knife.mdl", KNIFE_SHIELD_DRAW, "shieldknife", pThis->UseDecrement() != 0);
 	else
-		return g_pfnDefaultDeploy(pThis, "models/v_knife.mdl", "models/p_knife.mdl", KNIFE_DRAW, "knife", pThis->UseDecrement() != 0);
+		return gUranusCollection.pfnDefaultDeploy(pThis, "models/v_knife.mdl", "models/p_knife.mdl", KNIFE_DRAW, "knife", pThis->UseDecrement() != 0);
 }
 
 void __fastcall HamF_Item_PostFrame(CBasePlayerItem *pItem, int) noexcept
@@ -224,7 +225,7 @@ extern "C++" namespace Weapon
 		pThis->m_pPlayer->m_iHideHUD |= HIDEHUD_CROSSHAIR;
 		pThis->has_disconnected = true;	// BORROWED MEMBER: allow holster.
 
-		g_pfnDefaultDeploy(pThis, Models::V_RADIO, Models::P_RADIO, (int)Models::v_radio::seq::draw, "knife", false);	// Enforce to play the anim.
+		gUranusCollection.pfnDefaultDeploy(pThis, Models::V_RADIO, Models::P_RADIO, (int)Models::v_radio::seq::draw, "knife", false);	// Enforce to play the anim.
 
 		pThis->m_pPlayer->m_flNextAttack = Models::v_radio::time::draw;
 		pThis->m_flNextPrimaryAttack = std::numeric_limits<float>::max();
@@ -408,9 +409,9 @@ Vector *__fastcall OrpheuF_FireBullets3(CBaseEntity* pThis, void* edx, Vector* p
 	// edx register must be pass on, or it might invokes content loss.
 
 	g_bIsSomeoneShooting = true;
-	UTIL_UndoPatch(g_pfnFireBullets3, HookInfo::FireBullets3.m_OriginalBytes);
-	auto const ret = g_pfnFireBullets3(pThis, edx, pret, vecSrc, vecDirShooting, flSpread, flDistance, iPenetration, iBulletType, iDamage, flRangeModifier, pevAttacker, bPistol, shared_rand);
-	UTIL_DoPatch(g_pfnFireBullets3, HookInfo::FireBullets3.m_PatchedBytes);
+	UTIL_UndoPatch(gUranusCollection.pfnFireBullets3, HookInfo::FireBullets3.m_OriginalBytes);
+	auto const ret = gUranusCollection.pfnFireBullets3(pThis, edx, pret, vecSrc, vecDirShooting, flSpread, flDistance, iPenetration, iBulletType, iDamage, flRangeModifier, pevAttacker, bPistol, shared_rand);
+	UTIL_DoPatch(gUranusCollection.pfnFireBullets3, HookInfo::FireBullets3.m_PatchedBytes);
 	g_bIsSomeoneShooting = false;
 	return ret;
 }

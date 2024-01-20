@@ -54,13 +54,20 @@ export namespace Uranus
 		using namespace Uranus;
 
 		UTIL_SearchPatterns<
-			EmptyEntityHashTable,
-			AddEntityHashValue,
-			RemoveEntityHashValue,
+			EmptyEntityHashTable, AddEntityHashValue, RemoveEntityHashValue,
+			ClearMultiDamage, ApplyMultiDamage, AddMultiDamage,
+			TEXTURETYPE_PlaySound,
+			UTIL_PrecacheOther, UTIL_PrecacheOtherWeapon,
 			BaseEntity::Create,
 			BaseEntity::FireBullets3,
 			BaseDelay::SUB_UseTargets,
+			BaseWeapon::DefaultDeploy,
 			BasePlayer::SetAnimation
+		>();
+
+		UTIL_SearchPatterns<
+			HW::Sys_Error,
+			HW::SZ_GetSpace
 		>();
 	}
 }

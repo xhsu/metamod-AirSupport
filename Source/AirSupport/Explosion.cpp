@@ -17,6 +17,7 @@ import Math;
 import Query;
 import Resources;
 import Task;
+import Uranus;
 
 using std::array;
 using std::bit_cast;
@@ -312,6 +313,6 @@ TraceResult Impact(CBasePlayer *pAttacker, CBaseEntity *pProjectile, float flDam
 	}
 
 	pOther->TraceAttack(pAttacker->pev, flDamage, gpGlobals->v_forward, &tr, DMG_BULLET);
-	g_pfnApplyMultiDamage(pProjectile->pev, pAttacker->pev);
+	gUranusCollection.pfnApplyMultiDamage(pProjectile->pev, pAttacker->pev);
 	return tr;
 }

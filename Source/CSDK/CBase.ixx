@@ -290,7 +290,7 @@ struct EHANDLE final
 
 	inline edict_t *Get(void) const noexcept
 	{
-		if (!m_pent || !m_pent->pvPrivateData || ent_cast<short>(m_pent) <= 0)
+		if (!m_pent || !m_pent->pvPrivateData || ent_cast<short>(m_pent) < 0)	// index 0, CWorld, is a valid entity.
 			return nullptr;
 
 		if (m_pent->serialnumber != m_serialnumber)
@@ -537,11 +537,12 @@ export struct AmmoInfo
 
 export inline constexpr auto WEAPON_NOCLIP = -1;
 
-export inline constexpr auto ITEM_FLAG_SELECTONEMPTY = 1;
-export inline constexpr auto ITEM_FLAG_NOAUTORELOAD = 2;
-export inline constexpr auto ITEM_FLAG_NOAUTOSWITCHEMPTY = 4;
-export inline constexpr auto ITEM_FLAG_LIMITINWORLD = 8;
-export inline constexpr auto ITEM_FLAG_EXHAUSTIBLE = 16; // A player can totally exhaust their ammo supply and lose this weapon
+export inline constexpr auto ITEM_FLAG_SELECTONEMPTY = (1 << 0);
+export inline constexpr auto ITEM_FLAG_NOAUTORELOAD = (1 << 1);
+export inline constexpr auto ITEM_FLAG_NOAUTOSWITCHEMPTY = (1 << 2);
+export inline constexpr auto ITEM_FLAG_LIMITINWORLD = (1 << 3);
+export inline constexpr auto ITEM_FLAG_EXHAUSTIBLE = (1 << 4); // A player can totally exhaust their ammo supply and lose this weapon
+export inline constexpr auto ITEM_FLAG_NOFIREUNDERWATER = (1 << 5);	// ReGameDLL ext
 
 export class CBasePlayerItem : public CBaseAnimating
 {
@@ -572,13 +573,13 @@ public:
 	virtual int iItemSlot(void) = 0;
 
 public:
-//	void EXPORT DestroyItem(void);
+//	void __declspec(dllexport) DestroyItem(void);
 	void __declspec(dllexport) DefaultTouch(CBaseEntity *pOther) noexcept;
-//	void EXPORT FallThink(void);
+	void __declspec(dllexport) FallThink(void) noexcept;
 	void __declspec(dllexport) Materialize(void) noexcept;
 	void __declspec(dllexport) AttemptToMaterialize(void) noexcept;
 //	CBaseEntity *Respawn(void);
-//	void FallInit(void);
+	void FallInit(void) noexcept;
 //	void CheckRespawn(void);
 
 public:
@@ -663,7 +664,7 @@ public:
 	virtual CBasePlayerItem *GetWeaponPtr(void) = 0;
 
 //public:
-//	BOOL DefaultDeploy(char *szViewModel, char *szWeaponModel, int iAnim, char *szAnimExt, int skiplocal = 0);
+	bool DefaultDeploy(char const *szViewModel, char const *szWeaponModel, int iAnim, char const *szAnimExt, int skiplocal = 0) noexcept;
 //	int DefaultReload(int iClipSize, int iAnim, float fDelay, int body = 0);
 //	void ReloadSound(void);
 	qboolean AddPrimaryAmmo(int iCount, const char* szName, int iMaxClip, int iMaxCarry) noexcept;
@@ -677,6 +678,7 @@ public:
 //	void ResetPlayerShieldAnim(void);
 //	bool ShieldSecondaryFire(int up_anim, int down_anim);
 	bool HasSecondaryAttack(void) const noexcept;
+	float GetNextAttackDelay(float delay) noexcept;	// ReGameDLL, build >= 6153
 
 //public:
 //	static TYPEDESCRIPTION m_SaveData[];
@@ -715,6 +717,11 @@ public:
 	float m_flDecreaseShotsFired{};
 	unsigned short m_usFireGlock18{};
 	unsigned short m_usFireFamas{};
+
+	// LUNA: ReGameDLL added? Or build >= 6153??
+	// hle time creep vars
+	float m_flPrevPrimaryAttack{};
+	float m_flLastFireTime{};
 };
 
 export class CBasePlayerAmmo : public CBaseEntity
@@ -1058,6 +1065,11 @@ export inline constexpr auto SUIT_NEXT_IN_10MIN = 600;
 export inline constexpr auto SUIT_NEXT_IN_30MIN = 1800;
 export inline constexpr auto SUIT_NEXT_IN_1HOUR = 3600;
 
+export inline constexpr auto AUTOAIM_2DEGREES = 0.0348994967025;
+export inline constexpr auto AUTOAIM_5DEGREES = 0.08715574274766;
+export inline constexpr auto AUTOAIM_8DEGREES = 0.1391731009601;
+export inline constexpr auto AUTOAIM_10DEGREES = 0.1736481776669;
+
 export inline constexpr auto CSUITNOREPEAT = 32;
 
 export inline constexpr char SOUND_FLASHLIGHT_ON[] = "items/flashlight1.wav";
@@ -1271,7 +1283,7 @@ public:
 //	void StopReload(void) override;
 //	void DrawnShiled(void) override;
 	bool HasShield(void) const noexcept { return m_bOwnsShield; }
-//	void UpdateShieldCrosshair(bool bShieldDrawn) override;
+	void UpdateShieldCrosshair(bool bShieldDrawn) noexcept;
 //	void DropShield(bool bDeploy) override;
 //	void GiveShield(bool bRetire) override;
 //	bool IsProtectedByShield(void) override;

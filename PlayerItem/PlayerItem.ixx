@@ -10,32 +10,6 @@ export import VTFH;
 
 export inline constexpr auto WEAPON_IS_ONTARGET = 0x40;
 
-export constexpr float UTIL_WeaponTimeBase() noexcept { return 0.f; }	// or return gpGlobals->time; if not CLIENT_WEAPONS
-export constexpr bool CanAttack(float attack_time, float curtime, bool isPredicted) noexcept
-{
-	if (!isPredicted)
-		return attack_time <= curtime;
-
-	return attack_time <= 0;
-}
-export constexpr bool IsSecondaryWeapon(int id) noexcept
-{
-	switch (id)
-	{
-	case WEAPON_P228:
-	case WEAPON_ELITE:
-	case WEAPON_FIVESEVEN:
-	case WEAPON_USP:
-	case WEAPON_GLOCK18:
-	case WEAPON_DEAGLE:
-		return true;
-	default:
-		break;
-	}
-
-	return false;
-}
-
 
 // LUNA:	the diamond inheritance will actually affect the memory layout.
 //			therefore unfortunately it is need to make a full copy of the prefab above.
@@ -54,7 +28,7 @@ export struct CPrefabWeapon : CBasePlayerWeapon
 	void Spawn() noexcept override {}
 	void Precache() noexcept override {}
 	void Restart() noexcept override { m_Scheduler.Clear(); }
-	void KeyValue(KeyValueData* pkvd) noexcept override { pkvd->fHandled = false; }
+	//void KeyValue(KeyValueData* pkvd) noexcept override { pkvd->fHandled = false; } - overridden by CBaseDelay
 	int Save(void* save) noexcept override { return 0; }
 	int Restore(void* restore) noexcept override { return 0; }
 	int ObjectCaps() noexcept override { return FCAP_ACROSS_TRANSITION; }
@@ -100,7 +74,7 @@ export struct CPrefabWeapon : CBasePlayerWeapon
 	qboolean RemovePlayerItem(CBasePlayerItem* pItem) noexcept override { return false; }
 	int GiveAmmo(int iAmount, char* szName, int iMax = -1) noexcept override { return -1; }
 	float GetDelay() noexcept override { return 0.0f; }
-	int IsMoving() noexcept override { return (pev->velocity != Vector::Zero()); }
+	qboolean IsMoving() noexcept override { return (pev->velocity != Vector::Zero()); }
 	void OverrideReset() noexcept override {}
 	int DamageDecal(int bitsDamageType) noexcept override { return g_pfnEntityDamageDecal(this, bitsDamageType); }
 
@@ -211,7 +185,24 @@ export struct CPrefabWeapon : CBasePlayerWeapon
 
 
 public:	// CBaseDelay
-	// Nothing here. No new virtual functions.
+	void KeyValue(KeyValueData* pkvd) noexcept override
+	{
+		if (FStrEq(pkvd->szKeyName, "delay"))
+		{
+			m_flDelay = (decltype(m_flDelay))std::atof(pkvd->szValue);
+			pkvd->fHandled = true;
+		}
+		else if (FStrEq(pkvd->szKeyName, "killtarget"))
+		{
+			m_iszKillTarget = g_engfuncs.pfnAllocString(pkvd->szValue);
+			pkvd->fHandled = true;
+		}
+		else
+		{
+			// CBaseEntity::KeyValue(pkvd);
+			pkvd->fHandled = false;
+		}
+	}
 
 public:	// CBaseAnimating
 	void HandleAnimEvent(MonsterEvent_t* pEvent) noexcept override {}
@@ -241,7 +232,7 @@ public:	// CBasePlayerItem
 
 			// no touch
 			pNewWeapon->SetTouch(nullptr);
-			pNewWeapon->SetThink(&CPrefabWeapon::AttemptToMaterialize);	// should be: CBasePlayerItem
+			pNewWeapon->SetThink(&CBasePlayerItem::AttemptToMaterialize);
 
 			g_engfuncs.pfnDropToFloor(edict());
 
@@ -258,7 +249,7 @@ public:	// CBasePlayerItem
 	}
 	//qboolean AddToPlayer(CBasePlayer* pPlayer) noexcept override;	- overridden by CBasePlayerWeapon
 	//qboolean AddDuplicate(CBasePlayerItem* pItem) noexcept override;	- overridden by CBasePlayerWeapon
-	int GetItemInfo(ItemInfo* p) noexcept override { return 0; }
+	qboolean GetItemInfo(ItemInfo* p) noexcept override { return false; }
 	//qboolean CanDeploy(void) noexcept override { return true; }	- overridden by CBasePlayerWeapon
 	qboolean CanDrop(void) noexcept override { return true; }
 	qboolean Deploy(void) noexcept override { return true; }
@@ -298,7 +289,7 @@ public:	// CBasePlayerItem
 
 		SetTouch(nullptr);
 	}
-	int PrimaryAmmoIndex(void) noexcept override { return -1; }
+	//int PrimaryAmmoIndex(void) noexcept override { return -1; }	- overridden by CBasePlayerWeapon
 	int SecondaryAmmoIndex(void) noexcept override { return -1; }
 	//int UpdateClientData(CBasePlayer* pPlayer) noexcept override { return 0; }	- overridden by CBasePlayerWeapon
 	//CBasePlayerItem* GetWeaponPtr(void) noexcept override { return nullptr; }	- overridden by CBasePlayerWeapon
@@ -310,10 +301,21 @@ public:	// CBasePlayerWeapon
 	qboolean AddToPlayer(CBasePlayer* pPlayer) noexcept override
 	{
 		m_pPlayer = pPlayer;
+		pPlayer->pev->weapons |= (1 << m_iId);
 
-		gmsgWeapPickup::Send(pPlayer->edict(), m_iId);
+		if (!m_iPrimaryAmmoType)
+		{
+			m_iPrimaryAmmoType = pPlayer->GetAmmoIndex(pszAmmo1());
+			m_iSecondaryAmmoType = pPlayer->GetAmmoIndex(pszAmmo2());
+		}
 
-		return true;
+		if (AddWeapon())
+		{
+			//return CBasePlayerItem::AddToPlayer(pPlayer);
+			gmsgWeapPickup::Send(pPlayer->edict(), m_iId);
+		}
+
+		return false;
 	}
 	qboolean AddDuplicate(CBasePlayerItem* pItem) noexcept override
 	{
@@ -343,7 +345,7 @@ public:	// CBasePlayerWeapon
 	int ExtractClipAmmo(CBasePlayerWeapon* pWeapon) noexcept override
 	{
 		int iAmmo;
-		if (m_iClip == -1)
+		if (m_iClip == WEAPON_NOCLIP)
 		{
 			// guns with no clips always come empty if they are second-hand
 			iAmmo = 0;
@@ -499,7 +501,16 @@ public:	// CBasePlayerWeapon
 			// Always allow firing in single player
 			if ((m_pPlayer->m_bCanShoot && g_pGameRules->IsMultiplayer() && !g_pGameRules->IsFreezePeriod() && !m_pPlayer->m_bIsDefusing) || !g_pGameRules->IsMultiplayer())
 			{
-				PrimaryAttack();
+				// don't fire underwater
+				if (m_pPlayer->pev->waterlevel == 3 && (iFlags() & ITEM_FLAG_NOFIREUNDERWATER))
+				{
+					PlayEmptySound();
+					m_flNextPrimaryAttack = GetNextAttackDelay(0.15f);
+				}
+				else
+				{
+					PrimaryAttack();
+				}
 			}
 		}
 		else if ((m_pPlayer->pev->button & IN_RELOAD) && iMaxClip() != WEAPON_NOCLIP && !m_fInReload && m_flNextPrimaryAttack < UTIL_WeaponTimeBase())
@@ -545,6 +556,12 @@ public:	// CBasePlayerWeapon
 				{
 					m_flDecreaseShotsFired = gpGlobals->time + 0.0225f;
 					m_iShotsFired--;
+
+					// Reset accuracy
+					if (m_iShotsFired == 0)
+					{
+						m_flAccuracy = GetBaseAccuracy((WeaponIdType)m_iId);
+					}
 				}
 			}
 
@@ -585,11 +602,12 @@ public:	// CBasePlayerWeapon
 			WeaponIdle();
 		}
 	}
+	int PrimaryAmmoIndex(void) noexcept override { return m_iPrimaryAmmoType; }
 	void PrimaryAttack(void) noexcept override {}
 	void SecondaryAttack(void) noexcept override {}
 	void Reload(void) noexcept override {}
 	void WeaponIdle(void) noexcept override {}
-	int UpdateClientData(CBasePlayer* pPlayer) noexcept override
+	qboolean UpdateClientData(CBasePlayer* pPlayer) noexcept override
 	{
 		bool bSend = false;
 		int state = 0;
@@ -650,23 +668,9 @@ public:	// CBasePlayerWeapon
 	CBasePlayerItem* GetWeaponPtr(void) noexcept override { return (CBasePlayerItem*)this; }
 
 
-public:	// ReGameDLL addition member.
-	// hle time creep vars
-	float m_flPrevPrimaryAttack{};
-	float m_flLastFireTime{};
-
 public:
 	// LUNA: Extended Virtual Funcs: Be adviced that original CBaseEntity does not containing these!
 	virtual bool ShouldCollide(EHANDLE<CBaseEntity> pOther) noexcept { return true; }
-
-	// Forwarding all arguments to the Create() of that class.
-	template <typename T, typename... Tys>
-	static __forceinline T* Create(Tys&&... args)
-		noexcept (noexcept(T::Create(std::forward<Tys>(args)...)))
-		requires (requires{ { T::Create(std::forward<Tys>(args)...) } -> std::same_as<T*>; })
-	{
-		return T::Create(std::forward<Tys>(args)...);
-	}
 
 	TaskScheduler_t m_Scheduler{};
 };

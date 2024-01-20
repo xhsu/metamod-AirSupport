@@ -139,6 +139,7 @@
     <ClCompile Include="..\..\metamod-p\hlsdk\engine\progs.ixx" />
     <ClCompile Include="..\..\metamod-p\hlsdk\engine\Sequence.ixx" />
     <ClCompile Include="..\..\metamod-p\hlsdk\engine\shake.ixx" />
+    <ClCompile Include="..\..\metamod-p\hlsdk\engine\sizebuf.ixx" />
     <ClCompile Include="..\..\metamod-p\hlsdk\engine\studio.ixx" />
     <ClCompile Include="..\..\metamod-p\hlsdk\pm_shared\pm_defs.ixx" />
     <ClCompile Include="..\..\metamod-p\hlsdk\pm_shared\pm_info.ixx" />
@@ -173,9 +174,12 @@
     <ClCompile Include="..\Source\CSDK\Wave.ixx" />
     <ClCompile Include="..\Source\CSDK\ZBot.ixx" />
     <ClCompile Include="Hook.cpp" />
+    <ClCompile Include="Melee.cpp" />
     <ClCompile Include="PlayerItem.ixx" />
     <ClCompile Include="Plugin.cpp" />
     <ClCompile Include="Plugin.ixx" />
+    <ClCompile Include="Weapons.ixx" />
+    <ClCompile Include="Weapons.Melee.ixx" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

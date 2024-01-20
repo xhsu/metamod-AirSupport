@@ -84,13 +84,8 @@ void DeployHooks(void) noexcept
 
 	g_pfnRadiusFlash = (fnRadiusFlash_t)UTIL_SearchPattern("mp.dll", 1, RADIUS_FLASH_FN_NEW_PATTERN, RADIUS_FLASH_FN_ANNIV_PATTERN);
 	g_pfnSelectItem = (fnSelectItem_t)UTIL_SearchPattern("mp.dll", 1, SELECT_ITEM_FN_NEW_PATTERN, SELECT_ITEM_FN_ANNIV_PATTERN);
-	g_pfnApplyMultiDamage = (fnApplyMultiDamage_t)UTIL_SearchPattern("mp.dll", 1, APPLY_MULTI_DAMAGE_FN_NEW_PATTERN, APPLY_MULTI_DAMAGE_FN_ANNIV_PATTERN);
-	g_pfnClearMultiDamage = (fnClearMultiDamage_t)UTIL_SearchPattern("mp.dll", 1, CLEAR_MULTI_DAMAGE_FN_NEW_PATTERN, CLEAR_MULTI_DAMAGE_FN_ANNIV_PATTERN);
-	g_pfnAddMultiDamage = (fnAddMultiDamage_t)UTIL_SearchPattern("mp.dll", 1, ADD_MULTI_DAMAGE_FN_NEW_PATTERN, ADD_MULTI_DAMAGE_FN_ANNIV_PATTERN);
-	g_pfnDefaultDeploy = (fnDefaultDeploy_t)UTIL_SearchPattern("mp.dll", 1, DEFAULT_DEPLOY_FN_NEW_PATTERN, DEFAULT_DEPLOY_FN_ANNIV_PATTERN);
 	g_pfnSwitchWeapon = (fnSwitchWeapon_t)UTIL_SearchPattern("mp.dll", 1, SWITCH_WEAPON_FN_NEW_PATTERN, SWITCH_WEAPON_FN_ANNIV_PATTERN);
 	g_pfnFireBullets = (fnFireBullets_t)UTIL_SearchPattern("mp.dll", 1, FIRE_BULLETS_FN_NEW_PATTERN, FIRE_BULLETS_FN_ANNIV_PATTERN);
-	g_pfnFireBullets3 = (fnFireBullets3_t)UTIL_SearchPattern("mp.dll", 1, FIRE_BULLETS_3_FN_NEW_PATTERN, FIRE_BULLETS_3_FN_ANNIV_PATTERN);
 
 	RetrieveCBaseVirtualFn();
 
@@ -112,36 +107,21 @@ void DeployHooks(void) noexcept
 	if (!g_pfnSelectItem)
 		UTIL_Terminate("Function \"CBasePlayer::SelectItem\" no found!");
 	[[unlikely]]
-	if (!g_pfnApplyMultiDamage)
-		UTIL_Terminate("Function \"::ApplyMultiDamage\" no found!");
-	[[unlikely]]
-	if (!g_pfnClearMultiDamage)
-		UTIL_Terminate("Function \"::ClearMultiDamage\" no found!");
-	[[unlikely]]
-	if (!g_pfnAddMultiDamage)
-		UTIL_Terminate("Function \"::AddMultiDamage\" no found!");
-	[[unlikely]]
-	if (!g_pfnDefaultDeploy)
-		UTIL_Terminate("Function \"CBasePlayerWeapon::DefaultDeploy\" no found!");
-	[[unlikely]]
 	if (!g_pfnSwitchWeapon)
 		UTIL_Terminate("Function \"CBasePlayer::SwitchWeapon\" no found!");
 	[[unlikely]]
 	if (!g_pfnFireBullets)
 		UTIL_Terminate("Function \"CBaseEntity::FireBullets\" no found!");
-	[[unlikely]]
-	if (!g_pfnFireBullets3)
-		UTIL_Terminate("Function \"CBaseEntity::FireBullets3\" no found!");
 #endif
 
 	HookInfo::FireBullets.m_Address = g_pfnFireBullets;
-	HookInfo::FireBullets3.m_Address = g_pfnFireBullets3;
+	HookInfo::FireBullets3.m_Address = gUranusCollection.pfnFireBullets3;
 
 	UTIL_PreparePatch(g_pfnFireBullets, &OrpheuF_FireBullets, HookInfo::FireBullets.m_PatchedBytes, HookInfo::FireBullets.m_OriginalBytes);
-	UTIL_PreparePatch(g_pfnFireBullets3, &OrpheuF_FireBullets3, HookInfo::FireBullets3.m_PatchedBytes, HookInfo::FireBullets3.m_OriginalBytes);
+	UTIL_PreparePatch(gUranusCollection.pfnFireBullets3, &OrpheuF_FireBullets3, HookInfo::FireBullets3.m_PatchedBytes, HookInfo::FireBullets3.m_OriginalBytes);
 
 	UTIL_DoPatch(g_pfnFireBullets, HookInfo::FireBullets.m_PatchedBytes);
-	UTIL_DoPatch(g_pfnFireBullets3, HookInfo::FireBullets3.m_PatchedBytes);
+	UTIL_DoPatch(gUranusCollection.pfnFireBullets3, HookInfo::FireBullets3.m_PatchedBytes);
 
 	bHooksPerformed = true;
 }
@@ -423,12 +403,6 @@ int fw_CheckVisibility(const edict_t *entity, unsigned char *pset) noexcept
 	// pre
 }
 
-void fw_SetGroupMask_Post(int mask, int op) noexcept
-{
-	gpMetaGlobals->mres = MRES_IGNORED;
-	// post
-}
-
 void fw_UpdateClientData_Post(const edict_t *ent, int sendweapons, clientdata_t *cd) noexcept
 {
 	gpMetaGlobals->mres = MRES_IGNORED;
@@ -482,12 +456,12 @@ void fw_OnFreeEntPrivateData(edict_t *pEdict) noexcept
 	[[likely]]
 	if (auto const pEntity = (CBaseEntity *)pEdict->pvPrivateData; pEntity != nullptr)
 	{
+		if (gpMetaGlobals->prev_mres == MRES_SUPERCEDE)	// It had been handled by other similar plugins.
+			return;
+
 		[[unlikely]]
 		if (auto const pPrefab = dynamic_cast<Prefab_t *>(pEntity); pPrefab != nullptr)
 		{
-			if (gpMetaGlobals->prev_mres == MRES_SUPERCEDE)	// It had been handled by other similar plugins.
-				return;
-
 			std::destroy_at(pPrefab);	// Thanks to C++17 we can finally patch up this old game.
 			gpMetaGlobals->mres = MRES_SUPERCEDE;
 		}
@@ -499,7 +473,7 @@ qboolean fw_ShouldCollide(edict_t *pentTouched, edict_t *pentOther) noexcept
 	gpMetaGlobals->mres = MRES_IGNORED;
 
 	if (gpMetaGlobals->prev_mres == MRES_SUPERCEDE)
-		return *(int *)gpMetaGlobals->orig_ret;
+		return *(qboolean*)gpMetaGlobals->override_ret;
 
 	EHANDLE<CBaseEntity> pEntity(pentTouched), pOther(pentOther);
 
@@ -509,7 +483,7 @@ qboolean fw_ShouldCollide(edict_t *pentTouched, edict_t *pentOther) noexcept
 		return pPrefab->ShouldCollide(pOther);
 	}
 
-	return *(int *)gpMetaGlobals->orig_ret;
+	return *(qboolean*)gpMetaGlobals->orig_ret;
 }
 
 // Register Meta Hooks
@@ -1116,7 +1090,7 @@ inline constexpr enginefuncs_t gHookEngFns_Post =
 	.pfnDeltaSetFieldByIndex	= nullptr,
 	.pfnDeltaUnsetFieldByIndex	= nullptr,
 
-	.pfnSetGroupMask			= &fw_SetGroupMask_Post,
+	.pfnSetGroupMask			= nullptr,
 
 	.pfnCreateInstancedBaseline	= nullptr,
 	.pfnCvar_DirectSet			= nullptr,

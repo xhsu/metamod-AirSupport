@@ -1,3 +1,6 @@
+import <cstdio>;
+import <print>;
+
 import eiface;
 
 import meta_api;
@@ -9,13 +12,143 @@ import FileSystem;
 import GameRules;
 import Message;
 import Plugin;
-#ifndef __INTELLISENSE__
+import Prefab;
 import Task;
-#endif
 import Uranus;
 import VTFH;
 import ZBot;
 
+import UtlHook;
+
+import Weapons;
+
+
+template <typename T>
+struct FunctionHook
+{
+	constexpr FunctionHook(T const& local_fn) noexcept
+		: m_LocalFN{ local_fn }
+	{
+		;
+	}
+
+	auto PreparePatch(T const& addr) noexcept
+	{
+		m_Address = addr;
+		return UTIL_PreparePatch(m_Address, m_LocalFN, m_PatchedBytes, m_OriginalBytes);
+	}
+
+	auto DoPatch() const noexcept
+	{
+		return UTIL_DoPatch(m_Address, m_PatchedBytes);
+	}
+
+	auto UndoPatch() const noexcept
+	{
+		return UTIL_UndoPatch(m_Address, m_OriginalBytes);
+	}
+
+	__forceinline void ApplyOn(T const& addr) noexcept
+	{
+		PreparePatch(addr);
+		DoPatch();
+	}
+
+	auto CallOriginal(auto&&... args) const noexcept
+	{
+		if constexpr (requires{ { m_Address(std::forward<decltype(args)>(args)...) } -> std::same_as<void>; })
+		{
+			UndoPatch();
+			m_Address(std::forward<decltype(args)>(args)...);
+			DoPatch();
+		}
+		else
+		{
+			UndoPatch();
+			auto const ret = m_Address(std::forward<decltype(args)>(args)...);
+			DoPatch();
+
+			return ret;
+		}
+	}
+
+	__forceinline auto operator() (auto&&... args) const noexcept { return CallOriginal(std::forward<decltype(args)>(args)...); }
+
+	unsigned char m_OriginalBytes[5]{};
+	unsigned char m_PatchedBytes[5]{};
+	T m_Address{};
+	T m_LocalFN{};
+
+	static_assert(std::is_pointer_v<T>, "Must be a local function pointer!");
+};
+
+extern edict_t* OrpheuF_CreateNamedEntity(string_t className) noexcept;
+extern void* OrpheuF_SZ_GetSpace(sizebuf_t* buf, uint32_t length) noexcept;
+
+namespace HookInfo
+{
+	FunctionHook CreateNamedEntity{ &OrpheuF_CreateNamedEntity };
+	FunctionHook SZ_GetSpace{ &OrpheuF_SZ_GetSpace };
+};
+
+edict_t* OrpheuF_CreateNamedEntity(string_t className) noexcept
+{
+	std::string_view szClass{ STRING(className) };
+	//g_engfuncs.pfnServerPrint(std::format("OrpheuF_CreateNamedEntity: <{}>\n", szClass).c_str());
+
+	if (szClass == "weapon_knife")
+	{
+		auto const [pEdict, pKnife] = UTIL_CreateNamedPrefab<CKnife2>();
+		return pEdict;
+	}
+
+	return HookInfo::CreateNamedEntity(className);
+}
+
+void* OrpheuF_SZ_GetSpace(sizebuf_t* buf, uint32_t length) noexcept
+{
+	if (buf->cursize + length > buf->maxsize)
+	{
+		if (auto f = std::fopen("SZ_GetSpace.log", "wb"); f)
+		{
+			std::print(f,
+				"buf->buffername: {}\n"
+				"buf->cursize: {}\n"
+				"buf->flags: 0x{:X}\n"
+				"buf->maxsize: {}\n"
+				"\n"
+				,
+				buf->buffername ? buf->buffername : "nullptr",
+				buf->cursize,
+				buf->flags,
+				buf->maxsize
+			);
+
+			fwrite(buf->data, 1, buf->cursize, f);
+			fclose(f);
+		}
+
+		//UTIL_Terminate("SZ_GetSpace was not happy.");
+	}
+
+	return HookInfo::SZ_GetSpace(buf, length);
+}
+
+static void DeployHooks() noexcept
+{
+	static bool bHooked = false;
+
+	[[likely]]
+	if (bHooked)
+		return;
+
+	HookInfo::CreateNamedEntity.ApplyOn(g_engfuncs.pfnCreateNamedEntity);
+	HookInfo::SZ_GetSpace.ApplyOn(gUranusCollection.pfnSZ_GetSpace);
+
+	bHooked = true;
+}
+
+// Meta Forwards
 
 META_RES fw_ClientCommand(EHANDLE<CBasePlayer> pPlayer) noexcept
 {
@@ -32,6 +165,9 @@ void fw_GameInit_Post() noexcept
 	FileSystem::Init();
 	Engine::Init();
 	Uranus::RetrieveUranusLocal();
+
+	// This one got to be hook early.
+	DeployHooks();
 
 	if (Engine::BUILD_NUMBER < Engine::NEW)
 		UTIL_Terminate("Engine build '%d' mismatch from expected value: %d.\nPlease use this plugin on a legal STEAM copy.", Engine::BUILD_NUMBER, Engine::NEW);
@@ -59,6 +195,25 @@ void fw_ServerDeactivate_Post() noexcept
 
 	// Remove ALL existing tasks.
 	TaskScheduler::Clear();
+}
+
+void fw_OnFreeEntPrivateData(edict_t* pEdict) noexcept
+{
+	gpMetaGlobals->mres = MRES_IGNORED;
+
+	[[likely]]
+	if (auto const pEntity = (CBaseEntity*)pEdict->pvPrivateData; pEntity != nullptr)
+	{
+		if (gpMetaGlobals->prev_mres == MRES_SUPERCEDE)	// It had been handled by other similar plugins.
+			return;
+
+		[[unlikely]]
+		if (auto const pPrefab = dynamic_cast<CPrefabWeapon*>(pEntity); pPrefab != nullptr)
+		{
+			std::destroy_at(pPrefab);	// Thanks to C++17 we can finally patch up this old game.
+			gpMetaGlobals->mres = MRES_SUPERCEDE;
+		}
+	}
 }
 
 // Register Meta Hooks
@@ -233,7 +388,7 @@ int HookGameDLLExportedFn_Post(DLL_FUNCTIONS *pFunctionTable, int *interfaceVers
 
 inline constexpr NEW_DLL_FUNCTIONS gNewFunctionTable =
 {
-	.pfnOnFreeEntPrivateData	= nullptr,
+	.pfnOnFreeEntPrivateData	= &fw_OnFreeEntPrivateData,
 	.pfnGameShutdown			= nullptr,
 	.pfnShouldCollide			= nullptr,
 	.pfnCvarValue				= nullptr,

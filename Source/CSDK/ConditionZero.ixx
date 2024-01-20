@@ -132,6 +132,27 @@ void CBasePlayerItem::DefaultTouch(CBaseEntity* pOther) noexcept
 	SUB_UseTargets(pOther, USE_TOGGLE, 0);
 }
 
+void CBasePlayerItem::FallThink(void) noexcept
+{
+	pev->nextthink = gpGlobals->time + 0.1f;
+
+	if (pev->flags & FL_ONGROUND)
+	{
+		// clatter if we have an owner (i.e., dropped by someone)
+		// don't clatter if the gun is waiting to respawn (if it's waiting, it is invisible!)
+		if (pev_valid(pev->owner) != 2)
+		{
+			g_engfuncs.pfnEmitSound(edict(), CHAN_VOICE, "items/weapondrop1.wav", VOL_NORM, ATTN_NORM, 0, UTIL_Random(0, 29) + 95);
+		}
+
+		// lie flat
+		pev->angles.pitch = 0.0f;
+		pev->angles.roll = 0.0f;
+
+		Materialize();
+	}
+}
+
 void CBasePlayerItem::Materialize() noexcept
 {
 	if (pev->effects & EF_NODRAW)
@@ -181,9 +202,102 @@ void CBasePlayerItem::AttemptToMaterialize() noexcept
 	pev->nextthink = gpGlobals->time + time;
 }
 
+void CBasePlayerItem::FallInit(void) noexcept
+{
+	pev->movetype = MOVETYPE_TOSS;
+	pev->solid = SOLID_BBOX;
+
+	g_engfuncs.pfnSetOrigin(edict(), pev->origin);
+
+	// pointsize until it lands on the ground.
+	g_engfuncs.pfnSetSize(edict(), Vector(0, 0, 0), Vector(0, 0, 0));
+
+	SetTouch(&CBasePlayerItem::DefaultTouch);
+	SetThink(&CBasePlayerItem::FallThink);
+
+	pev->nextthink = gpGlobals->time + 0.1f;
+}
+
 ///////////////////////
 // CBasePlayerWeapon //
 ///////////////////////
+
+export constexpr float UTIL_WeaponTimeBase() noexcept { return 0.f; }	// or return gpGlobals->time; if not CLIENT_WEAPONS
+export constexpr bool CanAttack(float attack_time, float curtime, bool isPredicted) noexcept
+{
+	if (!isPredicted)
+		return attack_time <= curtime;
+
+	return attack_time <= 0;
+}
+export constexpr bool IsSecondaryWeapon(int id) noexcept
+{
+	switch (id)
+	{
+	case WEAPON_P228:
+	case WEAPON_ELITE:
+	case WEAPON_FIVESEVEN:
+	case WEAPON_USP:
+	case WEAPON_GLOCK18:
+	case WEAPON_DEAGLE:
+		return true;
+	default:
+		break;
+	}
+
+	return false;
+}
+export constexpr void DecalGunshot(TraceResult* pTrace, int iBulletType, bool ClientOnly, entvars_t* pShooter, bool bHitMetal) noexcept {}
+export constexpr float GetBaseAccuracy(WeaponIdType id) noexcept
+{
+	switch (id)
+	{
+	case WEAPON_M4A1:
+	case WEAPON_AK47:
+	case WEAPON_AUG:
+	case WEAPON_SG552:
+	case WEAPON_FAMAS:
+	case WEAPON_GALIL:
+	case WEAPON_M249:
+	case WEAPON_P90:
+	case WEAPON_TMP:
+		return 0.2f;
+	case WEAPON_MAC10:
+		return 0.15f;
+	case WEAPON_UMP45:
+	case WEAPON_MP5N:
+		return 0.0f;
+	}
+
+	return 0.0f;
+}
+
+bool CBasePlayerWeapon::DefaultDeploy(char const* szViewModel, char const* szWeaponModel, int iAnim, char const* szAnimExt, int skiplocal) noexcept
+{
+	if (!CanDeploy())
+		return false;
+
+	m_pPlayer->TabulateAmmo();
+
+	m_pPlayer->pev->viewmodel = MAKE_STRING_UNSAFE(szViewModel);
+	m_pPlayer->pev->weaponmodel = MAKE_STRING_UNSAFE(szWeaponModel);
+
+	model_name = m_pPlayer->pev->viewmodel;
+	strcpy(m_pPlayer->m_szAnimExtention, szAnimExt);
+	SendWeaponAnim(iAnim, skiplocal);
+
+	m_pPlayer->m_flNextAttack = 0.75f;
+	m_flTimeWeaponIdle = 1.5f;
+	m_flLastFireTime = 0.0f;
+	m_flDecreaseShotsFired = gpGlobals->time;
+
+	m_pPlayer->m_iFOV = DEFAULT_FOV;
+	m_pPlayer->pev->fov = DEFAULT_FOV;
+	m_pPlayer->m_iLastZoom = DEFAULT_FOV;
+	m_pPlayer->m_bResumeZoom = false;
+
+	return true;
+}
 
 qboolean CBasePlayerWeapon::AddPrimaryAmmo(int iCount, const char* szName, int iMaxClip, int iMaxCarry) noexcept
 {
@@ -342,6 +456,41 @@ bool CBasePlayerWeapon::HasSecondaryAttack(void) const noexcept
 	return true;
 }
 
+float CBasePlayerWeapon::GetNextAttackDelay(float delay) noexcept
+{
+	if (m_flLastFireTime == 0.0f || m_flNextPrimaryAttack == -1.0f)
+	{
+		// At this point, we are assuming that the client has stopped firing
+		// and we are going to reset our book keeping variables.
+		m_flPrevPrimaryAttack = delay;
+		m_flLastFireTime = gpGlobals->time;
+	}
+
+	// TODO: Build 6xxx
+	// at build 6153 beta this removed
+	// maybe it was initiated due to the delay of the shot
+
+	// calculate the time between this shot and the previous
+	float flTimeBetweenFires = gpGlobals->time - m_flLastFireTime;
+	float flCreep = 0.0f;
+
+	if (flTimeBetweenFires > 0)
+	{
+		flCreep = flTimeBetweenFires - m_flPrevPrimaryAttack;
+	}
+
+	float flNextAttack = UTIL_WeaponTimeBase() + delay - flCreep;
+
+	// save the last fire time
+	m_flLastFireTime = gpGlobals->time;
+
+	// we need to remember what the m_flNextPrimaryAttack time is set to for each shot,
+	// store it as m_flPrevPrimaryAttack.
+	m_flPrevPrimaryAttack = flNextAttack - UTIL_WeaponTimeBase();
+
+	return flNextAttack;
+}
+
 /////////////////
 // CBasePlayer //
 /////////////////
@@ -403,4 +552,12 @@ void CBasePlayer::TabulateAmmo(void) noexcept
 	ammo_338mag = AmmoInventory(GetAmmoIndex("338Magnum"));
 	ammo_57mm = AmmoInventory(GetAmmoIndex("57mm"));
 	ammo_357sig = AmmoInventory(GetAmmoIndex("357SIG"));
+}
+
+void CBasePlayer::UpdateShieldCrosshair(bool bShieldDrawn) noexcept
+{
+	if (bShieldDrawn)
+		m_iHideHUD &= ~HIDEHUD_CROSSHAIR;
+	else
+		m_iHideHUD |= HIDEHUD_CROSSHAIR;
 }

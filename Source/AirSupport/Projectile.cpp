@@ -9,6 +9,7 @@ import Math;
 import Menu;
 import Projectile;
 import Resources;
+import Uranus;
 
 import UtlRandom;
 
@@ -715,9 +716,9 @@ Task CBullet::Task_Touch() noexcept
 	{
 		EHANDLE<CBaseEntity> pVictim{ tr.pHit };
 
-		g_pfnClearMultiDamage();
+		gUranusCollection.pfnClearMultiDamage();
 		pVictim->TraceAttack(m_pShooter->pev, 100.f, pev->velocity.Normalize(), &tr, DMG_BULLET);
-		g_pfnApplyMultiDamage(pev, m_pShooter->pev);
+		gUranusCollection.pfnApplyMultiDamage(pev, m_pShooter->pev);
 
 		pev->flags |= FL_KILLME;
 		co_return;
@@ -783,9 +784,9 @@ Task CBullet::Task_Fly() noexcept
 		{
 			EHANDLE<CBaseEntity> pVictim{ tr.pHit };
 
-			g_pfnClearMultiDamage();
+			gUranusCollection.pfnClearMultiDamage();
 			pVictim->TraceAttack(m_pShooter->pev, 100.f, pev->velocity.Normalize(), &tr, DMG_BULLET);
-			g_pfnApplyMultiDamage(pev, m_pShooter->pev);
+			gUranusCollection.pfnApplyMultiDamage(pev, m_pShooter->pev);
 		}
 
 		m_vecLastTraceSrc = pev->origin;

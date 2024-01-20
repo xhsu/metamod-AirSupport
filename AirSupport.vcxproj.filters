@@ -388,5 +388,8 @@
     <ClCompile Include="Source\CSDK\Uranus.ixx">
       <Filter>Source\CSDK</Filter>
     </ClCompile>
+    <ClCompile Include="..\metamod-p\hlsdk\engine\sizebuf.ixx">
+      <Filter>HLSDK\engine</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
