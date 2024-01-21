@@ -86,7 +86,7 @@ Task CPrecisionAirStrike::Task_EmitExhaust() noexcept
 
 		auto const vecOrigin = pev->origin + pev->v_angle.Front() * -48;
 
-		auto pSpark = Prefab_t::Create<CSpriteDisplay>(vecOrigin, kRenderTransAdd, Sprites::ROCKET_TRAIL_SMOKE[0]);
+		auto pSpark = CSpriteDisplay::Create(vecOrigin, kRenderTransAdd, Sprites::ROCKET_TRAIL_SMOKE[0]);
 		pSpark->pev->renderamt = UTIL_Random(50.f, 255.f);
 		pSpark->pev->rendercolor = Vector(255, 255, UTIL_Random(192, 255));
 		pSpark->pev->frame = (float)UTIL_Random(17, 22);
@@ -490,7 +490,7 @@ Task CClusterBomb::Task_ClusterBomb2() noexcept
 
 	for (float flFuseTime = 1.f; flFuseTime < 3.4f; flFuseTime += 0.1f)
 	{
-		Prefab_t::Create<CClusterCharge>(
+		CClusterCharge::Create(
 			m_pPlayer,
 			pev->origin + Vector(UTIL_Random(-10.0, 10.0), UTIL_Random(-10.0, 10.0), UTIL_Random(-10.0, 10.0)),
 			flFuseTime
@@ -729,7 +729,7 @@ Task CBullet::Task_Touch() noexcept
 
 	Prefab_t::Create<CSparkMdl>(tr.vecEndPos, vecAngles);
 	Prefab_t::Create<CGroundedDust>(tr.vecEndPos);
-	Prefab_t::Create<CGunshotSmoke>(tr);
+	CGunshotSmoke::Create(tr);
 
 	co_await TaskScheduler::NextFrame::Rank[1];
 
@@ -902,7 +902,7 @@ Task CFuelAirExplosive::Task_GasPropagate() noexcept
 			continue;
 
 		m_rgpCloud.emplace_back(
-			Prefab_t::Create<CFuelAirCloud>(m_pPlayer, vecCandidate)
+			CFuelAirCloud::Create(m_pPlayer, vecCandidate)
 		);
 
 		rgvecVarifiedLocations.emplace_back(vecCandidate);
@@ -1125,7 +1125,7 @@ Task CIncendiaryMunition::Task_EmitExhaust() noexcept
 
 		auto const vecOrigin = pev->origin + pev->v_angle.Front() * -48;
 
-		auto pSpark = Prefab_t::Create<CSpriteDisplay>(vecOrigin, kRenderTransAdd, Sprites::ROCKET_TRAIL_SMOKE[0]);
+		auto pSpark = CSpriteDisplay::Create(vecOrigin, kRenderTransAdd, Sprites::ROCKET_TRAIL_SMOKE[0]);
 		pSpark->pev->renderamt = UTIL_Random(50.f, 255.f);
 		pSpark->pev->rendercolor = Vector(255, 255, UTIL_Random(192, 255));
 		pSpark->pev->frame = (float)UTIL_Random(17, 22);
@@ -1154,13 +1154,13 @@ Task CIncendiaryMunition::Task_Fuse() noexcept
 		WriteData(TE_EXPLFLAG_NONE);
 		MsgEnd();
 
-		auto pPhosphorus = Prefab_t::Create<CPhosphorus>(m_pPlayer, pev->origin);	// One of the shower guarantees to hit the goal.
+		auto pPhosphorus = CPhosphorus::Create(m_pPlayer, pev->origin);	// One of the shower guarantees to hit the goal.
 		pPhosphorus->pev->gravity = 0.f;
 		pPhosphorus->pev->velocity = (m_vecTarget - pev->origin).Normalize() * 500;
 
 		for (int i = 0; i < 15; ++i)
 		{
-			pPhosphorus = Prefab_t::Create<CPhosphorus>(m_pPlayer, pev->origin);
+			pPhosphorus = CPhosphorus::Create(m_pPlayer, pev->origin);
 			pPhosphorus->pev->gravity = UTIL_Random(0.1f, 0.25f);
 			pPhosphorus->pev->velocity = ((m_vecTarget + get_cylindrical_coord(UTIL_Random(32, 256), UTIL_Random(0, 359), 0)) - pev->origin).Normalize() * 500;
 		}
@@ -1205,7 +1205,7 @@ void CIncendiaryMunition::Touch(CBaseEntity *pOther) noexcept
 			Vector{ UTIL_Random(-1.0, 1.0), UTIL_Random(-1.0, 1.0), UTIL_Random(-1.0, 1.0) },
 			tr.vecPlaneNormal);
 
-		auto pPhosphorus = Prefab_t::Create<CPhosphorus>(m_pPlayer, pev->origin + tr.vecPlaneNormal * 3);
+		auto pPhosphorus = CPhosphorus::Create(m_pPlayer, pev->origin + tr.vecPlaneNormal * 3);
 		pPhosphorus->pev->velocity = (tr.vecPlaneNormal + vecNoise).Normalize() * UTIL_Random(450.0, 550.0);
 	}
 }
@@ -1230,7 +1230,7 @@ void CWPMunition_Explo(CBasePlayer* m_pPlayer, Vector const& vecOrigin) noexcept
 	auto pThickSmoke = Prefab_t::Create<CThickStaticSmoke>(vecOrigin);
 	pThickSmoke->LitByFlame(true);
 
-	auto pSpr = Prefab_t::Create<CSpriteDisplay>(pThickSmoke->pev->origin, kRenderFn::kRenderTransAdd, Sprites::MINOR_EXPLO);
+	auto pSpr = CSpriteDisplay::Create(pThickSmoke->pev->origin, kRenderFn::kRenderTransAdd, Sprites::MINOR_EXPLO);
 	pSpr->pev->scale = pThickSmoke->pev->scale * 2.f;
 	pSpr->pev->renderamt = 255.f;
 	pSpr->pev->frame = (float)3;
@@ -1241,7 +1241,7 @@ void CWPMunition_Explo(CBasePlayer* m_pPlayer, Vector const& vecOrigin) noexcept
 
 	for (auto i = 0; i < 360; i += 30)
 	{
-		auto pPhosphorus = Prefab_t::Create<CPhosphorus>(m_pPlayer, vecOrigin + Vector(0, 0, 32));
+		auto pPhosphorus = CPhosphorus::Create(m_pPlayer, vecOrigin + Vector(0, 0, 32));
 
 		pPhosphorus->pev->velocity = get_spherical_coord(UTIL_Random(300.f, 650.f), UTIL_Random(20.0, 30.0), i);
 	}

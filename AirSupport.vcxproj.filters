@@ -35,6 +35,9 @@
     <Filter Include="Source\CSDK">
       <UniqueIdentifier>{65756158-87ab-47bc-b3f3-0ea944cdfb8e}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source\PlayerItem">
+      <UniqueIdentifier>{4168c237-40bb-40d2-8ca4-6ddc3096ffa7}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\metamod-p\hlsdk\cl_dll\hud_iface.ixx">
@@ -390,6 +393,9 @@
     </ClCompile>
     <ClCompile Include="..\metamod-p\hlsdk\engine\sizebuf.ixx">
       <Filter>HLSDK\engine</Filter>
+    </ClCompile>
+    <ClCompile Include="PlayerItem\PlayerItem.ixx">
+      <Filter>Source\PlayerItem</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

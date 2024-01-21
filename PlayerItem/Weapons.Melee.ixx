@@ -2,7 +2,6 @@ export module Weapons:Melee;
 
 export import PlayerItem;
 
-// #TODO override the original CKnife class.
 export class CKnife2 : public CPrefabWeapon
 {
 public:

@@ -188,6 +188,7 @@ start Enforcer.exe</Command>
     <ClCompile Include="..\metamod-p\metamod\meta_api.ixx" />
     <ClCompile Include="..\metamod-p\metamod\mutil.ixx" />
     <ClCompile Include="..\metamod-p\metamod\plinfo.ixx" />
+    <ClCompile Include="PlayerItem\PlayerItem.ixx" />
     <ClCompile Include="Source\AirSupport\Menu.cpp" />
     <ClCompile Include="Source\AirSupport\Menu.ixx" />
     <ClCompile Include="Source\AirSupport\Resources.Const.ixx" />

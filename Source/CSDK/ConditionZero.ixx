@@ -6,15 +6,15 @@ module;
 
 export module ConditionZero;
 
-import <span>;
+export import <span>;
 
-import event_flags;
+export import event_flags;
 
-import CBase;
-import GameRules;	// only used in CBase extensions.
-import Message;	// only used in CBase extensions.
-import Platform;
-import Uranus;	// runtime hook compatibility
+export import CBase;
+export import GameRules;	// only used in CBase extensions.
+export import Message;	// only used in CBase extensions.
+export import Platform;
+export import Uranus;	// runtime hook compatibility
 
 import UtlHook;
 import UtlRandom;
@@ -29,6 +29,7 @@ export inline constexpr std::ptrdiff_t GI_AMMO_INDEX_OFS = 0x100BDF51 - 0x100BDF
 export inline std::int32_t* gpiAmmoIndex = nullptr;
 
 
+// ServerActivate_Post
 export void RetrieveConditionZeroVar() noexcept
 {
 	auto const pItemInfo = UTIL_RetrieveGlobalVariable<ItemInfo>(
@@ -100,6 +101,14 @@ void CBaseDelay::SUB_UseTargets(CBaseEntity* pActivator, USE_TYPE useType, float
 /////////////////////
 // CBasePlayerItem //
 /////////////////////
+
+void CBasePlayerItem::DestroyItem(void) noexcept
+{
+	if (m_pPlayer)
+		m_pPlayer->RemovePlayerItem(this);
+
+	Kill();
+}
 
 void CBasePlayerItem::DefaultTouch(CBaseEntity* pOther) noexcept
 {

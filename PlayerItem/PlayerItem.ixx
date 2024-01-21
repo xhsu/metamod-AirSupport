@@ -1,11 +1,10 @@
 export module PlayerItem;
 
+export import CBase;
 export import ConditionZero;
 export import GameRules;
 export import Message;
-#ifndef __INTELLISENSE__
 export import Task;
-#endif
 export import VTFH;
 
 export inline constexpr auto WEAPON_IS_ONTARGET = 0x40;
@@ -214,7 +213,7 @@ public:	// CBasePlayerItem
 		pev->absmin = pev->origin + Vector(-24, -24, 0);
 		pev->absmax = pev->origin + Vector(24, 24, 16);
 	}
-	CBaseEntity* Respawn() noexcept override
+	CBaseEntity* Respawn() noexcept final	// #PLANNED_PIW_useless no reference
 	{
 		// make a copy of this weapon that is invisible and inaccessible to players (no touch function). The weapon spawn/respawn code
 		// will decide when to make the weapon visible and touchable.
@@ -259,7 +258,7 @@ public:	// CBasePlayerItem
 	//void UpdateItemInfo(void) noexcept override {}	- overridden by CBasePlayerWeapon
 	void ItemPreFrame(void) noexcept override {}
 	//void ItemPostFrame(void) noexcept override {}	- overridden by CBasePlayerWeapon
-	void Drop(void) noexcept override
+	void Drop(void) noexcept override	// #PLANNED_PIW_rewrite this is actually destroying item.
 	{
 		SetTouch(nullptr);
 		SetThink(&CBaseEntity::SUB_Remove);
@@ -284,13 +283,14 @@ public:	// CBasePlayerItem
 		pev->owner = pPlayer->edict();
 
 		// Remove think - prevents futher attempts to materialize
-		pev->nextthink = 0;
-		SetThink(nullptr);
+		// LUNA: disabled due to how task coroutine works in Prefab system.
+		//pev->nextthink = 0;
+		//SetThink(nullptr);
 
 		SetTouch(nullptr);
 	}
 	//int PrimaryAmmoIndex(void) noexcept override { return -1; }	- overridden by CBasePlayerWeapon
-	int SecondaryAmmoIndex(void) noexcept override { return -1; }
+	int SecondaryAmmoIndex(void) noexcept final { return -1; }	// #PLANNED_PIW_useless not useful in CS
 	//int UpdateClientData(CBasePlayer* pPlayer) noexcept override { return 0; }	- overridden by CBasePlayerWeapon
 	//CBasePlayerItem* GetWeaponPtr(void) noexcept override { return nullptr; }	- overridden by CBasePlayerWeapon
 	float GetMaxSpeed(void) noexcept override { return 260; }
@@ -313,18 +313,19 @@ public:	// CBasePlayerWeapon
 		{
 			//return CBasePlayerItem::AddToPlayer(pPlayer);
 			gmsgWeapPickup::Send(pPlayer->edict(), m_iId);
+			return true;
 		}
 
 		return false;
 	}
-	qboolean AddDuplicate(CBasePlayerItem* pItem) noexcept override
+	qboolean AddDuplicate(CBasePlayerItem* pItem) noexcept final	// #PLANNED_PIW_useless only called from player side and achieves absolutely nothing.
 	{
 		if (m_iDefaultAmmo)
 			return ExtractAmmo((CBasePlayerWeapon*)pItem);
 
 		return ExtractClipAmmo((CBasePlayerWeapon*)pItem);
 	}
-	int ExtractAmmo(CBasePlayerWeapon* pWeapon) noexcept override
+	int ExtractAmmo(CBasePlayerWeapon* pWeapon) noexcept final	// #PLANNED_PIW_useless only called by AddDuplicate
 	{
 		int res = 0;
 		if (pszAmmo1())
@@ -342,7 +343,7 @@ public:	// CBasePlayerWeapon
 
 		return res;
 	}
-	int ExtractClipAmmo(CBasePlayerWeapon* pWeapon) noexcept override
+	int ExtractClipAmmo(CBasePlayerWeapon* pWeapon) noexcept final	// #PLANNED_PIW_useless only called by AddDuplicate
 	{
 		int iAmmo;
 		if (m_iClip == WEAPON_NOCLIP)
@@ -357,9 +358,9 @@ public:	// CBasePlayerWeapon
 
 		return pWeapon->m_pPlayer->GiveAmmo(iAmmo, (char*)pszAmmo1(), iMaxAmmo1());
 	}
-	int AddWeapon(void) noexcept override { ExtractAmmo(this); return true; }
-	void UpdateItemInfo(void) noexcept override {};
-	qboolean PlayEmptySound(void) noexcept override
+	int AddWeapon(void) noexcept final { ExtractAmmo(this); return true; }	// #PLANNED_PIW_useless called by AddToPlayer() and achieves nothing.
+	void UpdateItemInfo(void) noexcept final {};	// #PLANNED_PIW_useless always empty.
+	qboolean PlayEmptySound(void) noexcept override	// #PLANNED_PIW_rewrite drop m_iPlayEmptySound, as it is always set to 1.
 	{
 		if (m_iPlayEmptySound)
 		{
@@ -381,7 +382,7 @@ public:	// CBasePlayerWeapon
 
 		return false;	// LUNA: why??? all path leads to false??
 	}
-	void ResetEmptySound(void) noexcept override { m_iPlayEmptySound = 1; }
+	void ResetEmptySound(void) noexcept final { m_iPlayEmptySound = 1; }	// #PLANNED_PIW_useless in WeaponIdle(), set a value of 1 to 1. what an achievement!
 	void SendWeaponAnim(int iAnim, qboolean skiplocal = 0) noexcept override
 	{
 		m_pPlayer->pev->weaponanim = iAnim;
@@ -392,8 +393,8 @@ public:	// CBasePlayerWeapon
 		gmsgWeaponAnim::Send(m_pPlayer->edict(), iAnim, pev->body);
 	}
 	qboolean CanDeploy(void) noexcept override { return true; }
-	qboolean IsWeapon(void) noexcept override { return true; }
-	qboolean IsUseable(void) noexcept override
+	qboolean IsWeapon(void) noexcept final { return true; }	// #PLANNED_PIW_useless always true
+	qboolean IsUseable(void) noexcept final	// #PLANNED_PIW_useless only used for checking auto-reload
 	{
 		if (m_iClip <= 0)
 		{
@@ -602,7 +603,7 @@ public:	// CBasePlayerWeapon
 			WeaponIdle();
 		}
 	}
-	int PrimaryAmmoIndex(void) noexcept override { return m_iPrimaryAmmoType; }
+	int PrimaryAmmoIndex(void) noexcept final { return m_iPrimaryAmmoType; }	// #PLANNED_PIW_useless stupid encapsulation
 	void PrimaryAttack(void) noexcept override {}
 	void SecondaryAttack(void) noexcept override {}
 	void Reload(void) noexcept override {}
@@ -656,7 +657,7 @@ public:	// CBasePlayerWeapon
 
 		g_pGameRules->GetNextBestWeapon(m_pPlayer, this);
 	}
-	qboolean ShouldWeaponIdle(void) noexcept override { return false; }
+	qboolean ShouldWeaponIdle(void) noexcept final { return false; }	// #PLANNED_PIW_useless always false, never overrride - WTF?
 	void Holster(int skiplocal = 0) noexcept override
 	{
 		// cancel any reload in progress.
@@ -664,8 +665,8 @@ public:	// CBasePlayerWeapon
 		m_pPlayer->pev->viewmodel = 0;
 		m_pPlayer->pev->weaponmodel = 0;
 	}
-	qboolean UseDecrement(void) noexcept override { return false; }
-	CBasePlayerItem* GetWeaponPtr(void) noexcept override { return (CBasePlayerItem*)this; }
+	qboolean UseDecrement(void) noexcept override { return false; }	// #PLANNED_PIW_useless always true from all native weapons.
+	CBasePlayerItem* GetWeaponPtr(void) noexcept final { return (CBasePlayerItem*)this; }	// #PLANNED_PIW_useless stupidest idea I have ever seen.
 
 
 public:
@@ -673,4 +674,5 @@ public:
 	virtual bool ShouldCollide(EHANDLE<CBaseEntity> pOther) noexcept { return true; }
 
 	TaskScheduler_t m_Scheduler{};
+	WeaponIdType m_iMockedWeapon{ WEAPON_NONE };	// WEAPON_NONE for disabling client local weapons.
 };

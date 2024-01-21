@@ -7,6 +7,8 @@ export import GameRules;
 export import Message;
 export import VTFH;
 
+export import UtlHook;
+
 export inline constexpr size_t VFTIDX_ITEM_ADDTOPLAYER = 59;
 export inline constexpr size_t VFTIDX_ITEM_DEPLOY = 64;
 export inline constexpr size_t VFTIDX_ITEM_POSTFRAME = 70;
@@ -32,7 +34,7 @@ export using fnRadiusFlash_t = void (*)(Vector vecSrc, entvars_t *pevInflictor, 
 export using fnSelectItem_t = void(__thiscall *)(CBasePlayer *pThis, const char *pszItemName) noexcept;
 export using fnSwitchWeapon_t = qboolean(__thiscall *)(CBasePlayer *pThis, CBasePlayerItem *pWeapon) noexcept;
 export using fnCleanUpMap_t = void(__thiscall *)(CHalfLifeMultiplay *) noexcept;
-export using fnFireBullets_t = void(__thiscall *)(CBaseEntity *pThis, unsigned long cShots, Vector vecSrc, Vector vecDirShooting, Vector vecSpread, float flDistance, int iBulletType, int iTracerFreq, int iDamage, entvars_t *pevAttacker) noexcept;
+export using fnFireBullets_t = void(__fastcall *)(CBaseEntity *pThis, int, unsigned long cShots, Vector vecSrc, Vector vecDirShooting, Vector vecSpread, float flDistance, int iBulletType, int iTracerFreq, int iDamage, entvars_t *pevAttacker) noexcept;
 
 export inline fnItemAddToPlayer_t g_pfnItemAddToPlayer = nullptr;
 export inline fnItemDeploy_t g_pfnItemDeploy = nullptr;
@@ -48,15 +50,13 @@ export inline cvar_t *gcvarMaxSpeed = nullptr;
 export inline cvar_t *gcvarMaxVelocity = nullptr;
 export inline cvar_t *gcvarFriendlyFire = nullptr;
 
-export struct FunctionHook_t
-{
-	unsigned char m_OriginalBytes[5]{};
-	unsigned char m_PatchedBytes[5]{};
-	void *m_Address{};
-};
+extern "C++" void __fastcall OrpheuF_FireBullets(CBaseEntity * pThis, int, unsigned long cShots, Vector vecSrc, Vector vecDirShooting, Vector vecSpread, float flDistance, int iBulletType, int iTracerFreq, int iDamage, entvars_t * pevAttacker) noexcept;
+extern "C++" Vector* __fastcall OrpheuF_FireBullets3(CBaseEntity * pThis, void* edx, Vector * pret, Vector vecSrc, Vector vecDirShooting, float flSpread, float flDistance, int iPenetration, int iBulletType, int iDamage, float flRangeModifier, entvars_t * pevAttacker, qboolean bPistol, int shared_rand) noexcept;
+extern "C++" void __cdecl OrpheuF_W_Precache() noexcept;
 
 export namespace HookInfo
 {
-	inline FunctionHook_t FireBullets{};
-	inline FunctionHook_t FireBullets3{};
+	inline FunctionHook FireBullets{ &OrpheuF_FireBullets };
+	inline FunctionHook FireBullets3{ &OrpheuF_FireBullets3 };
+	inline FunctionHook W_Precache{ &OrpheuF_W_Precache };
 };

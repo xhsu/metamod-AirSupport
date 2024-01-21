@@ -47,7 +47,7 @@ extern void Waypoint_Read(void) noexcept;
 
 inline bool g_bShouldPrecache = true;
 
-void DeployHooks(void) noexcept
+void DeployVirtualFnHooks(void) noexcept
 {
 	static bool bHooksPerformed = false;
 
@@ -77,28 +77,16 @@ void DeployHooks(void) noexcept
 		return;
 	}
 
-	UTIL_VirtualTableInjection(rgpfnCKnife, VFTIDX_ITEM_ADDTOPLAYER, &HamF_Item_AddToPlayer, (void **)&g_pfnItemAddToPlayer);
-	UTIL_VirtualTableInjection(rgpfnCKnife, VFTIDX_ITEM_DEPLOY, &HamF_Item_Deploy, (void **)&g_pfnItemDeploy);
-	UTIL_VirtualTableInjection(rgpfnCKnife, VFTIDX_ITEM_POSTFRAME, &HamF_Item_PostFrame, (void **)&g_pfnItemPostFrame);
-	UTIL_VirtualTableInjection(rgpfnCKnife, VFTIDX_ITEM_HOLSTER, &HamF_Item_Holster, (void **)&g_pfnItemHolster);
-
-	g_pfnRadiusFlash = (fnRadiusFlash_t)UTIL_SearchPattern("mp.dll", 1, RADIUS_FLASH_FN_NEW_PATTERN, RADIUS_FLASH_FN_ANNIV_PATTERN);
-	g_pfnSelectItem = (fnSelectItem_t)UTIL_SearchPattern("mp.dll", 1, SELECT_ITEM_FN_NEW_PATTERN, SELECT_ITEM_FN_ANNIV_PATTERN);
-	g_pfnSwitchWeapon = (fnSwitchWeapon_t)UTIL_SearchPattern("mp.dll", 1, SWITCH_WEAPON_FN_NEW_PATTERN, SWITCH_WEAPON_FN_ANNIV_PATTERN);
-	g_pfnFireBullets = (fnFireBullets_t)UTIL_SearchPattern("mp.dll", 1, FIRE_BULLETS_FN_NEW_PATTERN, FIRE_BULLETS_FN_ANNIV_PATTERN);
-
-	RetrieveCBaseVirtualFn();
+	//UTIL_VirtualTableInjection(rgpfnCKnife, VFTIDX_ITEM_ADDTOPLAYER, &HamF_Item_AddToPlayer, (void **)&g_pfnItemAddToPlayer);
+	//UTIL_VirtualTableInjection(rgpfnCKnife, VFTIDX_ITEM_DEPLOY, &HamF_Item_Deploy, (void **)&g_pfnItemDeploy);
+	//UTIL_VirtualTableInjection(rgpfnCKnife, VFTIDX_ITEM_POSTFRAME, &HamF_Item_PostFrame, (void **)&g_pfnItemPostFrame);
+	//UTIL_VirtualTableInjection(rgpfnCKnife, VFTIDX_ITEM_HOLSTER, &HamF_Item_Holster, (void **)&g_pfnItemHolster);
 
 #ifdef _DEBUG
 	assert(g_pfnRadiusFlash != nullptr);
 	assert(g_pfnSelectItem != nullptr);
-	assert(g_pfnApplyMultiDamage != nullptr);
-	assert(g_pfnClearMultiDamage != nullptr);
-	assert(g_pfnAddMultiDamage != nullptr);
-	assert(g_pfnDefaultDeploy != nullptr);
 	assert(g_pfnSwitchWeapon != nullptr);
 	assert(g_pfnFireBullets != nullptr);
-	assert(g_pfnFireBullets3 != nullptr);
 #else
 	[[unlikely]]
 	if (!g_pfnRadiusFlash)
@@ -114,14 +102,37 @@ void DeployHooks(void) noexcept
 		UTIL_Terminate("Function \"CBaseEntity::FireBullets\" no found!");
 #endif
 
-	HookInfo::FireBullets.m_Address = g_pfnFireBullets;
-	HookInfo::FireBullets3.m_Address = gUranusCollection.pfnFireBullets3;
 
-	UTIL_PreparePatch(g_pfnFireBullets, &OrpheuF_FireBullets, HookInfo::FireBullets.m_PatchedBytes, HookInfo::FireBullets.m_OriginalBytes);
-	UTIL_PreparePatch(gUranusCollection.pfnFireBullets3, &OrpheuF_FireBullets3, HookInfo::FireBullets3.m_PatchedBytes, HookInfo::FireBullets3.m_OriginalBytes);
+	bHooksPerformed = true;
+}
 
-	UTIL_DoPatch(g_pfnFireBullets, HookInfo::FireBullets.m_PatchedBytes);
-	UTIL_DoPatch(gUranusCollection.pfnFireBullets3, HookInfo::FireBullets3.m_PatchedBytes);
+static void DeployInlineHook() noexcept
+{
+	static bool bHooksPerformed = false;
+
+	[[likely]]
+	if (bHooksPerformed)
+		return;
+
+	g_pfnRadiusFlash = (fnRadiusFlash_t)UTIL_SearchPattern("mp.dll", 1, RADIUS_FLASH_FN_NEW_PATTERN, RADIUS_FLASH_FN_ANNIV_PATTERN);
+	g_pfnSelectItem = (fnSelectItem_t)UTIL_SearchPattern("mp.dll", 1, SELECT_ITEM_FN_NEW_PATTERN, SELECT_ITEM_FN_ANNIV_PATTERN);
+	g_pfnSwitchWeapon = (fnSwitchWeapon_t)UTIL_SearchPattern("mp.dll", 1, SWITCH_WEAPON_FN_NEW_PATTERN, SWITCH_WEAPON_FN_ANNIV_PATTERN);
+	g_pfnFireBullets = (fnFireBullets_t)UTIL_SearchPattern("mp.dll", 1, FIRE_BULLETS_FN_NEW_PATTERN, FIRE_BULLETS_FN_ANNIV_PATTERN);
+
+	//HookInfo::FireBullets.m_Address = g_pfnFireBullets;
+	//HookInfo::FireBullets3.m_Address = gUranusCollection.pfnFireBullets3;
+
+	//UTIL_PreparePatch(g_pfnFireBullets, &OrpheuF_FireBullets, HookInfo::FireBullets.m_PatchedBytes, HookInfo::FireBullets.m_OriginalBytes);
+	//UTIL_PreparePatch(gUranusCollection.pfnFireBullets3, &OrpheuF_FireBullets3, HookInfo::FireBullets3.m_PatchedBytes, HookInfo::FireBullets3.m_OriginalBytes);
+
+	//UTIL_DoPatch(g_pfnFireBullets, HookInfo::FireBullets.m_PatchedBytes);
+	//UTIL_DoPatch(gUranusCollection.pfnFireBullets3, HookInfo::FireBullets3.m_PatchedBytes);
+
+	auto& uranusref = gUranusCollection;
+
+	HookInfo::FireBullets.ApplyOn(g_pfnFireBullets);
+	HookInfo::FireBullets3.ApplyOn(gUranusCollection.pfnFireBullets3);
+	HookInfo::W_Precache.ApplyOn(gUranusCollection.pfnW_Precache);
 
 	bHooksPerformed = true;
 }
@@ -158,6 +169,7 @@ int fw_Spawn(edict_t *pent) noexcept
 
 	// plugin_precache
 
+	DeployInlineHook();	// Since we are hooking precache itself, so...
 	Precache();
 
 	g_bShouldPrecache = false;
@@ -201,13 +213,15 @@ void fw_ServerActivate_Post(edict_t* pEdictList, int edictCount, int clientMax) 
 
 	// plugin_init
 
-	DeployHooks();
+	DeployVirtualFnHooks();
+	RetrieveCBaseVirtualFn();
 	RetrieveMessageHandles();
 	RetrieveCVarHandles();
 	Waypoint_Read();
 	CDynamicTarget::RetrieveModelInfo();
 	Task_GetWorld();	// Not a task, sorry. Historical issue.
 	RetrieveGameRules();
+	RetrieveConditionZeroVar();
 
 	// plugin_cfg
 
@@ -390,6 +404,19 @@ void fw_TraceLine_Post(const float *v1, const float *v2, int fNoMonsters, edict_
 		CFuelAirCloud::OnTraceAttack(*ptr, pentToSkip);
 }
 
+edict_t* fw_CreateNamedEntity(int className) noexcept
+{
+	if (!strcmp(STRING(className), CRadio::CLASSNAME))
+	{
+		auto const [pEdict, pPrefab] = UTIL_CreateNamedPrefab<CRadio>();
+		gpMetaGlobals->mres = MRES_SUPERCEDE;
+		return pEdict;
+	}
+
+	gpMetaGlobals->mres = MRES_IGNORED;
+	return *(edict_t**)gpMetaGlobals->orig_ret;
+}
+
 int fw_CheckVisibility(const edict_t *entity, unsigned char *pset) noexcept
 {
 	if (entity->v.classname == MAKE_STRING(CJet::CLASSNAME))
@@ -408,15 +435,21 @@ void fw_UpdateClientData_Post(const edict_t *ent, int sendweapons, clientdata_t 
 	gpMetaGlobals->mres = MRES_IGNORED;
 	// post
 
-	if (EHANDLE<CBasePlayer> pPlayer(ent->v.pContainingEntity);	// fuck the constness
-		cd->deadflag == DEAD_NO &&
-		cd->m_iId == WEAPON_KNIFE &&
-		pPlayer->m_pActiveItem &&
-		pPlayer->m_pActiveItem->pev->weapons == RADIO_KEY &&
-		pPlayer->m_flNextAttack <= 0)
+	if (gpMetaGlobals->prev_mres == MRES_HANDLED)
+		return;
+
+	auto const pPlayer = reinterpret_cast<CBasePlayer*>(ent->pvPrivateData);	// fuck the pointer to const
+
+	if (auto const pWeapon = EHANDLE{ pPlayer->m_pActiveItem }.As<CPrefabWeapon>();
+		pWeapon
+		&& cd->deadflag == DEAD_NO	// player cannot be dead
+		// && pPlayer->m_flNextAttack <= 0	// Not sure why DS need this in his AMXX plugin. Draw animations perhaps?
+		)
 	{
-		cd->m_iId = WEAPON_NONE;	// remove client prediction.
+		cd->m_iId = pWeapon->m_iMockedWeapon;
 	}
+
+	gpMetaGlobals->mres = MRES_HANDLED;
 }
 
 qboolean fw_AddToFullPack(entity_state_t *pState, int iEntIndex, edict_t *pEdict, edict_t *pClientSendTo, qboolean cl_lw, qboolean bIsPlayer, unsigned char *pSet) noexcept
@@ -459,10 +492,14 @@ void fw_OnFreeEntPrivateData(edict_t *pEdict) noexcept
 		if (gpMetaGlobals->prev_mres == MRES_SUPERCEDE)	// It had been handled by other similar plugins.
 			return;
 
-		[[unlikely]]
-		if (auto const pPrefab = dynamic_cast<Prefab_t *>(pEntity); pPrefab != nullptr)
+		if (auto const pPrefab = dynamic_cast<Prefab_t *>(pEntity); pPrefab != nullptr) [[unlikely]]
 		{
 			std::destroy_at(pPrefab);	// Thanks to C++17 we can finally patch up this old game.
+			gpMetaGlobals->mres = MRES_SUPERCEDE;
+		}
+		else if (auto const pNeoWpn = dynamic_cast<CPrefabWeapon*>(pEntity); pNeoWpn != nullptr) [[unlikely]]
+		{
+			std::destroy_at(pNeoWpn);
 			gpMetaGlobals->mres = MRES_SUPERCEDE;
 		}
 	}
@@ -475,12 +512,17 @@ qboolean fw_ShouldCollide(edict_t *pentTouched, edict_t *pentOther) noexcept
 	if (gpMetaGlobals->prev_mres == MRES_SUPERCEDE)
 		return *(qboolean*)gpMetaGlobals->override_ret;
 
-	EHANDLE<CBaseEntity> pEntity(pentTouched), pOther(pentOther);
+	EHANDLE<CBaseEntity> pEntity(pentTouched);
 
-	if (auto const pPrefab = pEntity.As<Prefab_t>(); pPrefab && pOther)
+	if (auto const pPrefab = pEntity.As<Prefab_t>(); pPrefab) [[unlikely]]
 	{
 		gpMetaGlobals->mres = MRES_SUPERCEDE;
-		return pPrefab->ShouldCollide(pOther);
+		return pPrefab->ShouldCollide(pentOther);
+	}
+	else if (auto const pNeoWpn = pEntity.As<CPrefabWeapon>(); pNeoWpn) [[unlikely]]
+	{
+		gpMetaGlobals->mres = MRES_SUPERCEDE;
+		return pNeoWpn->ShouldCollide(pentOther);
 	}
 
 	return *(qboolean*)gpMetaGlobals->orig_ret;
@@ -715,7 +757,7 @@ inline constexpr enginefuncs_t gHookEngFns =
 
 	.pfnCreateEntity		= nullptr,
 	.pfnRemoveEntity		= nullptr,
-	.pfnCreateNamedEntity	= nullptr,
+	.pfnCreateNamedEntity	= &fw_CreateNamedEntity,
 
 	.pfnMakeStatic		= nullptr,
 	.pfnEntIsOnFloor	= nullptr,

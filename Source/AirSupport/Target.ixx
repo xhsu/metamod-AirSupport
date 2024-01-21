@@ -5,6 +5,7 @@ export import <array>;
 export import Beam;
 export import Effects;
 export import Menu;
+export import PlayerItem;	// Cannot use the Weapon.ixx header, or it would be a circular dependency.
 export import Prefab;
 export import Task.Const;
 
@@ -37,11 +38,11 @@ export struct CDynamicTarget : public Prefab_t
 	void DisableFireSphere() noexcept;
 
 	void Spawn() noexcept override;
-	static CDynamicTarget *Create(CBasePlayer *pPlayer, CBasePlayerWeapon *pRadio) noexcept;
+	static CDynamicTarget *Create(CBasePlayer *pPlayer, CPrefabWeapon *pRadio) noexcept;
 	static void RetrieveModelInfo(void) noexcept;
 
 	EHANDLE<CBaseEntity> m_pTargeting{ nullptr };
-	EHANDLE<CBasePlayerWeapon> m_pRadio{ nullptr };
+	EHANDLE<CPrefabWeapon> m_pRadio{ nullptr };
 	CBasePlayer *m_pPlayer{};
 	Vector m_vecLastAiming{};
 	float m_flLastValidTracking{};

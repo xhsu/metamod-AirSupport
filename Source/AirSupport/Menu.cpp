@@ -1,5 +1,4 @@
 import Menu;
-import Projectile;
 import Target;
 import Weapon;
 
@@ -28,10 +27,11 @@ void OnMenuSelection(CBasePlayer *pPlayer, int iSlot) noexcept
 		if (iSlot >= 1 && iSlot <= 6)
 		{
 			g_rgiAirSupportSelected[pPlayer->entindex()] = EAirSupportTypes(iSlot - 1);
-			if (auto const &pWeapon = pPlayer->m_pActiveItem; pWeapon && pWeapon->m_iId == WEAPON_KNIFE && pWeapon->pev->weapons == RADIO_KEY)
+
+			if (auto const pRadio = UTIL_CurUsingRadio(pPlayer); pRadio != nullptr)
 			{
-				if (EHANDLE<CDynamicTarget> pTarget{ DYN_TARGET(pWeapon) }; pTarget)
-					pTarget->UpdateEvalMethod();
+				if (pRadio->m_pTarget)
+					pRadio->m_pTarget->UpdateEvalMethod();
 			}
 		}
 		break;

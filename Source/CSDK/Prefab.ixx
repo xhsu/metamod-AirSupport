@@ -40,7 +40,7 @@ inline auto UTIL_CreateNamedPrefab(Tys&&... args) noexcept
 
 	pEdict->v.classname = MAKE_STRING(T::CLASSNAME);
 
-	// #PLANNED add to CS hash table.
+	// #IMPROVEMENT add to CS hash table.
 	return pair{ pEdict, pPrefab };
 }
 
@@ -271,15 +271,6 @@ export struct Prefab_t : public CBaseEntity
 		pPrefab->pev->nextthink = 0.1f;
 
 		return pPrefab;
-	}
-
-	// Forwarding all arguments to the Create() of that class.
-	template <typename T, typename... Tys>
-	static __forceinline T *Create(Tys&&... args)
-		noexcept (noexcept(T::Create(std::forward<Tys>(args)...)))
-		requires (requires{ { T::Create(std::forward<Tys>(args)...) } -> std::same_as<T *>; })
-	{
-		return T::Create(std::forward<Tys>(args)...);
 	}
 
 	TaskScheduler_t m_Scheduler{};

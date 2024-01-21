@@ -23,65 +23,6 @@ import UtlHook;
 import Weapons;
 
 
-template <typename T>
-struct FunctionHook
-{
-	constexpr FunctionHook(T const& local_fn) noexcept
-		: m_LocalFN{ local_fn }
-	{
-		;
-	}
-
-	auto PreparePatch(T const& addr) noexcept
-	{
-		m_Address = addr;
-		return UTIL_PreparePatch(m_Address, m_LocalFN, m_PatchedBytes, m_OriginalBytes);
-	}
-
-	auto DoPatch() const noexcept
-	{
-		return UTIL_DoPatch(m_Address, m_PatchedBytes);
-	}
-
-	auto UndoPatch() const noexcept
-	{
-		return UTIL_UndoPatch(m_Address, m_OriginalBytes);
-	}
-
-	__forceinline void ApplyOn(T const& addr) noexcept
-	{
-		PreparePatch(addr);
-		DoPatch();
-	}
-
-	auto CallOriginal(auto&&... args) const noexcept
-	{
-		if constexpr (requires{ { m_Address(std::forward<decltype(args)>(args)...) } -> std::same_as<void>; })
-		{
-			UndoPatch();
-			m_Address(std::forward<decltype(args)>(args)...);
-			DoPatch();
-		}
-		else
-		{
-			UndoPatch();
-			auto const ret = m_Address(std::forward<decltype(args)>(args)...);
-			DoPatch();
-
-			return ret;
-		}
-	}
-
-	__forceinline auto operator() (auto&&... args) const noexcept { return CallOriginal(std::forward<decltype(args)>(args)...); }
-
-	unsigned char m_OriginalBytes[5]{};
-	unsigned char m_PatchedBytes[5]{};
-	T m_Address{};
-	T m_LocalFN{};
-
-	static_assert(std::is_pointer_v<T>, "Must be a local function pointer!");
-};
-
 extern edict_t* OrpheuF_CreateNamedEntity(string_t className) noexcept;
 extern void* OrpheuF_SZ_GetSpace(sizebuf_t* buf, uint32_t length) noexcept;
 

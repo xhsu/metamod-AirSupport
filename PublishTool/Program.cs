@@ -77,7 +77,7 @@ namespace AirSupportPublish
 
 			using (var hZipFile = ZipFile.Open(szZipPath, ZipArchiveMode.Create))
 			{
-				// #TODO change to MACRO somehow?
+				// #NO_URGENT change to MACRO somehow?
 				hZipFile.CreateEntryFromFile("AirSupport.dll", "addons/metamod/dlls/AirSupport.dll", CompressionLevel.SmallestSize);
 
 				foreach (var szRelativePath in Resources.m_rgszResources)

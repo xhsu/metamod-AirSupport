@@ -68,7 +68,7 @@ export namespace Menu
 			"\\r0\\w Exit\n"
 			;
 
-		// #TODO move to localization somehow?
+		// #SHOULD_DO_ON_FREE move to localization somehow?
 		inline constexpr char AIRSUPPORT_TEMPLATE[] =
 			"\\yAir Support Selection\\w\n"
 			"\n"

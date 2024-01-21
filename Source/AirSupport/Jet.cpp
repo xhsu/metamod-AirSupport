@@ -436,7 +436,7 @@ Task CGunship::Task_Gunship() noexcept
 		//auto const flEstimateTime = (vecTargetLocation - pev->origin).Length() / CBullet::AC130_BULLET_SPEED;
 		auto const flSpeed = vecDir.Length() / CBullet::AC130_BULLET_EXPECTED_TRAVEL_TIME;
 
-		Prefab_t::Create<CBullet>(
+		CBullet::Create(
 			pev->origin,
 			/* with position prediction */
 			//((vecTargetLocation + pEnemy->pev->velocity * flEstimateTime) - pev->origin).Normalize() * CBullet::AC130_BULLET_SPEED,

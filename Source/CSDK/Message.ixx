@@ -219,7 +219,7 @@ struct Message_t final
 		else if constexpr (iDest == MSG_PAS || iDest == MSG_PAS_R || iDest == MSG_PVS || iDest == MSG_PVS_R)
 			g_engfuncs.pfnMessageBegin(iDest, m_iMessageIndex, vecOrigin);
 		//else
-		//	[]() noexcept { static_assert(AlwaysFalse<This_t>, "Invalid message casting method!"); }();	// #INVESTIGATE why can't I just directly static_assert that?
+		//	[]() noexcept { static_assert(AlwaysFalse<This_t>, "Invalid message casting method!"); }();	// #UPDATE_AT_CPP23 CWG2518 allowing static_assert(false)
 
 		auto const tplArgs = std::make_tuple(args...);
 
@@ -244,7 +244,7 @@ struct Message_t final
 
 	static void Receiver(std::conditional_t<sizeof(Tys) <= sizeof(std::uintptr_t), Tys, Tys const &>...) noexcept;	// #UPDATE_AT_MSVC_FIX cannot specialize on 19.35
 
-	/* #UNTESTED #UNDONE
+	/* #NO_URGENT
 	static void Parse(void)
 	{
 		auto fnRead = [](auto &val)

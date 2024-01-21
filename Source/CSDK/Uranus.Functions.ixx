@@ -16,7 +16,7 @@ export import CBase;
 
 export struct uranus_func_collection_t final
 {
-	std::uintptr_t m_iVersion = 4;
+	std::uintptr_t m_iVersion = 5;
 
 	CBaseEntity*	(__cdecl*		pfnCreate)					(const char* pszName, Vector const& vecOrigin, Angles const& vecAngles, edict_t* pentOwner) noexcept = nullptr;
 	Vector*			(__fastcall*	pfnFireBullets3)			(CBaseEntity* pThis, void* edx, Vector* pret, Vector vecSrc, Vector vecDirShooting, float flSpread, float flDistance, int iPenetration, int iBulletType, int iDamage, float flRangeModifier, entvars_t* pevAttacker, qboolean bPistol, int shared_rand) noexcept = nullptr;
@@ -34,6 +34,7 @@ export struct uranus_func_collection_t final
 
 	float			(__cdecl*		pfnTEXTURETYPE_PlaySound)	(TraceResult* ptr, Vector vecSrc, Vector vecEnd, int iBulletType) noexcept = nullptr;
 
+	void			(__cdecl*		pfnW_Precache)				(void) noexcept = nullptr;
 	void			(__cdecl*		pfnUTIL_PrecacheOther)		(const char* szClassname) noexcept = nullptr;
 	void			(__cdecl*		pfnUTIL_PrecacheOtherWeapon)(const char* szClassname) noexcept = nullptr;
 
@@ -167,6 +168,23 @@ export namespace Uranus
 		inline auto operator() (TraceResult* ptr, Vector vecSrc, Vector vecEnd, int iBulletType) const noexcept
 		{
 			return pfn(ptr, vecSrc, vecEnd, iBulletType);
+		}
+	};
+
+	struct W_Precache final
+	{
+		static inline constexpr char MODULE[] = "mp.dll";
+		static inline constexpr char NAME[] = u8"::W_Precache";
+		static inline constexpr std::tuple PATTERNS
+		{
+			std::cref("\xCC\x68\x2A\x2A\x2A\x2A\x6A\x00\x68\x2A\x2A\x2A\x2A\xE8\x2A\x2A\x2A\x2A\x68\x2A\x2A\x2A\x2A\x6A\x00\x68\x2A\x2A\x2A\x2A\xE8\x2A\x2A\x2A\x2A\x68\x2A\x2A\x2A\x2A\xC7\x05"),	// ANNIV
+		};
+		static inline constexpr std::ptrdiff_t DISPLACEMENT = 1;
+		static inline auto& pfn = gUranusCollection.pfnW_Precache;
+
+		inline void operator() (void) const noexcept
+		{
+			return pfn();
 		}
 	};
 

@@ -422,7 +422,7 @@ export namespace ZBot
 
 	inline CBotManager** ppTheBots{ nullptr };
 
-	// Need to be retrieve every new game. #UNTESTED #FIXME
+	// Need to be retrieve every new game. #NO_URGENT
 	void RetrieveManager(void) noexcept
 	{
 		auto addr = (std::uintptr_t)UTIL_SearchPattern("mp.dll", INSTALL_BOT_CONTROL_FN_ANNIV_PATTERN, 1);

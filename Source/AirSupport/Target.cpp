@@ -90,7 +90,7 @@ Task CDynamicTarget::Task_Animation() noexcept
 
 	for (;;)
 	{
-		if (m_pPlayer->m_pActiveItem != m_pRadio || m_pRadio->pev->weapons != RADIO_KEY)
+		if (m_pPlayer->m_pActiveItem != m_pRadio)	// #AIRSUPPORT_verify_radio
 		{
 			co_await Models::v_radio::time::draw;	// the model will be hidden for this long, at least.
 			continue;
@@ -141,7 +141,7 @@ Task CDynamicTarget::Task_DeepEval_AirStrike() noexcept
 	{
 		co_await(gpGlobals->frametime / 3.f);
 
-		if (m_pPlayer->m_pActiveItem != m_pRadio || m_pRadio->pev->weapons != RADIO_KEY)
+		if (m_pPlayer->m_pActiveItem != m_pRadio)	// #AIRSUPPORT_verify_radio
 		{
 			co_await Models::v_radio::time::draw;	// the model will be hidden for this long, at least.
 			continue;
@@ -208,7 +208,7 @@ Task CDynamicTarget::Task_DeepEval_Phosphorus() noexcept
 	{
 		co_await TaskScheduler::NextFrame::Rank[0];
 
-		if (m_pPlayer->m_pActiveItem != m_pRadio || m_pRadio->pev->weapons != RADIO_KEY)
+		if (m_pPlayer->m_pActiveItem != m_pRadio)	// #AIRSUPPORT_verify_radio
 		{
 			co_await Models::v_radio::time::draw;	// the model will be hidden for this long, at least.
 			continue;
@@ -250,7 +250,7 @@ Task CDynamicTarget::Task_QuickEval_AirStrike() noexcept
 
 	for (;;)
 	{
-		if (m_pPlayer->m_pActiveItem != m_pRadio || m_pRadio->pev->weapons != RADIO_KEY)
+		if (m_pPlayer->m_pActiveItem != m_pRadio)	// #AIRSUPPORT_verify_radio
 		{
 			co_await Models::v_radio::time::draw;	// the model will be hidden for this long, at least.
 			continue;
@@ -346,7 +346,7 @@ Task CDynamicTarget::Task_QuickEval_ClusterBomb() noexcept
 
 	for (;;)
 	{
-		if (m_pPlayer->m_pActiveItem != m_pRadio || m_pRadio->pev->weapons != RADIO_KEY)
+		if (m_pPlayer->m_pActiveItem != m_pRadio)	// #AIRSUPPORT_verify_radio
 		{
 			co_await Models::v_radio::time::draw;	// the model will be hidden for this long, at least.
 			continue;
@@ -368,7 +368,7 @@ Task CDynamicTarget::Task_QuickEval_ClusterBomb() noexcept
 		Vector const vecSrc = m_pPlayer->GetGunPosition();
 		Vector const vecEnd = vecSrc + gpGlobals->v_forward * 4096.f;
 
-		// Should really think about this. Should I limit the target to a opened space? #TODO
+		// Should really think about this. Should I limit the target to a opened space? #NO_URGENT
 		//g_engfuncs.pfnTraceMonsterHull(edict(), vecSrc, vecEnd, ignore_glass | ignore_monsters, nullptr, &tr);
 		g_engfuncs.pfnTraceLine(vecSrc, vecEnd, ignore_glass | ignore_monsters, nullptr, &tr);
 
@@ -418,7 +418,7 @@ Task CDynamicTarget::Task_QuickEval_CarpetBombardment() noexcept
 	for (;;)
 	{
 		[[unlikely]]
-		if (m_pPlayer->m_pActiveItem != m_pRadio || m_pRadio->pev->weapons != RADIO_KEY)
+		if (m_pPlayer->m_pActiveItem != m_pRadio)	// #AIRSUPPORT_verify_radio
 		{
 			co_await Models::v_radio::time::draw;	// the model will be hidden for this long, at least.
 			continue;
@@ -588,7 +588,7 @@ Task CDynamicTarget::Task_QuickEval_Gunship() noexcept
 
 	for (;;)
 	{
-		if (m_pPlayer->m_pActiveItem != m_pRadio || m_pRadio->pev->weapons != RADIO_KEY)
+		if (m_pPlayer->m_pActiveItem != m_pRadio)	// #AIRSUPPORT_verify_radio
 		{
 			co_await Models::v_radio::time::draw;	// the model will be hidden for this long, at least.
 			continue;
@@ -694,7 +694,7 @@ Task CDynamicTarget::Task_QuickEval_Phosphorus() noexcept
 
 	for (;;)
 	{
-		if (m_pPlayer->m_pActiveItem != m_pRadio || m_pRadio->pev->weapons != RADIO_KEY)
+		if (m_pPlayer->m_pActiveItem != m_pRadio)	// #AIRSUPPORT_verify_radio
 		{
 			co_await Models::v_radio::time::draw;	// the model will be hidden for this long, at least.
 			continue;
@@ -713,13 +713,13 @@ Task CDynamicTarget::Task_QuickEval_Phosphorus() noexcept
 
 		Vector const vecSrc = m_pPlayer->GetGunPosition();
 		Vector const vecEnd = vecSrc + m_pPlayer->pev->v_angle.Front() * 4096.f;
-		g_engfuncs.pfnTraceMonsterHull(edict(), vecSrc, vecEnd, ignore_glass | ignore_monsters, nullptr, &tr);
+		g_engfuncs.pfnTraceMonsterHull(edict(), vecSrc, vecEnd, ignore_glass | ignore_monsters, nullptr, &tr);	// #NO_URGENT this is so bulky and cannot be use in so many places!!
 		g_engfuncs.pfnTraceLine(tr.vecEndPos, Vector(tr.vecEndPos.x, tr.vecEndPos.y, 8192), ignore_glass | ignore_monsters, nullptr, &tr2);	// measure the distance between the aiming pos and the sky.
 
 		if (auto const flAngleLean = std::acos(DotProduct(Vector::Up(), tr.vecPlaneNormal)/* No div len required, both len are 1. */) / std::numbers::pi * 180.0;
 			flAngleLean > 50 || (tr2.vecEndPos.z - tr.vecEndPos.z) < 800.f)
 		{
-			// Surface consider wall and no cluster bomb allow against wall.
+			// Surface consider wall and no phosphorus bomb allow against wall.
 			// or
 			// The place is too close to the skybox, the phosphorus cannot spread properly.
 
@@ -905,7 +905,7 @@ void CDynamicTarget::Spawn() noexcept
 	UpdateEvalMethod();
 }
 
-CDynamicTarget *CDynamicTarget::Create(CBasePlayer *pPlayer, CBasePlayerWeapon *pRadio) noexcept
+CDynamicTarget *CDynamicTarget::Create(CBasePlayer *pPlayer, CPrefabWeapon *pRadio) noexcept
 {
 	auto const [pEdict, pPrefab] = UTIL_CreateNamedPrefab<CDynamicTarget>();
 
@@ -979,7 +979,7 @@ Task CFixedTarget::Task_Gunship() noexcept
 	TraceResult tr{};
 
 	// Its lifetime is depending on us, so we are on control.
-	Prefab_t::Create<CGunship>(m_pPlayer, this);
+	CGunship::Create(m_pPlayer, this);
 
 	for (;;)
 	{

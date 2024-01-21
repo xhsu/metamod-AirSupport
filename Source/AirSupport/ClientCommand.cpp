@@ -21,8 +21,9 @@ META_RES OnClientCommand(CBasePlayer *pPlayer, const string &szCommand) noexcept
 	if (!pPlayer->IsAlive())
 		return MRES_IGNORED;
 
+	
 	[[unlikely]]
-	if (szCommand == "takeradio" || szCommand == HUD::RADIO)
+	/*if (szCommand == "takeradio" || szCommand == HUD::RADIO)
 	{
 		// Switch from knife to radio
 		if (auto const pWeapon = pPlayer->m_pActiveItem; pWeapon->m_iId == WEAPON_KNIFE)
@@ -58,6 +59,13 @@ META_RES OnClientCommand(CBasePlayer *pPlayer, const string &szCommand) noexcept
 
 			return MRES_SUPERCEDE;
 		}
+	}*/
+	if (szCommand == "takeradio")
+	{
+		auto pRadio = Prefab_t::Create<CRadio>();
+		pRadio->DefaultTouch(pPlayer);
+
+		return MRES_SUPERCEDE;
 	}
 	else if (szCommand == "showmetargetorigin")
 	{

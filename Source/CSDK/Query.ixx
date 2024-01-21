@@ -1,5 +1,6 @@
 export module Query;
 
+export import <experimental/generator>;	// #UPDATE_AT_CPP23
 export import <ranges>;
 export import <span>;
 
@@ -66,6 +67,37 @@ namespace Query
 			;
 	}
 
+	// Iterating type: T*
+	export template <typename T> inline decltype(auto) all_instances_of(void) noexcept
+	{
+		static_assert(requires { { MAKE_STRING(T::CLASSNAME) == std::ptrdiff_t{} } -> std::same_as<bool>; }, "Must be local class!");
+
+		return
+			std::span(g_engfuncs.pfnPEntityOfEntIndex(gpGlobals->maxClients + 1), gpGlobals->maxEntities - (gpGlobals->maxClients + 1))
+			| std::views::filter([istr = MAKE_STRING(T::CLASSNAME)](edict_t& ent) noexcept { return istr == ent.v.classname; })
+			| std::views::transform([](edict_t& ent) noexcept { return ent.free ? nullptr : (T*)ent.pvPrivateData; })
+			| std::views::filter([](T* p) noexcept { return p != nullptr; })
+			;
+	}
+
+	// Iterating type: CBasePlayerWeapon*
+	export std::experimental::generator<CBasePlayerWeapon*> all_weapons_belongs_to(CBasePlayer const* pPlayer) noexcept
+	{
+		for (auto&& p : pPlayer->m_rgpPlayerItems)
+		{
+			if (!p || !p->IsWeapon())
+				continue;
+
+			co_yield static_cast<CBasePlayerWeapon*>(p);
+
+			for (auto pNext = p->m_pNext; pNext != nullptr; pNext = pNext->m_pNext)
+			{
+				if (p->IsWeapon())
+					co_yield static_cast<CBasePlayerWeapon*>(pNext);
+			}
+		}
+	}
+
 	export template <typename... Tys> inline decltype(auto) is(void) noexcept
 	{
 		static_assert(sizeof...(Tys) > 0, "Must be at least one type to test!");
@@ -80,7 +112,7 @@ namespace Query
 		static_assert(requires { { (... || (MAKE_STRING(Tys::CLASSNAME) == std::ptrdiff_t{})) } -> std::same_as<bool>; }, "Must be local class!");
 
 		return
-			std::views::filter([](auto &&ent) noexcept -> bool { auto const pEdict = ent_cast<edict_t *>(ent); return (... || (MAKE_STRING(Tys::CLASSNAME) == pEdict->v.classname)); });
+			std::views::filter([](auto&& ent) noexcept -> bool { auto const pEdict = ent_cast<edict_t*>(ent); return (... || (MAKE_STRING(Tys::CLASSNAME) == pEdict->v.classname)); });
 	}
 
 	export template <typename T> inline decltype(auto) as(void) noexcept

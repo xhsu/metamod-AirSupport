@@ -1,8 +1,18 @@
+module;
+
+#ifdef __INTELLISENSE__
+#include <charconv>
+#include <ranges>
+#include <string_view>
+#endif
+
 export module Engine;
 
+#ifndef __INTELLISENSE__
 import <charconv>;
 import <ranges>;
 import <string_view>;
+#endif
 
 export import eiface;
 
@@ -26,7 +36,9 @@ export namespace Engine
 
 	inline const char* GetDLLName(void) noexcept
 	{
-		// #UNDONE
+		// #SHOULD_DO_ON_FREE
+
+		// NAGI says that OpenGL state can be check via console var.
 
 		//[[unlikely]]
 		//if (!g_engfuncs.pfnEngCheckParm)
@@ -104,4 +116,6 @@ export namespace Engine
 
 #undef COMPILE_DATE
 	}
+
+	inline constexpr auto BUILD_NUMBER_LOCAL = LocalBuildNumber();
 };

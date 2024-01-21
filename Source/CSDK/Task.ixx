@@ -1,22 +1,30 @@
 module;
 
 #ifdef __INTELLISENSE__
+#include <cstdint>
+
 #include <array>
+#include <coroutine>
+#include <exception>
+#include <functional>
+#include <list>
 #endif
 
 export module Task;
 
+#ifndef __INTELLISENSE__
 export import <cstdint>;
 
 export import <array>;
-import <coroutine>;
-import <exception>;
-import <functional>;
-import <list>;
+export import <coroutine>;
+export import <exception>;
+export import <functional>;
+export import <list>;
+#endif
 
-import progdefs;
+export import progdefs;
 
-import Platform;
+export import Platform;
 
 using namespace std;
 
@@ -73,7 +81,7 @@ export struct TaskScheduler_t final
 	{
 		while (!m_List.empty())
 		{
-			// #PLANNED should it be sorted and therefore have a O(nlogn) complx or just execute all suitable tasks one by one?
+			// #IMPROVEMENT should it be sorted and therefore have a O(nlogn) complx or just execute all suitable tasks one by one?
 			// Does the execution order actually matter?
 			m_List.sort();
 
@@ -194,7 +202,7 @@ export namespace TaskScheduler
 
 export namespace TaskScheduler::NextFrame
 {
-	// #FIXME_INTELLISENSE
+	// #UPDATE_AT_MSVC_FIX INTELLISENSE
 #ifdef __INTELLISENSE__
 	inline constexpr array<decltype(gpGlobals->time), 10> Rank
 #else

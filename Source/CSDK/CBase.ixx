@@ -281,7 +281,7 @@ struct EHANDLE final
 	EHANDLE(void) noexcept {}
 	EHANDLE(edict_t *pEdict) noexcept { Set(pEdict); }
 	EHANDLE(entvars_t *pev) noexcept { if (pev) Set(pev->pContainingEntity); }
-	EHANDLE(T *pEntity) noexcept : EHANDLE(pEntity->pev) {}
+	EHANDLE(T* pEntity) noexcept { if (pEntity) Set(pEntity->pev->pContainingEntity); }
 	EHANDLE(std::nullptr_t) noexcept : EHANDLE() {}
 	explicit EHANDLE(short iEntIndex) noexcept { if (iEntIndex > 0) Set(ent_cast<edict_t *>(iEntIndex)); }
 
@@ -318,14 +318,14 @@ struct EHANDLE final
 	{
 		if constexpr (std::is_base_of_v<U, T> || std::is_same_v<U, T>)
 		{
-			return true;
+			return Get() != nullptr;
 		}
 		else
 		{
 			if constexpr (requires { { m_pent->v.classname == MAKE_STRING(U::CLASSNAME) } -> std::same_as<bool>; })
 			{
 				// Even the classname won't match, one can still not rule out the case of base class.
-				if (m_pent->v.classname == MAKE_STRING(U::CLASSNAME))
+				if (auto const ent = Get(); ent && ent->v.classname == MAKE_STRING(U::CLASSNAME))
 					return true;
 			}
 
@@ -412,12 +412,18 @@ struct EHANDLE final
 	//inline bool operator== (edict_t *pEdict) noexcept { auto const pent = Get(); return pent && pent == pEdict; }
 	//inline bool operator== (entvars_t *pev) noexcept { auto const pent = Get(); return pent && pent == pev->pContainingEntity; }
 	//inline bool operator== (T *pEntity) noexcept { auto const pent = Get(); return pent && pEntity == pent->pvPrivateData; }
-	inline bool operator== (EHANDLE<T> const &rhs) const noexcept { return m_pent == rhs.m_pent && m_serialnumber == rhs.m_serialnumber; }
+	//inline bool operator== (EHANDLE<T> const &rhs) const noexcept { return m_pent == rhs.m_pent && m_serialnumber == rhs.m_serialnumber; }
 
-private:
 	edict_t *m_pent = nullptr;
 	int m_serialnumber = 0;
 };
+
+// ent comperasion
+export template <typename T, typename U> inline
+bool operator== (EHANDLE<T> const& lhs, EHANDLE<U> const& rhs) noexcept
+{
+	return lhs.m_pent == rhs.m_pent && lhs.m_serialnumber == rhs.m_serialnumber;
+}
 
 export class CBaseDelay : public CBaseEntity
 {
@@ -573,7 +579,7 @@ public:
 	virtual int iItemSlot(void) = 0;
 
 public:
-//	void __declspec(dllexport) DestroyItem(void);
+	void __declspec(dllexport) DestroyItem(void) noexcept;
 	void __declspec(dllexport) DefaultTouch(CBaseEntity *pOther) noexcept;
 	void __declspec(dllexport) FallThink(void) noexcept;
 	void __declspec(dllexport) Materialize(void) noexcept;

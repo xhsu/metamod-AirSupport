@@ -1,4 +1,6 @@
-﻿import <array>;
+﻿import <cassert>;
+
+import <array>;
 import <format>;
 import <numbers>;
 
@@ -50,7 +52,7 @@ enum EVShieldKnife
 
 inline constexpr float KNIFE_MAX_SPEED = 250.0f;
 inline constexpr float KNIFE_MAX_SPEED_SHIELD = 180.0f;
-
+/*
 qboolean __fastcall HamF_Item_AddToPlayer(CBasePlayerItem *pThis, int, CBasePlayer *pPlayer) noexcept
 {
 	g_pfnItemAddToPlayer(pThis, pPlayer);
@@ -362,7 +364,7 @@ extern "C++" namespace Weapon
 		pThis->m_flTimeWeaponIdle = 0;
 
 		pThis->pev->weapons = 0;
-		pThis->m_pPlayer->m_iHideHUD &= ~HIDEHUD_CROSSHAIR;	// #TODO use CurWeapon to fix crosshair?
+		pThis->m_pPlayer->m_iHideHUD &= ~HIDEHUD_CROSSHAIR;	// #GIVEN_UP use CurWeapon to fix crosshair?
 
 		[[likely]]
 		if (DYN_TARGET(pThis))
@@ -389,13 +391,14 @@ extern "C++" namespace Weapon
 			pThis->m_pPlayer->pev->gamestate = 0;
 	}
 };
-
-void __fastcall OrpheuF_FireBullets(CBaseEntity *pThis, int, unsigned long cShots, Vector vecSrc, Vector vecDirShooting, Vector vecSpread, float flDistance, int iBulletType, int iTracerFreq, int iDamage, entvars_t *pevAttacker) noexcept
+*/
+void __fastcall OrpheuF_FireBullets(CBaseEntity *pThis, int edx, unsigned long cShots, Vector vecSrc, Vector vecDirShooting, Vector vecSpread, float flDistance, int iBulletType, int iTracerFreq, int iDamage, entvars_t *pevAttacker) noexcept
 {
 	g_bIsSomeoneShooting = true;
-	UTIL_UndoPatch(g_pfnFireBullets, HookInfo::FireBullets.m_OriginalBytes);
-	g_pfnFireBullets(pThis, cShots, vecSrc, vecDirShooting, vecSpread, flDistance, iBulletType, iTracerFreq, iDamage, pevAttacker);
-	UTIL_DoPatch(g_pfnFireBullets, HookInfo::FireBullets.m_PatchedBytes);
+	HookInfo::FireBullets(pThis, edx, cShots, vecSrc, vecDirShooting, vecSpread, flDistance, iBulletType, iTracerFreq, iDamage, pevAttacker);
+	//UTIL_UndoPatch(g_pfnFireBullets, HookInfo::FireBullets.m_OriginalBytes);
+	//g_pfnFireBullets(pThis, cShots, vecSrc, vecDirShooting, vecSpread, flDistance, iBulletType, iTracerFreq, iDamage, pevAttacker);
+	//UTIL_DoPatch(g_pfnFireBullets, HookInfo::FireBullets.m_PatchedBytes);
 	g_bIsSomeoneShooting = false;
 }
 
@@ -409,9 +412,330 @@ Vector *__fastcall OrpheuF_FireBullets3(CBaseEntity* pThis, void* edx, Vector* p
 	// edx register must be pass on, or it might invokes content loss.
 
 	g_bIsSomeoneShooting = true;
-	UTIL_UndoPatch(gUranusCollection.pfnFireBullets3, HookInfo::FireBullets3.m_OriginalBytes);
-	auto const ret = gUranusCollection.pfnFireBullets3(pThis, edx, pret, vecSrc, vecDirShooting, flSpread, flDistance, iPenetration, iBulletType, iDamage, flRangeModifier, pevAttacker, bPistol, shared_rand);
-	UTIL_DoPatch(gUranusCollection.pfnFireBullets3, HookInfo::FireBullets3.m_PatchedBytes);
+	auto const ret = HookInfo::FireBullets3(pThis, edx, pret, vecSrc, vecDirShooting, flSpread, flDistance, iPenetration, iBulletType, iDamage, flRangeModifier, pevAttacker, bPistol, shared_rand);
+	//UTIL_UndoPatch(gUranusCollection.pfnFireBullets3, HookInfo::FireBullets3.m_OriginalBytes);
+	//auto const ret = gUranusCollection.pfnFireBullets3(pThis, edx, pret, vecSrc, vecDirShooting, flSpread, flDistance, iPenetration, iBulletType, iDamage, flRangeModifier, pevAttacker, bPistol, shared_rand);
+	//UTIL_DoPatch(gUranusCollection.pfnFireBullets3, HookInfo::FireBullets3.m_PatchedBytes);
 	g_bIsSomeoneShooting = false;
 	return ret;
+}
+
+void __cdecl OrpheuF_W_Precache() noexcept
+{
+	HookInfo::W_Precache();
+
+	gUranusCollection.pfnUTIL_PrecacheOtherWeapon(CRadio::CLASSNAME);
+}
+
+void CRadio::Spawn() noexcept
+{
+	pev->effects |= EF_NODRAW;
+
+	m_iId = WEAPON_NIL;
+	m_fMaxSpeed = 250.f;
+}
+
+qboolean CRadio::GetItemInfo(ItemInfo* p) noexcept
+{
+	p->pszName = &CLASSNAME[0];
+	p->pszAmmo1 = nullptr;
+	p->iMaxAmmo1 = -1;
+	p->pszAmmo2 = nullptr;
+	p->iMaxAmmo2 = -1;
+	p->iMaxClip = WEAPON_NOCLIP;
+	p->iSlot = 4;
+	p->iPosition = 2;
+	p->iId = WEAPON_NIL;
+	p->iFlags = 0;
+	p->iWeight = 5;	// c4 == 3, knife == 0
+
+	return true;
+}
+
+qboolean CRadio::Deploy() noexcept
+{
+	if (!CanDeploy())
+		return false;
+
+	m_Scheduler.Enroll(Task_Deploy(), TASK_RADIO_DEPLOY);
+	return true;
+}
+
+void CRadio::ItemPostFrame() noexcept
+{
+	if (m_pPlayer->m_afButtonPressed & IN_ATTACK) [[unlikely]]
+	{
+		switch (g_rgiAirSupportSelected[m_pPlayer->entindex()])
+		{
+		case CARPET_BOMBARDMENT:
+		{
+			m_pTarget->EnableBeacons();
+			break;
+		}
+
+		case GUNSHIP_STRIKE:
+			if (CGunship::s_bInstanceExists)
+			{
+				gmsgTextMsg::Send(m_pPlayer->edict(), 4, Localization::GUNSHIP_ENTITY_MUTUALLY_EXCLUSIVE);
+				return;
+			}
+
+			[[fallthrough]];
+
+		default:
+			auto const bAccepted = (m_pTarget->pev->skin == Models::targetmdl::SKIN_GREEN);
+
+			m_Scheduler.Enroll(
+				bAccepted ? Task_RadioAccepted() : Task_RadioRejected(),
+				bAccepted ? TASK_RADIO_ACCEPTED : TASK_RADIO_REJECTED
+			);
+			break;
+		}
+	}
+	else if (m_pPlayer->m_afButtonReleased & IN_ATTACK) [[unlikely]]
+	{
+		switch (g_rgiAirSupportSelected[m_pPlayer->entindex()])
+		{
+		case CARPET_BOMBARDMENT:
+		{
+			if (m_pTarget->pev->skin != Models::targetmdl::SKIN_GREEN)
+			{
+				m_Scheduler.Enroll(Task_RadioRejected(), TASK_RADIO_REJECTED);
+				m_pTarget->DisableBeacons();
+			}
+			else
+				m_Scheduler.Enroll(Task_RadioAccepted(), TASK_RADIO_ACCEPTED);
+		}
+			break;
+
+		default:
+			break;
+		}
+	}
+	else if (m_pPlayer->m_afButtonPressed & IN_ATTACK2) [[unlikely]]
+	{
+		auto const &iIndex = g_rgiAirSupportSelected[m_pPlayer->entindex()];
+
+		UTIL_ShowMenu(
+			m_pPlayer->edict(),
+			Menu::Key::AIRSUPPORT,
+			std::format(Menu::Text::AIRSUPPORT_TEMPLATE,
+				iIndex == AIR_STRIKE ? "\\d" : "\\w", iIndex == AIR_STRIKE ? " - Selected" : "",
+				iIndex == CLUSTER_BOMB ? "\\d" : "\\w", iIndex == CLUSTER_BOMB ? " - Selected" : "",
+				iIndex == CARPET_BOMBARDMENT ? "\\d" : "\\w", iIndex == CARPET_BOMBARDMENT ? " - Selected" : "",
+				iIndex == GUNSHIP_STRIKE ? "\\d" : "\\w", iIndex == GUNSHIP_STRIKE ? " - Selected" : "",
+				iIndex == FUEL_AIR_BOMB ? "\\d" : "\\w", iIndex == FUEL_AIR_BOMB ? " - Selected" : "",
+				iIndex == PHOSPHORUS_MUNITION ? "\\d" : "\\w", iIndex == PHOSPHORUS_MUNITION ? " - Selected" : ""
+			)
+		);
+
+		m_pPlayer->m_iMenu = EMenu::Menu_AirSupport;
+	}
+
+#ifdef _DEBUG
+	else if (m_pPlayer->m_afButtonPressed & IN_USE) [[unlikely]]
+	{
+		g_engfuncs.pfnMakeVectors(m_pPlayer->pev->v_angle);
+
+		[[maybe_unused]] TraceResult tr{}, tr2{};
+		auto const vecSrc = m_pPlayer->GetGunPosition();
+		auto const vecEnd = vecSrc + gpGlobals->v_forward * 4096.0;
+		g_engfuncs.pfnTraceLine(vecSrc, vecEnd, dont_ignore_monsters, m_pPlayer->edict(), &tr);
+		g_engfuncs.pfnTraceLine(m_pPlayer->pev->origin, m_pPlayer->pev->origin + Vector(0, 0, 4096), ignore_monsters, m_pPlayer->edict(), &tr2);
+
+		if (EHANDLE<CBaseEntity> pHit{tr.pHit}; pHit && pHit->IsPlayer())
+			Burning::ByPhosphorus(pHit.As<CBasePlayer>(), m_pPlayer);
+	}
+#endif
+}
+
+void CRadio::Holster(int param) noexcept
+{
+	m_pPlayer->m_iHideHUD &= ~HIDEHUD_CROSSHAIR;
+
+	[[likely]]
+	if (m_pTarget)
+	{
+		m_pTarget->pev->flags |= FL_KILLME;
+		m_pTarget = nullptr;
+	}
+
+	if (m_Scheduler.Delist(TASK_RADIO_ACCEPTED) > 0)
+	{
+		for (CFixedTarget* pFixedTarget :
+			Query::all_instances_of<CFixedTarget>()
+			| std::views::filter([&](CFixedTarget* p) noexcept { return p->m_pPlayer == m_pPlayer; })	// Called by this player
+			| std::views::filter([&](CFixedTarget* p) noexcept { return !p->m_Scheduler.Exist(TASK_ACTION); })	// Not yet activated.
+			)
+		{
+			pFixedTarget->pev->flags |= FL_KILLME;
+			gmsgTextMsg::Send(m_pPlayer->edict(), 4, Localization::REJECT_TIME_OUT);
+		}
+	}
+
+	if (m_Scheduler.Delist(TASK_RADIO_DEPLOY) > 0)
+	{
+		// not sure what to do here... a party maybe?
+	}
+
+	// Resume shield protection
+	if (m_pPlayer->m_bOwnsShield)
+		m_pPlayer->pev->gamestate = 0;
+
+	m_pPlayer->m_flNextAttack = -1;
+	assert(m_Scheduler.m_List.size() == 0);
+	__super::Holster(param);
+}
+
+Task CRadio::Task_Deploy() noexcept
+{
+	m_iMockedWeapon = WEAPON_KNIFE;	// because that doesn't have any ammo ui etc.
+	m_iWeaponState &= ~WPNSTATE_SHIELD_DRAWN;
+
+	m_pPlayer->m_bShieldDrawn = false;
+
+	if (m_pPlayer->m_bOwnsShield)
+		m_pPlayer->pev->gamestate = 1;
+
+	gUranusCollection.pfnDefaultDeploy(this,
+		Models::V_RADIO, Models::P_RADIO, (int)Models::v_radio::seq::draw,
+		"knife", false
+	);	// Enforce to play the anim.
+
+	// Must have a one-frame delay for crosshair hiding due to
+	// CBasePlayer::SelectLastItem() put UpdateShieldCrosshair() behind CBasePlayerItem::Deploy().
+	m_Scheduler.Enroll(
+		[](CBasePlayer* player) noexcept -> Task { co_await TaskScheduler::NextFrame::Rank[0]; player->m_iHideHUD |= HIDEHUD_CROSSHAIR; }(m_pPlayer),
+		TASK_RADIO_DEPLOY
+	);
+
+	// Disable client prediction after a bit.
+	m_Scheduler.Enroll(
+		[](CPrefabWeapon* self) noexcept -> Task { co_await 0.1f; self->m_iMockedWeapon = WEAPON_NONE; }(this),
+		TASK_RADIO_DEPLOY
+	);
+
+	co_await Models::v_radio::time::draw;
+
+	SendWeaponAnim((int)Models::v_radio::seq::idle, false);
+
+	[[unlikely]]
+	if (m_pTarget)
+		m_pTarget->pev->flags |= FL_KILLME;
+
+	m_pTarget = CDynamicTarget::Create(m_pPlayer, this);
+}
+
+Task CRadio::Task_RadioRejected() noexcept
+{
+	m_bCanHolster = false;
+	SendWeaponAnim((int)Models::v_radio::seq::use);
+	m_pPlayer->m_flNextAttack = Models::v_radio::time::use;
+
+	g_engfuncs.pfnEmitSound(edict(), CHAN_AUTO, Sounds::NOISE, VOL_NORM, ATTN_STATIC, 0, UTIL_Random(92, 108));
+
+	static constexpr float TIME_PRESS_TALK = 19.f / 45.f;
+	co_await TIME_PRESS_TALK;
+
+	g_engfuncs.pfnEmitSound(edict(), CHAN_VOICE, Sounds::REQUESTING, 0.75f, ATTN_STATIC, 0, UTIL_Random(92, 108));
+
+	co_await Sounds::Length::Radio::REQUESTING;
+
+	g_engfuncs.pfnEmitSound(edict(), CHAN_VOICE, UTIL_GetRandomOne(Sounds::REJECTING), 0.75f, ATTN_STATIC, 0, UTIL_Random(92, 108));
+	gmsgTextMsg::Send(m_pPlayer->edict(), 4, Localization::REJECT_COVERED_LOCATION);
+
+	static_assert(Models::v_radio::time::use - TIME_PRESS_TALK - Sounds::Length::Radio::REQUESTING > 0);
+	co_await (Models::v_radio::time::use - TIME_PRESS_TALK - Sounds::Length::Radio::REQUESTING);
+
+	SendWeaponAnim((int)Models::v_radio::seq::idle, false);
+	m_bCanHolster = true;
+}
+
+Task CRadio::Task_RadioAccepted() noexcept
+{
+	auto const pFixedTarget = CFixedTarget::Create(m_pTarget);
+
+	m_pTarget->pev->flags |= FL_KILLME;
+	m_pTarget = nullptr;
+
+	m_bTargetActivated = false;	// lock anim holster.
+	m_bCanHolster = false;	// BORROWED MEMBER: forbid holster.
+	SendWeaponAnim((int)Models::v_radio::seq::use);
+	m_pPlayer->m_flNextAttack = Models::v_radio::time::use;
+
+	g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, Sounds::NOISE, VOL_NORM, ATTN_STATIC, 0, UTIL_Random(92, 108));
+
+	// Continue as these two tasks.
+
+	m_Scheduler.Enroll(Task_AcceptedAnim());	// this does not consider as the continuation of 'accept'.
+	m_Scheduler.Enroll(Task_AcceptedSound(pFixedTarget), TASK_RADIO_ACCEPTED);
+
+	co_return;
+}
+
+Task CRadio::Task_AcceptedAnim() noexcept
+{
+	// This task was expected to be executed after use anim.
+	co_await Models::v_radio::time::use;
+
+	bool bHasAnyOtherWeapon = false;
+	for (auto&& pWeapon : Query::all_weapons_belongs_to(m_pPlayer))
+	{
+		if (pWeapon->pev == this->pev)
+			continue;
+
+		bHasAnyOtherWeapon = true;
+		break;
+	}
+
+	[[likely]]
+	if (!bHasAnyOtherWeapon)	// No any other weapon, not even a knife. Pathetic.
+	{
+		SendWeaponAnim((int)Models::v_radio::seq::idle);
+		co_return;
+	}
+
+	m_bCanHolster = false;
+	SendWeaponAnim((int)Models::v_radio::seq::holster);
+	m_pPlayer->m_flNextAttack = Models::v_radio::time::holster;
+
+	co_await Models::v_radio::time::holster;
+
+	// No more checks.
+	// It is unlikely to loose a weapon during the holster animation.
+
+	// wait until all audio played
+	while (!m_bTargetActivated)
+	{
+		co_await TaskScheduler::NextFrame::Rank[0];
+	}
+
+	m_bCanHolster = true;	// BORROWED MEMBER: allow holster.
+	m_pPlayer->m_flNextAttack = -1;
+	g_engfuncs.pfnClientCommand(m_pPlayer->edict(), "lastinv\n");
+}
+
+Task CRadio::Task_AcceptedSound(EHANDLE<CFixedTarget> pFixedTarget) noexcept
+{
+	auto const iAirsupportType = g_rgiAirSupportSelected[m_pPlayer->entindex()];
+
+	static constexpr float TIME_PRESS_TALK = 19.f / 45.f;
+	co_await TIME_PRESS_TALK;
+
+	g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, Sounds::REQUESTING, 0.75f, ATTN_STATIC, 0, UTIL_Random(92, 108));
+
+	co_await Sounds::Length::Radio::REQUESTING;
+
+	g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, Sounds::ACCEPTING[iAirsupportType], 0.75f, ATTN_STATIC, 0, UTIL_Random(92, 108));
+
+	co_await Sounds::Length::Radio::ACCEPTING[iAirsupportType];
+
+	// sync with Task_AcceptedAnim()
+	m_bTargetActivated = true;
+
+	[[likely]]
+	if (pFixedTarget)
+		pFixedTarget->Activate();
+	else
+		co_return;	// Round ended or something???
 }

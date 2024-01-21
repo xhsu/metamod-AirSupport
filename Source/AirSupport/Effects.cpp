@@ -1299,7 +1299,7 @@ Task CFuelAirCloud::Task_AirPressure() noexcept
 			if (flSpeed > 1)
 			{
 				pPlayer->pev->velocity += vecDir.Normalize() * flSpeed;
-				ApplySuffocation(pPlayer);	// #FIXME #POTENTIAL_BUG sometimes won't work??
+				ApplySuffocation(pPlayer);	// #INVESTIGATE #SHOULD_DO_ON_FREE sometimes won't work??
 			}
 		}
 	}
@@ -1499,7 +1499,7 @@ void CPhosphorus::Touch_Flying(CBaseEntity *pOther) noexcept
 		return;
 
 	// Not a real spark, it's just a visual representation of 'too bright to properly see what's going on'
-	auto pSpark = Prefab_t::Create<CSpriteDisplay>(Vector(pev->origin.x, pev->origin.y, pev->origin.z + 48.0), kRenderTransAdd, Sprites::PHOSPHORUS_MAJOR_SPARK);
+	auto pSpark = CSpriteDisplay::Create(Vector(pev->origin.x, pev->origin.y, pev->origin.z + 48.0), kRenderTransAdd, Sprites::PHOSPHORUS_MAJOR_SPARK);
 	pSpark->pev->renderamt = UTIL_Random(192.f, 255.f);
 	pSpark->pev->rendercolor = Vector(255, 255, UTIL_Random(192, 255));
 	pSpark->pev->scale = UTIL_Random(1.f / 1.2f, 1.2f);
@@ -1623,7 +1623,7 @@ Task CPhosphorus::Task_EmitExhaust() noexcept
 		//WriteData((byte)UTIL_Random<short>(50, 255));
 		//MsgEnd();
 
-		auto pSpark = Prefab_t::Create<CSpriteDisplay>(vecOrigin, kRenderTransAdd, Sprites::ROCKET_TRAIL_SMOKE[0]);
+		auto pSpark = CSpriteDisplay::Create(vecOrigin, kRenderTransAdd, Sprites::ROCKET_TRAIL_SMOKE[0]);
 		pSpark->pev->renderamt = UTIL_Random(50.f, 255.f);
 		pSpark->pev->rendercolor = Vector(255, 255, UTIL_Random(192, 255));
 		pSpark->pev->frame = (float)UTIL_Random(17, 22);
@@ -1661,7 +1661,7 @@ Task CPhosphorus::Task_EmitSpark() noexcept
 
 		Vector const vecVel = get_spherical_coord(1, UTIL_Random(30.0, 60.0), UTIL_Random(0, 360));
 
-		Prefab_t::Create<CShower2>(m_pPlayer, vecGround, vecVel);
+		CShower2::Create(m_pPlayer, vecGround, vecVel);
 
 		co_await UTIL_Random(4.f, 8.f);
 	}

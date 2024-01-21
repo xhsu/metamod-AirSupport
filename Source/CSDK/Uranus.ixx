@@ -57,7 +57,7 @@ export namespace Uranus
 			EmptyEntityHashTable, AddEntityHashValue, RemoveEntityHashValue,
 			ClearMultiDamage, ApplyMultiDamage, AddMultiDamage,
 			TEXTURETYPE_PlaySound,
-			UTIL_PrecacheOther, UTIL_PrecacheOtherWeapon,
+			W_Precache, UTIL_PrecacheOther, UTIL_PrecacheOtherWeapon,
 			BaseEntity::Create,
 			BaseEntity::FireBullets3,
 			BaseDelay::SUB_UseTargets,
