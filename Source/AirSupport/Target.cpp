@@ -732,7 +732,7 @@ Task CDynamicTarget::Task_QuickEval_Phosphorus() noexcept
 		}
 
 		if (auto const flAngleLean = std::acos(DotProduct(Vector::Up(), tr.vecPlaneNormal)/* No div len required, both len are 1. */) / std::numbers::pi * 180.0;
-			flAngleLean > 50 || (tr2.vecEndPos.z - tr.vecEndPos.z) < 800.f)
+			flAngleLean > 50 || bHeightNotEnough)
 		{
 			// Surface consider wall and no phosphorus bomb allow against wall.
 			// or

@@ -260,14 +260,16 @@ Task Task_Fade(entvars_t *const pev, float const INC, float const DEC, float con
 
 Task Task_SpriteOnEnt_NotOwned(entvars_t *const pev, EHANDLE<CBaseEntity> pEnt, uint16_t const ATTACHMENT, Vector const vecOfs, float const INC, float const PEAK, float const DECAY) noexcept
 {
-	Vector vecAttOrigin{};
-	Angles vecAttAngles{};
+	Vector vecAttOrigin{}, vecTransformedOfs{};
 	auto me = ent_cast<edict_t *>(pev);
 
 	for (; pEnt;)	// Must be a post-awaiting. Otherwise the validity of entity is subject to change after the check.
 	{
-		g_engfuncs.pfnGetAttachment(pEnt.Get(), ATTACHMENT, vecAttOrigin, vecAttAngles);
-		g_engfuncs.pfnSetOrigin(me, vecAttOrigin + vecOfs);
+		auto&& [f, r, u] = pEnt->pev->angles.AngleVectors();
+		vecTransformedOfs = vecOfs.x * f + vecOfs.y * r + vecOfs.z * u;
+		vecAttOrigin = UTIL_GetAttachment(pEnt.Get(), ATTACHMENT);	// LUNA: DO NOT use the engine version, it's buggy.
+
+		g_engfuncs.pfnSetOrigin(me, vecAttOrigin + vecTransformedOfs);
 
 		if (pev->renderamt < PEAK)
 			pev->renderamt = std::min(pev->renderamt + INC, PEAK);
