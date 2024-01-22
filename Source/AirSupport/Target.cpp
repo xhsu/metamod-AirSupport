@@ -716,6 +716,21 @@ Task CDynamicTarget::Task_QuickEval_Phosphorus() noexcept
 		g_engfuncs.pfnTraceMonsterHull(edict(), vecSrc, vecEnd, ignore_glass | ignore_monsters, nullptr, &tr);	// #NO_URGENT this is so bulky and cannot be use in so many places!!
 		g_engfuncs.pfnTraceLine(tr.vecEndPos, Vector(tr.vecEndPos.x, tr.vecEndPos.y, 8192), ignore_glass | ignore_monsters, nullptr, &tr2);	// measure the distance between the aiming pos and the sky.
 
+		auto const bHeightNotEnough = (tr2.vecEndPos.z - tr.vecEndPos.z) < 800.f;
+
+		// This is the one that needs a hint, or it would be extremely confusing to debug.
+		if (bHeightNotEnough && m_flLastHintTime < (gpGlobals->time - 5.f))
+		{
+			auto const szHeightDiff = std::format("{}", (int)std::roundf(tr2.vecEndPos.z - tr.vecEndPos.z));
+			
+			gmsgTextMsg::Unmanaged<MSG_ONE>(
+				g_vecZero, m_pPlayer->edict(),
+				(byte)4, Localization::REJECT_HEIGHT_NOT_ENOUGH, szHeightDiff.c_str()
+			);
+
+			m_flLastHintTime = gpGlobals->time;
+		}
+
 		if (auto const flAngleLean = std::acos(DotProduct(Vector::Up(), tr.vecPlaneNormal)/* No div len required, both len are 1. */) / std::numbers::pi * 180.0;
 			flAngleLean > 50 || (tr2.vecEndPos.z - tr.vecEndPos.z) < 800.f)
 		{
@@ -872,7 +887,7 @@ void CDynamicTarget::EnableFireSphere() noexcept
 		pSphere = CSpriteDisplay::Create(vecOrigin, kRenderTransAdd, Sprites::FLAME[1]);	// flame2.spr is smaller thus fits better.
 		pSphere->pev->renderamt = 0;
 		pSphere->pev->scale = 0.2f;
-		pSphere->m_Scheduler.Enroll(Task_SpriteOnEnt_NotOwned(pSphere->pev, this, idx, { 0, 0, 8 }, 2.f, 220.f, 3.f), TASK_ANIMATION);
+		pSphere->m_Scheduler.Enroll(Task_SpriteOnEnt_NotOwned(pSphere->pev, this, idx, { -8, 0, 0 }, 2.f, 220.f, 3.f), TASK_ANIMATION);
 		pSphere->m_Scheduler.Enroll(Task_SpriteEnterLoopOut(pSphere->pev, this, 3, 20, 24, 24), TASK_ANIMATION);
 
 		++idx;

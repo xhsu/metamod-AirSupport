@@ -46,6 +46,7 @@ export struct CDynamicTarget : public Prefab_t
 	CBasePlayer *m_pPlayer{};
 	Vector m_vecLastAiming{};
 	float m_flLastValidTracking{};
+	float m_flLastHintTime{};
 	std::array<EHANDLE<CSpriteDisplay>, 4> m_rgpAttachedSpr{};	// 4 == maxium attachment count on vanilla GoldSrc.
 	std::array<EHANDLE<CBeam>, BEACON_COUNT> m_rgpBeacons{};
 	std::array<BodyEnumInfo_t, 3> m_rgBodyInfo{ {{0, 1}, {0, 7}, {0, 2}} };

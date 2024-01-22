@@ -43,6 +43,7 @@ public:
 	EHANDLE<CDynamicTarget> m_pTarget{};
 	bool m_bCanHolster{ true };
 	bool m_bSoundSeqFinished{ true };
+	bool m_bHintPressAndHold{};
 };
 
 export inline

@@ -87,12 +87,22 @@ qboolean CRadio::Deploy() noexcept
 
 void CRadio::ItemPostFrame() noexcept
 {
-	if (m_pPlayer->m_afButtonPressed & IN_ATTACK && m_pPlayer->m_flNextAttack <= 0 && m_bSoundSeqFinished) [[unlikely]]
+	auto const bReadyForNextCall = m_pPlayer->m_flNextAttack <= 0 && m_bSoundSeqFinished;
+
+	if (m_pPlayer->m_afButtonPressed & IN_ATTACK && bReadyForNextCall) [[unlikely]]
 	{
 		switch (g_rgiAirSupportSelected[m_pPlayer->entindex()])
 		{
 		case CARPET_BOMBARDMENT:
 			m_pTarget->EnableBeacons();
+
+			[[unlikely]]
+			if (!m_bHintPressAndHold)
+			{
+				gmsgTextMsg::Send(m_pPlayer->edict(), 4, Localization::HINT_PRESS_AND_HOLD);
+				m_bHintPressAndHold = true;
+			}
+
 			break;
 
 		case GUNSHIP_STRIKE:
@@ -117,7 +127,7 @@ void CRadio::ItemPostFrame() noexcept
 			break;
 		}
 	}
-	else if (m_pPlayer->m_afButtonReleased & IN_ATTACK && m_pPlayer->m_flNextAttack <= 0 && m_bSoundSeqFinished) [[unlikely]]
+	else if (m_pPlayer->m_afButtonReleased & IN_ATTACK && bReadyForNextCall) [[unlikely]]
 	{
 		switch (g_rgiAirSupportSelected[m_pPlayer->entindex()])
 		{
@@ -169,9 +179,6 @@ void CRadio::ItemPostFrame() noexcept
 		auto const vecEnd = vecSrc + gpGlobals->v_forward * 4096.0;
 		g_engfuncs.pfnTraceLine(vecSrc, vecEnd, dont_ignore_monsters, m_pPlayer->edict(), &tr);
 		g_engfuncs.pfnTraceLine(m_pPlayer->pev->origin, m_pPlayer->pev->origin + Vector(0, 0, 4096), ignore_monsters, m_pPlayer->edict(), &tr2);
-
-		if (EHANDLE<CBaseEntity> pHit{tr.pHit}; pHit && pHit->IsPlayer())
-			Burning::ByPhosphorus(pHit.As<CBasePlayer>(), m_pPlayer);
 	}
 #endif
 }
