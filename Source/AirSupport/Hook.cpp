@@ -47,7 +47,7 @@ extern void Waypoint_Read(void) noexcept;
 
 inline bool g_bShouldPrecache = true;
 
-void DeployVirtualFnHooks(void) noexcept
+static void DeployVirtualFnHooks() noexcept
 {
 	static bool bHooksPerformed = false;
 
@@ -55,32 +55,23 @@ void DeployVirtualFnHooks(void) noexcept
 	if (bHooksPerformed)
 		return;
 
-	edict_t *pEnt = g_engfuncs.pfnCreateNamedEntity(MAKE_STRING("weapon_knife"));
+	// This function is just a stub.
 
-	if (!pEnt || !pEnt->pvPrivateData) [[unlikely]]
-	{
-		if (pEnt)
-			g_engfuncs.pfnRemoveEntity(pEnt);
+	bHooksPerformed = true;
+}
 
-		UTIL_Terminate("Failed to retrieve classtype for \"weapon_knife\".");
+static void DeployInlineHook() noexcept
+{
+	static bool bHooksPerformed = false;
+
+	[[likely]]
+	if (bHooksPerformed)
 		return;
-	}
 
-	auto const rgpfnCKnife = UTIL_RetrieveVirtualFunctionTable(pEnt->pvPrivateData);
-
-	g_engfuncs.pfnRemoveEntity(pEnt);
-	pEnt = nullptr;
-
-	if (rgpfnCKnife == nullptr) [[unlikely]]
-	{
-		UTIL_Terminate("Failed to retrieve vtable for \"weapon_knife\".");
-		return;
-	}
-
-	//UTIL_VirtualTableInjection(rgpfnCKnife, VFTIDX_ITEM_ADDTOPLAYER, &HamF_Item_AddToPlayer, (void **)&g_pfnItemAddToPlayer);
-	//UTIL_VirtualTableInjection(rgpfnCKnife, VFTIDX_ITEM_DEPLOY, &HamF_Item_Deploy, (void **)&g_pfnItemDeploy);
-	//UTIL_VirtualTableInjection(rgpfnCKnife, VFTIDX_ITEM_POSTFRAME, &HamF_Item_PostFrame, (void **)&g_pfnItemPostFrame);
-	//UTIL_VirtualTableInjection(rgpfnCKnife, VFTIDX_ITEM_HOLSTER, &HamF_Item_Holster, (void **)&g_pfnItemHolster);
+	g_pfnRadiusFlash = (fnRadiusFlash_t)UTIL_SearchPattern("mp.dll", 1, RADIUS_FLASH_FN_NEW_PATTERN, RADIUS_FLASH_FN_ANNIV_PATTERN);
+	g_pfnSelectItem = (fnSelectItem_t)UTIL_SearchPattern("mp.dll", 1, SELECT_ITEM_FN_NEW_PATTERN, SELECT_ITEM_FN_ANNIV_PATTERN);
+	g_pfnSwitchWeapon = (fnSwitchWeapon_t)UTIL_SearchPattern("mp.dll", 1, SWITCH_WEAPON_FN_NEW_PATTERN, SWITCH_WEAPON_FN_ANNIV_PATTERN);
+	g_pfnFireBullets = (fnFireBullets_t)UTIL_SearchPattern("mp.dll", 1, FIRE_BULLETS_FN_NEW_PATTERN, FIRE_BULLETS_FN_ANNIV_PATTERN);
 
 #ifdef _DEBUG
 	assert(g_pfnRadiusFlash != nullptr);
@@ -101,34 +92,6 @@ void DeployVirtualFnHooks(void) noexcept
 	if (!g_pfnFireBullets)
 		UTIL_Terminate("Function \"CBaseEntity::FireBullets\" no found!");
 #endif
-
-
-	bHooksPerformed = true;
-}
-
-static void DeployInlineHook() noexcept
-{
-	static bool bHooksPerformed = false;
-
-	[[likely]]
-	if (bHooksPerformed)
-		return;
-
-	g_pfnRadiusFlash = (fnRadiusFlash_t)UTIL_SearchPattern("mp.dll", 1, RADIUS_FLASH_FN_NEW_PATTERN, RADIUS_FLASH_FN_ANNIV_PATTERN);
-	g_pfnSelectItem = (fnSelectItem_t)UTIL_SearchPattern("mp.dll", 1, SELECT_ITEM_FN_NEW_PATTERN, SELECT_ITEM_FN_ANNIV_PATTERN);
-	g_pfnSwitchWeapon = (fnSwitchWeapon_t)UTIL_SearchPattern("mp.dll", 1, SWITCH_WEAPON_FN_NEW_PATTERN, SWITCH_WEAPON_FN_ANNIV_PATTERN);
-	g_pfnFireBullets = (fnFireBullets_t)UTIL_SearchPattern("mp.dll", 1, FIRE_BULLETS_FN_NEW_PATTERN, FIRE_BULLETS_FN_ANNIV_PATTERN);
-
-	//HookInfo::FireBullets.m_Address = g_pfnFireBullets;
-	//HookInfo::FireBullets3.m_Address = gUranusCollection.pfnFireBullets3;
-
-	//UTIL_PreparePatch(g_pfnFireBullets, &OrpheuF_FireBullets, HookInfo::FireBullets.m_PatchedBytes, HookInfo::FireBullets.m_OriginalBytes);
-	//UTIL_PreparePatch(gUranusCollection.pfnFireBullets3, &OrpheuF_FireBullets3, HookInfo::FireBullets3.m_PatchedBytes, HookInfo::FireBullets3.m_OriginalBytes);
-
-	//UTIL_DoPatch(g_pfnFireBullets, HookInfo::FireBullets.m_PatchedBytes);
-	//UTIL_DoPatch(gUranusCollection.pfnFireBullets3, HookInfo::FireBullets3.m_PatchedBytes);
-
-	auto& uranusref = gUranusCollection;
 
 	HookInfo::FireBullets.ApplyOn(g_pfnFireBullets);
 	HookInfo::FireBullets3.ApplyOn(gUranusCollection.pfnFireBullets3);
@@ -446,7 +409,7 @@ void fw_UpdateClientData_Post(const edict_t *ent, int sendweapons, clientdata_t 
 		// && pPlayer->m_flNextAttack <= 0	// Not sure why DS need this in his AMXX plugin. Draw animations perhaps?
 		)
 	{
-		cd->m_iId = pWeapon->m_iMockedWeapon;
+		cd->m_iId = pWeapon->m_iClientPredictionId;
 	}
 
 	gpMetaGlobals->mres = MRES_HANDLED;

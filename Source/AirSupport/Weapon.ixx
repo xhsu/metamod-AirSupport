@@ -11,16 +11,6 @@ export import Task;
 
 export __forceinline uint64_t UTIL_CombineTaskAndPlayerIndex(uint64_t iTask, uint64_t iPlayer) noexcept { return iTask | (1ull << (iPlayer + 32ull)); }
 
-//export extern "C++" namespace Weapon
-//{
-//	extern Task Task_RadioDeploy(EHANDLE<CBasePlayerWeapon> pThis) noexcept;
-//	extern Task Task_RadioRejected(EHANDLE<CBasePlayerWeapon> pThis) noexcept;
-//	extern Task Task_RadioAccepted(EHANDLE<CBasePlayerWeapon> pThis) noexcept;
-//	extern void OnRadioHolster(CBasePlayerWeapon *pThis) noexcept;
-//};
-//
-//export __forceinline edict_t *&DYN_TARGET(CBasePlayerItem *pThis) noexcept { return pThis->pev->euser1; }
-
 export inline bool g_bIsSomeoneShooting = false;
 
 export struct CRadio : CPrefabWeapon
@@ -45,15 +35,14 @@ public:
 
 public:
 	Task		Task_Deploy()											noexcept;
-	Task		Task_RadioRejected()									noexcept;
-	Task		Task_RadioAccepted()									noexcept;
-	Task		Task_AcceptedAnim()										noexcept;
-	Task		Task_AcceptedSound(EHANDLE<CFixedTarget> pFixedTarget)	noexcept;
+	Task		Task_CallAnimation(bool bGotoHolster)					noexcept;
+	Task		Task_CallSoundFx(bool bAccepted)						noexcept;
+	Task		Task_FixedTargetCalling()								noexcept;
 
 public:
 	EHANDLE<CDynamicTarget> m_pTarget{};
 	bool m_bCanHolster{ true };
-	bool m_bTargetActivated{};
+	bool m_bSoundSeqFinished{ true };
 };
 
 export inline

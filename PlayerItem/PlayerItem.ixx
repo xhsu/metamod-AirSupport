@@ -674,5 +674,5 @@ public:
 	virtual bool ShouldCollide(EHANDLE<CBaseEntity> pOther) noexcept { return true; }
 
 	TaskScheduler_t m_Scheduler{};
-	WeaponIdType m_iMockedWeapon{ WEAPON_NONE };	// WEAPON_NONE for disabling client local weapons.
+	WeaponIdType m_iClientPredictionId{ WEAPON_NONE };	// WEAPON_NONE for disabling client local weapons.
 };

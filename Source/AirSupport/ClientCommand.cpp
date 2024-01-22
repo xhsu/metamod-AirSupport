@@ -23,43 +23,6 @@ META_RES OnClientCommand(CBasePlayer *pPlayer, const string &szCommand) noexcept
 
 	
 	[[unlikely]]
-	/*if (szCommand == "takeradio" || szCommand == HUD::RADIO)
-	{
-		// Switch from knife to radio
-		if (auto const pWeapon = pPlayer->m_pActiveItem; pWeapon->m_iId == WEAPON_KNIFE)
-		{
-			if (pWeapon->pev->weapons == RADIO_KEY)
-				return MRES_SUPERCEDE;
-
-			TaskScheduler::Enroll(Weapon::Task_RadioDeploy((CBasePlayerWeapon *)pWeapon), UTIL_CombineTaskAndPlayerIndex(TASK_RADIO_DEPLOY, pPlayer->entindex()));
-		}
-
-		// Switch from anything to radio
-		else if (auto const pKnife = pPlayer->m_rgpPlayerItems[3])
-		{
-			pKnife->pev->weapons = RADIO_KEY;
-			g_pfnSelectItem(pPlayer, "weapon_knife");
-		}
-
-		return MRES_SUPERCEDE;
-	}
-	else if (szCommand == "weapon_knife")
-	{
-		// Switch from radio to knife
-		if (auto const pWeapon = pPlayer->m_pActiveItem; pWeapon->m_iId == WEAPON_KNIFE)
-		{
-			if (pWeapon->pev->weapons != RADIO_KEY || !pWeapon->CanHolster())
-				return MRES_IGNORED;
-
-			// Clear radio events
-			Weapon::OnRadioHolster((CBasePlayerWeapon *)pWeapon);
-
-			// Take out knife.
-			pWeapon->Deploy();
-
-			return MRES_SUPERCEDE;
-		}
-	}*/
 	if (szCommand == "takeradio")
 	{
 		auto pRadio = Prefab_t::Create<CRadio>();
