@@ -179,6 +179,12 @@ void CRadio::ItemPostFrame() noexcept
 		auto const vecEnd = vecSrc + gpGlobals->v_forward * 4096.0;
 		g_engfuncs.pfnTraceLine(vecSrc, vecEnd, dont_ignore_monsters, m_pPlayer->edict(), &tr);
 		g_engfuncs.pfnTraceLine(m_pPlayer->pev->origin, m_pPlayer->pev->origin + Vector(0, 0, 4096), ignore_monsters, m_pPlayer->edict(), &tr2);
+
+		if (EHANDLE<CBaseEntity> aiming{ tr.pHit }; aiming && aiming->IsPlayer())
+		{
+			auto pTarget = CFixedTarget::Create(m_pPlayer, aiming);
+			pTarget->Activate();
+		}
 	}
 #endif
 }

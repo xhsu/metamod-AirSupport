@@ -73,6 +73,7 @@ export struct CFixedTarget : public Prefab_t
 	void Activate() noexcept override;
 
 	static CFixedTarget *Create(CDynamicTarget *const pDynamicTarget) noexcept;
+	static CFixedTarget *Create(CBasePlayer* pPlayer, CBaseEntity* pTargeting) noexcept;
 
 	CBasePlayer *m_pPlayer{};
 	Vector m_vecJetSpawn{};
@@ -80,7 +81,6 @@ export struct CFixedTarget : public Prefab_t
 	Vector m_vecPosForJetSpawnTesting{};
 	EHANDLE<CBaseEntity> m_pMissile{ nullptr };
 	EHANDLE<CBaseEntity> m_pTargeting{ nullptr };
-	EHANDLE<CDynamicTarget> m_pDynamicTarget{ nullptr };	// Warning: only available in Spawn()!
 	EAirSupportTypes m_AirSupportType{ AIR_STRIKE };
 	decltype(CDynamicTarget::m_rgpBeacons) m_rgpBeacons{};
 	//decltype(CDynamicTarget::m_rgpAttachedSpr) m_rgpAttachedSpr{};	// I don't think we need it. The weak_ptr inside the tasks of SPR is quite messy to transfer at the same time.

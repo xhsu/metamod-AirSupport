@@ -1245,17 +1245,10 @@ void CFixedTarget::Spawn() noexcept
 	pev->renderfx = kRenderFxDistort;
 	pev->renderamt = 0;
 	pev->skin = Models::targetmdl::SKIN_BLUE;
-	pev->body = m_pDynamicTarget->pev->body;
-	pev->sequence = m_pDynamicTarget->pev->sequence;
-	pev->frame = m_pDynamicTarget->pev->frame;
 	pev->nextthink = 0.1f;
 	pev->team = m_pPlayer->m_iTeam;
-	pev->controller[0] = m_pDynamicTarget->pev->controller[0];
-	pev->controller[1] = m_pDynamicTarget->pev->controller[1];
 
 	m_vecPlayerPosWhenCalled = m_pPlayer->pev->origin;
-	m_rgpBeacons = m_pDynamicTarget->m_rgpBeacons;
-	m_pDynamicTarget->m_rgpBeacons.fill(nullptr);	// Transfer the ownership of these entities to the fixed targets.
 
 	TraceResult tr{};
 	g_engfuncs.pfnTraceLine(pev->origin, Vector(pev->origin.x, pev->origin.y, 8192), ignore_monsters | ignore_glass, nullptr, &tr);
@@ -1297,11 +1290,42 @@ CFixedTarget *CFixedTarget::Create(CDynamicTarget *const pDynamicTarget) noexcep
 
 	pEdict->v.angles = pDynamicTarget->pev->angles;
 	pEdict->v.origin = pDynamicTarget->pev->origin;
+	pEdict->v.body = pDynamicTarget->pev->body;
+	pEdict->v.sequence = pDynamicTarget->pev->sequence;
+	pEdict->v.frame = pDynamicTarget->pev->frame;
+	pEdict->v.controller[0] = pDynamicTarget->pev->controller[0];
+	pEdict->v.controller[1] = pDynamicTarget->pev->controller[1];
+
+	pPrefab->m_rgpBeacons = pDynamicTarget->m_rgpBeacons;
+	pDynamicTarget->m_rgpBeacons.fill(nullptr);	// Transfer the ownership of these entities to the fixed targets.
 
 	pPrefab->m_pTargeting = pDynamicTarget->m_pTargeting;
 	pPrefab->m_pPlayer = pDynamicTarget->m_pPlayer;
-	pPrefab->m_pDynamicTarget = pDynamicTarget;
 	pPrefab->m_AirSupportType = g_rgiAirSupportSelected[pDynamicTarget->m_pPlayer->entindex()];
+	pPrefab->Spawn();
+	pPrefab->pev->nextthink = 0.1f;
+
+	return pPrefab;
+}
+
+CFixedTarget* CFixedTarget::Create(CBasePlayer* pPlayer, CBaseEntity* pTargeting) noexcept
+{
+	auto const [pEdict, pPrefab] = UTIL_CreateNamedPrefab<CFixedTarget>();
+
+	pEdict->v.angles = Angles::Upwards();
+	pEdict->v.origin = pTargeting->pev->origin;
+	pEdict->v.body = 0;
+	pEdict->v.sequence = 0;
+	pEdict->v.frame = 0;
+	pEdict->v.controller[0] = 0;
+	pEdict->v.controller[1] = 0;
+
+	//pPrefab->m_rgpBeacons = pDynamicTarget->m_rgpBeacons;
+	//pDynamicTarget->m_rgpBeacons.fill(nullptr);	// Transfer the ownership of these entities to the fixed targets.
+
+	pPrefab->m_pTargeting = pTargeting;
+	pPrefab->m_pPlayer = pPlayer;
+	pPrefab->m_AirSupportType = g_rgiAirSupportSelected[pPlayer->entindex()];
 	pPrefab->Spawn();
 	pPrefab->pev->nextthink = 0.1f;
 

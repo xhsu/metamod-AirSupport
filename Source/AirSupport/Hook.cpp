@@ -28,10 +28,6 @@ extern void Precache(void) noexcept;
 //
 
 // Weapon.cpp
-extern qboolean __fastcall HamF_Item_AddToPlayer(CBasePlayerItem *pThis, int, CBasePlayer *pPlayer) noexcept;
-extern qboolean __fastcall HamF_Item_Deploy(CBasePlayerItem *pItem, int) noexcept;
-extern void __fastcall HamF_Item_PostFrame(CBasePlayerItem *pItem, int) noexcept;
-extern void __fastcall HamF_Item_Holster(CBasePlayerItem *pThis, int, int skiplocal) noexcept;
 extern void __fastcall OrpheuF_FireBullets(CBaseEntity *pThis, int, unsigned long cShots, Vector vecSrc, Vector vecDirShooting, Vector vecSpread, float flDistance, int iBulletType, int iTracerFreq, int iDamage, entvars_t *pevAttacker) noexcept;
 extern Vector* __fastcall OrpheuF_FireBullets3(CBaseEntity* pThis, void* edx, Vector* pret, Vector vecSrc, Vector vecDirShooting, float flSpread, float flDistance, int iPenetration, int iBulletType, int iDamage, float flRangeModifier, entvars_t* pevAttacker, qboolean bPistol, int shared_rand) noexcept;
 //
@@ -100,11 +96,25 @@ static void DeployInlineHook() noexcept
 	bHooksPerformed = true;
 }
 
-void RetrieveCVarHandles(void) noexcept
+static void RetrieveCVarHandles(void) noexcept
 {
+	static bool bRegistered = false;
+
+	[[unlikely]]
+	if (!bRegistered)
+	{
+		g_engfuncs.pfnCVarRegister(new cvar_t{ "airsupport_ct_ai", "1", FCVAR_SERVER });
+		g_engfuncs.pfnCVarRegister(new cvar_t{ "airsupport_ter_ai", "0", FCVAR_SERVER });
+
+		bRegistered = true;
+	}
+
 	gcvarFriendlyFire = g_engfuncs.pfnCVarGetPointer("mp_friendlyfire");
 	gcvarMaxSpeed = g_engfuncs.pfnCVarGetPointer("sv_maxspeed");
 	gcvarMaxVelocity = g_engfuncs.pfnCVarGetPointer("sv_maxvelocity");
+
+	CVar::CounterTerAI = g_engfuncs.pfnCVarGetPointer("airsupport_ct_ai");
+	CVar::TerroristAI = g_engfuncs.pfnCVarGetPointer("airsupport_ter_ai");
 }
 
 // Meta API
@@ -193,6 +203,8 @@ void fw_ServerActivate_Post(edict_t* pEdictList, int edictCount, int clientMax) 
 
 	TaskScheduler::Enroll(Task_UpdateTeams());
 	TaskScheduler::Enroll(CFuelAirCloud::Task_AirPressure());
+	TaskScheduler::Enroll(Task_TeamwiseAI(CVar::CounterTerAI, &g_rgpPlayersOfCT, &g_rgpPlayersOfTerrorist));
+	TaskScheduler::Enroll(Task_TeamwiseAI(CVar::TerroristAI, &g_rgpPlayersOfTerrorist, &g_rgpPlayersOfCT));
 
 	// The hook of CGameRules is very special, since it is actually delete-newed in each new game.
 	// Therefore we must hook it during every server reloading.

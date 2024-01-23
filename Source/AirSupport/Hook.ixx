@@ -50,6 +50,12 @@ export inline cvar_t *gcvarMaxSpeed = nullptr;
 export inline cvar_t *gcvarMaxVelocity = nullptr;
 export inline cvar_t *gcvarFriendlyFire = nullptr;
 
+export namespace CVar
+{
+	inline cvar_t* CounterTerAI = nullptr;
+	inline cvar_t* TerroristAI = nullptr;
+}
+
 extern "C++" void __fastcall OrpheuF_FireBullets(CBaseEntity * pThis, int, unsigned long cShots, Vector vecSrc, Vector vecDirShooting, Vector vecSpread, float flDistance, int iBulletType, int iTracerFreq, int iDamage, entvars_t * pevAttacker) noexcept;
 extern "C++" Vector* __fastcall OrpheuF_FireBullets3(CBaseEntity * pThis, void* edx, Vector * pret, Vector vecSrc, Vector vecDirShooting, float flSpread, float flDistance, int iPenetration, int iBulletType, int iDamage, float flRangeModifier, entvars_t * pevAttacker, qboolean bPistol, int shared_rand) noexcept;
 extern "C++" void __cdecl OrpheuF_W_Precache() noexcept;

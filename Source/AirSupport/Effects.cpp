@@ -261,7 +261,7 @@ Task Task_Fade(entvars_t *const pev, float const INC, float const DEC, float con
 Task Task_SpriteOnEnt_NotOwned(entvars_t *const pev, EHANDLE<CBaseEntity> pEnt, uint16_t const ATTACHMENT, Vector const vecOfs, float const INC, float const PEAK, float const DECAY) noexcept
 {
 	Vector vecAttOrigin{}, vecTransformedOfs{};
-	auto me = ent_cast<edict_t *>(pev);
+	auto const me = ent_cast<edict_t *>(pev);
 
 	for (; pEnt;)	// Must be a post-awaiting. Otherwise the validity of entity is subject to change after the check.
 	{
