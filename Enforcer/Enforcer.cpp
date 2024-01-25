@@ -4,6 +4,7 @@
 // Should output timepoint?
 //#define SHOW_TIME_POINT
 
+#ifndef __INTELLISENSE__
 import <cstdint>;
 import <cstdio>;
 import <cstdlib>;
@@ -11,11 +12,24 @@ import <cstdlib>;
 import <algorithm>;
 import <format>;
 import <fstream>;
-import <iostream>;
 import <map>;
 import <ranges>;
 import <span>;
 import <vector>;
+#else
+#include <cstdint>
+#include <cstdio>
+#include <cstdlib>
+
+#include <algorithm>
+#include <format>
+#include <fstream>
+#include <map>
+#include <ranges>
+#include <span>
+#include <vector>
+#endif
+
 
 import CRC64;
 import Resources;
@@ -29,15 +43,17 @@ using std::string;
 using std::string_view;
 using std::vector;
 
-inline map<string, double> g_rgflSoundTime = {};
-inline map<string, uint32_t> g_rgiSpriteFrameCount = {};
-inline map<string, uint64_t> g_rgiCRC64 = {};
-inline map<string, vector<double>> g_rgrgflAnimTime = {};
-inline map<string, vector<string>> g_rgrgszSeqName = {};
+using namespace std::literals;
+
+inline map<string, double, std::less<string_view>> g_rgflSoundTime = {};
+inline map<string, uint32_t, std::less<string_view>> g_rgiSpriteFrameCount = {};
+inline map<string, uint64_t, std::less<string_view>> g_rgiCRC64 = {};
+inline map<string, vector<double>, std::less<string_view>> g_rgrgflAnimTime = {};
+inline map<string, vector<string>, std::less<string_view>> g_rgrgszSeqName = {};
 
 extern void Precache(void) noexcept;
 
-int AddModel(const char* psz) noexcept
+static int AddModel(const char* psz) noexcept
 {
 	string_view const sz{ psz };
 	string const szPath = std::format(SOLUTION_DIR "Resource\\{}", psz);
@@ -79,7 +95,7 @@ int AddModel(const char* psz) noexcept
 	return {};
 }
 
-int AddSound(const char* psz) noexcept
+static int AddSound(const char* psz) noexcept
 {
 	string_view const sz{ psz };
 	string const szPath = std::format(SOLUTION_DIR "Resource\\sound\\{}", psz);
@@ -88,6 +104,44 @@ int AddSound(const char* psz) noexcept
 	g_rgflSoundTime[psz] = Wave::Length(szPath.c_str());
 	return {};
 }
+
+static long FTell(const char* psz) noexcept
+{
+	if (auto f = std::fopen(psz, "rb"))
+	{
+		fseek(f, 0, SEEK_END);
+		auto const ret = ftell(f);
+		fclose(f);
+
+		return ret;
+	}
+
+	return 0;
+}
+
+static bool WriteFileIfCrcDiff(const char* file, string const& sz) noexcept
+{
+	auto const iOriginalFileCRC = CRC64::CheckFile(file);
+	auto const iNewFileCRC = CRC64::CheckStream(reinterpret_cast<std::byte const*>(sz.c_str()), sz.length());
+
+	if (iOriginalFileCRC != iNewFileCRC)
+	{
+		if (auto f = std::fopen(file, "wb"); f)
+		{
+			fwrite(sz.c_str(), sizeof(char), sz.length(), f);
+			fclose(f);
+
+			return true;
+		}
+	}
+
+	return false;
+}
+
+inline constexpr char FILE_CRC64[] = PROJECT_DIR "Resource_CRC64.hpp";
+inline constexpr char FILE_MODELS[] = PROJECT_DIR "Resource_ModelDetails.hpp";
+inline constexpr char FILE_SPRITES[] = PROJECT_DIR "Resource_SpriteDetails.hpp";
+inline constexpr char FILE_SOUNDS[] = PROJECT_DIR "Resource_SoundDetails.hpp";
 
 int main() noexcept
 {
@@ -100,125 +154,130 @@ int main() noexcept
 
 	Precache();
 
+	// All of the folllowing file writing would have binary in use.
+	// Otherwise \r\n won't be interpret as \n
+
 	/*
 	* CRC64 for all file.
 	*/
-	if (std::ofstream fout(PROJECT_DIR "Resource_CRC64.hpp"); fout && !g_rgiCRC64.empty())
+	if (!g_rgiCRC64.empty())
 	{
-		fout
-#ifdef SHOW_TIME_POINT
-			<< "// File Generated at: " __DATE__ " " __TIME__ "\n"
-#endif
-			<< '\n'
-			//<< "#include <string_view>\n"
-			//<< "#include <unordered_map>\n"
-			//<< '\n'
-			<< "EXPORT inline std::unordered_map<std::string_view, uint64_t> const g_rgiCRC64 = " << '\n'
-			<< "{" << '\n';
+		string sz{};
+		sz.reserve(FTell(FILE_CRC64));
 
-		auto const iter = std::ranges::max_element(g_rgiCRC64 | std::views::keys, {}, [](auto&& s) noexcept -> size_t { return s.length(); });
+#ifdef SHOW_TIME_POINT
+		sz += "// File Generated at: " __DATE__ " " __TIME__ "\n";
+#endif
+		sz += '\n';
+		sz += "EXPORT inline std::unordered_map<std::string_view, uint64_t> const g_rgiCRC64 = \n";
+		sz += "{\n";
+
+		auto const iter = std::ranges::max_element(g_rgiCRC64 | std::views::keys, {}, &string::length);
 		auto const iExpectedSpaceBetween = (*iter).size() + 1;	// What the fuck, MSVC?
 
 		for (auto&& [szFile, iCRC] : g_rgiCRC64)
 		{
-			//std::cout << std::format("{0:<{2}}{1:X}\n", szFile, iCRC, iExpectedSpaceBetween);
-
-			if (!iCRC)
-				continue;	// File does not presents here. assumed come with original CS/CZ/HL
-
-			fout << std::format("\t{{ {0:<{2}}, 0x{1:0>16X}ui64 }},\n", std::format("\"{}\"", szFile), iCRC, iExpectedSpaceBetween + 2/* One for \", another for ',' */);
+			// CRC == 0 means file does not presents here. Assumed come with original CS/CZ/HL
+			sz += std::format(
+				"{3}\t{{ {0:<{2}}, 0x{1:0>16X}ui64 }},\n",
+				std::format("\"{}\"", szFile), iCRC,
+				iExpectedSpaceBetween + 2/* One for \", another for ',' */, iCRC == 0 ? "//"sv : ""sv
+			);
 		}
 
-		fout << "};" << '\n';
+		sz += "};\n";
+
+		WriteFileIfCrcDiff(FILE_CRC64, sz);
 	}
 
 	/*
 	* Model Animation Time
 	*/
-	if (std::ofstream fout(PROJECT_DIR "Resource_ModelDetails.hpp"); fout && !g_rgrgflAnimTime.empty())
+	if (!g_rgrgflAnimTime.empty())	// #UPDATE_AT_CPP26 P2447R4 std::span over an initializer list
 	{
-		fout
-#ifdef SHOW_TIME_POINT
-			<< "// File Generated at: " __DATE__ " " __TIME__ "\n"
-#endif
-			<< '\n'
-			<< "EXPORT inline std::unordered_map<std::string_view, std::vector<double>> const g_rgrgflAnimTime = " << '\n'
-			<< '{' << '\n';
+		string sz{};
+		sz.reserve(FTell(FILE_MODELS));
 
-		auto const iter = std::ranges::max_element(g_rgrgflAnimTime | std::views::keys, {}, [](auto&& s) noexcept -> size_t { return s.length(); });
+#ifdef SHOW_TIME_POINT
+		sz += "// File Generated at: " __DATE__ " " __TIME__ "\n";
+#endif
+		sz += '\n';
+		sz += "EXPORT inline std::unordered_map<std::string_view, std::vector<double>> const g_rgrgflAnimTime = \n";
+		sz += "{\n";
+
+		auto const iter = std::ranges::max_element(g_rgrgflAnimTime | std::views::keys, {}, &string::length);
 		auto const iExpectedSpaceBetween = (*iter).size() + 1;
 
 		for (auto&& [szModel, rgflAnimTime] : g_rgrgflAnimTime)
 		{
-			auto &rgszAnimName = g_rgrgszSeqName[szModel];
+			auto& rgszAnimName = g_rgrgszSeqName[szModel];
 
-			fout << std::format("\t{{ {0:<{1}}, std::vector<double>{{ ", std::format("\"{}\"", szModel), iExpectedSpaceBetween + 2);
+			sz += std::format("\t{{ {0:<{1}}, std::vector<double>{{ ", std::format("\"{}\"", szModel), iExpectedSpaceBetween + 2);
 
 			[[unlikely]]
 			if (rgszAnimName.size() != rgflAnimTime.size())
 				std::unreachable();
 
-			for (auto &&[szAnim, flTime] : std::views::zip(rgszAnimName, rgflAnimTime))	// #UPDATE_AT_CPP23 Formatting Ranges (P2286R8)
-				fout << std::format("/* {0} */ {1}, ", szAnim, flTime);
+			for (auto&& [szAnim, flTime] : std::views::zip(rgszAnimName, rgflAnimTime))	// #UPDATE_AT_CPP23 Formatting Ranges (P2286R8)
+				sz += std::format("/* {0} */ {1}, ", szAnim, flTime);
 
-			fout << "} },\n";
+			sz += "} },\n";
 		}
 
-		fout << "};" << '\n';
+		sz += "};\n";
+
+		WriteFileIfCrcDiff(FILE_MODELS, sz);
 	}
 
 	/*
 	* Sprite Frame Count
 	*/
-	if (std::ofstream fout(PROJECT_DIR "Resource_SpriteDetails.hpp"); fout && !g_rgiSpriteFrameCount.empty())
+	if (!g_rgiSpriteFrameCount.empty())
 	{
-		fout
-#ifdef SHOW_TIME_POINT
-			<< "// File Generated at: " __DATE__ " " __TIME__ "\n"
-#endif
-			<< '\n'
-			<< "EXPORT inline std::unordered_map<std::string_view, int> const g_rgiSpriteFrameCount = " << '\n'
-			<< '{' << '\n';
+		string sz{};
+		sz.reserve(FTell(FILE_SPRITES));
 
-		auto const iter = std::ranges::max_element(g_rgiSpriteFrameCount | std::views::keys, {}, [](auto&& s) noexcept -> size_t { return s.length(); });
+#ifdef SHOW_TIME_POINT
+		sz += "// File Generated at: " __DATE__ " " __TIME__ "\n";
+#endif
+		sz += '\n';
+		sz += "EXPORT inline std::unordered_map<std::string_view, int> const g_rgiSpriteFrameCount = \n";
+		sz += "{\n";
+
+		auto const iter = std::ranges::max_element(g_rgiSpriteFrameCount | std::views::keys, {}, &string::length);
 		auto const iExpectedSpaceBetween = (*iter).size() + 1;
 
 		for (auto&& [szModel, iFrameCount] : g_rgiSpriteFrameCount)
-			fout << std::format("\t{{ {0:<{2}}, {1}\t}},\n", std::format("\"{}\"", szModel), iFrameCount, iExpectedSpaceBetween + 2);
+			sz += std::format("\t{{ {0:<{2}}, {1}\t}},\n", std::format("\"{}\"", szModel), iFrameCount, iExpectedSpaceBetween + 2);
 
-		fout << "};" << '\n';
+		sz += "};\n";
+
+		WriteFileIfCrcDiff(FILE_SPRITES, sz);
 	}
 
 	/*
 	* Sound
 	*/
-	if (std::ofstream fout(PROJECT_DIR "Resource_SoundDetails.hpp"); fout && !g_rgflSoundTime.empty())
+	if (!g_rgflSoundTime.empty())
 	{
-		fout
+		string sz{};
+		sz.reserve(FTell(FILE_SOUNDS));
+
 #ifdef SHOW_TIME_POINT
-			<< "// File Generated at: " __DATE__ " " __TIME__ "\n"
+		sz += "// File Generated at: " __DATE__ " " __TIME__ "\n";
 #endif
-			<< '\n'
-			<< "EXPORT inline std::unordered_map<std::string_view, double> const g_rgflSoundTime = " << '\n'
-			<< '{' << '\n';
+		sz += '\n';
+		sz += "EXPORT inline std::unordered_map<std::string_view, double> const g_rgflSoundTime = \n";
+		sz += "{\n";
 
 		auto const iter = std::ranges::max_element(g_rgflSoundTime | std::views::keys, {}, [](auto&& s) noexcept -> size_t { return s.length(); });
 		auto const iExpectedSpaceBetween = (*iter).size() + 1;
 
 		for (auto&& [szModel, flSoundLength] : g_rgflSoundTime)
-			fout << std::format("{3}\t{{ {0:<{2}}, {1}\t}},\n", std::format("\"{}\"", szModel), flSoundLength, iExpectedSpaceBetween + 2, flSoundLength > 0 ? "" : "//");
+			sz += std::format("{3}\t{{ {0:<{2}}, {1}\t}},\n", std::format("\"{}\"", szModel), flSoundLength, iExpectedSpaceBetween + 2, flSoundLength > 0 ? "" : "//");
 
-		fout << "};" << '\n';
+		sz += "};\n";
+
+		WriteFileIfCrcDiff(FILE_SOUNDS, sz);
 	}
 }
-
-// Run program: Ctrl + F5 or Debug > Start Without Debugging menu
-// Debug program: F5 or Debug > Start Debugging menu
-
-// Tips for Getting Started: 
-//   1. Use the Solution Explorer window to add/manage files
-//   2. Use the Team Explorer window to connect to source control
-//   3. Use the Output window to see build output and other messages
-//   4. Use the Error List window to view errors
-//   5. Go to Project > Add New Item to create new code files, or Project > Add Existing Item to add existing code files to the project
-//   6. In the future, to open this project again, go to File > Open > Project and select the .sln file
