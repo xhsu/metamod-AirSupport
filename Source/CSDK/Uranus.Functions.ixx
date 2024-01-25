@@ -341,7 +341,7 @@ export namespace HW
 		static inline constexpr char NAME[] = u8"::Sys_Error";
 		static inline constexpr std::tuple PATTERNS
 		{
-			std::cref("\xCC\x55\x8B\xEC\x81\xEC\x2A\x2A\x2A\x2A\xA1\x2A\x2A\x2A\x2A\x33\xC5\x89\x45\xFC\x56\x8D\x45\x0C\x50\x6A\x00\xFF\x75\x08\x8D\x85"),	// ANNIV
+			std::cref("\xCC\x55\x8B\xEC\x81\xEC\x2A\x2A\x2A\x2A\xA1\x2A\x2A\x2A\x2A\x33\xC5\x89\x45\xFC"),	// ANNIV
 		};
 		static inline constexpr std::ptrdiff_t DISPLACEMENT = 1;
 		static inline auto& pfn = gUranusCollection.pfnSys_Error;

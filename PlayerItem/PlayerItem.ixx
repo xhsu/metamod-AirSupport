@@ -666,7 +666,7 @@ public:	// CBasePlayerWeapon
 		m_pPlayer->pev->weaponmodel = 0;
 	}
 	qboolean UseDecrement(void) noexcept override { return false; }	// #PLANNED_PIW_useless always true from all native weapons.
-	CBasePlayerItem* GetWeaponPtr(void) noexcept final { return (CBasePlayerItem*)this; }	// #PLANNED_PIW_useless stupidest idea I have ever seen.
+	CBasePlayerItem* GetWeaponPtr(void) noexcept final { return this; }	// #PLANNED_PIW_useless stupidest idea I have ever seen.
 
 
 public:
@@ -675,4 +675,5 @@ public:
 
 	TaskScheduler_t m_Scheduler{};
 	WeaponIdType m_iClientPredictionId{ WEAPON_NONE };	// WEAPON_NONE for disabling client local weapons.
+	uint16_t m_iInternalId{ (uint16_t)-1 };
 };

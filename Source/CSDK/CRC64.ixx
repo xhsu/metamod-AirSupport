@@ -145,7 +145,7 @@ inline constexpr uint64_t crc64_tab[256] =
 
 export namespace CRC64
 {
-	uint64_t CheckStream(std::byte* p, size_t l) noexcept
+	uint64_t CheckStream(std::byte const* p, size_t l) noexcept
 	{
 		uint64_t crc{};
 

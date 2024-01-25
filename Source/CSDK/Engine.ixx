@@ -25,6 +25,7 @@ export namespace Engine
 	inline constexpr unsigned char BUILD_NUMBER_PATTERN[] = "\xA1\x2A\x2A\x2A\x2A\x83\xEC\x08\x2A\x33\x2A\x85\xC0";
 	inline constexpr unsigned char BUILD_NUMBER_NEW_PATTERN[] = "\x55\x8B\xEC\x83\xEC\x08\xA1\x2A\x2A\x2A\x2A\x56\x33\xF6\x85\xC0\x0F\x85\x2A\x2A\x2A\x2A\x53\x33\xDB\x8B\x04\x9D";
 	inline constexpr unsigned char BUILD_NUMBER_ANNIVERSARY_PATTERN[] = "\xA1\x2A\x2A\x2A\x2A\x53\x33\xDB\x85\xC0\x0F\x85\x2A\x2A\x2A\x2A\x57\x33\xFF\x0F\x1F\x40\x00\x66\x0F\x1F\x84\x00\x00\x00\x00\x00";
+	inline constexpr unsigned char HOST_VERSION_FN_PATTERN[] = "\xCC\x68\x2A\x2A\x2A\x2A\x68\x2A\x2A\x2A\x2A\x6A\x30\x68\x2A\x2A\x2A\x2A\xE8\x2A\x2A\x2A\x2A\xE8\x2A\x2A\x2A\x2A\x50\x68\x2A\x2A\x2A\x2A\xE8\x2A\x2A\x2A\x2A\x83\xC4\x18\xC3\xCC";
 
 	inline constexpr int MODERN = 3248;
 	inline constexpr int NEW = 6153;
@@ -62,6 +63,25 @@ export namespace Engine
 			BUILD_NUMBER_NEW_PATTERN,
 			BUILD_NUMBER_ANNIVERSARY_PATTERN
 		);
+
+		// This is the backup search method.
+		// The only function that calls BuildNumber() is Host_Version() called when you input "version" into console.
+		// Search that function, and get the address we want.
+		if (!m_pfnBuildNumber)
+		{
+			// E8 * * * *
+			// E8 was to call an address with an offset
+			auto const addr = (std::intptr_t)UTIL_SearchPattern(
+				GetDLLName(),
+				1 + (0x10051C67 - 0x10051C50),
+				HOST_VERSION_FN_PATTERN
+			);
+
+			auto const diff = *reinterpret_cast<std::ptrdiff_t*>(addr);	// theoretical number 0xFFFAFB35
+			auto const e8_target = addr + 4 + diff;
+
+			m_pfnBuildNumber = reinterpret_cast<decltype(m_pfnBuildNumber)>(e8_target);
+		}
 
 		[[unlikely]]
 		if (!m_pfnBuildNumber)
