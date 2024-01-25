@@ -190,6 +190,7 @@ Task Task_TeamwiseAI(cvar_t const* pcvarEnable, std::vector<edict_t*> const* pTe
 			| std::views::filter(&CBasePlayer::IsBot)
 			)
 		{
+			// Can anyone see him? If so, call the airsupport.
 			for (auto&& pTarget : rgpPotentialTargets)
 			{
 				auto const vecDir = (pTarget->pev->origin - pPlayer->pev->origin).Normalize();
@@ -199,7 +200,13 @@ Task Task_TeamwiseAI(cvar_t const* pcvarEnable, std::vector<edict_t*> const* pTe
 				if (flAngle > 120)
 					continue;
 
-				g_engfuncs.pfnTraceLine(pPlayer->pev->origin, pTarget->pev->origin, ignore_monsters, nullptr, &tr);
+				g_engfuncs.pfnTraceLine(
+					pPlayer->pev->origin + pPlayer->pev->view_ofs,
+					pTarget->pev->origin,
+					ignore_monsters,
+					nullptr,
+					&tr
+				);
 
 				if (tr.flFraction < 0.99f)
 					continue;

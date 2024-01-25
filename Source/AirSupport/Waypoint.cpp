@@ -55,10 +55,10 @@ Task Waypoint_Scan(void) noexcept
 				vecOrigin = Vector{ X, Y, Z };
 
 				[[unlikely]]
-				if (!(iCounter % 2048))
+				if (!(iCounter % 4096))
 				{
 					g_engfuncs.pfnServerPrint(std::format("[Waypoint_Scan] {:.2f}% done. {} valid spawn point found.\n", (double)iCounter / (double)TOTAL_SCANS * 100.0, g_rgvecValidJetSpawn.size()).c_str());
-					co_await (gpGlobals->frametime * 0.5f);	// a.k.a. "next frame"
+					co_await TaskScheduler::NextFrame::Rank[9];
 				}
 
 				if (g_engfuncs.pfnPointContents(vecOrigin) != CONTENTS_EMPTY)
@@ -80,7 +80,7 @@ Task Waypoint_Scan(void) noexcept
 	g_rgvecValidJetSpawn.erase(itFirst, itLast);
 
 	g_engfuncs.pfnServerPrint(std::format("[Waypoint_Scan] {} valid spawn point survived after de-duplication.\n", g_rgvecValidJetSpawn.size()).c_str());
-	co_await (gpGlobals->frametime * 0.5f);
+	co_await TaskScheduler::NextFrame::Rank[9];
 
 	iCounter = 0;	// Got to use it later.
 
@@ -90,7 +90,7 @@ Task Waypoint_Scan(void) noexcept
 		if (!(iCounter % 512))
 		{
 			g_engfuncs.pfnServerPrint(std::format("[Waypoint_Scan] {:.2f}% done. {} valid spawn point survived.\n", (double)std::distance(g_rgvecValidJetSpawn.begin(), it) / (double)g_rgvecValidJetSpawn.size() * 100.0, g_rgvecValidJetSpawn.size()).c_str());
-			co_await (gpGlobals->frametime * 0.5f);	// a.k.a. "next frame"
+			co_await TaskScheduler::NextFrame::Rank[9];
 		}
 
 		g_engfuncs.pfnTraceLine(*it, Vector(it->x, it->y, -8192.f), ignore_monsters | ignore_glass, nullptr, &tr);
@@ -206,7 +206,7 @@ void Waypoint_Read(void) noexcept
 	}
 	else
 	{
-		g_engfuncs.pfnServerPrint("[Waypoint_Read] Waypoint file no found.\n\t\tOne may generate such file via console command: scanjetspawn\n");
+		g_engfuncs.pfnServerPrint("[Waypoint_Read] Waypoint file no found.\n\t\tOne may generate such file via console command: airsupport_scanjetspawn\n");
 	}
 }
 /*

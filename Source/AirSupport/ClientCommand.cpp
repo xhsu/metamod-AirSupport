@@ -9,12 +9,10 @@ import Resources;
 import Task;
 import Weapon;
 
+import UtlHook;	// debug command.
+
 using std::string;
 
-// Waypoint.cpp
-extern Task Waypoint_Scan(void) noexcept;
-extern void Waypoint_Read(void) noexcept;
-//
 
 META_RES OnClientCommand(CBasePlayer *pPlayer, const string &szCommand) noexcept
 {
@@ -45,16 +43,16 @@ META_RES OnClientCommand(CBasePlayer *pPlayer, const string &szCommand) noexcept
 		g_engfuncs.pfnClientPrintf(pEdict, print_console, std::format("[AIMING AT]:\n\t{}\n\t{}\n\t{}\n", tr.vecEndPos.x, tr.vecEndPos.y, tr.vecEndPos.z).c_str());
 		return MRES_SUPERCEDE;
 	}
-	else if (szCommand == "scanjetspawn")
-	{
-		TaskScheduler::Enroll(Waypoint_Scan());
-		return MRES_SUPERCEDE;
-	}
-	else if (szCommand == "readjetspawn")
-	{
-		Waypoint_Read();
-		return MRES_SUPERCEDE;
-	}
+	//else if (szCommand == "scanjetspawn")
+	//{
+	//	TaskScheduler::Enroll(Waypoint_Scan());
+	//	return MRES_SUPERCEDE;
+	//}
+	//else if (szCommand == "readjetspawn")
+	//{
+	//	Waypoint_Read();
+	//	return MRES_SUPERCEDE;
+	//}
 	//else if (szCommand == "showjetspawn")
 	//{
 	//	if (!TimedFnMgr::Exist(RADIO_KEY * 2))
@@ -84,7 +82,7 @@ META_RES OnClientCommand(CBasePlayer *pPlayer, const string &szCommand) noexcept
 #ifndef _MSC_FULL_VER
 #error "This project is exclusive to MSVC. Fvck clang, GCC and Apple stuff."
 #endif
-		g_engfuncs.pfnServerPrint(std::format(
+		g_engfuncs.pfnClientPrintf(pPlayer->edict(), print_console, std::format(
 			"\tCompiled with MSVC {0} and C++ {1}L\n"
 			"\tPlugin build number {2}\n",
 
@@ -94,6 +92,23 @@ META_RES OnClientCommand(CBasePlayer *pPlayer, const string &szCommand) noexcept
 
 		return MRES_SUPERCEDE;
 	}
+
+#ifdef _DEBUG
+	else if (szCommand == "sys_timescale")
+	{
+		//static constexpr unsigned char FN[] = "\xCC\x55\x8B\xEC\x83\xEC\x5C\xA1\x2A\x2A\x2A\x2A\x33\xC5\x89\x45\xFC\x83\x3D\x2A\x2A\x2A\x2A\x2A\x8B";
+		//static constexpr std::ptrdiff_t OFS = 0x101FE4DE - 0x101FE3E0;
+		//auto const addr = UTIL_SearchPattern("hw.dll", 1, FN);
+		//auto const pSysSpeed = UTIL_RetrieveGlobalVariable<float>(addr, OFS);
+
+		static auto pSysTimeScale = reinterpret_cast<float*>(UTIL_GetModuleBase("hw.dll") + 0x31B5C4);
+
+		if (auto const fl = std::atof(g_engfuncs.pfnCmd_Argv(1)); fl > 0)
+			*pSysTimeScale = (float)fl;
+
+		return MRES_SUPERCEDE;
+	}
+#endif
 
 	return MRES_IGNORED;
 }

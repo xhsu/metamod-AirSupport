@@ -117,6 +117,20 @@ static void RetrieveCVarHandles(void) noexcept
 	CVar::TerroristAI = g_engfuncs.pfnCVarGetPointer("airsupport_ter_ai");
 }
 
+static void DeployConsoleCommand() noexcept
+{
+	static bool bRegistered = false;
+
+	[[likely]]
+	if (bRegistered)
+		return;
+
+	g_engfuncs.pfnAddServerCommand("airsupport_scanjetspawn", +[]() noexcept { TaskScheduler::Enroll(Waypoint_Scan()); });
+	g_engfuncs.pfnAddServerCommand("airsupport_readjetspawn", &Waypoint_Read);
+
+	bRegistered = true;
+}
+
 // Meta API
 
 void fw_GameInit_Post(void) noexcept
@@ -195,6 +209,7 @@ void fw_ServerActivate_Post(edict_t* pEdictList, int edictCount, int clientMax) 
 	Task_GetWorld();	// Not a task, sorry. Historical issue.
 	RetrieveGameRules();
 	RetrieveConditionZeroVar();
+	DeployConsoleCommand();
 
 	// plugin_cfg
 
