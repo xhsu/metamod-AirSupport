@@ -294,7 +294,7 @@ int main() noexcept
 		// #UPDATE_AT_CPP26 reflection?
 #define WRITE_LOCALIZATION(x)	\
 		std::print(f, "\"{}\"\t\"{}\"\n", string_view{ Localization::Keys::x }.substr(1), Localization::L_CH::x);	\
-		std::print(f, "[english]\"{}\"\t\"{}\"\n", string_view{ Localization::Keys::x }.substr(1), Localization::L_EN::x)
+		std::print(f, "\"[english]{}\"\t\"{}\"\n", string_view{ Localization::Keys::x }.substr(1), Localization::L_EN::x)
 
 		WRITE_LOCALIZATION(GUNSHIP_DESPAWNING);
 		WRITE_LOCALIZATION(GUNSHIP_ENTITY_MUTUALLY_EXCLUSIVE);
