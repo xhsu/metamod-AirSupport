@@ -7,6 +7,7 @@ import <format>;
 import <ranges>;
 
 import CBase;
+import Engine;
 import Platform;
 
 import UtlHook;
@@ -43,6 +44,7 @@ void UTIL_SearchPatterns(bool bDoNoFoundCheck = true) noexcept
 
 		szReport.erase(szReport.end() - 3);
 		szReport += " no found!";
+		szReport += std::format("\nPlugin Build Number: {} {}", Engine::BUILD_NUMBER_LOCAL, __TIME__);
 
 		UTIL_Terminate(szReport.c_str());
 	}
@@ -53,7 +55,7 @@ export namespace Uranus
 {
 	// Should be call as early as possible.
 	// put it in GiveFnptrsToDll() for 100% confidence.
-	inline void RetrieveUranusLocal(bool bDoNoFoundCheck = true) noexcept
+	inline void RetrieveUranusLocal(bool bCrashIfNoFound = true) noexcept
 	{
 		using namespace Uranus;
 
@@ -66,11 +68,11 @@ export namespace Uranus
 			BaseDelay::SUB_UseTargets,
 			BaseWeapon::DefaultDeploy,
 			BasePlayer::HintMessage, BasePlayer::SetAnimation
-		>(bDoNoFoundCheck);
+		>(bCrashIfNoFound);
 
 		UTIL_SearchPatterns<
 			HW::Sys_Error,
 			HW::SZ_GetSpace
-		>(bDoNoFoundCheck);
+		>(bCrashIfNoFound);
 	}
 }
