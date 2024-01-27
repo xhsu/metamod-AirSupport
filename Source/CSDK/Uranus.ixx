@@ -15,11 +15,15 @@ export import :Functions;
 
 
 template <typename... Tys> __forceinline
-void UTIL_SearchPatterns(void) noexcept
+void UTIL_SearchPatterns(bool bDoNoFoundCheck = true) noexcept
 {
 	(UTIL_SearchPattern<Tys>(), ...);
 
-	std::array<const char*, sizeof...(Tys)> const InvalidFunctions{ (Tys::pfn ? nullptr : Tys::NAME)... };
+	if (!bDoNoFoundCheck)
+		return;
+
+	std::array<const char*, sizeof...(Tys)> const InvalidFunctionNames{ (Tys::pfn ? nullptr : Tys::NAME)... };
+	std::array<const char*, sizeof...(Tys)> const InvalidFunctionSources{ (Tys::pfn ? nullptr : Tys::MODULE)... };
 
 #ifdef _DEBUG
 	assert((... && (Tys::pfn != nullptr)));
@@ -29,12 +33,12 @@ void UTIL_SearchPatterns(void) noexcept
 	{
 		std::string szReport{ "Function: \"" };	// #UPDATE_AT_CPP23 fmt::join
 
-		for (auto&& pszName :
-			InvalidFunctions
-			| std::views::filter([](auto p) { return p != nullptr; })
-			)
+		for (auto&& [pszModule, pszName] : std::views::zip(InvalidFunctionSources, InvalidFunctionNames))
 		{
-			szReport += std::format("{}\", \"", pszName);
+			if (!pszModule || !pszName)
+				continue;
+
+			szReport += std::format("{}{}\", \"", pszModule, pszName);
 		}
 
 		szReport.erase(szReport.end() - 3);
@@ -49,7 +53,7 @@ export namespace Uranus
 {
 	// Should be call as early as possible.
 	// put it in GiveFnptrsToDll() for 100% confidence.
-	inline void RetrieveUranusLocal() noexcept
+	inline void RetrieveUranusLocal(bool bDoNoFoundCheck = true) noexcept
 	{
 		using namespace Uranus;
 
@@ -63,11 +67,11 @@ export namespace Uranus
 			BaseDelay::SUB_UseTargets,
 			BaseWeapon::DefaultDeploy,
 			BasePlayer::SetAnimation
-		>();
+		>(bDoNoFoundCheck);
 
 		UTIL_SearchPatterns<
 			HW::Sys_Error,
 			HW::SZ_GetSpace
-		>();
+		>(bDoNoFoundCheck);
 	}
 }

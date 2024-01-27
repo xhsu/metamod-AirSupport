@@ -28,7 +28,7 @@ export template <typename... Tys> [[noreturn]] void UTIL_Terminate(const char *p
 	static char sz[256]{};
 	_snprintf(sz, _countof(sz) - 1U, psz, std::forward<Tys>(args)...);
 
-	auto const szMergedInfo = szStackTraceInfo + "\n\nWith information: " + sz;
+	auto const szMergedInfo = szStackTraceInfo + "\n\n" + sz;
 
 	MessageBoxA(nullptr, szMergedInfo.c_str(), nullptr, MB_OK);
 	std::terminate();
@@ -60,7 +60,7 @@ export template <typename... Tys> [[noreturn]] void UTIL_Terminate(const wchar_t
 	static wchar_t wsz[256]{};
 	_snwprintf(wsz, _countof(wsz) - 1U, psz, fnArgHandle(args)...);
 
-	auto const szMergedInfo = wszStackTraceInfo + L"\n\nWith information: " + wsz;
+	auto const szMergedInfo = wszStackTraceInfo + L"\n\n" + wsz;
 
 	MessageBoxW(nullptr, szMergedInfo.c_str(), nullptr, MB_OK);
 	std::terminate();

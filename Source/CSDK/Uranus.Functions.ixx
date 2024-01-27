@@ -55,6 +55,7 @@ export namespace Uranus
 		static inline constexpr char NAME[] = u8"::EmptyEntityHashTable";
 		static inline constexpr std::tuple PATTERNS
 		{
+			std::cref("\x90\xA1\x2A\x2A\x2A\x2A\x53\x55\x33\xDB\x33\xED\x3B\xC3\x7E\x54\x56\x57\x33\xFF\xA1"),	// NEW
 			std::cref("\xCC\xA1\x2A\x2A\x2A\x2A\x56\x33\xF6\x85\xC0\x0F\x8E\x2A\x2A\x2A\x2A\x53\x57\x8B\x3D\x2A\x2A\x2A\x2A\x33\xDB\x66\x0F\x1F\x44\x00"),	// ANNIV
 		};
 		static inline constexpr std::ptrdiff_t DISPLACEMENT = 1;
@@ -72,6 +73,7 @@ export namespace Uranus
 		static inline constexpr char NAME[] = u8"::AddEntityHashValue";
 		static inline constexpr std::tuple PATTERNS
 		{
+			std::cref("\x90\x8B\x44\x24\x0C\x83\xEC\x08\x85\xC0\x53\x55\x56\x57\x0F\x85\x2A\x2A\x2A\x2A\x8B"),	// NEW
 			std::cref("\xCC\x55\x8B\xEC\x51\x83\x7D\x10\x00\x0F\x85\x2A\x2A\x2A\x2A\x53\x8B\x5D\x08\x83\x3B\x00\x0F\x84\x2A\x2A\x2A\x2A\xA1"),	// ANNIV
 		};
 		static inline constexpr std::ptrdiff_t DISPLACEMENT = 1;
@@ -89,6 +91,7 @@ export namespace Uranus
 		static inline constexpr char NAME[] = u8"::RemoveEntityHashValue";
 		static inline constexpr std::tuple PATTERNS
 		{
+			std::cref("\x90\x8B\x4C\x24\x08\x53\x8B\xD1\x55\x8A\x09\x33\xC0\x56\x8B\x35\x2A\x2A\x2A\x2A\x84"),	// NEW
 			std::cref("\xCC\x55\x8B\xEC\x8B\x4D\x0C\x33\xD2\x56\x57\x8A\x01\x84\xC0\x74\x18\x0F\xBE\xF0\x03\xD2\x2C\x41\x3C\x19\x77\x03\x83\xC2\x20\x8A\x41\x01"),	// ANNIV
 		};
 		static inline constexpr std::ptrdiff_t DISPLACEMENT = 1;
@@ -160,6 +163,7 @@ export namespace Uranus
 		static inline constexpr char NAME[] = u8"::TEXTURETYPE_PlaySound";
 		static inline constexpr std::tuple PATTERNS
 		{
+			std::cref("\x90\x83\xEC\x78\x8B\x0D\x2A\x2A\x2A\x2A\x53\x55\x56\x8B\x01\x57\xC7\x44\x24"),	// NEW
 			std::cref("\xCC\x55\x8B\xEC\x81\xEC\x2A\x2A\x2A\x2A\xA1\x2A\x2A\x2A\x2A\x33\xC5\x89\x45\xFC\x8B\x0D"),	// ANNIV
 		};
 		static inline constexpr std::ptrdiff_t DISPLACEMENT = 1;
@@ -177,6 +181,7 @@ export namespace Uranus
 		static inline constexpr char NAME[] = u8"::W_Precache";
 		static inline constexpr std::tuple PATTERNS
 		{
+			std::cref("\x90\x57\xB9\x2A\x2A\x2A\x2A\x33\xC0\xBF\x2A\x2A\x2A\x2A\xF3\xAB\xB9\x2A\x2A\x2A\x2A\xBF\x2A\x2A\x2A\x2A\xF3\xAB\x68"),	// NEW
 			std::cref("\xCC\x68\x2A\x2A\x2A\x2A\x6A\x00\x68\x2A\x2A\x2A\x2A\xE8\x2A\x2A\x2A\x2A\x68\x2A\x2A\x2A\x2A\x6A\x00\x68\x2A\x2A\x2A\x2A\xE8\x2A\x2A\x2A\x2A\x68\x2A\x2A\x2A\x2A\xC7\x05"),	// ANNIV
 		};
 		static inline constexpr std::ptrdiff_t DISPLACEMENT = 1;
@@ -194,6 +199,7 @@ export namespace Uranus
 		static inline constexpr char NAME[] = u8"::UTIL_PrecacheOther";
 		static inline constexpr std::tuple PATTERNS
 		{
+			std::cref("\x90\x8B\x0D\x2A\x2A\x2A\x2A\x8B\x44\x24\x04\x56\x2B\x81\x2A\x2A\x2A\x2A\x50\xE8\x2A\x2A\x2A\x2A\x8B"),	// NEW
 			std::cref("\xCC\x55\x8B\xEC\xA1\x2A\x2A\x2A\x2A\x8B\x4D\x08\x56\x2B\x88\x2A\x2A\x2A\x2A\x51\xE8\x2A\x2A\x2A\x2A\x8B"),	// ANNIV
 		};
 		static inline constexpr std::ptrdiff_t DISPLACEMENT = 1;
@@ -211,6 +217,7 @@ export namespace Uranus
 		static inline constexpr char NAME[] = u8"::UTIL_PrecacheOtherWeapon";
 		static inline constexpr std::tuple PATTERNS
 		{
+			std::cref("\x90\x8B\x0D\x2A\x2A\x2A\x2A\x8B\x44\x24\x04\x83\xEC\x2C\x53\x56\x2B\x81\x2A\x2A\x2A\x2A\x50"),	// NEW
 			std::cref("\xCC\x55\x8B\xEC\xA1\x2A\x2A\x2A\x2A\x83\xEC\x2C\x8B\x4D\x08\x2B\x88\x2A\x2A\x2A\x2A\x56"),	// ANNIV
 		};
 		static inline constexpr std::ptrdiff_t DISPLACEMENT = 1;
@@ -227,9 +234,10 @@ export namespace Uranus
 		struct Create final
 		{
 			static inline constexpr char MODULE[] = "mp.dll";
-			static inline constexpr char NAME[] = u8"CBaseEntity::Create";
+			static inline constexpr char NAME[] = u8"::CBaseEntity::Create";
 			static inline constexpr std::tuple PATTERNS
 			{
+				std::cref("\x00\xA1\x2A\x2A\x2A\x2A\x56\x8B\x74\x24\x08\x57\x2B\xB0\x2A\x2A\x2A\x2A\x56\xFF\x15"),	// NEW
 				std::cref("\xCC\x55\x8B\xEC\xA1\x2A\x2A\x2A\x2A\x83\xEC\x0C\x56\x8B\x75\x08\x2B\xB0\x2A\x2A\x2A\x2A\x57\x56\xFF\x15\x2A\x2A\x2A\x2A\x8B\xF8\x83\xC4\x04"),	// ANNIV
 			};
 			static inline constexpr std::ptrdiff_t DISPLACEMENT = 1;
@@ -244,7 +252,7 @@ export namespace Uranus
 		struct FireBullets3 final
 		{
 			static inline constexpr char MODULE[] = "mp.dll";
-			static inline constexpr char NAME[] = u8"CBaseEntity::FireBullets3";
+			static inline constexpr char NAME[] = u8"::CBaseEntity::FireBullets3";
 			static inline constexpr std::tuple PATTERNS
 			{
 				std::cref("\x90\x81\xEC\x2A\x2A\x2A\x2A\x8B\x84\x24\x00\x01\x00\x00\x53\x55\x89\x44\x24\x0C\xA1\x2A\x2A\x2A\x2A\x56\x57\x8B\xF9\x8B\x48\x40\x8B\x50\x44"),	// NEW
@@ -275,9 +283,10 @@ export namespace Uranus
 		struct SUB_UseTargets final
 		{
 			static inline constexpr char MODULE[] = "mp.dll";
-			static inline constexpr char NAME[] = u8"CBaseDelay::SUB_UseTargets";
+			static inline constexpr char NAME[] = u8"::CBaseDelay::SUB_UseTargets";
 			static inline constexpr std::tuple PATTERNS
 			{
+				std::cref("\x90\x53\x55\x56\x57\x8B\xF9\x33\xED\x8B\x47\x04\x39\xA8\x2A\x2A\x2A\x2A\x75\x0C\x39\xAF"),	// NEW
 				std::cref("\xCC\x55\x8B\xEC\x57\x8B\xF9\x8B\x4F\x04\x83\xB9\x2A\x2A\x2A\x2A\x2A\x75\x0D\x83\xBF\x2A\x2A\x2A\x2A\x2A\x0F\x84\x2A\x2A\x2A\x2A\xF3\x0F\x10\x8F"),	// ANNIV
 			};
 			static inline constexpr std::ptrdiff_t DISPLACEMENT = 1;
@@ -295,7 +304,7 @@ export namespace Uranus
 		struct DefaultDeploy final
 		{
 			static inline constexpr char MODULE[] = "mp.dll";
-			static inline constexpr char NAME[] = u8"CBasePlayerWeapon::DefaultDeploy";
+			static inline constexpr char NAME[] = u8"::CBasePlayerWeapon::DefaultDeploy";
 			static inline constexpr std::tuple PATTERNS
 			{
 				std::cref("\x90\x56\x8B\xF1\x8B\x06\xFF\x90\xF8\x00\x00\x00\x85\xC0\x75\x2A\x5E"),	// NEW
@@ -316,7 +325,7 @@ export namespace Uranus
 		struct SetAnimation final
 		{
 			static inline constexpr char MODULE[] = "mp.dll";
-			static inline constexpr char NAME[] = u8"CBasePlayer::SetAnimation";
+			static inline constexpr char NAME[] = u8"::CBasePlayer::SetAnimation";
 			static inline constexpr std::tuple PATTERNS
 			{
 				std::cref("\x90\x83\xEC\x4C\x53\x55\x8B\x2A\x56\x57\x8B\x4D\x04\x8B\x2A\x2A\x2A\x2A\x2A\x85\xC0"),	// NEW
@@ -341,6 +350,7 @@ export namespace HW
 		static inline constexpr char NAME[] = u8"::Sys_Error";
 		static inline constexpr std::tuple PATTERNS
 		{
+			std::cref("\x90\x55\x8B\xEC\x81\xEC\x2A\x2A\x2A\x2A\x8B\x4D\x08\x8D\x45\x0C\x50\x51\x8D\x95"),	// NEW
 			std::cref("\xCC\x55\x8B\xEC\x81\xEC\x2A\x2A\x2A\x2A\xA1\x2A\x2A\x2A\x2A\x33\xC5\x89\x45\xFC"),	// ANNIV
 		};
 		static inline constexpr std::ptrdiff_t DISPLACEMENT = 1;
@@ -353,6 +363,7 @@ export namespace HW
 		static inline constexpr char NAME[] = u8"::SZ_GetSpace";
 		static inline constexpr std::tuple PATTERNS
 		{
+			std::cref("\x90\x55\x8B\xEC\x56\x8B\x75\x08\x57\x8B\x7D\x0C\x8B\x4E\x10\x8B\x46\x0C\x03\xCF\x3B\xC8\x0F\x8E"),	// NEW
 			std::cref("\xCC\x55\x8B\xEC\x53\x8B\x5D\x0C\x56\x8B\x75\x08\x8B\x4E\x10\x8B\x56\x0C"),	// ANNIV
 		};
 		static inline constexpr std::ptrdiff_t DISPLACEMENT = 1;

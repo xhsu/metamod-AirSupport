@@ -20,12 +20,20 @@ import UtlHook;
 import UtlRandom;
 
 
-export inline constexpr unsigned char PRECACHE_OTHER_WPN_FN_ANNIV_PATTERN[] = "\xCC\x55\x8B\xEC\xA1\x2A\x2A\x2A\x2A\x83\xEC\x2C\x8B\x4D\x08\x2B\x88\x2A\x2A\x2A\x2A\x56\x51\xE8\x2A\x2A\x2A\x2A\x8B\xF0\x83\xC4\x04";
-export inline constexpr std::ptrdiff_t ITEM_INFO_ARRAY_OFS = 0x100C18FC - 0x100C1860;
+export inline constexpr std::ptrdiff_t ITEM_INFO_ARRAY_OFS_8684 = 0x100CDC09 - 0x100CDC00;	// offset from W_Precache
+export inline constexpr std::ptrdiff_t ITEM_INFO_ARRAY_OFS_9899 = 0x100C1A78 - 0x100C1A70;
+export inline constexpr std::ptrdiff_t AMMO_INFO_ARRAY_OFS_8684 = 0x100CDC15 - 0x100CDC00;	// offset from W_Precache
+export inline constexpr std::ptrdiff_t AMMO_INFO_ARRAY_OFS_9899 = 0x100C1A89 - 0x100C1A70;
+export inline constexpr std::ptrdiff_t GI_AMMO_INDEX_OFS_8684 = 0x100CDC21 - 0x100CDC00;	// offset from W_Precache
+export inline constexpr std::ptrdiff_t GI_AMMO_INDEX_OFS_9899 = 0x100C1A99 - 0x100C1A70;
 
-export inline constexpr unsigned char ADD_AMMO_REG_FN_ANNIV_PATTERN[] = "\xCC\x55\x8B\xEC\x53\x8B\x1D\x2A\x2A\x2A\x2A\x56\x57\x8B\x7D\x08\xBE\x2A\x2A\x2A\x2A\x8B\x06\x85\xC0\x74\x0B\x57\x50\xFF\xD3\x83\xC4\x08";
-export inline constexpr std::ptrdiff_t AMMO_INFO_ARRAY_OFS = 0x100BDF30 - 0x100BDF20;
-export inline constexpr std::ptrdiff_t GI_AMMO_INDEX_OFS = 0x100BDF51 - 0x100BDF20;
+export inline constexpr unsigned char ITEM_INFO_ARRAY_8684_PATTERN[] = "\xBF\x2A\x2A\x2A\x2A\xF3\xAB\xB9\x2A\x2A\x2A\x2A\xBF\x2A\x2A\x2A\x2A\xF3\xAB\x68\x2A\x2A\x2A\x2A\xA3\x2A\x2A\x2A\x2A\xE8\x2A\x2A\x2A\x2A\x68\x2A\x2A\x2A\x2A\xE8";
+export inline constexpr unsigned char ITEM_INFO_ARRAY_9899_PATTERN[] = "\x68\x2A\x2A\x2A\x2A\xE8\x2A\x2A\x2A\x2A\x68\x2A\x2A\x2A\x2A\x6A\x00\x68\x2A\x2A\x2A\x2A\xE8\x2A\x2A\x2A\x2A\x68\x2A\x2A\x2A\x2A\xC7\x05";
+export inline constexpr unsigned char AMMO_INFO_ARRAY_8684_PATTERN[] = "\xBF\x2A\x2A\x2A\x2A\xF3\xAB\x68\x2A\x2A\x2A\x2A\xA3\x2A\x2A\x2A\x2A\xE8\x2A\x2A\x2A\x2A\x68\x2A\x2A\x2A\x2A\xE8\x2A\x2A\x2A\x2A\x68\x2A\x2A\x2A\x2A\xE8\x2A\x2A\x2A\x2A\x68";
+export inline constexpr unsigned char AMMO_INFO_ARRAY_9899_PATTERN[] = "\x68\x2A\x2A\x2A\x2A\xE8\x2A\x2A\x2A\x2A\x68\x2A\x2A\x2A\x2A\xC7\x05\x2A\x2A\x2A\x2A\x00\x00\x00\x00";
+export inline constexpr unsigned char GI_AMMO_INDEX_8684_PATTERN[] = "\xA3\x2A\x2A\x2A\x2A\xE8\x2A\x2A\x2A\x2A\x68\x2A\x2A\x2A\x2A\xE8\x2A\x2A\x2A\x2A\x68\x2A\x2A\x2A\x2A\xE8\x2A\x2A\x2A\x2A\x68\x2A\x2A\x2A\x2A\xE8\x2A\x2A\x2A\x2A\x68\x2A\x2A\x2A\x2A\xE8";
+export inline constexpr unsigned char GI_AMMO_INDEX_9899_PATTERN[] = "\x05\x2A\x2A\x2A\x2A\x00\x00\x00\x00\xE8\x2A\x2A\x2A\x2A\x68\x2A\x2A\x2A\x2A\xE8\x2A\x2A\x2A\x2A\x68\x2A\x2A\x2A\x2A\xE8\x2A\x2A\x2A\x2A\x68\x2A\x2A\x2A\x2A\xE8";
+
 export inline std::int32_t* gpiAmmoIndex = nullptr;
 
 
@@ -33,18 +41,18 @@ export inline std::int32_t* gpiAmmoIndex = nullptr;
 export void RetrieveConditionZeroVar() noexcept
 {
 	auto const pItemInfo = UTIL_RetrieveGlobalVariable<ItemInfo>(
-		UTIL_SearchPattern("mp.dll", 1, PRECACHE_OTHER_WPN_FN_ANNIV_PATTERN),
-		ITEM_INFO_ARRAY_OFS
+		UTIL_SearchPattern("mp.dll", 0, ITEM_INFO_ARRAY_8684_PATTERN, ITEM_INFO_ARRAY_9899_PATTERN),
+		1	// skip the instructing operator, just hold on the address
 	);
 
 	auto const pAmmoInfo = UTIL_RetrieveGlobalVariable<AmmoInfo>(
-		UTIL_SearchPattern("mp.dll", 1, ADD_AMMO_REG_FN_ANNIV_PATTERN),
-		AMMO_INFO_ARRAY_OFS
+		UTIL_SearchPattern("mp.dll", 0, AMMO_INFO_ARRAY_8684_PATTERN, AMMO_INFO_ARRAY_9899_PATTERN),
+		1
 	);
 
 	gpiAmmoIndex = UTIL_RetrieveGlobalVariable<int32_t>(
-		UTIL_SearchPattern("mp.dll", 1, ADD_AMMO_REG_FN_ANNIV_PATTERN),
-		GI_AMMO_INDEX_OFS
+		UTIL_SearchPattern("mp.dll", 0, GI_AMMO_INDEX_8684_PATTERN, GI_AMMO_INDEX_9899_PATTERN),
+		1
 	);
 
 	CBasePlayerItem::ItemInfoArray = std::span{ pItemInfo, MAX_WEAPONS };
