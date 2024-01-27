@@ -397,5 +397,8 @@
     <ClCompile Include="PlayerItem\PlayerItem.ixx">
       <Filter>Source\PlayerItem</Filter>
     </ClCompile>
+    <ClCompile Include="Source\CSDK\ConsoleVar.ixx">
+      <Filter>Source\CSDK</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

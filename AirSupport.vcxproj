@@ -200,6 +200,7 @@ start Enforcer.exe</Command>
     <ClCompile Include="Source\AirSupport\Weapon.ixx" />
     <ClCompile Include="Source\AirSupport\Effects.cpp" />
     <ClCompile Include="Source\CSDK\ConditionZero.ixx" />
+    <ClCompile Include="Source\CSDK\ConsoleVar.ixx" />
     <ClCompile Include="Source\CSDK\CRC64.ixx" />
     <ClCompile Include="Source\CSDK\Engine.ixx" />
     <ClCompile Include="Source\CSDK\FileSystem.ixx" />
