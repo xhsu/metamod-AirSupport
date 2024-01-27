@@ -292,6 +292,7 @@ struct Message_t final
 export using gmsgBarTime = Message_t<"BarTime", int16_t>;
 export using gmsgBrass = Message_t<"Brass", Vector/*origin*/, Vector/*velocity*/, msg_angle_t/*rotation*/, int16_t/*model*/, uint8_t/*soundtype*/, uint8_t/*entityIndex*/>;
 export using gmsgCurWeapon = Message_t<"CurWeapon", uint8_t/*state*/, uint8_t/*iId*/, uint8_t/*iClip*/>;
+export using gmsgHudText = Message_t<"HudTextPro", const char*/*message*/, uint8_t/*is_hint*/>;
 export using gmsgScreenFade = Message_t<"ScreenFade", uint16_t, uint16_t, uint16_t, uint8_t, uint8_t, uint8_t, uint8_t>;
 export using gmsgScreenShake = Message_t<"ScreenShake", uint16_t, uint16_t, uint16_t>;
 export using gmsgShowMenu = Message_t<"ShowMenu", uint16_t, int8_t, uint8_t, const char*>;
@@ -308,6 +309,7 @@ export void RetrieveMessageHandles(void) noexcept
 	gmsgBarTime::Retrieve();
 	gmsgBrass::Retrieve();
 	gmsgCurWeapon::Retrieve();
+	gmsgHudText::Retrieve();
 	gmsgScreenFade::Retrieve();
 	gmsgScreenShake::Retrieve();
 	gmsgShowMenu::Retrieve();

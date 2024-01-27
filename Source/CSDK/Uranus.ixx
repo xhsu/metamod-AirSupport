@@ -62,11 +62,10 @@ export namespace Uranus
 			ClearMultiDamage, ApplyMultiDamage, AddMultiDamage,
 			TEXTURETYPE_PlaySound,
 			W_Precache, UTIL_PrecacheOther, UTIL_PrecacheOtherWeapon,
-			BaseEntity::Create,
-			BaseEntity::FireBullets3,
+			BaseEntity::Create, BaseEntity::FireBullets3,
 			BaseDelay::SUB_UseTargets,
 			BaseWeapon::DefaultDeploy,
-			BasePlayer::SetAnimation
+			BasePlayer::HintMessage, BasePlayer::SetAnimation
 		>(bDoNoFoundCheck);
 
 		UTIL_SearchPatterns<

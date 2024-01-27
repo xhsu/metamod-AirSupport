@@ -16,12 +16,13 @@ export import CBase;
 
 export struct uranus_func_collection_t final
 {
-	std::uintptr_t m_iVersion = 5;
+	std::uintptr_t m_iVersion = 6;
 
 	CBaseEntity*	(__cdecl*		pfnCreate)					(const char* pszName, Vector const& vecOrigin, Angles const& vecAngles, edict_t* pentOwner) noexcept = nullptr;
 	Vector*			(__fastcall*	pfnFireBullets3)			(CBaseEntity* pThis, void* edx, Vector* pret, Vector vecSrc, Vector vecDirShooting, float flSpread, float flDistance, int iPenetration, int iBulletType, int iDamage, float flRangeModifier, entvars_t* pevAttacker, qboolean bPistol, int shared_rand) noexcept = nullptr;
 	void			(__thiscall*	pfnSUB_UseTargets)			(CBaseDelay* pObject, CBaseEntity* pActivator, USE_TYPE useType, float value) noexcept = nullptr;
 	qboolean		(__thiscall*	pfnDefaultDeploy)			(CBasePlayerWeapon* pWeapon, const char* szViewModel, const char* szWeaponModel, int iAnim, const char* szAnimExt, qboolean skiplocal) noexcept = nullptr;
+	bool			(__thiscall*	pfnHintMessage)				(CBasePlayer* pPlayer, const char* pMessage, qboolean bDisplayIfDead, qboolean bOverrideClientSettings) noexcept = nullptr;
 	void			(__fastcall*	pfnSetAnimation)			(CBasePlayer* pPlayer, std::intptr_t, PLAYER_ANIM playerAnim) noexcept = nullptr;
 
 	void			(__cdecl*		pfnEmptyEntityHashTable)	(void) noexcept = nullptr;
@@ -322,6 +323,24 @@ export namespace Uranus
 
 	namespace BasePlayer
 	{
+		struct HintMessage final
+		{
+			static inline constexpr char MODULE[] = "mp.dll";
+			static inline constexpr char NAME[] = u8"::CBasePlayer::HintMessage";
+			static inline constexpr std::tuple PATTERNS
+			{
+				std::cref("\x90\x8B\x44\x24\x08\x56\x85\xC0\x8B\xF1\x75\x12\x8B\x06\xFF\x90\x2A\x2A\x2A\x2A\x85"),	// NEW
+				std::cref("\xCC\x55\x8B\xEC\x83\x7D\x0C\x00\x56\x8B\xF1\x75\x13\x8B\x06\xFF\x90"),	// ANNIV
+			};
+			static inline constexpr std::ptrdiff_t DISPLACEMENT = 1;
+			static inline auto& pfn = gUranusCollection.pfnHintMessage;
+
+			inline bool operator() (CBasePlayer* pPlayer, const char* pMessage, qboolean bDisplayIfDead, qboolean bOverrideClientSettings) const noexcept
+			{
+				return pfn(pPlayer, pMessage, bDisplayIfDead, bOverrideClientSettings);
+			}
+		};
+
 		struct SetAnimation final
 		{
 			static inline constexpr char MODULE[] = "mp.dll";

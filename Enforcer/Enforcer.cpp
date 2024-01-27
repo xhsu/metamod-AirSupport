@@ -13,6 +13,7 @@ import <algorithm>;
 import <format>;
 import <fstream>;
 import <map>;
+import <print>;
 import <ranges>;
 import <span>;
 import <vector>;
@@ -25,6 +26,7 @@ import <vector>;
 #include <format>
 #include <fstream>
 #include <map>
+#include <print>
 #include <ranges>
 #include <span>
 #include <vector>
@@ -32,6 +34,7 @@ import <vector>;
 
 
 import CRC64;
+import Localization;
 import Resources;
 import Sprite;
 import Wave;
@@ -142,6 +145,7 @@ inline constexpr char FILE_CRC64[] = PROJECT_DIR "Resource_CRC64.hpp";
 inline constexpr char FILE_MODELS[] = PROJECT_DIR "Resource_ModelDetails.hpp";
 inline constexpr char FILE_SPRITES[] = PROJECT_DIR "Resource_SpriteDetails.hpp";
 inline constexpr char FILE_SOUNDS[] = PROJECT_DIR "Resource_SoundDetails.hpp";
+inline constexpr char FILE_LOCALIZATION[] = PROJECT_DIR "czero_tchinese.txt";
 
 int main() noexcept
 {
@@ -279,5 +283,30 @@ int main() noexcept
 		sz += "};\n";
 
 		WriteFileIfCrcDiff(FILE_SOUNDS, sz);
+	}
+
+	/*
+	* Generate Localization File
+	*/
+
+	if (auto f = std::fopen(FILE_LOCALIZATION, "wt"); f)
+	{
+		// #UPDATE_AT_CPP26 reflection?
+#define WRITE_LOCALIZATION(x)	\
+		std::print(f, "\"{}\"\t\"{}\"\n", string_view{ Localization::Keys::x }.substr(1), Localization::L_CH::x);	\
+		std::print(f, "[english]\"{}\"\t\"{}\"\n", string_view{ Localization::Keys::x }.substr(1), Localization::L_EN::x)
+
+		WRITE_LOCALIZATION(GUNSHIP_DESPAWNING);
+		WRITE_LOCALIZATION(GUNSHIP_ENTITY_MUTUALLY_EXCLUSIVE);
+		WRITE_LOCALIZATION(GUNSHIP_RESELECT_TARGET);
+		WRITE_LOCALIZATION(HINT_PRESS_AND_HOLD);
+		WRITE_LOCALIZATION(REJECT_COVERED_LOCATION);
+		WRITE_LOCALIZATION(REJECT_HEIGHT_NOT_ENOUGH);
+		WRITE_LOCALIZATION(REJECT_NO_JET_SPAWN);
+		WRITE_LOCALIZATION(REJECT_NO_VALID_TRACELINE);
+		WRITE_LOCALIZATION(REJECT_TIME_OUT);
+
+#undef WRITE_LOCALIZATION
+		fclose(f);
 	}
 }

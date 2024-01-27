@@ -226,5 +226,8 @@
     <ClCompile Include="..\Source\CSDK\Wave.ixx">
       <Filter>CSDK</Filter>
     </ClCompile>
+    <ClCompile Include="..\Source\AirSupport\Localization.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

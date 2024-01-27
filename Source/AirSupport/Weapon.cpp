@@ -100,6 +100,8 @@ void CRadio::ItemPostFrame() noexcept
 			if (!m_bHintPressAndHold)
 			{
 				gmsgTextMsg::Send(m_pPlayer->edict(), 4, Localization::HINT_PRESS_AND_HOLD);
+				//gUranusCollection.pfnHintMessage(m_pPlayer, Localization::HINT_PRESS_AND_HOLD, true, true);	// #INVESTIGATE why doesn't this work?
+				//gmsgHudText::Send(m_pPlayer->edict(), Localization::HINT_PRESS_AND_HOLD, true);
 				m_bHintPressAndHold = true;
 			}
 

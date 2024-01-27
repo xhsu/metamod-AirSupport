@@ -152,6 +152,7 @@
     <ClCompile Include="..\..\metamod-p\hlsdk\pm_shared\pm_materials.ixx" />
     <ClCompile Include="..\..\metamod-p\hlsdk\pm_shared\pm_movevars.ixx" />
     <ClCompile Include="..\..\metamod-p\hlsdk\pm_shared\pm_shared.ixx" />
+    <ClCompile Include="..\Source\AirSupport\Localization.ixx" />
     <ClCompile Include="..\Source\AirSupport\Resources.cpp" />
     <ClCompile Include="..\Source\AirSupport\Resources.ixx" />
     <ClCompile Include="..\Source\CSDK\CRC64.ixx" />
