@@ -291,22 +291,12 @@ int main() noexcept
 
 	if (auto f = std::fopen(FILE_LOCALIZATION, "wt"); f)
 	{
-		// #UPDATE_AT_CPP26 reflection?
-#define WRITE_LOCALIZATION(x)	\
-		std::print(f, "\"{}\"\t\"{}\"\n", string_view{ Localization::Keys::x }.substr(1), Localization::L_CH::x);	\
-		std::print(f, "\"[english]{}\"\t\"{}\"\n", string_view{ Localization::Keys::x }.substr(1), Localization::L_EN::x)
+		for (auto&& [K, E, C] : std::views::zip(Localization::Keys, Localization::L_EN, Localization::L_CH))
+		{
+			std::print(f, "\"{}\"\t\"{}\"\n", K.substr(1), C);
+			std::print(f, "\"[english]{}\"\t\"{}\"\n", K.substr(1), E);
+		}
 
-		WRITE_LOCALIZATION(GUNSHIP_DESPAWNING);
-		WRITE_LOCALIZATION(GUNSHIP_ENTITY_MUTUALLY_EXCLUSIVE);
-		WRITE_LOCALIZATION(GUNSHIP_RESELECT_TARGET);
-		WRITE_LOCALIZATION(HINT_PRESS_AND_HOLD);
-		WRITE_LOCALIZATION(REJECT_COVERED_LOCATION);
-		WRITE_LOCALIZATION(REJECT_HEIGHT_NOT_ENOUGH);
-		WRITE_LOCALIZATION(REJECT_NO_JET_SPAWN);
-		WRITE_LOCALIZATION(REJECT_NO_VALID_TRACELINE);
-		WRITE_LOCALIZATION(REJECT_TIME_OUT);
-
-#undef WRITE_LOCALIZATION
 		fclose(f);
 	}
 }
