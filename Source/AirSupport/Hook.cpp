@@ -96,15 +96,24 @@ static void DeployInlineHook() noexcept
 	bHooksPerformed = true;
 }
 
-static void RetrieveCVarHandles(void) noexcept
+static void RetrieveCVarHandles() noexcept
 {
 	static bool bRegistered = false;
 
 	[[unlikely]]
 	if (!bRegistered)
 	{
-		g_engfuncs.pfnCVarRegister(new cvar_t{ "airsupport_ct_ai", "1", FCVAR_SERVER });
-		g_engfuncs.pfnCVarRegister(new cvar_t{ "airsupport_ter_ai", "0", FCVAR_SERVER });
+		g_engfuncs.pfnCVarRegister(new cvar_t{ "airsupport_ct_think",			"12", FCVAR_SERVER | FCVAR_EXTDLL });
+		g_engfuncs.pfnCVarRegister(new cvar_t{ "airsupport_ter_think",			"0", FCVAR_SERVER | FCVAR_EXTDLL });
+		g_engfuncs.pfnCVarRegister(new cvar_t{ "airsupport_player_cd",			"6", FCVAR_SERVER | FCVAR_EXTDLL });
+		g_engfuncs.pfnCVarRegister(new cvar_t{ "airsupport_pas_speed",			"1000", FCVAR_SERVER | FCVAR_EXTDLL });
+		g_engfuncs.pfnCVarRegister(new cvar_t{ "airsupport_gunship_radius",		"500", FCVAR_SERVER | FCVAR_EXTDLL });
+		g_engfuncs.pfnCVarRegister(new cvar_t{ "airsupport_gunship_beacon_fx",	"1", FCVAR_SERVER | FCVAR_EXTDLL });
+		g_engfuncs.pfnCVarRegister(new cvar_t{ "airsupport_gunship_holding",	"25", FCVAR_SERVER | FCVAR_EXTDLL });
+		//g_engfuncs.pfnCVarRegister(new cvar_t{ "airsupport_", "0", FCVAR_SERVER | FCVAR_EXTDLL });
+		//g_engfuncs.pfnCVarRegister(new cvar_t{ "airsupport_", "0", FCVAR_SERVER | FCVAR_EXTDLL });
+		//g_engfuncs.pfnCVarRegister(new cvar_t{ "airsupport_", "0", FCVAR_SERVER | FCVAR_EXTDLL });
+		//g_engfuncs.pfnCVarRegister(new cvar_t{ "airsupport_", "0", FCVAR_SERVER | FCVAR_EXTDLL });
 
 		bRegistered = true;
 	}
@@ -113,8 +122,13 @@ static void RetrieveCVarHandles(void) noexcept
 	gcvarMaxSpeed = g_engfuncs.pfnCVarGetPointer("sv_maxspeed");
 	gcvarMaxVelocity = g_engfuncs.pfnCVarGetPointer("sv_maxvelocity");
 
-	CVar::CounterTerAI = g_engfuncs.pfnCVarGetPointer("airsupport_ct_ai");
-	CVar::TerroristAI = g_engfuncs.pfnCVarGetPointer("airsupport_ter_ai");
+	CVar::CounterTerAI = g_engfuncs.pfnCVarGetPointer("airsupport_ct_think");
+	CVar::TerroristAI = g_engfuncs.pfnCVarGetPointer("airsupport_ter_think");
+	CVar::PlayerInterval = g_engfuncs.pfnCVarGetPointer("airsupport_player_cd");
+	CVar::PAS_Speed = g_engfuncs.pfnCVarGetPointer("airsupport_pas_speed");
+	CVar::GS_Radius = g_engfuncs.pfnCVarGetPointer("airsupport_gunship_radius");
+	CVar::GS_BeaconFX = g_engfuncs.pfnCVarGetPointer("airsupport_gunship_beacon_fx");
+	CVar::GS_Holding = g_engfuncs.pfnCVarGetPointer("airsupport_gunship_holding");
 }
 
 static void DeployConsoleCommand() noexcept

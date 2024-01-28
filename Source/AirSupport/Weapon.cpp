@@ -87,22 +87,23 @@ qboolean CRadio::Deploy() noexcept
 
 void CRadio::ItemPostFrame() noexcept
 {
-	auto const bReadyForNextCall = m_pPlayer->m_flNextAttack <= 0 && m_bSoundSeqFinished;
-
-	if (m_pPlayer->m_afButtonPressed & IN_ATTACK && bReadyForNextCall) [[unlikely]]
+	if (m_pPlayer->m_afButtonPressed & IN_ATTACK && m_pPlayer->m_flNextAttack <= 0 && m_bSoundSeqFinished) [[unlikely]]
 	{
 		switch (g_rgiAirSupportSelected[m_pPlayer->entindex()])
 		{
 		case CARPET_BOMBARDMENT:
-			m_pTarget->EnableBeacons();
 
-			[[unlikely]]
-			if (!m_bHintPressAndHold)
+			// The first coord must be legit as well.
+			if (m_pTarget->pev->skin == Models::targetmdl::SKIN_GREEN)
 			{
-				gmsgTextMsg::Send(m_pPlayer->edict(), 4, Localization::HINT_PRESS_AND_HOLD);
-				//gUranusCollection.pfnHintMessage(m_pPlayer, Localization::HINT_PRESS_AND_HOLD, true, true);	// #INVESTIGATE why doesn't this work?
-				//gmsgHudText::Send(m_pPlayer->edict(), Localization::HINT_PRESS_AND_HOLD, true);
-				m_bHintPressAndHold = true;
+				m_pTarget->EnableBeacons();
+
+				[[unlikely]]
+				if (!m_bHintPressAndHold)
+				{
+					gmsgTextMsg::Send(m_pPlayer->edict(), 4, Localization::HINT_PRESS_AND_HOLD);
+					m_bHintPressAndHold = true;
+				}
 			}
 
 			break;
@@ -111,7 +112,7 @@ void CRadio::ItemPostFrame() noexcept
 			if (CGunship::s_bInstanceExists)
 			{
 				gmsgTextMsg::Send(m_pPlayer->edict(), 4, Localization::GUNSHIP_ENTITY_MUTUALLY_EXCLUSIVE);
-				return;
+				break;
 			}
 
 			[[fallthrough]];
@@ -129,7 +130,7 @@ void CRadio::ItemPostFrame() noexcept
 			break;
 		}
 	}
-	else if (m_pPlayer->m_afButtonReleased & IN_ATTACK && bReadyForNextCall) [[unlikely]]
+	else if (m_pPlayer->m_afButtonReleased & IN_ATTACK) [[unlikely]]
 	{
 		switch (g_rgiAirSupportSelected[m_pPlayer->entindex()])
 		{
@@ -137,22 +138,32 @@ void CRadio::ItemPostFrame() noexcept
 			break;
 
 		case CARPET_BOMBARDMENT:
-			auto const bAccepted = (m_pTarget->pev->skin == Models::targetmdl::SKIN_GREEN);
-			auto const iFlag = bAccepted ? TASK_RADIO_ACCEPTED : TASK_RADIO_REJECTED;
 
-			m_Scheduler.Enroll(Task_CallAnimation(bAccepted), iFlag);
-			m_Scheduler.Enroll(Task_CallSoundFx(bAccepted), iFlag);
+			// Only if you already entered aiming mode can you start the attack.
+			[[likely]]
+			if (m_pTarget->m_bFreezed)
+			{
+				auto const bAccepted = (m_pTarget->pev->skin == Models::targetmdl::SKIN_GREEN);
+				auto const iFlag = bAccepted ? TASK_RADIO_ACCEPTED : TASK_RADIO_REJECTED;
 
-			if (bAccepted)
-				m_Scheduler.Enroll(Task_FixedTargetCalling(), TASK_RADIO_TARGET);
-			else
-				m_pTarget->DisableBeacons();
+				m_Scheduler.Enroll(Task_CallAnimation(bAccepted), iFlag);
+				m_Scheduler.Enroll(Task_CallSoundFx(bAccepted), iFlag);
+
+				if (bAccepted)
+					m_Scheduler.Enroll(Task_FixedTargetCalling(), TASK_RADIO_TARGET);
+				else
+					m_pTarget->DisableBeacons();
+			}
 
 			break;
 		}
 	}
 	else if (m_pPlayer->m_afButtonPressed & IN_ATTACK2) [[unlikely]]
 	{
+		// One can only select gunship mode in this case.
+		if (HavingGunshipRunning())
+			return;
+
 		auto const &iIndex = g_rgiAirSupportSelected[m_pPlayer->entindex()];
 
 		UTIL_ShowMenu(
@@ -252,6 +263,10 @@ Task CRadio::Task_Deploy() noexcept
 		"knife", false
 	);	// Enforce to play the anim.
 
+	[[unlikely]]
+	if (m_pTarget)
+		m_pTarget->pev->flags |= FL_KILLME;	// Depose the old one.
+
 	// Must have a one-frame delay for crosshair hiding due to
 	// CBasePlayer::SelectLastItem() put UpdateShieldCrosshair() behind CBasePlayerItem::Deploy().
 	m_Scheduler.Enroll(
@@ -267,13 +282,28 @@ Task CRadio::Task_Deploy() noexcept
 
 	co_await Models::v_radio::time::draw;
 
-	SendWeaponAnim((int)Models::v_radio::seq::idle, false);
+	auto const bHavingGunship = HavingGunshipRunning();
 
-	[[unlikely]]
-	if (m_pTarget)
-		m_pTarget->pev->flags |= FL_KILLME;
+	if (m_rgbTeamCooldown[m_pPlayer->m_iTeam] && !bHavingGunship)
+	{
+		// Cooling down. Holster the weapon!
+		gmsgTextMsg::Send(m_pPlayer->edict(), 4, Localization::REJECT_COOLING_DOWN);
 
-	m_pTarget = CDynamicTarget::Create(m_pPlayer, this);
+		m_Scheduler.Enroll(
+			Task_SequencedHolster(),
+			TASK_RADIO_DEPLOY	// weird, but it's actually making sense.
+		);
+	}
+	else
+	{
+		if (bHavingGunship)
+			g_rgiAirSupportSelected[m_pPlayer->entindex()] = GUNSHIP_STRIKE;	// locked in this mode.
+
+		SendWeaponAnim((int)Models::v_radio::seq::idle, false);
+
+		// Create the new one on every draw.
+		m_pTarget = CDynamicTarget::Create(m_pPlayer, this);
+	}
 }
 
 Task CRadio::Task_CallAnimation(bool bGotoHolster) noexcept
@@ -323,6 +353,9 @@ Task CRadio::Task_CallAnimation(bool bGotoHolster) noexcept
 
 	m_bCanHolster = true;
 	g_engfuncs.pfnClientCommand(m_pPlayer->edict(), "lastinv\n");
+
+	if (g_rgiAirSupportSelected[m_pPlayer->entindex()] == GUNSHIP_STRIKE)
+		gmsgTextMsg::Send(m_pPlayer->edict(), 4, Localization::HINT_RESEL_TARGET);
 }
 
 Task CRadio::Task_CallSoundFx(bool bAccepted) noexcept
@@ -370,9 +403,66 @@ Task CRadio::Task_FixedTargetCalling() noexcept
 		co_await 0.1f;
 	}
 
+	m_rgbTeamCooldown[m_pPlayer->m_iTeam] = true;
+
+	// The player interval was only enforced if calling is from a radio weapon.
+	auto const iTaskId = UTIL_CombineTaskAndIndex(TASK_RADIO_TEAM_CD, m_pPlayer->m_iTeam);
+	TaskScheduler::Delist(iTaskId);
+	TaskScheduler::Enroll(
+		[](int iTeam) -> Task { co_await CVar::PlayerInterval->value; m_rgbTeamCooldown[iTeam] = false; }(m_pPlayer->m_iTeam),
+		iTaskId
+	);
+
 	[[likely]]
 	if (pFixedTarget)
 		pFixedTarget->Activate();
 	else
 		co_return;	// Round ended or something???
+}
+
+Task CRadio::Task_SequencedHolster() noexcept
+{
+	while (!CanHolster())
+	{
+		co_await TaskScheduler::NextFrame::Rank[0];
+	}
+
+	// Even if holster is ordered, it must have another weapon that can switch out.
+	auto bHasAnyOtherWeapon = false;
+
+	for (auto&& pWeapon : Query::all_weapons_belongs_to(m_pPlayer))
+	{
+		if (pWeapon->pev == this->pev)
+			continue;
+
+		bHasAnyOtherWeapon = true;
+		break;
+	}
+
+	if (!bHasAnyOtherWeapon)	// No any other weapon, not even a knife. Pathetic.
+	{
+		SendWeaponAnim((int)Models::v_radio::seq::idle);
+		m_pPlayer->m_flNextAttack = 0;
+		co_return;
+	}
+
+	SendWeaponAnim((int)Models::v_radio::seq::holster);
+	m_pPlayer->m_flNextAttack = Models::v_radio::time::holster;
+
+	co_await Models::v_radio::time::holster;
+
+	g_engfuncs.pfnClientCommand(m_pPlayer->edict(), "lastinv\n");
+}
+
+bool CRadio::HavingGunshipRunning() noexcept
+{
+	for (auto&& pEntity :
+		Query::all_instances_of<CFixedTarget>()
+		| std::views::filter([&](CFixedTarget* pEntity) noexcept { return pEntity->m_pPlayer == m_pPlayer && pEntity->m_AirSupportType == GUNSHIP_STRIKE; })
+		)
+	{
+		return true;
+	}
+
+	return false;
 }

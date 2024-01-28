@@ -58,8 +58,9 @@ export struct CDynamicTarget : public Prefab_t
 export struct CFixedTarget : public Prefab_t
 {
 	static inline constexpr char CLASSNAME[] = "info_fixed_target";
-	static inline constexpr auto GUNSHIP_NEXT_TARGET_RADIUS = 500.0;
 	static inline mstudiobonecontroller_t &ARROW_CONTROLLER{ CDynamicTarget::ARROW_CONTROLLER }, &MINIATURE_CONTROLLER{ CDynamicTarget::MINIATURE_CONTROLLER };
+
+	~CFixedTarget() noexcept override;
 
 	Task Task_AdjustMiniature() noexcept;
 	Task Task_BeaconFx() noexcept;

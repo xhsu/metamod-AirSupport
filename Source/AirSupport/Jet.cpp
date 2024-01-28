@@ -12,6 +12,17 @@ import UtlRandom;
 // CJet
 //
 
+static Vector UTIL_EstOrigin(Vector const& vecSrc, float const flSpeed, CBaseEntity* pEnemy, double const flLastTimeEst = 0, int32_t iIterate = 0) noexcept
+{
+	auto const vecPosEst = pEnemy->pev->origin + pEnemy->pev->velocity * flLastTimeEst;
+	auto const flTimeEst = (vecSrc - vecPosEst).Length() / flSpeed;
+
+	if (iIterate > 4)
+		return vecPosEst;
+	else
+		return UTIL_EstOrigin(vecSrc, flSpeed, pEnemy, flTimeEst, iIterate + 1);
+}
+
 Task CJet::Task_BeamAndSound() noexcept
 {
 	for (edict_t *pEdict : (m_pPlayer->m_iTeam == TEAM_CT ? g_rgpPlayersOfTerrorist : g_rgpPlayersOfCT))
@@ -52,16 +63,23 @@ Task CJet::Task_AirStrike() noexcept
 {
 	co_await TaskScheduler::NextFrame::Rank[1];	// yield to Task_BeamAndSound();
 
+	Vector vecLaunchingSpot = pev->origin - Vector(0, 0, 8);
 	trace_hull_functor_t fnTraceHull{ Vector(-7, -7, -7), Vector(7, 7, 7) };
 
 	for (TraceResult tr{}; m_pTarget;)
 	{
-		fnTraceHull(pev->origin - Vector(0, 0, 8), m_pTarget->pev->origin, dont_ignore_monsters, edict(), &tr);
+		vecLaunchingSpot = pev->origin - Vector(0, 0, 8);
+		fnTraceHull(vecLaunchingSpot, m_pTarget->pev->origin, dont_ignore_monsters, edict(), &tr);
 
-		if (tr.flFraction > 0.95f && !tr.fAllSolid && !tr.fStartSolid && tr.fInOpen)
+		// Sky height issue?
+		if ((tr.flFraction > 0.95f || (m_pTarget->pev->origin - tr.vecEndPos).LengthSquared() < (10.0 * 10.0))
+			&& !tr.fAllSolid && !tr.fStartSolid && tr.fInOpen)
 		{
+			auto const vecAimingAt = m_pTarget->m_pTargeting ?
+				UTIL_EstOrigin(vecLaunchingSpot, CVar::PAS_Speed->value, m_pTarget->m_pTargeting) : m_pTarget->pev->origin;
+
 			m_pTarget->m_pMissile =	// pTarget now has a missile binding to it.
-				CPrecisionAirStrike::Create(m_pPlayer, pev->origin - Vector(0, 0, 8), m_pTarget->pev->origin);
+				CPrecisionAirStrike::Create(m_pPlayer, vecLaunchingSpot, vecAimingAt, m_pTarget->m_pTargeting);
 
 			break;
 		}
@@ -390,14 +408,20 @@ Task CGunship::Task_Gunship() noexcept
 		// Aiming something
 		//
 
-		if (!pEnemy->IsAlive())
+		if (pEnemy->entindex() == 0)	// refuse to shoot the ground.
+		{
+			pEnemy = nullptr;
+			co_await 0.1f;
+			continue;
+		}
+		else if (!pEnemy->IsAlive())
 		{
 			std::string_view const szKillConfirmed = UTIL_GetRandomOne(Sounds::Gunship::KILL_CONFIRMED);
 
-			g_engfuncs.pfnEmitSound(m_pPlayer->edict(), CHAN_STATIC, szKillConfirmed.data(), VOL_NORM, ATTN_STATIC, 0, UTIL_Random(92, 108));
+			g_engfuncs.pfnEmitSound(m_pPlayer->edict(), CHAN_AUTO, szKillConfirmed.data(), VOL_NORM, ATTN_STATIC, 0, UTIL_Random(92, 108));
 
 			pEnemy = nullptr;	// Only after we set it to null will the CFixedTarget to find another target.
-			co_await (float)g_rgflSoundTime.at(szKillConfirmed);
+			co_await (float)(g_rgflSoundTime.at(szKillConfirmed) + 0.1);
 			continue;
 		}
 
@@ -414,7 +438,7 @@ Task CGunship::Task_Gunship() noexcept
 
 			if (g_engfuncs.pfnPointContents(tr.vecEndPos) != CONTENTS_SKY)	// This guy runs into shelter.
 			{
-				g_engfuncs.pfnEmitSound(m_pPlayer->edict(), CHAN_STATIC, Sounds::Gunship::TARGET_RAN_TO_COVER, VOL_NORM, ATTN_STATIC, 0, PITCH_NORM);
+				g_engfuncs.pfnEmitSound(m_pPlayer->edict(), CHAN_AUTO, Sounds::Gunship::TARGET_RAN_TO_COVER, VOL_NORM, ATTN_STATIC, 0, PITCH_NORM);
 				pEnemy = nullptr;
 				continue;
 			}
@@ -446,7 +470,7 @@ Task CGunship::Task_Gunship() noexcept
 
 		//gmsgTextMsg::Send(m_pPlayer->edict(), 3, std::format("{}", flSpeed).c_str());
 
-		g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, UTIL_GetRandomOne(Sounds::Gunship::AC130_FIRE_25MM), VOL_NORM, ATTN_NONE, 0, UTIL_Random(92, 116));
+		g_engfuncs.pfnEmitSound(edict(), CHAN_AUTO, UTIL_GetRandomOne(Sounds::Gunship::AC130_FIRE_25MM), VOL_NORM, ATTN_NONE, 0, UTIL_Random(92, 116));
 		co_await 0.2f;	// firerate.
 	}
 

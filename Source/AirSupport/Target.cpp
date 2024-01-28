@@ -285,7 +285,7 @@ Task CDynamicTarget::Task_QuickEval_AirStrike() noexcept
 		}
 
 		if (pev_valid(tr.pHit) != 2 && m_flLastValidTracking < gpGlobals->time - 0.5f)	// Snapping: compensenting bad aiming
-			m_pTargeting = tr.pHit;
+			m_pTargeting = nullptr;
 		else if (pev_valid(tr.pHit) == 2)
 		{
 			m_pTargeting = tr.pHit;
@@ -576,10 +576,9 @@ Task CDynamicTarget::Task_QuickEval_Gunship() noexcept
 	float flLastAttackingVoice{};
 
 	// We have no variable storing CFixedTarget. Have to search like this.
-	for (auto &&pEntity :
-		FIND_ENTITY_BY_CLASSNAME(CFixedTarget::CLASSNAME) |
-		std::views::transform([](edict_t *pEdict) noexcept { return (CFixedTarget *)pEdict->pvPrivateData; }) |
-		std::views::filter([&](CFixedTarget *pEntity) noexcept { return pEntity->m_pPlayer == m_pPlayer && pEntity->m_AirSupportType == GUNSHIP_STRIKE; })
+	for (auto&& pEntity :
+		Query::all_instances_of<CFixedTarget>()
+		| std::views::filter([&](CFixedTarget* pEntity) noexcept { return pEntity->m_pPlayer == m_pPlayer && pEntity->m_AirSupportType == GUNSHIP_STRIKE; })
 		)
 	{
 		pFixedTarget = pEntity;
@@ -624,7 +623,7 @@ Task CDynamicTarget::Task_QuickEval_Gunship() noexcept
 		}
 
 		if (pev_valid(tr.pHit) != 2 && m_flLastValidTracking < gpGlobals->time - 0.5f)	// Snapping: compensating bad aiming
-			m_pTargeting = tr.pHit;
+			m_pTargeting = nullptr;
 		else if (pev_valid(tr.pHit) == 2)
 		{
 			m_pTargeting = tr.pHit;
@@ -671,7 +670,7 @@ Task CDynamicTarget::Task_QuickEval_Gunship() noexcept
 				if (flLastAttackingVoice < gpGlobals->time)
 				{
 					flLastAttackingVoice = gpGlobals->time + 1.f;
-					g_engfuncs.pfnEmitSound(m_pRadio.Get(), CHAN_STATIC, Sounds::Gunship::RESELECT_TARGET, VOL_NORM, ATTN_STATIC, 0, PITCH_NORM);
+					g_engfuncs.pfnEmitSound(m_pRadio.Get(), CHAN_AUTO, Sounds::Gunship::RESELECT_TARGET, VOL_NORM, ATTN_STATIC, 0, PITCH_NORM);
 					gmsgTextMsg::Send(m_pPlayer->edict(), 4, Localization::GUNSHIP_RESELECT_TARGET);
 				}
 
@@ -957,6 +956,22 @@ void CDynamicTarget::RetrieveModelInfo(void) noexcept
 // CFixedTarget
 //
 
+CFixedTarget::~CFixedTarget() noexcept
+{
+	// A missile binding to this entity indicates a jet had spawned and at least had one projectile thrown.
+	if (m_pMissile)
+		return;
+
+	// In that case, the ownership (i.e. who's responsibility to delete beacon entity) transfer to the jet and missiles.
+	// The target entity will not release beacon entity.
+
+	for (auto&& pBeam : m_rgpBeacons)
+	{
+		if (pBeam)
+			pBeam->pev->flags |= FL_KILLME;
+	}
+}
+
 Task CFixedTarget::Task_AdjustMiniature() noexcept
 {
 	Vector vecHeadOrg{};
@@ -981,10 +996,13 @@ Task CFixedTarget::Task_BeaconFx() noexcept
 	{
 		co_await 1.f;
 
+		if (CVar::GS_BeaconFX->value < 1.f)
+			continue;
+
 		if (m_pTargeting && m_pTargeting->IsAlive())
 			continue;
 
-		UTIL_Shockwave(pev->origin, GUNSHIP_NEXT_TARGET_RADIUS, Sprites::m_rgLibrary[Sprites::SHOCKWAVE], 0, 0, 1.f, 6.f, 0, Color::Team[pev->team], 192, 0);
+		UTIL_Shockwave(pev->origin, CVar::GS_Radius->value, Sprites::m_rgLibrary[Sprites::SHOCKWAVE], 0, 0, 1.f, 6.f, 0, Color::Team[pev->team], 192, 0);
 	}
 }
 
@@ -1034,7 +1052,7 @@ Task CFixedTarget::Task_Gunship() noexcept
 			// Select the closest player. The height doesn't matter, as long as they are exposed under sky.
 			std::ranges::sort(vecCandidates, std::less{}, [&](CBasePlayer *pPlayer) noexcept { return (pPlayer->pev->origin - pev->origin).Make2D().LengthSquared(); });
 
-			if (!vecCandidates.empty() && (vecCandidates.front()->pev->origin - pev->origin).Make2D().LengthSquared() < (GUNSHIP_NEXT_TARGET_RADIUS * GUNSHIP_NEXT_TARGET_RADIUS))
+			if (!vecCandidates.empty() && (vecCandidates.front()->pev->origin - pev->origin).Make2D().LengthSquared() < (CVar::GS_Radius->value * CVar::GS_Radius->value))
 				m_pTargeting = vecCandidates.front();
 		}
 
@@ -1202,7 +1220,7 @@ Task CFixedTarget::Task_TimeOut() noexcept
 	switch (m_AirSupportType)
 	{
 	case GUNSHIP_STRIKE:
-		co_await 25.f;
+		co_await CVar::GS_Holding->value;
 		gmsgTextMsg::Send(m_pPlayer->edict(), (byte)4, Localization::GUNSHIP_DESPAWNING);
 		break;
 

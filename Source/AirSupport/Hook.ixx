@@ -54,6 +54,11 @@ export namespace CVar
 {
 	inline cvar_t* CounterTerAI = nullptr;
 	inline cvar_t* TerroristAI = nullptr;
+	inline cvar_t* PlayerInterval = nullptr;	// The player interval was only enforced if calling is from a radio weapon.
+	inline cvar_t* PAS_Speed = nullptr;
+	inline cvar_t* GS_Radius = nullptr;
+	inline cvar_t* GS_BeaconFX = nullptr;
+	inline cvar_t* GS_Holding = nullptr;
 }
 
 extern "C++" void __fastcall OrpheuF_FireBullets(CBaseEntity * pThis, int, unsigned long cShots, Vector vecSrc, Vector vecDirShooting, Vector vecSpread, float flDistance, int iBulletType, int iTracerFreq, int iDamage, entvars_t * pevAttacker) noexcept;

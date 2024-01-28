@@ -1,13 +1,15 @@
-﻿#include <cassert>
+﻿import <cassert>;
 
 import <array>;
 import <list>;
 import <ranges>;
 
 import Effects;
+import Hook;
 import Math;
 import Menu;
 import Projectile;
+import Ray;
 import Resources;
 import Uranus;
 
@@ -29,15 +31,36 @@ extern TraceResult Impact(CBasePlayer *pAttacker, CBaseEntity *pProjectile, floa
 
 Task CPrecisionAirStrike::Task_Deviation() noexcept
 {
-	for (;;)
+	TraceResult tr{};
+	trace_hull_functor_t fnTraceHull{ Vector(-3, -3, -3), Vector(3, 3, 3) };
+
+	for (Vector vecDir, vecCurDir, vecOrigin, vecEstVel;;)
 	{
 		co_await TaskScheduler::NextFrame::Rank[0];
 
-		pev->angles += Angles(
+		if (m_pEnemy && m_pEnemy->IsAlive())
+		{
+			vecDir = (m_pEnemy->pev->origin - this->pev->origin).Normalize();
+			vecCurDir = this->pev->velocity.Normalize();
+			vecEstVel = vecCurDir.Lerp(vecDir, 0.55) * CVar::PAS_Speed->value;
+
+			fnTraceHull(pev->origin, pev->origin + vecEstVel, dont_ignore_monsters, edict(), &tr);
+
+			// If the correction is leading to hit a wall, skip it.
+			if (EHANDLE<CBaseEntity> pHit{ tr.pHit }; pHit && pHit->IsBSPModel())
+				goto LAB_SKIP_CALIBRATION;
+
+			this->pev->velocity = vecEstVel;
+			this->pev->angles = vecEstVel.VectorAngles();
+		}
+
+	LAB_SKIP_CALIBRATION:;
+
+		pev->angles += Angles{
 			UTIL_Random(-0.2f, 0.2f),
 			UTIL_Random(-0.2f, 0.2f),
-			UTIL_Random(-0.2f, 0.2f)
-		);
+			UTIL_Random(-0.2f, 0.2f),
+		};
 
 		// GoldSrc Mystery #1: The fucking v_angle and angles.
 		pev->v_angle = Angles(
@@ -46,9 +69,9 @@ Task CPrecisionAirStrike::Task_Deviation() noexcept
 			pev->angles.roll
 		);
 
-		pev->velocity = pev->v_angle.Front() * SPEED;
+		pev->velocity = pev->v_angle.Front() * CVar::PAS_Speed->value;
 
-		auto const vecOrigin = pev->origin + pev->v_angle.Front() * -48;
+		vecOrigin = pev->origin + pev->v_angle.Front() * -48;
 
 		MsgPVS(SVC_TEMPENTITY, vecOrigin);
 		WriteData(TE_SPRITE);
@@ -104,7 +127,7 @@ void CPrecisionAirStrike::Spawn() noexcept
 	pev->owner = m_pPlayer->edict();
 	pev->solid = SOLID_BBOX;
 	pev->movetype = MOVETYPE_TOSS;
-	pev->velocity = (m_vecTarget - pev->origin).Normalize() * SPEED;
+	pev->velocity = (m_vecTarget - pev->origin).Normalize() * CVar::PAS_Speed->value;
 	pev->angles = pev->velocity.VectorAngles();
 	pev->body = AIR_STRIKE;
 
@@ -137,7 +160,7 @@ void CPrecisionAirStrike::Touch(CBaseEntity *pOther) noexcept
 	pev->flags |= FL_KILLME;
 }
 
-CPrecisionAirStrike *CPrecisionAirStrike::Create(CBasePlayer *pPlayer, Vector const &vecOrigin, Vector const &vecTarget) noexcept
+CPrecisionAirStrike *CPrecisionAirStrike::Create(CBasePlayer *pPlayer, Vector const &vecOrigin, Vector const &vecTarget, CBaseEntity* pEnemy) noexcept
 {
 	auto const [pEdict, pPrefab] = UTIL_CreateNamedPrefab<CPrecisionAirStrike>();
 
@@ -145,6 +168,7 @@ CPrecisionAirStrike *CPrecisionAirStrike::Create(CBasePlayer *pPlayer, Vector co
 
 	pPrefab->m_pPlayer = pPlayer;
 	pPrefab->m_vecTarget = vecTarget;
+	pPrefab->m_pEnemy = pEnemy;
 	pPrefab->Spawn();
 	pPrefab->pev->nextthink = 0.1f;
 

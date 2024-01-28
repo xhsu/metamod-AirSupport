@@ -625,7 +625,8 @@ void CSmoke::Spawn() noexcept
 	g_engfuncs.pfnTraceMonsterHull(edict(), Vector(pev->origin.x, pev->origin.y, pev->origin.z + 32.0), Vector(pev->origin.x, pev->origin.y, 8192), ignore_monsters | ignore_glass, nullptr, &tr);
 	g_engfuncs.pfnTraceMonsterHull(edict(), tr.vecEndPos, pev->origin, ignore_monsters | ignore_glass, nullptr, &tr);
 
-	g_engfuncs.pfnSetOrigin(edict(), tr.vecEndPos);	// pfnSetOrigin includes the abssize setting, restoring our hitbox.
+	if ((tr.vecEndPos - pev->origin).LengthSquared() < (64.0 * 64.0))	// Just in case it teleport to some random roof.
+		g_engfuncs.pfnSetOrigin(edict(), tr.vecEndPos);	// pfnSetOrigin includes the abssize setting, restoring our hitbox.
 
 	m_vecStartingLitClr = Vector(
 		UTIL_Random(0xC3, 0xCD),	// r

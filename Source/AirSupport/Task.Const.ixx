@@ -23,6 +23,7 @@ export enum ETaskFlags : uint64_t
 	TASK_RADIO_REJECTED = (1 << 17),
 	TASK_RADIO_ACCEPTED = (1 << 18),
 	TASK_RADIO_TARGET = (1 << 19),
+	TASK_RADIO_TEAM_CD = (1 << 20),
 
 	TASK_ENTITY_ON_FIRE = (1 << 24),
 	TASK_FLAME_ON_PLAYER = (1 << 25),

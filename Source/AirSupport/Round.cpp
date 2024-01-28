@@ -9,6 +9,7 @@ import Round;
 import Target;
 import Task.Const;
 import Task;
+import Weapon;
 
 import UtlRandom;
 
@@ -101,9 +102,14 @@ void OrpheuF_CleanUpMap(CHalfLifeMultiplay *pThis) noexcept
 
 	// Reset tasks
 
-	TaskScheduler::Delist(TASK_SUFFOCATION);
 	TaskScheduler::Delist(TASK_ENTITY_ON_FIRE);
 	TaskScheduler::Delist(TASK_FLAME_ON_PLAYER);
+	TaskScheduler::Delist(TASK_RADIO_TEAM_CD);
+	TaskScheduler::Delist(TASK_SUFFOCATION);
+
+	// Reset Var
+
+	CRadio::m_rgbTeamCooldown.fill(false);
 }
 
 void Task_GetWorld(void) noexcept
@@ -150,7 +156,8 @@ Task Task_TeamwiseAI(cvar_t const* pcvarEnable, std::vector<edict_t*> const* pTe
 
 	for (TraceResult tr{};;)
 	{
-		co_await UTIL_Random(5.f, 10.f);
+		// the cvar is both think rate and toggle.
+		co_await std::max(5.f, UTIL_Random(pcvarEnable->value - 5.f, pcvarEnable->value + 5.f));
 
 		if (pcvarEnable->value <= 0)
 			continue;
@@ -167,13 +174,18 @@ Task Task_TeamwiseAI(cvar_t const* pcvarEnable, std::vector<edict_t*> const* pTe
 			auto const vecSky = pPlayer->pev->origin + Vector{ 0, 0, 4096 };
 			g_engfuncs.pfnTraceLine(pPlayer->pev->origin, vecSky, ignore_monsters, nullptr, &tr);
 
+			// only this guy needs to appear under the sky.
 			if (g_engfuncs.pfnPointContents(tr.vecEndPos) != CONTENTS_SKY)
 				continue;
 
+			// any his other teammate close by?
 			for (auto&& pPlayer2 : rgpCandidates)
 			{
 				if ((pPlayer->pev->origin - pPlayer2->pev->origin).LengthSquared() < (300 * 300))
+				{
 					rgpPotentialTargets.push_back(pPlayer);
+					break;
+				}
 			}
 		}
 

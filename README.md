@@ -18,6 +18,38 @@ win32 addons/metamod/dlls/AirSupport.dll
 * It is recommanded that one put this plugin above AmXModX, a.k.a. `amxmodx_mm.dll`
 * This plugin is strictly Windows-exclusive. Under no circumstances can this plugin be successfully compiled without MSVC.
 
+# Configuration
+| CVar | Value Range | Default | Explaination |
+| ---- | ----------- | :-----: | ------------ |
+| airsupport_ct_think | 0 <= val < ∞ | 12 | Interval between calling attempt from CT BOTs. 0 to turn it off. |
+| airsupport_ter_think | 0 <= val < ∞ | 0 | Interval between calling attempt from TER BOTs. 0 to turn it off. |
+| airsupport_player_cd | 0 <= val < ∞ | 6 | Interval between player calling, resource shared amongst the team. |
+| airsupport_pas_speed | 0 <= val < ∞ | 1000 | Flying speed of Precise air strike projectile. |
+| airsupport_gunship_radius | 0 <= val < ∞ | 500 | Gunship beacon searching radius. |
+| airsupport_gunship_beacon_fx | 0 or 1 | 1 | Gunship beacon searching effect. |
+| airsupport_gunship_holding | 0 <= val < ∞ | 25 | Time before gunship leaving the map. |
+
+| Command | Availability | Explaination |
+| ------- | :----------: | ------------ |
+| airsupport_scanjetspawn | Server | Generate simple jet waypoint for the plugin. |
+| airsupport_readjetspawn | Server | Reload jet waypoint binary file. |
+| takeradio | Client | Give player a radio `CBasePlayerItem`. |
+| airsupport_extra_info | Client | Query the technical info about `AirSupport` plugin which currently running in server. |
+
+### Localization Texts
+```
+"AIRSUPPORT_REJECT_NO_JET_SPAWN"	"The pilot found nowhere to approach."  
+"AIRSUPPORT_REJECT_NO_VALID_TRACELINE"	"The pilot has no clear sight."  
+"AIRSUPPORT_REJECT_TIME_OUT"	"Airsupport cancelled due to insufficition communication."  
+"AIRSUPPORT_REJECT_COVERED_LOCATION"	"The location cannot be cover by airsupport."  
+"AIRSUPPORT_REJECT_HEIGHT_NOT_ENOUGH"	"The location is too elevated! (%s1)"  
+"AIRSUPPORT_REJECT_COOLING_DOWN"	"The HQ is preparing for the next round!"  
+"AIRSUPPORT_GUNSHIP_DESPAWNING"	"Gunship requires reload and leaving the area."  
+"AIRSUPPORT_GUNSHIP_ENTITY_MUTUALLY_EXCLUSIVE"	"Another gunship had taken the air supremacy in the area!"  
+"AIRSUPPORT_GUNSHIP_RESELECT_TARGET"	"New target had been informed."  
+"AIRSUPPORT_HINT_PRESS_AND_HOLD"	"PRESS and HOLD to direct the bombardment."  
+"AIRSUPPORT_HINT_RESEL_TARGET"	"Take out your radio again to manually select a target."  
+```
 # Showcase
 ## Precise air strike
 Features a tracking, precise attack against individual.
