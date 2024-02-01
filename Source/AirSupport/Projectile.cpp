@@ -4,6 +4,8 @@ import <array>;
 import <list>;
 import <ranges>;
 
+import mathlib;
+
 import Effects;
 import Hook;
 import Math;
