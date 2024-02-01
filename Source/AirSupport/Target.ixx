@@ -22,6 +22,7 @@ export struct CDynamicTarget : public Prefab_t
 	~CDynamicTarget() noexcept override;
 
 	Task Task_Animation() noexcept;
+	Task Task_AngleInterpol() noexcept;
 	Task Task_DeepEval_AirStrike() noexcept;
 	Task Task_DeepEval_Phosphorus() noexcept;
 	Task Task_QuickEval_AirStrike() noexcept;
@@ -44,9 +45,7 @@ export struct CDynamicTarget : public Prefab_t
 	EHANDLE<CBaseEntity> m_pTargeting{ nullptr };
 	EHANDLE<CPrefabWeapon> m_pRadio{ nullptr };
 	CBasePlayer *m_pPlayer{};
-	Vector m_vecLastAiming{};
-	float m_flLastValidTracking{};
-	float m_flLastHintTime{};
+	Vector m_vecNormRotatingTo{};	// the endpos of current slerp, use it when converting to fixed target.
 	std::array<EHANDLE<CSpriteDisplay>, 4> m_rgpAttachedSpr{};	// 4 == maxium attachment count on vanilla GoldSrc.
 	std::array<EHANDLE<CBeam>, BEACON_COUNT> m_rgpBeacons{};
 	std::array<BodyEnumInfo_t, 3> m_rgBodyInfo{ {{0, 1}, {0, 7}, {0, 2}} };

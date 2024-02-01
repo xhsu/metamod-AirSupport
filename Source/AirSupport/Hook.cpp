@@ -106,6 +106,8 @@ static void RetrieveCVarHandles() noexcept
 		g_engfuncs.pfnCVarRegister(new cvar_t{ "airsupport_ct_think",			"12", FCVAR_SERVER | FCVAR_EXTDLL });
 		g_engfuncs.pfnCVarRegister(new cvar_t{ "airsupport_ter_think",			"0", FCVAR_SERVER | FCVAR_EXTDLL });
 		g_engfuncs.pfnCVarRegister(new cvar_t{ "airsupport_player_cd",			"6", FCVAR_SERVER | FCVAR_EXTDLL });
+		g_engfuncs.pfnCVarRegister(new cvar_t{ "airsupport_targeting_fx",		"9", FCVAR_SERVER | FCVAR_EXTDLL });
+		g_engfuncs.pfnCVarRegister(new cvar_t{ "airsupport_targeting_time",		"0.2", FCVAR_SERVER | FCVAR_EXTDLL });
 		g_engfuncs.pfnCVarRegister(new cvar_t{ "airsupport_pas_speed",			"1000", FCVAR_SERVER | FCVAR_EXTDLL });
 		g_engfuncs.pfnCVarRegister(new cvar_t{ "airsupport_gunship_radius",		"500", FCVAR_SERVER | FCVAR_EXTDLL });
 		g_engfuncs.pfnCVarRegister(new cvar_t{ "airsupport_gunship_beacon_fx",	"1", FCVAR_SERVER | FCVAR_EXTDLL });
@@ -125,6 +127,8 @@ static void RetrieveCVarHandles() noexcept
 	CVar::CounterTerAI = g_engfuncs.pfnCVarGetPointer("airsupport_ct_think");
 	CVar::TerroristAI = g_engfuncs.pfnCVarGetPointer("airsupport_ter_think");
 	CVar::PlayerInterval = g_engfuncs.pfnCVarGetPointer("airsupport_player_cd");
+	CVar::TargetingFX = g_engfuncs.pfnCVarGetPointer("airsupport_targeting_fx");
+	CVar::TargetingTime = g_engfuncs.pfnCVarGetPointer("airsupport_targeting_time");
 	CVar::PAS_Speed = g_engfuncs.pfnCVarGetPointer("airsupport_pas_speed");
 	CVar::GS_Radius = g_engfuncs.pfnCVarGetPointer("airsupport_gunship_radius");
 	CVar::GS_BeaconFX = g_engfuncs.pfnCVarGetPointer("airsupport_gunship_beacon_fx");

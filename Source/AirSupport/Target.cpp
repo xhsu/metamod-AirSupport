@@ -1,4 +1,4 @@
-#include <cassert>
+import <cassert>;
 
 import <chrono>;
 import <numbers>;
@@ -7,6 +7,7 @@ import Beam;
 import Effects;
 import Jet;
 import Localization;
+import Math;
 import Projectile;
 import Query;
 import Ray;
@@ -69,6 +70,87 @@ extern "C++" namespace Laser
 };
 
 //
+// Common Tasks
+//
+
+static Task Task_AngleAlter(entvars_t* const pev, Vector const vStart, Vector const vEnd, float const flTimeFrame) noexcept
+{
+	auto const FX = (int)std::roundf(CVar::TargetingFX->value);
+	auto const flStartTime = gpGlobals->time;
+	Vector vNow{};
+	float t{};
+
+	if (vStart.Approx(vEnd, 0.01f))
+		co_return;
+
+	for (auto passed = gpGlobals->time - flStartTime;
+		passed <= flTimeFrame;
+		passed = gpGlobals->time - flStartTime)
+	{
+		co_await TaskScheduler::NextFrame::Rank[5];
+
+		switch (FX)
+		{
+		default:
+			vNow = vector_slerp(vStart, vEnd, passed / flTimeFrame);	// linear
+			break;
+
+		case 1:
+			vNow = vector_slerp(vStart, vEnd, passed / flTimeFrame, &Interpolation::smooth_step);
+			break;
+
+		case 2:
+			vNow = vector_slerp(vStart, vEnd, passed / flTimeFrame, &Interpolation::spring<0.25>);
+			break;
+
+		case 3:
+			vNow = vector_slerp(vStart, vEnd, passed / flTimeFrame, &Interpolation::acce_then_dece);
+			break;
+
+		case 4:
+			vNow = vector_slerp(vStart, vEnd, passed / flTimeFrame, &Interpolation::bounce);
+			break;
+
+		case 5:
+			vNow = vector_slerp(vStart, vEnd, passed / flTimeFrame, &Interpolation::accelerated<1.75>);
+			break;
+
+		case 6:
+			vNow = vector_slerp(vStart, vEnd, passed / flTimeFrame, &Interpolation::anticipate<2.0>);
+			break;
+
+		case 7:
+			vNow = vector_slerp(vStart, vEnd, passed / flTimeFrame, &Interpolation::antic_then_overshoot<2.0 * 1.5>);
+			break;
+
+		case 8:
+			vNow = vector_slerp(vStart, vEnd, passed / flTimeFrame, &Interpolation::cycle<1.0>);
+			break;
+
+		case 9:
+			vNow = vector_slerp(vStart, vEnd, passed / flTimeFrame, &Interpolation::decelerated<1.75>);
+			break;
+
+		case 10:
+			vNow = vector_slerp(vStart, vEnd, passed / flTimeFrame, &Interpolation::overshoot<2.0>);
+			break;
+
+		case 11:
+			vNow = vector_slerp(vStart, vEnd, passed / flTimeFrame, &Interpolation::cubic_hermite<4.0, 4.0>);
+			break;
+		}
+
+		pev->angles = vNow.VectorAngles();
+	}
+
+	// Just in case that the time gets too short and the 100% frame does not called.
+	co_await TaskScheduler::NextFrame::Rank[5];
+	pev->angles = vEnd.VectorAngles();
+
+	co_return;
+}
+
+//
 // CDynamicTarget
 // Representing the "only I can see" target model when player holding radio.
 //
@@ -90,6 +172,7 @@ Task CDynamicTarget::Task_Animation() noexcept
 
 	for (;;)
 	{
+		[[unlikely]]
 		if (m_pPlayer->m_pActiveItem != m_pRadio)	// #AIRSUPPORT_verify_radio
 		{
 			co_await Models::v_radio::time::draw;	// the model will be hidden for this long, at least.
@@ -129,6 +212,39 @@ Task CDynamicTarget::Task_Animation() noexcept
 			pev->frame -= float((pev->frame / 256.0) * 256.0);	// model sequence is different from SPRITE, no matter now many frame you have, it will stretch/squeeze into 256.
 
 		LastAnimUpdate = CurTime;
+	}
+}
+
+Task CDynamicTarget::Task_AngleInterpol() noexcept
+{
+	Vector vecLastNorm{ Vector::Up() };
+
+	for (;;)
+	{
+		[[unlikely]]
+		if (m_pPlayer->m_pActiveItem != m_pRadio)	// #AIRSUPPORT_verify_radio
+		{
+			co_await Models::v_radio::time::draw;	// the model will be hidden for this long, at least.
+			continue;
+		}
+
+		co_await TaskScheduler::NextFrame::Rank[4];	// before angle interpole think.
+
+		if (!vecLastNorm.Approx(m_vecNormRotatingTo, 0.01f))
+		{
+			if (CVar::TargetingTime->value > 0.0)
+			{
+				m_Scheduler.Enroll(Task_AngleAlter(
+					pev,
+					// LUNA: WHY THE HECK does the v_angle doing here?!
+					Angles{ -pev->angles.pitch, pev->angles.yaw, pev->angles.roll }.Front(),
+					m_vecNormRotatingTo,
+					CVar::TargetingTime->value
+				), TASK_ANGLE_INTERPOL, true);
+			}
+
+			vecLastNorm = m_vecNormRotatingTo;
+		}
 	}
 }
 
@@ -247,6 +363,8 @@ Task CDynamicTarget::Task_DeepEval_Phosphorus() noexcept
 Task CDynamicTarget::Task_QuickEval_AirStrike() noexcept
 {
 	TraceResult tr{};
+	Vector vecLastAiming{};
+	float flLastValidTracking{};
 
 	for (;;)
 	{
@@ -284,30 +402,30 @@ Task CDynamicTarget::Task_QuickEval_AirStrike() noexcept
 			goto LAB_CONTINUE;	// there's no set origin.
 		}
 
-		if (pev_valid(tr.pHit) != 2 && m_flLastValidTracking < gpGlobals->time - 0.5f)	// Snapping: compensenting bad aiming
+		if (pev_valid(tr.pHit) != 2 && flLastValidTracking < gpGlobals->time - 0.5f)	// Snapping: compensenting bad aiming
 			m_pTargeting = nullptr;
 		else if (pev_valid(tr.pHit) == 2)
 		{
 			m_pTargeting = tr.pHit;
-			m_flLastValidTracking = gpGlobals->time;
+			flLastValidTracking = gpGlobals->time;
 		}
 
 		if (m_pTargeting && !m_pTargeting->IsBSPModel() && m_pTargeting->IsAlive())
 		{
-			pev->angles = Angles::Upwards();
+			m_vecNormRotatingTo = Vector::Up();
 
 			auto const vecCenter = m_pTargeting->Center();
 			g_engfuncs.pfnSetOrigin(edict(), Vector(vecCenter.x, vecCenter.y, m_pTargeting->pev->absmin.z + 1.0));	// snap to target.
 		}
 		else
 		{
-			pev->angles = tr.vecPlaneNormal.VectorAngles();
+			m_vecNormRotatingTo = tr.vecPlaneNormal;
 			pev->origin = tr.vecEndPos;
 		}
 
 		// Quick Evaluation
 
-		if ((pev->origin - m_vecLastAiming).LengthSquared() > 24.0 * 24.0)
+		if ((pev->origin - vecLastAiming).LengthSquared() > 24.0 * 24.0)
 		{
 			// Remove old deep think
 			m_Scheduler.Delist(TASK_DEEP_ANALYZE);
@@ -332,7 +450,7 @@ Task CDynamicTarget::Task_QuickEval_AirStrike() noexcept
 				pev->skin = Models::targetmdl::SKIN_GREEN;
 			}
 
-			m_vecLastAiming = pev->origin;
+			vecLastAiming = pev->origin;
 		}
 
 	LAB_CONTINUE:;
@@ -382,7 +500,7 @@ Task CDynamicTarget::Task_QuickEval_ClusterBomb() noexcept
 			goto LAB_CONTINUE;	// there's no set origin.
 		}
 
-		g_engfuncs.pfnVecToAngles(tr.vecPlaneNormal, pev->angles);
+		m_vecNormRotatingTo = tr.vecPlaneNormal;
 		g_engfuncs.pfnSetOrigin(edict(), tr.vecEndPos);
 
 		// Quick Evaluation
@@ -489,7 +607,7 @@ Task CDynamicTarget::Task_QuickEval_CarpetBombardment() noexcept
 		{
 			// Not pressing LMB, only the main target mdl will showed up.
 
-			pev->angles = vecSurfNorm.VectorAngles();
+			m_vecNormRotatingTo = vecSurfNorm;
 			UTIL_SetController(&pev->controller[0], &ARROW_CONTROLLER, (double)-m_pPlayer->pev->angles.yaw + (double)pev->angles.yaw - 90.0);
 
 			g_engfuncs.pfnSetOrigin(edict(), vecAiming);
@@ -573,7 +691,8 @@ Task CDynamicTarget::Task_QuickEval_Gunship() noexcept
 {
 	TraceResult tr{};
 	EHANDLE<CFixedTarget> pFixedTarget{};
-	float flLastAttackingVoice{};
+	Vector vecLastNorm{};
+	float flLastValidTracking{}, flLastAttackingVoice{};
 
 	// We have no variable storing CFixedTarget. Have to search like this.
 	for (auto&& pEntity :
@@ -622,24 +741,24 @@ Task CDynamicTarget::Task_QuickEval_Gunship() noexcept
 			continue;	// there's no set origin.
 		}
 
-		if (pev_valid(tr.pHit) != 2 && m_flLastValidTracking < gpGlobals->time - 0.5f)	// Snapping: compensating bad aiming
+		if (pev_valid(tr.pHit) != 2 && flLastValidTracking < gpGlobals->time - 0.5f)	// Snapping: compensating bad aiming
 			m_pTargeting = nullptr;
 		else if (pev_valid(tr.pHit) == 2)
 		{
 			m_pTargeting = tr.pHit;
-			m_flLastValidTracking = gpGlobals->time;
+			flLastValidTracking = gpGlobals->time;
 		}
 
 		if (m_pTargeting && !m_pTargeting->IsBSPModel() && m_pTargeting->IsAlive())
 		{
-			pev->angles = Angles::Upwards();
+			m_vecNormRotatingTo = Vector::Up();
 
-			Vector const vecCenter = m_pTargeting->Center();
+			auto const vecCenter = m_pTargeting->Center();
 			g_engfuncs.pfnSetOrigin(edict(), Vector(vecCenter.x, vecCenter.y, m_pTargeting->pev->absmin.z + 1.0));	// snap to target.
 		}
 		else
 		{
-			g_engfuncs.pfnVecToAngles(tr.vecPlaneNormal, pev->angles);
+			m_vecNormRotatingTo = tr.vecPlaneNormal;
 			g_engfuncs.pfnSetOrigin(edict(), tr.vecEndPos);
 		}
 
@@ -687,7 +806,9 @@ Task CDynamicTarget::Task_QuickEval_Phosphorus() noexcept
 {
 	trace_arc_functor_t fnTraceArc{};
 	TraceResult tr{}, tr2{};
+	Vector vecLastAiming{};
 	auto iCounter = 0;
+	float flLastValidTracking{}, flLastHintTime{};
 
 	g_engfuncs.pfnSetSize(fnTraceArc, Vector(-4, -4, -4), Vector(4, 4, 4));
 
@@ -718,7 +839,7 @@ Task CDynamicTarget::Task_QuickEval_Phosphorus() noexcept
 		auto const bHeightNotEnough = (tr2.vecEndPos.z - tr.vecEndPos.z) < 800.f;
 
 		// This is the one that needs a hint, or it would be extremely confusing to debug.
-		if (bHeightNotEnough && m_flLastHintTime < (gpGlobals->time - 5.f))
+		if (bHeightNotEnough && flLastHintTime < (gpGlobals->time - 5.f))
 		{
 			auto const szHeightDiff = std::format("{}", (int)std::roundf(tr2.vecEndPos.z - tr.vecEndPos.z));
 			
@@ -727,7 +848,7 @@ Task CDynamicTarget::Task_QuickEval_Phosphorus() noexcept
 				(byte)4, Localization::REJECT_HEIGHT_NOT_ENOUGH, szHeightDiff.c_str()
 			);
 
-			m_flLastHintTime = gpGlobals->time;
+			flLastHintTime = gpGlobals->time;
 		}
 
 		if (auto const flAngleLean = std::acos(DotProduct(Vector::Up(), tr.vecPlaneNormal)/* No div len required, both len are 1. */) / std::numbers::pi * 180.0;
@@ -743,12 +864,12 @@ Task CDynamicTarget::Task_QuickEval_Phosphorus() noexcept
 			goto LAB_CONTINUE;	// there's no set origin.
 		}
 
-		g_engfuncs.pfnVecToAngles(tr.vecPlaneNormal, pev->angles);
+		m_vecNormRotatingTo = tr.vecPlaneNormal;
 		g_engfuncs.pfnSetOrigin(edict(), tr.vecEndPos);
 
 		// Quick Evaluation
 
-		if ((pev->origin - m_vecLastAiming).LengthSquared2D() > 576 /* 24 */)	// Position drifted, the old estimation could be invalidated.
+		if ((pev->origin - vecLastAiming).LengthSquared2D() > 576 /* 24 */)	// Position drifted, the old estimation could be invalidated.
 		{
 			// Remove old deep think
 			m_Scheduler.Delist(TASK_DEEP_ANALYZE);
@@ -768,7 +889,7 @@ Task CDynamicTarget::Task_QuickEval_Phosphorus() noexcept
 				pev->skin = Models::targetmdl::SKIN_RED;
 			}
 
-			m_vecLastAiming = pev->origin;
+			vecLastAiming = pev->origin;
 		}
 
 	LAB_CONTINUE:;
@@ -914,6 +1035,7 @@ void CDynamicTarget::Spawn() noexcept
 	pev->team = m_pPlayer->m_iTeam;
 
 	m_Scheduler.Enroll(Task_Animation());
+	m_Scheduler.Enroll(Task_AngleInterpol());
 	m_Scheduler.Enroll(Task_Remove());
 
 	UpdateEvalMethod();
@@ -922,6 +1044,8 @@ void CDynamicTarget::Spawn() noexcept
 CDynamicTarget *CDynamicTarget::Create(CBasePlayer *pPlayer, CPrefabWeapon *pRadio) noexcept
 {
 	auto const [pEdict, pPrefab] = UTIL_CreateNamedPrefab<CDynamicTarget>();
+
+	pEdict->v.angles = Angles::Upwards();	// determind my model.
 
 	pPrefab->m_pPlayer = pPlayer;
 	pPrefab->m_pRadio = pRadio;
@@ -1306,7 +1430,7 @@ CFixedTarget *CFixedTarget::Create(CDynamicTarget *const pDynamicTarget) noexcep
 {
 	auto const [pEdict, pPrefab] = UTIL_CreateNamedPrefab<CFixedTarget>();
 
-	pEdict->v.angles = pDynamicTarget->pev->angles;
+	pEdict->v.angles = pDynamicTarget->m_vecNormRotatingTo.VectorAngles();
 	pEdict->v.origin = pDynamicTarget->pev->origin;
 	pEdict->v.body = pDynamicTarget->pev->body;
 	pEdict->v.sequence = pDynamicTarget->pev->sequence;

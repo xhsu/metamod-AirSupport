@@ -44,7 +44,7 @@ Task CPrecisionAirStrike::Task_Deviation() noexcept
 		{
 			vecDir = (m_pEnemy->pev->origin - this->pev->origin).Normalize();
 			vecCurDir = this->pev->velocity.Normalize();
-			vecEstVel = linear_interpolation(vecDir, vecCurDir, 0.55).Normalize() * CVar::PAS_Speed->value;
+			vecEstVel = arithmetic_lerp(vecDir, vecCurDir, 0.55).Normalize() * CVar::PAS_Speed->value;
 
 			fnTraceHull(pev->origin, pev->origin + vecEstVel, dont_ignore_monsters, edict(), &tr);
 

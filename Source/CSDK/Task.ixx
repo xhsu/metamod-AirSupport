@@ -101,8 +101,13 @@ export struct TaskScheduler_t final
 		}
 	}
 
-	inline void Enroll(Task &&obj, uint64_t iCoroutineMarker = 0ull) noexcept
+	inline void Enroll(Task &&obj, uint64_t iCoroutineMarker = 0ull, bool bExclusiveMode = false, bool bUsingBits = true) noexcept
 	{
+		if (bExclusiveMode)
+		{
+			Delist(iCoroutineMarker, bUsingBits);
+		}
+
 		[[likely]]
 		if (!obj.Done())
 		{
@@ -188,7 +193,7 @@ export namespace TaskScheduler
 	// StartFrame_Post
 	inline decltype(auto) Think(void) noexcept { return m_GlobalScheduler.Think(); }
 
-	inline decltype(auto) Enroll(Task &&obj, uint64_t iCoroutineMarker = 0ull) noexcept { return m_GlobalScheduler.Enroll(std::forward<Task>(obj), iCoroutineMarker); }
+	inline decltype(auto) Enroll(Task &&obj, uint64_t iCoroutineMarker = 0ull, bool bExclusiveMode = false, bool bUsingBits = true) noexcept { return m_GlobalScheduler.Enroll(std::forward<Task>(obj), iCoroutineMarker, bExclusiveMode, bUsingBits); }
 
 	inline decltype(auto) Delist(uint64_t iCoroutineMarker, bool bUsingBits = true) noexcept { return m_GlobalScheduler.Delist(iCoroutineMarker, bUsingBits); }
 
