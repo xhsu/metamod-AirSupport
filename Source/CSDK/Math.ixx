@@ -1,5 +1,6 @@
 ﻿export module Math;
 
+export import <cassert>;
 export import <cmath>;
 
 export import <algorithm>;
@@ -50,6 +51,7 @@ export inline auto get_cylindrical_coord(double radius, double azimuth, double h
 	);
 }
 
+// https://www.euclideanspace.com/maths/algebra/realNormedAlgebra/quaternions/slerp/index.htm
 export inline auto quat_slerp(Quaternion const &qSrc, Quaternion qDest, double t) noexcept
 {
 	static constexpr double epsilon = 0.0001;
@@ -84,4 +86,35 @@ export inline auto quat_slerp(Quaternion const &qSrc, Quaternion qDest, double t
 		(q * qSrc.c) + (p * qDest.c),
 		(q * qSrc.d) + (p * qDest.d)
 	);
+}
+
+export template <typename T> constexpr
+T linear_interpolation(T const& lhs, T const& rhs, double const t) noexcept
+{
+	assert(t <= 1 && t >= 0);
+	return (lhs * t) + (rhs * (1.0 - t));
+}
+
+export template <typename T> constexpr
+T smoothstep_interpolation(T const& lhs, T const& rhs, double t) noexcept
+{
+	assert(t <= 1 && t >= 0);
+	t = (t * t * t * (t * (t * 6 - 15) + 10));
+	return (lhs * t) + (rhs * (1.0 - t));
+}
+
+export template <typename T> constexpr
+T accelerated_interpolation(T const& lhs, T const& rhs, double t) noexcept
+{
+	assert(t <= 1 && t >= 0);
+	t = t * t;
+	return (lhs * t) + (rhs * (1.0 - t));
+}
+
+export template <typename T> constexpr
+T decelerated_interpolation(T const& lhs, T const& rhs, double t) noexcept
+{
+	assert(t <= 1 && t >= 0);
+	t = 1 - (1 - t) * (1 - t);
+	return (lhs * t) + (rhs * (1.0 - t));
 }

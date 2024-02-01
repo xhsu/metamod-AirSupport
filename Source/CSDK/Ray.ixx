@@ -5,7 +5,12 @@ export import util;
 
 export struct trace_hull_functor_t final
 {
-	trace_hull_functor_t(Vector const &vecMin, Vector const &vecMax) noexcept : m_ent(g_engfuncs.pfnCreateNamedEntity(MAKE_STRING("info_target"))) { g_engfuncs.pfnSetSize(m_ent, vecMin, vecMax); g_engfuncs.pfnSetModel(m_ent, "models/w_galil.mdl"); m_ent->v.effects = EF_NODRAW; }
+	trace_hull_functor_t(Vector const &vecMin, Vector const &vecMax) noexcept : m_ent(g_engfuncs.pfnCreateNamedEntity(MAKE_STRING("info_target")))
+	{
+		g_engfuncs.pfnSetSize(m_ent, vecMin, vecMax);
+		g_engfuncs.pfnSetModel(m_ent, "models/w_galil.mdl");
+		m_ent->v.effects = EF_NODRAW;
+	}
 	trace_hull_functor_t(trace_hull_functor_t const &) noexcept = delete;
 	trace_hull_functor_t(trace_hull_functor_t &&) noexcept = delete;
 	trace_hull_functor_t &operator=(trace_hull_functor_t const &) noexcept = delete;
