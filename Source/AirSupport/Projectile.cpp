@@ -4,6 +4,8 @@ import <array>;
 import <list>;
 import <ranges>;
 
+import mathlib;
+
 import Effects;
 import Hook;
 import Math;
@@ -42,7 +44,7 @@ Task CPrecisionAirStrike::Task_Deviation() noexcept
 		{
 			vecDir = (m_pEnemy->pev->origin - this->pev->origin).Normalize();
 			vecCurDir = this->pev->velocity.Normalize();
-			vecEstVel = vecCurDir.Lerp(vecDir, 0.55) * CVar::PAS_Speed->value;
+			vecEstVel = LinearInterpolation(vecDir, vecCurDir, 0.55).Normalize() * CVar::PAS_Speed->value;
 
 			fnTraceHull(pev->origin, pev->origin + vecEstVel, dont_ignore_monsters, edict(), &tr);
 
