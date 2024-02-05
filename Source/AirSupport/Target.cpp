@@ -73,6 +73,13 @@ extern "C++" namespace Laser
 // Common Tasks
 //
 
+inline constexpr auto NEXTFRAME_RANK_REMOVAL = TaskScheduler::NextFrame::Rank[0];
+inline constexpr auto NEXTFRAME_RANK_ANGULER_VEL = TaskScheduler::NextFrame::Rank[1];
+inline constexpr auto NEXTFRAME_RANK_MODE_EVAL = TaskScheduler::NextFrame::Rank[2];
+inline constexpr auto NEXTFRAME_RANK_ANIMATION = TaskScheduler::NextFrame::Rank[3];
+inline constexpr auto NEXTFRAME_RANK_REORDER_ANGVEL = TaskScheduler::NextFrame::Rank[4];
+inline constexpr auto NEXTFRAME_RANK_DEEP_EVAL = TaskScheduler::NextFrame::Rank[5];
+
 static Task Task_AngleAlter(entvars_t* const pev, Vector const vStart, Vector const vEnd, float const flTimeFrame) noexcept
 {
 	auto const FX = (int)std::roundf(CVar::TargetingFX->value);
@@ -87,7 +94,7 @@ static Task Task_AngleAlter(entvars_t* const pev, Vector const vStart, Vector co
 		passed <= flTimeFrame;
 		passed = gpGlobals->time - flStartTime)
 	{
-		co_await TaskScheduler::NextFrame::Rank[5];
+		co_await NEXTFRAME_RANK_ANGULER_VEL;
 
 		switch (FX)
 		{
@@ -144,7 +151,7 @@ static Task Task_AngleAlter(entvars_t* const pev, Vector const vStart, Vector co
 	}
 
 	// Just in case that the time gets too short and the 100% frame does not called.
-	co_await TaskScheduler::NextFrame::Rank[5];
+	co_await NEXTFRAME_RANK_ANGULER_VEL;
 	pev->angles = vEnd.VectorAngles();
 
 	co_return;
@@ -179,7 +186,7 @@ Task CDynamicTarget::Task_Animation() noexcept
 			continue;
 		}
 
-		co_await TaskScheduler::NextFrame::Rank[1];	// behind coord update.
+		co_await NEXTFRAME_RANK_ANIMATION;
 
 		if (m_pTargeting && m_pTargeting->IsPlayer())
 		{
@@ -228,7 +235,7 @@ Task CDynamicTarget::Task_AngleInterpol() noexcept
 			continue;
 		}
 
-		co_await TaskScheduler::NextFrame::Rank[4];	// before angle interpole think.
+		co_await NEXTFRAME_RANK_REORDER_ANGVEL;
 
 		if (!vecLastNorm.Approx(m_vecNormRotatingTo, 0.01f))
 		{
@@ -322,7 +329,7 @@ Task CDynamicTarget::Task_DeepEval_Phosphorus() noexcept
 
 	for (;;)
 	{
-		co_await TaskScheduler::NextFrame::Rank[0];
+		co_await NEXTFRAME_RANK_DEEP_EVAL;
 
 		if (m_pPlayer->m_pActiveItem != m_pRadio)	// #AIRSUPPORT_verify_radio
 		{
@@ -354,7 +361,7 @@ Task CDynamicTarget::Task_DeepEval_Phosphorus() noexcept
 			[[unlikely]]
 			if (!(iCounter % 192))
 			{
-				co_await TaskScheduler::NextFrame::Rank[0];
+				co_await NEXTFRAME_RANK_DEEP_EVAL;
 			}
 		}
 	}
@@ -454,7 +461,7 @@ Task CDynamicTarget::Task_QuickEval_AirStrike() noexcept
 		}
 
 	LAB_CONTINUE:;
-		co_await TaskScheduler::NextFrame::Rank[0];
+		co_await NEXTFRAME_RANK_MODE_EVAL;
 	}
 }
 
@@ -522,7 +529,7 @@ Task CDynamicTarget::Task_QuickEval_ClusterBomb() noexcept
 			Models::targetmdl::SKIN_RED;
 
 	LAB_CONTINUE:;
-		co_await TaskScheduler::NextFrame::Rank[0];
+		co_await NEXTFRAME_RANK_MODE_EVAL;
 	}
 }
 
@@ -542,7 +549,7 @@ Task CDynamicTarget::Task_QuickEval_CarpetBombardment() noexcept
 			continue;
 		}
 
-		co_await TaskScheduler::NextFrame::Rank[0];
+		co_await NEXTFRAME_RANK_MODE_EVAL;
 
 		// Update team info so we can hide from proper player group.
 
@@ -712,7 +719,7 @@ Task CDynamicTarget::Task_QuickEval_Gunship() noexcept
 			continue;
 		}
 
-		co_await TaskScheduler::NextFrame::Rank[0];
+		co_await NEXTFRAME_RANK_MODE_EVAL;
 
 		// Update team info so we can hide from proper player group.
 
@@ -893,7 +900,7 @@ Task CDynamicTarget::Task_QuickEval_Phosphorus() noexcept
 		}
 
 	LAB_CONTINUE:;
-		co_await TaskScheduler::NextFrame::Rank[1];
+		co_await NEXTFRAME_RANK_MODE_EVAL;
 	}
 }
 

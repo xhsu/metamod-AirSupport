@@ -8,6 +8,8 @@ export struct CJet : public Prefab_t
 	static inline constexpr char CLASSNAME[] = "jet_of_regular_airstrike";
 
 	Task Task_BeamAndSound() noexcept;
+	Task Task_StuckCheck() noexcept;
+
 	Task Task_AirStrike() noexcept;
 	Task Task_ClusterBomb() noexcept;
 	Task Task_CarpetBombardment() noexcept;

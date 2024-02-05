@@ -25,7 +25,7 @@ win32 addons/metamod/dlls/AirSupport.dll
 | airsupport_ter_think | [0, ∞) | 0 | Interval between calling attempt from TER BOTs. 0 to turn it off. |
 | airsupport_player_cd | [0, ∞) | 6 | Interval between player calling, resource shared amongst the team. |
 | airsupport_targeting_fx | [0, 11] | 9 | Target miniature angles transiting FX. Each value represents a different FX, one might wants to try all of them one by one. |
-| airsupport_targeting_time | [0, ∞) | 0.2 | Target miniature angles transiting time. |
+| airsupport_targeting_time | [0, ∞) | 0.2 | Target miniature angles transiting time. 0 to turn all FX off. |
 | airsupport_pas_speed | [0, ∞) | 1000 | Flying speed of Precise air strike projectile. |
 | airsupport_gunship_radius | [0, ∞) | 500 | Gunship beacon searching radius. |
 | airsupport_gunship_beacon_fx | 0 or 1 | 1 | Gunship beacon searching effect. |

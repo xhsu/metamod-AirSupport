@@ -59,6 +59,31 @@ Task CJet::Task_BeamAndSound() noexcept
 	}
 }
 
+Task CJet::Task_StuckCheck() noexcept
+{
+	Vector vecLastOrigin{ 0, 0, -8192 };
+
+	for (; !(pev->flags & FL_KILLME);)
+	{
+		co_await 0.1f;
+
+		// The speed value can only be 2048 or 4096.
+		// If the position of this jet does not change that much between frames, it must be stuck.
+
+		[[likely]]
+		if ((vecLastOrigin - pev->origin).LengthSquared() > (1500 * 1500))
+			continue;
+
+		MsgBroadcast(SVC_TEMPENTITY);
+		WriteData(TE_KILLBEAM);
+		WriteData((short)entindex());
+		MsgEnd();
+
+		pev->flags |= FL_KILLME;
+		co_return;
+	}
+}
+
 Task CJet::Task_AirStrike() noexcept
 {
 	co_await TaskScheduler::NextFrame::Rank[1];	// yield to Task_BeamAndSound();
@@ -85,18 +110,23 @@ Task CJet::Task_AirStrike() noexcept
 		}
 
 		co_await TaskScheduler::NextFrame::Rank[1];	// try it every other frame.
+	}
 
+	for (;;)
+	{
 		[[unlikely]]
 		if (!IsInWorld())
 		{
 			MsgBroadcast(SVC_TEMPENTITY);
 			WriteData(TE_KILLBEAM);
-			WriteData((short)entindex());
+			WriteData(entindex());
 			MsgEnd();
 
 			pev->flags |= FL_KILLME;
 			co_return;
 		}
+
+		co_await 0.1f;
 	}
 }
 
@@ -283,18 +313,23 @@ Task CJet::Task_Phosphorus() noexcept
 
 	LAB_CONTINUE:;
 		co_await TaskScheduler::NextFrame::Rank[1];	// try it every other frame.
+	}
 
+	for (;;)
+	{
 		[[unlikely]]
 		if (!IsInWorld())
 		{
 			MsgBroadcast(SVC_TEMPENTITY);
 			WriteData(TE_KILLBEAM);
-			WriteData((short)entindex());
+			WriteData(entindex());
 			MsgEnd();
 
 			pev->flags |= FL_KILLME;
 			co_return;
 		}
+
+		co_await 0.1f;
 	}
 }
 
@@ -345,6 +380,7 @@ void CJet::Spawn() noexcept
 	}
 
 	m_Scheduler.Enroll(Task_BeamAndSound());
+	m_Scheduler.Enroll(Task_StuckCheck());
 }
 
 qboolean CJet::IsInWorld() noexcept
