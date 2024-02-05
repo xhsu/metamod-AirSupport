@@ -44,7 +44,7 @@ Task CPrecisionAirStrike::Task_Deviation() noexcept
 		{
 			vecDir = (m_pEnemy->pev->origin - this->pev->origin).Normalize();
 			vecCurDir = this->pev->velocity.Normalize();
-			vecEstVel = arithmetic_lerp(vecDir, vecCurDir, 0.55).Normalize() * CVar::PAS_Speed->value;
+			vecEstVel = arithmetic_lerp(vecDir, vecCurDir, 0.55).Normalize() * CVar::PAS_ProjSpeed->value;
 
 			fnTraceHull(pev->origin, pev->origin + vecEstVel, dont_ignore_monsters, edict(), &tr);
 
@@ -71,7 +71,7 @@ Task CPrecisionAirStrike::Task_Deviation() noexcept
 			pev->angles.roll
 		);
 
-		pev->velocity = pev->v_angle.Front() * CVar::PAS_Speed->value;
+		pev->velocity = pev->v_angle.Front() * CVar::PAS_ProjSpeed->value;
 
 		vecOrigin = pev->origin + pev->v_angle.Front() * -48;
 
@@ -129,7 +129,7 @@ void CPrecisionAirStrike::Spawn() noexcept
 	pev->owner = m_pPlayer->edict();
 	pev->solid = SOLID_BBOX;
 	pev->movetype = MOVETYPE_TOSS;
-	pev->velocity = (m_vecTarget - pev->origin).Normalize() * CVar::PAS_Speed->value;
+	pev->velocity = (m_vecTarget - pev->origin).Normalize() * CVar::PAS_ProjSpeed->value;
 	pev->angles = pev->velocity.VectorAngles();
 	pev->body = AIR_STRIKE;
 
@@ -149,10 +149,10 @@ void CPrecisionAirStrike::Touch(CBaseEntity *pOther) noexcept
 
 	g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, UTIL_GetRandomOne(Sounds::EXPLOSION), VOL_NORM, 0.3f, 0, UTIL_Random(92, 116));
 
-	Impact(m_pPlayer, this, 500.f);
-	RangeDamage(m_pPlayer, pev->origin, 350.f, 275.f);
-	ScreenEffects(pev->origin, 700.f, 12.f, 2048.f);
-	TaskScheduler::Enroll(VisualEffects(pev->origin, 700.f));
+	Impact(m_pPlayer, this, CVar::PAS_DmgImpact->value);
+	RangeDamage(m_pPlayer, pev->origin, CVar::PAS_DmgRadius->value, CVar::PAS_DmgExplo->value);
+	ScreenEffects(pev->origin, CVar::PAS_FxRadius->value, CVar::PAS_FxPunchMax->value, CVar::PAS_FxKnock->value);
+	TaskScheduler::Enroll(VisualEffects(pev->origin, 700.f));	// this one is not the same as the fx radus, though with same default value.
 
 	MsgBroadcast(SVC_TEMPENTITY);
 	WriteData(TE_KILLBEAM);

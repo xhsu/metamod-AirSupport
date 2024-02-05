@@ -108,7 +108,15 @@ static void RetrieveCVarHandles() noexcept
 		g_engfuncs.pfnCVarRegister(new cvar_t{ "airsupport_player_cd",			"6", FCVAR_SERVER | FCVAR_EXTDLL });
 		g_engfuncs.pfnCVarRegister(new cvar_t{ "airsupport_targeting_fx",		"9", FCVAR_SERVER | FCVAR_EXTDLL });
 		g_engfuncs.pfnCVarRegister(new cvar_t{ "airsupport_targeting_time",		"0.2", FCVAR_SERVER | FCVAR_EXTDLL });
-		g_engfuncs.pfnCVarRegister(new cvar_t{ "airsupport_pas_speed",			"1000", FCVAR_SERVER | FCVAR_EXTDLL });
+		g_engfuncs.pfnCVarRegister(new cvar_t{ "airsupport_target_render_fx",	"15", FCVAR_SERVER | FCVAR_EXTDLL });	// kRenderFxDistort
+		g_engfuncs.pfnCVarRegister(new cvar_t{ "airsupport_target_illumination","1", FCVAR_SERVER | FCVAR_EXTDLL });
+		g_engfuncs.pfnCVarRegister(new cvar_t{ "airsupport_pas_proj_speed",		"1000", FCVAR_SERVER | FCVAR_EXTDLL });
+		g_engfuncs.pfnCVarRegister(new cvar_t{ "airsupport_pas_dmg_impact",		"500", FCVAR_SERVER | FCVAR_EXTDLL });
+		g_engfuncs.pfnCVarRegister(new cvar_t{ "airsupport_pas_dmg_explo",		"275", FCVAR_SERVER | FCVAR_EXTDLL });
+		g_engfuncs.pfnCVarRegister(new cvar_t{ "airsupport_pas_dmg_radius",		"350", FCVAR_SERVER | FCVAR_EXTDLL });
+		g_engfuncs.pfnCVarRegister(new cvar_t{ "airsupport_pas_fx_radius",		"700", FCVAR_SERVER | FCVAR_EXTDLL });
+		g_engfuncs.pfnCVarRegister(new cvar_t{ "airsupport_pas_fx_punch",		"12", FCVAR_SERVER | FCVAR_EXTDLL });
+		g_engfuncs.pfnCVarRegister(new cvar_t{ "airsupport_pas_fx_knock",		"2048", FCVAR_SERVER | FCVAR_EXTDLL });
 		g_engfuncs.pfnCVarRegister(new cvar_t{ "airsupport_gunship_radius",		"500", FCVAR_SERVER | FCVAR_EXTDLL });
 		g_engfuncs.pfnCVarRegister(new cvar_t{ "airsupport_gunship_beacon_fx",	"1", FCVAR_SERVER | FCVAR_EXTDLL });
 		g_engfuncs.pfnCVarRegister(new cvar_t{ "airsupport_gunship_holding",	"25", FCVAR_SERVER | FCVAR_EXTDLL });
@@ -129,7 +137,15 @@ static void RetrieveCVarHandles() noexcept
 	CVar::PlayerInterval = g_engfuncs.pfnCVarGetPointer("airsupport_player_cd");
 	CVar::TargetingFX = g_engfuncs.pfnCVarGetPointer("airsupport_targeting_fx");
 	CVar::TargetingTime = g_engfuncs.pfnCVarGetPointer("airsupport_targeting_time");
-	CVar::PAS_Speed = g_engfuncs.pfnCVarGetPointer("airsupport_pas_speed");
+	CVar::TargetRenderFX = g_engfuncs.pfnCVarGetPointer("airsupport_target_render_fx");
+	CVar::TargetIllumination = g_engfuncs.pfnCVarGetPointer("airsupport_target_illumination");
+	CVar::PAS_ProjSpeed = g_engfuncs.pfnCVarGetPointer("airsupport_pas_proj_speed");
+	CVar::PAS_DmgImpact = g_engfuncs.pfnCVarGetPointer("airsupport_pas_dmg_impact");
+	CVar::PAS_DmgExplo = g_engfuncs.pfnCVarGetPointer("airsupport_pas_dmg_explo");
+	CVar::PAS_DmgRadius = g_engfuncs.pfnCVarGetPointer("airsupport_pas_dmg_radius");
+	CVar::PAS_FxRadius = g_engfuncs.pfnCVarGetPointer("airsupport_pas_fx_radius");
+	CVar::PAS_FxPunchMax = g_engfuncs.pfnCVarGetPointer("airsupport_pas_fx_punch");
+	CVar::PAS_FxKnock = g_engfuncs.pfnCVarGetPointer("airsupport_pas_fx_knock");
 	CVar::GS_Radius = g_engfuncs.pfnCVarGetPointer("airsupport_gunship_radius");
 	CVar::GS_BeaconFX = g_engfuncs.pfnCVarGetPointer("airsupport_gunship_beacon_fx");
 	CVar::GS_Holding = g_engfuncs.pfnCVarGetPointer("airsupport_gunship_holding");

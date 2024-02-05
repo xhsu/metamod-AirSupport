@@ -55,9 +55,20 @@ export namespace CVar
 	inline cvar_t* CounterTerAI = nullptr;
 	inline cvar_t* TerroristAI = nullptr;
 	inline cvar_t* PlayerInterval = nullptr;	// The player interval was only enforced if calling is from a radio weapon.
+	
 	inline cvar_t* TargetingFX = nullptr;
 	inline cvar_t* TargetingTime = nullptr;
-	inline cvar_t* PAS_Speed = nullptr;
+	inline cvar_t* TargetRenderFX = nullptr;
+	inline cvar_t* TargetIllumination = nullptr;
+
+	inline cvar_t* PAS_ProjSpeed = nullptr;
+	inline cvar_t* PAS_DmgImpact = nullptr;
+	inline cvar_t* PAS_DmgExplo = nullptr;
+	inline cvar_t* PAS_DmgRadius = nullptr;
+	inline cvar_t* PAS_FxRadius = nullptr;
+	inline cvar_t* PAS_FxPunchMax = nullptr;
+	inline cvar_t* PAS_FxKnock = nullptr;
+
 	inline cvar_t* GS_Radius = nullptr;
 	inline cvar_t* GS_BeaconFX = nullptr;
 	inline cvar_t* GS_Holding = nullptr;

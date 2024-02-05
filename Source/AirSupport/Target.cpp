@@ -1391,11 +1391,14 @@ void CFixedTarget::Spawn() noexcept
 	pev->movetype = MOVETYPE_NONE;	// Fuck the useless MOVETYPE_FOLLOW
 	pev->effects |= EF_DIMLIGHT;
 	pev->rendermode = kRenderTransAdd;
-	pev->renderfx = kRenderFxDistort;
+	pev->renderfx = (kRenderFx)((std::underlying_type_t<kRenderFx>)std::roundf(CVar::TargetRenderFX->value) % 21);	// kRenderFxDistort(15) is the default value. Change it at Hook.cpp
 	pev->renderamt = 0;
 	pev->skin = Models::targetmdl::SKIN_BLUE;
 	pev->nextthink = 0.1f;
 	pev->team = m_pPlayer->m_iTeam;
+
+	if (CVar::TargetIllumination->value < 1.f)
+		pev->effects &= ~EF_DIMLIGHT;
 
 	m_vecPlayerPosWhenCalled = m_pPlayer->pev->origin;
 

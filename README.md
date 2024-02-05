@@ -26,7 +26,15 @@ win32 addons/metamod/dlls/AirSupport.dll
 | airsupport_player_cd | [0, ∞) | 6 | Interval between player calling, resource shared amongst the team. |
 | airsupport_targeting_fx | [0, 11] | 9 | Target miniature angles transiting FX. Each value represents a different FX, one might wants to try all of them one by one. |
 | airsupport_targeting_time | [0, ∞) | 0.2 | Target miniature angles transiting time. 0 to turn all FX off. |
-| airsupport_pas_speed | [0, ∞) | 1000 | Flying speed of Precise air strike projectile. |
+| airsupport_target_render_fx | [0, 20] | 15 | The FX of static target miniature. Reference to `enum kRenderFx` from `const.h` at [HLSDK](https://github.com/alliedmodders/hlsdk/blob/a0edb7792a96998d349325bebab8ea41ec5cb239/common/const.h#L694). The default value is `kRenderFxDistort`(15). |
+| airsupport_target_illumination | 0 or 1 | 1 | Should the static target miniature illuminate? |
+| airsupport_pas_proj_speed | [0, ∞) | 1000 | Flying speed of Precise air strike projectile. |
+| airsupport_pas_dmg_impact | [0, ∞) | 500 | Impact damage of Precise air strike projectile. |
+| airsupport_pas_dmg_explo | [0, ∞) | 275 | Explosion damage of Precise air strike. |
+| airsupport_pas_dmg_radius | [0, ∞) | 350 | Explosion radius of Precise air strike. |
+| airsupport_pas_fx_radius | [0, ∞) | 700 | Screen effect radius of Precise air strike. |
+| airsupport_pas_fx_punch | [0, ∞) | 12 | Maximum value of Precise air strike screen punching effect. |
+| airsupport_pas_fx_knock | [0, ∞) | 2048 | Maximum value of Precise air strike knocking force. |
 | airsupport_gunship_radius | [0, ∞) | 500 | Gunship beacon searching radius. |
 | airsupport_gunship_beacon_fx | 0 or 1 | 1 | Gunship beacon searching effect. |
 | airsupport_gunship_holding | [0, ∞) | 25 | Time before gunship leaving the map. |
