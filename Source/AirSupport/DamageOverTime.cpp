@@ -45,8 +45,10 @@ namespace Gas
 		if ((bool)CVar::cloud_dmg_use_percentage)
 			flDamage = std::max(flDamage, pPlayer->pev->health * (flDamage / 100.f));
 
+
 		if (auto const iIndex = pPlayer->entindex(); rgflTimeNextInhale[iIndex] < gpGlobals->time)
 		{
+			flDmgInterval = std::max(0.6f, flDmgInterval);	// because of the -0.5f
 			rgflTimeNextInhale[iIndex] = gpGlobals->time + UTIL_Random(flDmgInterval - 0.5f, flDmgInterval + 0.5f);
 
 			pPlayer->TakeDamage(
@@ -73,12 +75,15 @@ namespace Burning
 
 		pInf->v.classname = MAKE_STRING("white_phosphorus");
 
-		for (; pVictim->IsAlive(); co_await 0.2f)
+		auto const flPercent = (float)CVar::pim_perm_burning_dmg / 100.f;
+		auto const flMinCap = (float)CVar::pim_perm_burning_dmg;
+
+		for (; pVictim->IsAlive(); co_await (float)CVar::pim_perm_burning_inv)
 		{
 			if (pVictim->pev->waterlevel == 3)	// water can only pause the white phosphorus fire, not eliminate it.
 				continue;
 
-			pVictim->TakeDamage(&pInf->v, pevAttacker, std::max(pVictim->pev->health * 0.1f, 10.f), DMG_SLOWBURN);
+			pVictim->TakeDamage(&pInf->v, pevAttacker, std::max(pVictim->pev->health * flPercent, flMinCap), DMG_SLOWBURN);
 		}
 	}
 

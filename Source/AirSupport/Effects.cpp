@@ -1482,7 +1482,7 @@ void CPhosphorus::Spawn() noexcept
 	pev->takedamage = DAMAGE_NO;
 
 	m_Scheduler.Enroll(Task_SpriteLoop(pev, FRAME_COUNT, 30), TASK_ANIMATION);
-	m_Scheduler.Enroll(Task_Remove(pev, UTIL_Random((float)CVar::pim_burning_time - 5.f, (float)CVar::pim_burning_time + 5.f)), TASK_TIME_OUT);
+	m_Scheduler.Enroll(Task_Remove(pev, UTIL_Random((float)CVar::pim_phos_burning_time - 5.f, (float)CVar::pim_phos_burning_time + 5.f)), TASK_TIME_OUT);
 	m_Scheduler.Enroll(Task_Gravity(), TASK_FLYING);
 	m_Scheduler.Enroll(Task_EmitExhaust(), TASK_FLYING | TASK_ACTION);
 
@@ -1568,11 +1568,11 @@ void CPhosphorus::Touch_Burning(CBaseEntity *pOther) noexcept
 	pOther->TakeDamage(
 		this->pev,
 		m_pPlayer->pev,
-		UTIL_Random((float)CVar::pim_burning_dmg - 5.f, (float)CVar::pim_burning_dmg + 5.f),
+		UTIL_Random((float)CVar::pim_touch_burning_dmg - 5.f, (float)CVar::pim_touch_burning_dmg + 5.f),
 		DMG_SLOWBURN
 	);
 
-	m_rgflDamageInterval[iEntIndex] = gpGlobals->time + (float)CVar::pim_burning_inv;	// Well, white phosphorus does the job...
+	m_rgflDamageInterval[iEntIndex] = gpGlobals->time + (float)CVar::pim_touch_burning_inv;	// Well, white phosphorus does the job...
 }
 
 Task CPhosphorus::Task_Gravity() noexcept

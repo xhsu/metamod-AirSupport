@@ -87,9 +87,21 @@ qboolean CRadio::Deploy() noexcept
 
 void CRadio::ItemPostFrame() noexcept
 {
-	if (m_pPlayer->m_afButtonPressed & IN_ATTACK && m_pPlayer->m_flNextAttack <= 0 && m_bSoundSeqFinished) [[unlikely]]
+	auto const iMode = g_rgiAirSupportSelected[m_pPlayer->entindex()];
+
+	if (iMode == GUNSHIP_STRIKE && m_rgbTeamCooldown[m_pPlayer->m_iTeam] && !HavingGunshipRunning()) [[unlikely]]
 	{
-		switch (g_rgiAirSupportSelected[m_pPlayer->entindex()])
+		if (!m_Scheduler.Exist(TASK_RADIO_FORCED_HOLSTER))
+		{
+			m_Scheduler.Enroll(
+				Task_SequencedHolster(),
+				TASK_RADIO_FORCED_HOLSTER
+			);
+		}
+	}
+	else if (m_pPlayer->m_afButtonPressed & IN_ATTACK && m_pPlayer->m_flNextAttack <= 0 && m_bSoundSeqFinished) [[unlikely]]
+	{
+		switch (iMode)
 		{
 		case CARPET_BOMBARDMENT:
 
@@ -132,7 +144,7 @@ void CRadio::ItemPostFrame() noexcept
 	}
 	else if (m_pPlayer->m_afButtonReleased & IN_ATTACK) [[unlikely]]
 	{
-		switch (g_rgiAirSupportSelected[m_pPlayer->entindex()])
+		switch (iMode)
 		{
 		default:
 			break;
@@ -164,18 +176,16 @@ void CRadio::ItemPostFrame() noexcept
 		if (HavingGunshipRunning())
 			return;
 
-		auto const &iIndex = g_rgiAirSupportSelected[m_pPlayer->entindex()];
-
 		UTIL_ShowMenu(
 			m_pPlayer->edict(),
 			Menu::Key::AIRSUPPORT,
 			std::format(Menu::Text::AIRSUPPORT_TEMPLATE,
-				iIndex == AIR_STRIKE ? "\\d" : "\\w", iIndex == AIR_STRIKE ? " - Selected" : "",
-				iIndex == CLUSTER_BOMB ? "\\d" : "\\w", iIndex == CLUSTER_BOMB ? " - Selected" : "",
-				iIndex == CARPET_BOMBARDMENT ? "\\d" : "\\w", iIndex == CARPET_BOMBARDMENT ? " - Selected" : "",
-				iIndex == GUNSHIP_STRIKE ? "\\d" : "\\w", iIndex == GUNSHIP_STRIKE ? " - Selected" : "",
-				iIndex == FUEL_AIR_BOMB ? "\\d" : "\\w", iIndex == FUEL_AIR_BOMB ? " - Selected" : "",
-				iIndex == PHOSPHORUS_MUNITION ? "\\d" : "\\w", iIndex == PHOSPHORUS_MUNITION ? " - Selected" : ""
+				iMode == AIR_STRIKE ? "\\d" : "\\w", iMode == AIR_STRIKE ? " - Selected" : "",
+				iMode == CLUSTER_BOMB ? "\\d" : "\\w", iMode == CLUSTER_BOMB ? " - Selected" : "",
+				iMode == CARPET_BOMBARDMENT ? "\\d" : "\\w", iMode == CARPET_BOMBARDMENT ? " - Selected" : "",
+				iMode == GUNSHIP_STRIKE ? "\\d" : "\\w", iMode == GUNSHIP_STRIKE ? " - Selected" : "",
+				iMode == FUEL_AIR_BOMB ? "\\d" : "\\w", iMode == FUEL_AIR_BOMB ? " - Selected" : "",
+				iMode == PHOSPHORUS_MUNITION ? "\\d" : "\\w", iMode == PHOSPHORUS_MUNITION ? " - Selected" : ""
 			)
 		);
 
@@ -291,7 +301,7 @@ Task CRadio::Task_Deploy() noexcept
 
 		m_Scheduler.Enroll(
 			Task_SequencedHolster(),
-			TASK_RADIO_DEPLOY	// weird, but it's actually making sense.
+			TASK_RADIO_DEPLOY | TASK_RADIO_FORCED_HOLSTER	// weird, but it's actually making sense.
 		);
 	}
 	else
@@ -409,7 +419,12 @@ Task CRadio::Task_FixedTargetCalling() noexcept
 	auto const iTaskId = UTIL_CombineTaskAndIndex(TASK_RADIO_TEAM_CD, m_pPlayer->m_iTeam);
 	TaskScheduler::Delist(iTaskId);
 	TaskScheduler::Enroll(
-		[](int iTeam) -> Task { co_await (float)CVar::player_cd; m_rgbTeamCooldown[iTeam] = false; }(m_pPlayer->m_iTeam),
+		[](int iTeam, EAirSupportTypes iType) -> Task
+		{
+			co_await (float)CVar::player_cd[(size_t)iType];
+			m_rgbTeamCooldown[iTeam] = false;
+		}
+		(m_pPlayer->m_iTeam, pFixedTarget->m_AirSupportType),
 		iTaskId
 	);
 

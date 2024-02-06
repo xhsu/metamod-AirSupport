@@ -5,6 +5,7 @@ import <cstring>;
 
 import <filesystem>;
 import <print>;
+import <set>;
 import <string>;
 
 import progdefs;	// edict_t
@@ -155,14 +156,54 @@ static void LoadConfiguration() noexcept
 
 		if (auto f = std::fopen(hGlobalCFG.u8string().c_str(), "wt"); f != nullptr)
 		{
-			for (auto&& pcvar : console_variable_t::all)
+			std::println(f, "//");
+			std::println(f, "// AIR SUPPORT plugin configuration file");
+			std::println(f, "//");
+			std::println(f, "// Automatically generated");
+			std::print(f, "// Plugin version {}", PLID->version);
+			std::println(f, ".{}", Engine::LocalBuildNumber());	// don't know why, but merging this line and above will cause a linker error.
+			std::println(f, "//");
+			std::println(f, "// You can create a .cfg file with matched map name to further customize the game.");
+			std::println(f, "// For example, a file named 'de_dust2.cfg' will be loaded only and only if you play in that map.");
+			std::println(f, "//");
+
+			// The sort can only be resolved here, as all cvar had been found/registered.
+			std::set<
+				console_variable_t*,
+				// remember to sort the string, not the address of that string.
+				decltype([](auto lhs, auto rhs) noexcept { return std::string_view{ &lhs->Handle()->name[0] } < std::string_view{ &rhs->Handle()->name[0] }; })
+				> const
+				sorted_cvars{ std::from_range, console_variable_t::all };
+
+			for (auto&& pcvar : sorted_cvars)
+			{
+				std::println(f, "");
+
+				if (grgCVarDesc.contains(pcvar->Handle()->name))
+				{
+					auto&& [szDefValue, szDomain, szDesc] = grgCVarDesc.at(pcvar->Handle()->name);
+
+					// Split the desc into multiple lines.
+					size_t last = 0, next = 0;
+					while ((next = szDesc.find('\n', last)) != szDesc.npos)
+					{
+						std::println(f, "// {}", szDesc.substr(last, next - last));
+						last = next + 1;
+					}
+
+					std::println(f, "// {}", szDesc.substr(last));
+					std::println(f, "// Valid value: {}", szDomain);
+					std::println(f, "// Default: {}", szDefValue);
+				}
+
 				std::println(f, "{} {}", pcvar->Handle()->name, pcvar->Handle()->string);
+			}
 
 			fclose(f);
 		}
 	}
 
-	g_engfuncs.pfnServerCommand("exec addons/metamod/AirSupport/Config/Default.cfg");
+	g_engfuncs.pfnServerCommand("exec addons/metamod/AirSupport/Config/Default.cfg\n");
 
 	// Map specific config
 	fs::path const hMapConfig{ std::format("{}/addons/metamod/AirSupport/Config/{}.cfg", szGameDir, STRING(gpGlobals->mapname)) };

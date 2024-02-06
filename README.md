@@ -23,7 +23,7 @@ win32 addons/metamod/dlls/AirSupport.dll
 | ---- | ----------- | :-----: | ------------ |
 | airsupport_ct_think | [0, ∞) | 12 | Interval between calling attempt from CT BOTs. 0 to turn it off. |
 | airsupport_ter_think | [0, ∞) | 0 | Interval between calling attempt from TER BOTs. 0 to turn it off. |
-| airsupport_player_cd | [0, ∞) | 6 | Interval between player calling, resource shared amongst the team. |
+| airsupport_player_cd | [0, ∞) | 6 | Interval between player calling. Air support resource is shared amongst the team. |
 | airsupport_targeting_fx | [0, 11] | 9 | Target miniature angles transiting FX. Each value represents a different FX, one might wants to try all of them one by one. |
 | airsupport_targeting_time | [0, ∞) | 0.2 | Target miniature angles transiting time. 0 to turn all FX off. |
 | airsupport_target_render_fx | [0, 20] | 15 | The FX of static target miniature. Reference to `enum kRenderFx` from `const.h` at [HLSDK](https://github.com/alliedmodders/hlsdk/blob/a0edb7792a96998d349325bebab8ea41ec5cb239/common/const.h#L694). The default value is `kRenderFxDistort`(15). |
