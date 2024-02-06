@@ -82,7 +82,7 @@ inline constexpr auto NEXTFRAME_RANK_DEEP_EVAL = TaskScheduler::NextFrame::Rank[
 
 static Task Task_AngleAlter(entvars_t* const pev, Vector const vStart, Vector const vEnd, float const flTimeFrame) noexcept
 {
-	auto const FX = (int)std::roundf(CVar::TargetingFX->value);
+	auto const FX = (int)CVar::targeting_fx;
 	auto const flStartTime = gpGlobals->time;
 	Vector vNow{};
 	float t{};
@@ -239,14 +239,14 @@ Task CDynamicTarget::Task_AngleInterpol() noexcept
 
 		if (!vecLastNorm.Approx(m_vecNormRotatingTo, 0.01f))
 		{
-			if (CVar::TargetingTime->value > 0.0)
+			if ((float)CVar::targeting_time > 0.0)
 			{
 				m_Scheduler.Enroll(Task_AngleAlter(
 					pev,
 					// LUNA: WHY THE HECK does the v_angle doing here?!
 					Angles{ -pev->angles.pitch, pev->angles.yaw, pev->angles.roll }.Front(),
 					m_vecNormRotatingTo,
-					CVar::TargetingTime->value
+					(float)CVar::targeting_time
 				), TASK_ANGLE_INTERPOL, true);
 			}
 
@@ -1127,13 +1127,13 @@ Task CFixedTarget::Task_BeaconFx() noexcept
 	{
 		co_await 1.f;
 
-		if (CVar::GS_BeaconFX->value < 1.f)
+		if (!(bool)CVar::gs_beacon_fx)
 			continue;
 
 		if (m_pTargeting && m_pTargeting->IsAlive())
 			continue;
 
-		UTIL_Shockwave(pev->origin, CVar::GS_Radius->value, Sprites::m_rgLibrary[Sprites::SHOCKWAVE], 0, 0, 1.f, 6.f, 0, Color::Team[pev->team], 192, 0);
+		UTIL_Shockwave(pev->origin, (float)CVar::gs_radius, Sprites::m_rgLibrary[Sprites::SHOCKWAVE], 0, 0, 1.f, 6.f, 0, Color::Team[pev->team], 192, 0);
 	}
 }
 
@@ -1183,7 +1183,7 @@ Task CFixedTarget::Task_Gunship() noexcept
 			// Select the closest player. The height doesn't matter, as long as they are exposed under sky.
 			std::ranges::sort(vecCandidates, std::less{}, [&](CBasePlayer *pPlayer) noexcept { return (pPlayer->pev->origin - pev->origin).Make2D().LengthSquared(); });
 
-			if (!vecCandidates.empty() && (vecCandidates.front()->pev->origin - pev->origin).Make2D().LengthSquared() < (CVar::GS_Radius->value * CVar::GS_Radius->value))
+			if (!vecCandidates.empty() && (vecCandidates.front()->pev->origin - pev->origin).Make2D().LengthSquared() < (CVar::gs_radius->value * CVar::gs_radius->value))
 				m_pTargeting = vecCandidates.front();
 		}
 
@@ -1351,7 +1351,7 @@ Task CFixedTarget::Task_TimeOut() noexcept
 	switch (m_AirSupportType)
 	{
 	case GUNSHIP_STRIKE:
-		co_await CVar::GS_Holding->value;
+		co_await (float)CVar::gs_holding;
 		gmsgTextMsg::Send(m_pPlayer->edict(), (byte)4, Localization::GUNSHIP_DESPAWNING);
 		break;
 
@@ -1391,13 +1391,13 @@ void CFixedTarget::Spawn() noexcept
 	pev->movetype = MOVETYPE_NONE;	// Fuck the useless MOVETYPE_FOLLOW
 	pev->effects |= EF_DIMLIGHT;
 	pev->rendermode = kRenderTransAdd;
-	pev->renderfx = (kRenderFx)((std::underlying_type_t<kRenderFx>)std::roundf(CVar::TargetRenderFX->value) % 21);	// kRenderFxDistort(15) is the default value. Change it at Hook.cpp
+	pev->renderfx = (kRenderFx)((std::underlying_type_t<kRenderFx>)std::roundf(CVar::target_render_fx->value) % 21);	// kRenderFxDistort(15) is the default value. Change it at Hook.cpp
 	pev->renderamt = 0;
 	pev->skin = Models::targetmdl::SKIN_BLUE;
 	pev->nextthink = 0.1f;
 	pev->team = m_pPlayer->m_iTeam;
 
-	if (CVar::TargetIllumination->value < 1.f)
+	if ((bool)CVar::target_illumination)
 		pev->effects &= ~EF_DIMLIGHT;
 
 	m_vecPlayerPosWhenCalled = m_pPlayer->pev->origin;

@@ -101,7 +101,7 @@ Task CJet::Task_AirStrike() noexcept
 			&& !tr.fAllSolid && !tr.fStartSolid && tr.fInOpen)
 		{
 			auto const vecAimingAt = m_pTarget->m_pTargeting ?
-				UTIL_EstOrigin(vecLaunchingSpot, CVar::PAS_ProjSpeed->value, m_pTarget->m_pTargeting) : m_pTarget->pev->origin;
+				UTIL_EstOrigin(vecLaunchingSpot, (float)CVar::pas_proj_speed, m_pTarget->m_pTargeting) : m_pTarget->pev->origin;
 
 			m_pTarget->m_pMissile =	// pTarget now has a missile binding to it.
 				CPrecisionAirStrike::Create(m_pPlayer, vecLaunchingSpot, vecAimingAt, m_pTarget->m_pTargeting);

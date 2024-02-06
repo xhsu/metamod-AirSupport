@@ -35,16 +35,19 @@ namespace Gas
 		return false;
 	}
 
-	bool Intoxicate(CBasePlayer *pPlayer, entvars_t *pevInflictor, entvars_t *pevAttacker, float flDamage) noexcept
+	bool Intoxicate(CBasePlayer *pPlayer, entvars_t *pevInflictor, entvars_t *pevAttacker, float flDamage, float flDmgInterval) noexcept
 	{
 		static array<float, 33> rgflTimeNextInhale{};
 
 		if (!pPlayer->IsAlive() || pPlayer->pev->takedamage == DAMAGE_NO)
 			return false;
 
+		if ((bool)CVar::cloud_dmg_use_percentage)
+			flDamage = std::max(flDamage, pPlayer->pev->health * (flDamage / 100.f));
+
 		if (auto const iIndex = pPlayer->entindex(); rgflTimeNextInhale[iIndex] < gpGlobals->time)
 		{
-			rgflTimeNextInhale[iIndex] = gpGlobals->time + UTIL_Random(1.5f, 2.5f);
+			rgflTimeNextInhale[iIndex] = gpGlobals->time + UTIL_Random(flDmgInterval - 0.5f, flDmgInterval + 0.5f);
 
 			pPlayer->TakeDamage(
 				pevInflictor ? pevInflictor : g_pevWorld,

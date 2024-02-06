@@ -1,4 +1,4 @@
-#include <assert.h>
+import <cassert>;
 
 import <array>;
 import <chrono>;
@@ -756,7 +756,7 @@ void CToxicSmoke::Touch(CBaseEntity *pOther) noexcept
 	auto const pPlayer = (CBasePlayer *)pOther;
 
 	Gas::TryCough(pPlayer);
-	Gas::Intoxicate(pPlayer, this->pev, nullptr, 5.f);
+	Gas::Intoxicate(pPlayer, this->pev, nullptr, (float)CVar::pim_toxic_dmg, (float)CVar::pim_toxic_inv);
 }
 
 Task CThickStaticSmoke::Task_Dispatch() noexcept
@@ -1192,7 +1192,7 @@ void CFuelAirCloud::Touch(CBaseEntity *pOther) noexcept
 		{
 			auto const pPlayer = (CBasePlayer *)pOther;
 			Gas::TryCough(pPlayer);
-			Gas::Intoxicate(pPlayer, this->pev, m_pPlayer->pev, 5.f);
+			Gas::Intoxicate(pPlayer, this->pev, m_pPlayer->pev, (float)CVar::fab_toxic_dmg, (float)CVar::fab_toxic_inv);
 		}
 
 		return;
@@ -1222,7 +1222,7 @@ void CFuelAirCloud::Touch(CBaseEntity *pOther) noexcept
 					return;
 			}
 
-			pOther->TakeDamage(pev, m_pPlayer->pev, pev->renderamt, DMG_SLOWBURN);
+			pOther->TakeDamage(pev, m_pPlayer->pev, pev->renderamt * (float)CVar::fab_burning_dmg_mul, DMG_SLOWBURN);
 		}
 	}
 }
@@ -1276,7 +1276,7 @@ Task CFuelAirCloud::Task_AirPressure() noexcept
 
 		std::ranges::for_each(s_rgpAeroClouds | std::views::filter([](EHANDLE<CFuelAirCloud> const &pCloud) noexcept { return pCloud->m_bIgnited; }),
 			[&](Vector const &vecOrigin) noexcept { ++iIgnitedCount; rgflPressureCenter[0] += vecOrigin[0]; rgflPressureCenter[1] += vecOrigin[1]; rgflPressureCenter[2] += vecOrigin[2]; },
-			[](EHANDLE<CFuelAirCloud> const &pCloud) noexcept -> Vector const &{ return pCloud->pev->origin; }
+			[](EHANDLE<CFuelAirCloud> const &pCloud) noexcept -> Vector const& { return pCloud->pev->origin; }
 		);
 
 		if (iIgnitedCount < 10)
@@ -1372,7 +1372,7 @@ Task CFuelAirCloud::Task_GlobalSuffocation() noexcept
 	auto const CurTime = std::chrono::high_resolution_clock::now();
 	auto const flTimeDelta = std::chrono::duration_cast<std::chrono::nanoseconds>(CurTime - StartingTime).count() / 1'000'000'000.0;
 
-	co_await float(12.5 - flTimeDelta);	// 13 is the length of audio file Sounds::PLAYER_HB_AND_ER
+	co_await float(g_rgflSoundTime.at(Sounds::PLAYER_HB_AND_ER) - flTimeDelta);
 }
 
 void CFuelAirCloud::OnTraceAttack(TraceResult const &tr, EHANDLE<CBaseEntity> pSkippedEntity) noexcept
@@ -1482,7 +1482,7 @@ void CPhosphorus::Spawn() noexcept
 	pev->takedamage = DAMAGE_NO;
 
 	m_Scheduler.Enroll(Task_SpriteLoop(pev, FRAME_COUNT, 30), TASK_ANIMATION);
-	m_Scheduler.Enroll(Task_Remove(pev, UTIL_Random(30.f, 40.f)), TASK_TIME_OUT);
+	m_Scheduler.Enroll(Task_Remove(pev, UTIL_Random((float)CVar::pim_burning_time - 5.f, (float)CVar::pim_burning_time + 5.f)), TASK_TIME_OUT);
 	m_Scheduler.Enroll(Task_Gravity(), TASK_FLYING);
 	m_Scheduler.Enroll(Task_EmitExhaust(), TASK_FLYING | TASK_ACTION);
 
@@ -1544,7 +1544,10 @@ void CPhosphorus::Touch_Flying(CBaseEntity *pOther) noexcept
 
 	g_engfuncs.pfnEmitAmbientSound(edict(), pev->origin, Sounds::Thermite::BURNING_LOOP, 0.75f, ATTN_STATIC, 0, UTIL_Random(88, 112));
 
-	for (auto &&pPlayer : Query::all_living_players() | std::views::filter([&](CBasePlayer *pPlayer) noexcept { return (pev->origin - pPlayer->pev->origin).LengthSquared() < (150 * 150);}))
+	for (auto &&pPlayer :
+		Query::all_living_players()
+		| std::views::filter([&](CBasePlayer *pPlayer) noexcept { return (pev->origin - pPlayer->pev->origin).LengthSquared() < (150 * 150);})
+		)
 	{
 		Burning::ByPhosphorus(pPlayer, m_pPlayer);
 	}
@@ -1565,11 +1568,11 @@ void CPhosphorus::Touch_Burning(CBaseEntity *pOther) noexcept
 	pOther->TakeDamage(
 		this->pev,
 		m_pPlayer->pev,
-		UTIL_Random(5.f, 12.f),
+		UTIL_Random((float)CVar::pim_burning_dmg - 5.f, (float)CVar::pim_burning_dmg + 5.f),
 		DMG_SLOWBURN
 	);
 
-	m_rgflDamageInterval[iEntIndex] = gpGlobals->time + 0.1f;	// Well, white phosphorus does the job...
+	m_rgflDamageInterval[iEntIndex] = gpGlobals->time + (float)CVar::pim_burning_inv;	// Well, white phosphorus does the job...
 }
 
 Task CPhosphorus::Task_Gravity() noexcept

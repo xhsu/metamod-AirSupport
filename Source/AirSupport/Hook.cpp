@@ -1,7 +1,10 @@
-#include <cassert>
+import <cassert>;
 
+import <cstdio>;
 import <cstring>;
 
+import <filesystem>;
+import <print>;
 import <string>;
 
 import progdefs;	// edict_t
@@ -9,6 +12,7 @@ import util;
 
 import UtlHook;
 
+import CBase;
 import Effects;
 import Engine;
 import FileSystem;
@@ -22,6 +26,8 @@ import Task.Const;
 import Task;
 import Uranus;
 import Weapon;
+
+namespace fs = ::std::filesystem;
 
 // Resources.cpp
 extern void Precache(void) noexcept;
@@ -103,27 +109,7 @@ static void RetrieveCVarHandles() noexcept
 	[[unlikely]]
 	if (!bRegistered)
 	{
-		g_engfuncs.pfnCVarRegister(new cvar_t{ "airsupport_ct_think",			"12", FCVAR_SERVER | FCVAR_EXTDLL });
-		g_engfuncs.pfnCVarRegister(new cvar_t{ "airsupport_ter_think",			"0", FCVAR_SERVER | FCVAR_EXTDLL });
-		g_engfuncs.pfnCVarRegister(new cvar_t{ "airsupport_player_cd",			"6", FCVAR_SERVER | FCVAR_EXTDLL });
-		g_engfuncs.pfnCVarRegister(new cvar_t{ "airsupport_targeting_fx",		"9", FCVAR_SERVER | FCVAR_EXTDLL });
-		g_engfuncs.pfnCVarRegister(new cvar_t{ "airsupport_targeting_time",		"0.2", FCVAR_SERVER | FCVAR_EXTDLL });
-		g_engfuncs.pfnCVarRegister(new cvar_t{ "airsupport_target_render_fx",	"15", FCVAR_SERVER | FCVAR_EXTDLL });	// kRenderFxDistort
-		g_engfuncs.pfnCVarRegister(new cvar_t{ "airsupport_target_illumination","1", FCVAR_SERVER | FCVAR_EXTDLL });
-		g_engfuncs.pfnCVarRegister(new cvar_t{ "airsupport_pas_proj_speed",		"1000", FCVAR_SERVER | FCVAR_EXTDLL });
-		g_engfuncs.pfnCVarRegister(new cvar_t{ "airsupport_pas_dmg_impact",		"500", FCVAR_SERVER | FCVAR_EXTDLL });
-		g_engfuncs.pfnCVarRegister(new cvar_t{ "airsupport_pas_dmg_explo",		"275", FCVAR_SERVER | FCVAR_EXTDLL });
-		g_engfuncs.pfnCVarRegister(new cvar_t{ "airsupport_pas_dmg_radius",		"350", FCVAR_SERVER | FCVAR_EXTDLL });
-		g_engfuncs.pfnCVarRegister(new cvar_t{ "airsupport_pas_fx_radius",		"700", FCVAR_SERVER | FCVAR_EXTDLL });
-		g_engfuncs.pfnCVarRegister(new cvar_t{ "airsupport_pas_fx_punch",		"12", FCVAR_SERVER | FCVAR_EXTDLL });
-		g_engfuncs.pfnCVarRegister(new cvar_t{ "airsupport_pas_fx_knock",		"2048", FCVAR_SERVER | FCVAR_EXTDLL });
-		g_engfuncs.pfnCVarRegister(new cvar_t{ "airsupport_gunship_radius",		"500", FCVAR_SERVER | FCVAR_EXTDLL });
-		g_engfuncs.pfnCVarRegister(new cvar_t{ "airsupport_gunship_beacon_fx",	"1", FCVAR_SERVER | FCVAR_EXTDLL });
-		g_engfuncs.pfnCVarRegister(new cvar_t{ "airsupport_gunship_holding",	"25", FCVAR_SERVER | FCVAR_EXTDLL });
-		//g_engfuncs.pfnCVarRegister(new cvar_t{ "airsupport_", "0", FCVAR_SERVER | FCVAR_EXTDLL });
-		//g_engfuncs.pfnCVarRegister(new cvar_t{ "airsupport_", "0", FCVAR_SERVER | FCVAR_EXTDLL });
-		//g_engfuncs.pfnCVarRegister(new cvar_t{ "airsupport_", "0", FCVAR_SERVER | FCVAR_EXTDLL });
-		//g_engfuncs.pfnCVarRegister(new cvar_t{ "airsupport_", "0", FCVAR_SERVER | FCVAR_EXTDLL });
+		// stub
 
 		bRegistered = true;
 	}
@@ -132,23 +118,8 @@ static void RetrieveCVarHandles() noexcept
 	gcvarMaxSpeed = g_engfuncs.pfnCVarGetPointer("sv_maxspeed");
 	gcvarMaxVelocity = g_engfuncs.pfnCVarGetPointer("sv_maxvelocity");
 
-	CVar::CounterTerAI = g_engfuncs.pfnCVarGetPointer("airsupport_ct_think");
-	CVar::TerroristAI = g_engfuncs.pfnCVarGetPointer("airsupport_ter_think");
-	CVar::PlayerInterval = g_engfuncs.pfnCVarGetPointer("airsupport_player_cd");
-	CVar::TargetingFX = g_engfuncs.pfnCVarGetPointer("airsupport_targeting_fx");
-	CVar::TargetingTime = g_engfuncs.pfnCVarGetPointer("airsupport_targeting_time");
-	CVar::TargetRenderFX = g_engfuncs.pfnCVarGetPointer("airsupport_target_render_fx");
-	CVar::TargetIllumination = g_engfuncs.pfnCVarGetPointer("airsupport_target_illumination");
-	CVar::PAS_ProjSpeed = g_engfuncs.pfnCVarGetPointer("airsupport_pas_proj_speed");
-	CVar::PAS_DmgImpact = g_engfuncs.pfnCVarGetPointer("airsupport_pas_dmg_impact");
-	CVar::PAS_DmgExplo = g_engfuncs.pfnCVarGetPointer("airsupport_pas_dmg_explo");
-	CVar::PAS_DmgRadius = g_engfuncs.pfnCVarGetPointer("airsupport_pas_dmg_radius");
-	CVar::PAS_FxRadius = g_engfuncs.pfnCVarGetPointer("airsupport_pas_fx_radius");
-	CVar::PAS_FxPunchMax = g_engfuncs.pfnCVarGetPointer("airsupport_pas_fx_punch");
-	CVar::PAS_FxKnock = g_engfuncs.pfnCVarGetPointer("airsupport_pas_fx_knock");
-	CVar::GS_Radius = g_engfuncs.pfnCVarGetPointer("airsupport_gunship_radius");
-	CVar::GS_BeaconFX = g_engfuncs.pfnCVarGetPointer("airsupport_gunship_beacon_fx");
-	CVar::GS_Holding = g_engfuncs.pfnCVarGetPointer("airsupport_gunship_holding");
+	for (auto&& fnCVarInit : grgCVarInitFN)
+		std::invoke(fnCVarInit);
 }
 
 static void DeployConsoleCommand() noexcept
@@ -163,6 +134,40 @@ static void DeployConsoleCommand() noexcept
 	g_engfuncs.pfnAddServerCommand("airsupport_readjetspawn", &Waypoint_Read);
 
 	bRegistered = true;
+}
+
+static void LoadConfiguration() noexcept
+{
+	char szGameDir[32]{};
+	g_engfuncs.pfnGetGameDir(szGameDir);
+	fs::path const hGlobalCFG{ std::format("{}/addons/metamod/AirSupport/Config/Default.cfg", szGameDir) };
+
+	// we don't need to be bother by the cfg during debug session.
+#ifdef _DEBUG
+	std::error_code ec{};
+	fs::remove(hGlobalCFG, ec);
+	assert(ec == std::error_code{});
+#endif
+
+	if (!fs::exists(hGlobalCFG))
+	{
+		fs::create_directories(hGlobalCFG.parent_path());
+
+		if (auto f = std::fopen(hGlobalCFG.u8string().c_str(), "wt"); f != nullptr)
+		{
+			for (auto&& pcvar : console_variable_t::all)
+				std::println(f, "{} {}", pcvar->Handle()->name, pcvar->Handle()->string);
+
+			fclose(f);
+		}
+	}
+
+	g_engfuncs.pfnServerCommand("exec addons/metamod/AirSupport/Config/Default.cfg");
+
+	// Map specific config
+	fs::path const hMapConfig{ std::format("{}/addons/metamod/AirSupport/Config/{}.cfg", szGameDir, STRING(gpGlobals->mapname)) };
+	if (fs::exists(hMapConfig))
+		g_engfuncs.pfnServerCommand(std::format("exec addons/metamod/AirSupport/Config/{}.cfg", STRING(gpGlobals->mapname)).c_str());
 }
 
 // Meta API
@@ -252,8 +257,10 @@ void fw_ServerActivate_Post(edict_t* pEdictList, int edictCount, int clientMax) 
 
 	TaskScheduler::Enroll(Task_UpdateTeams());
 	TaskScheduler::Enroll(CFuelAirCloud::Task_AirPressure());
-	TaskScheduler::Enroll(Task_TeamwiseAI(CVar::CounterTerAI, &g_rgpPlayersOfCT, &g_rgpPlayersOfTerrorist));
-	TaskScheduler::Enroll(Task_TeamwiseAI(CVar::TerroristAI, &g_rgpPlayersOfTerrorist, &g_rgpPlayersOfCT));
+	TaskScheduler::Enroll(Task_TeamwiseAI(CVar::ct_think.Handle(), &g_rgpPlayersOfCT, &g_rgpPlayersOfTerrorist));
+	TaskScheduler::Enroll(Task_TeamwiseAI(CVar::ter_think.Handle(), &g_rgpPlayersOfTerrorist, &g_rgpPlayersOfCT));
+
+	LoadConfiguration();
 
 	// The hook of CGameRules is very special, since it is actually delete-newed in each new game.
 	// Therefore we must hook it during every server reloading.

@@ -16,12 +16,10 @@ using std::string;
 
 META_RES OnClientCommand(CBasePlayer *pPlayer, const string &szCommand) noexcept
 {
-	if (!pPlayer->IsAlive())
-		return MRES_IGNORED;
+	auto const bAlive = pPlayer->IsAlive();
 
-	
 	[[unlikely]]
-	if (szCommand == "takeradio")
+	if (bAlive && szCommand == "takeradio")
 	{
 		auto pRadio = Prefab_t::Create<CRadio>();
 		pRadio->DefaultTouch(pPlayer);
@@ -43,26 +41,7 @@ META_RES OnClientCommand(CBasePlayer *pPlayer, const string &szCommand) noexcept
 		g_engfuncs.pfnClientPrintf(pEdict, print_console, std::format("[AIMING AT]:\n\t{}\n\t{}\n\t{}\n", tr.vecEndPos.x, tr.vecEndPos.y, tr.vecEndPos.z).c_str());
 		return MRES_SUPERCEDE;
 	}
-	//else if (szCommand == "scanjetspawn")
-	//{
-	//	TaskScheduler::Enroll(Waypoint_Scan());
-	//	return MRES_SUPERCEDE;
-	//}
-	//else if (szCommand == "readjetspawn")
-	//{
-	//	Waypoint_Read();
-	//	return MRES_SUPERCEDE;
-	//}
-	//else if (szCommand == "showjetspawn")
-	//{
-	//	if (!TimedFnMgr::Exist(RADIO_KEY * 2))
-	//		TimedFnMgr::Enroll(Waypoint_Show(pPlayer), RADIO_KEY * 2);
-	//	else
-	//		TimedFnMgr::Delist(RADIO_KEY * 2);
-	//
-	//	return MRES_SUPERCEDE;
-	//}
-	else if (szCommand == "menuselect" && pPlayer->m_iMenu > EMenu::Menu_LastItem)
+	else if (bAlive && szCommand == "menuselect" && pPlayer->m_iMenu > EMenu::Menu_LastItem)
 	{
 		if (auto const iSlot = std::atoi(g_engfuncs.pfnCmd_Argv(1)); iSlot > 0 && iSlot < 10)
 		{

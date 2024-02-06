@@ -141,12 +141,13 @@ Task Waypoint_Scan(void) noexcept
 
 	char szGameDir[32]{};
 	g_engfuncs.pfnGetGameDir(szGameDir);
-	fs::path hBinFilePath = std::format("{}/addons/metamod/AirSupport/Waypoint/{}.bin", szGameDir, STRING(gpGlobals->mapname));
+	fs::path const hBinFilePath = std::format("{}/addons/metamod/AirSupport/Waypoint/{}.bin", szGameDir, STRING(gpGlobals->mapname));
+	auto const szBinFilePath = hBinFilePath.u8string();
 
 	if (!fs::exists(hBinFilePath))
 		fs::create_directories(hBinFilePath.parent_path());
 
-	if (auto f = fopen(hBinFilePath.string().c_str(), "wb"); f != nullptr)
+	if (auto f = fopen(szBinFilePath.c_str(), "wb"); f != nullptr)
 	{
 		auto const iCount = g_rgvecValidJetSpawn.size();
 
@@ -155,7 +156,7 @@ Task Waypoint_Scan(void) noexcept
 		fwrite(g_rgvecValidJetSpawn.data(), sizeof(Vector), g_rgvecValidJetSpawn.size(), f);
 
 		fclose(f);
-		g_engfuncs.pfnServerPrint(std::format("[Waypoint_Scan] {} spawn origin(s) saved to {}.\n", iCount, hBinFilePath.string()).c_str());
+		g_engfuncs.pfnServerPrint(std::format("[Waypoint_Scan] {} spawn origin(s) saved to {}.\n", iCount, szBinFilePath).c_str());
 	}
 
 	g_WaypointMgr.m_bPointerOwnership = false;
@@ -173,7 +174,7 @@ void Waypoint_Read(void) noexcept
 	g_engfuncs.pfnGetGameDir(szGameDir);
 	fs::path hBinFilePath = std::format("{}/addons/metamod/AirSupport/Waypoint/{}.bin", szGameDir, STRING(gpGlobals->mapname));
 
-	if (auto f = fopen(hBinFilePath.string().c_str(), "rb"); f != nullptr)
+	if (auto f = fopen(hBinFilePath.u8string().c_str(), "rb"); f != nullptr)
 	{
 		if (g_WaypointMgr.m_bPointerOwnership)
 		{

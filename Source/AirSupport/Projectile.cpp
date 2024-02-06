@@ -1,10 +1,16 @@
-﻿import <cassert>;
+﻿#ifdef __INTELLISENSE__
+#include <cassert>
+
+#include <array>
+#include <list>
+#include <ranges>
+#else
+import <cassert>;
 
 import <array>;
 import <list>;
 import <ranges>;
-
-import mathlib;
+#endif
 
 import Effects;
 import Hook;
@@ -44,7 +50,7 @@ Task CPrecisionAirStrike::Task_Deviation() noexcept
 		{
 			vecDir = (m_pEnemy->pev->origin - this->pev->origin).Normalize();
 			vecCurDir = this->pev->velocity.Normalize();
-			vecEstVel = arithmetic_lerp(vecDir, vecCurDir, 0.55).Normalize() * CVar::PAS_ProjSpeed->value;
+			vecEstVel = arithmetic_lerp(vecDir, vecCurDir, 0.55).Normalize() * (float)CVar::pas_proj_speed;
 
 			fnTraceHull(pev->origin, pev->origin + vecEstVel, dont_ignore_monsters, edict(), &tr);
 
@@ -71,7 +77,7 @@ Task CPrecisionAirStrike::Task_Deviation() noexcept
 			pev->angles.roll
 		);
 
-		pev->velocity = pev->v_angle.Front() * CVar::PAS_ProjSpeed->value;
+		pev->velocity = pev->v_angle.Front() * (float)CVar::pas_proj_speed;
 
 		vecOrigin = pev->origin + pev->v_angle.Front() * -48;
 
@@ -129,7 +135,7 @@ void CPrecisionAirStrike::Spawn() noexcept
 	pev->owner = m_pPlayer->edict();
 	pev->solid = SOLID_BBOX;
 	pev->movetype = MOVETYPE_TOSS;
-	pev->velocity = (m_vecTarget - pev->origin).Normalize() * CVar::PAS_ProjSpeed->value;
+	pev->velocity = (m_vecTarget - pev->origin).Normalize() * (float)CVar::pas_proj_speed;
 	pev->angles = pev->velocity.VectorAngles();
 	pev->body = AIR_STRIKE;
 
@@ -147,11 +153,11 @@ void CPrecisionAirStrike::Touch(CBaseEntity *pOther) noexcept
 		return;
 	}
 
-	g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, UTIL_GetRandomOne(Sounds::EXPLOSION), VOL_NORM, 0.3f, 0, UTIL_Random(92, 116));
+	g_engfuncs.pfnEmitSound(edict(), CHAN_AUTO, UTIL_GetRandomOne(Sounds::EXPLOSION), VOL_NORM, 0.3f, 0, UTIL_Random(92, 116));
 
-	Impact(m_pPlayer, this, CVar::PAS_DmgImpact->value);
-	RangeDamage(m_pPlayer, pev->origin, CVar::PAS_DmgRadius->value, CVar::PAS_DmgExplo->value);
-	ScreenEffects(pev->origin, CVar::PAS_FxRadius->value, CVar::PAS_FxPunchMax->value, CVar::PAS_FxKnock->value);
+	Impact(m_pPlayer, this, (float)CVar::pas_dmg_impact);
+	RangeDamage(m_pPlayer, pev->origin, (float)CVar::pas_dmg_radius, (float)CVar::pas_dmg_explo);
+	ScreenEffects(pev->origin, (float)CVar::pas_fx_radius, (float)CVar::pas_fx_punch, (float)CVar::pas_fx_knock);
 	TaskScheduler::Enroll(VisualEffects(pev->origin, 700.f));	// this one is not the same as the fx radus, though with same default value.
 
 	MsgBroadcast(SVC_TEMPENTITY);
@@ -218,8 +224,8 @@ Task CClusterCharge::Task_Explo() noexcept
 
 	co_await TaskScheduler::NextFrame::Rank[1];
 
-	RangeDamage(m_pPlayer, pev->origin, 120.f, 210.f);
-	ScreenEffects(pev->origin, 180.f, 4.f, 256.f);
+	RangeDamage(m_pPlayer, pev->origin, (float)CVar::cc_charge_dmg, (float)CVar::cc_charge_radius);
+	ScreenEffects(pev->origin, (float)CVar::cc_charge_fx_radius, 4.f, 256.f);
 
 	if ((s_iCounter++) % 2 == 0)
 		Prefab_t::Create<CFloatingDust>(pev->origin, Angles(0, 0, UTIL_Random(0.0, 359.9)));
@@ -368,7 +374,7 @@ Task CClusterBomb::Task_ClusterBomb() noexcept
 {
 	for (; pev->origin.z > m_flDetonationHeight;)
 	{
-		co_await 0.01f;
+		co_await TaskScheduler::NextFrame::Rank[1];
 	}
 
 	MsgBroadcast(SVC_TEMPENTITY);
@@ -480,7 +486,7 @@ Task CClusterBomb::Task_ClusterBomb2() noexcept
 {
 	for (; pev->origin.z > m_flDetonationHeight;)
 	{
-		co_await 0.01f;
+		co_await TaskScheduler::NextFrame::Rank[1];
 	}
 
 	MsgBroadcast(SVC_TEMPENTITY);
@@ -514,7 +520,11 @@ Task CClusterBomb::Task_ClusterBomb2() noexcept
 	WriteData(ent_cast<short>(pev));
 	MsgEnd();
 
-	for (float flFuseTime = 1.f; flFuseTime < 3.4f; flFuseTime += 0.1f)
+	auto const MIN_FUSE = std::max(0.1f, (float)CVar::cc_charge_min_fuse);
+	auto const FUSE_INC = std::max(0.05f, (float)CVar::cc_charge_fuse_inc);
+	auto const MAX_FUSE = std::max(MIN_FUSE + FUSE_INC * 2.f, (float)CVar::cc_charge_max_fuse);
+
+	for (float flFuseTime = MIN_FUSE; flFuseTime < MAX_FUSE; flFuseTime += FUSE_INC)
 	{
 		CClusterCharge::Create(
 			m_pPlayer,
@@ -533,8 +543,8 @@ Task CClusterBomb::Task_ClusterBomb2() noexcept
 
 	co_await TaskScheduler::NextFrame::Rank[0];
 
-	RangeDamage(m_pPlayer, pev->origin, 180.f, 100.f);
-	ScreenEffects(pev->origin, 360.f, 5.f, 512.f);
+	RangeDamage(m_pPlayer, pev->origin, (float)CVar::cc_bomb_radius, (float)CVar::cc_bomb_dmg);
+	ScreenEffects(pev->origin, (float)CVar::cc_bomb_fx_radius, 5.f, 512.f);
 
 	co_await 1.f;
 
@@ -634,13 +644,13 @@ Task CCarpetBombardment::Task_Touch() noexcept
 	WriteData(TE_EXPLFLAG_NOSOUND);
 	MsgEnd();
 
-	g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, UTIL_GetRandomOne(Sounds::EXPLOSION_SHORT), VOL_NORM, 0.3f, 0, UTIL_Random(92, 116));
+	g_engfuncs.pfnEmitSound(edict(), CHAN_AUTO, UTIL_GetRandomOne(Sounds::EXPLOSION_SHORT), VOL_NORM, 0.3f, 0, UTIL_Random(92, 116));
 
 	co_await TaskScheduler::NextFrame::Rank[0];
 
-	auto const tr = Impact(m_pPlayer, this, 125.f);
-	RangeDamage(m_pPlayer, pev->origin, 250.f, 200.f);
-	ScreenEffects(pev->origin, 500.f, 15.f, 1024.f);
+	auto const tr = Impact(m_pPlayer, this, (float)CVar::cb_impact_dmg);
+	RangeDamage(m_pPlayer, pev->origin, (float)CVar::cb_radius, (float)CVar::cb_explo_dmg);
+	ScreenEffects(pev->origin, (float)CVar::cb_fx_radius, 15.f, 1024.f);
 
 	if (tr.pHit != nullptr)
 		UTIL_Decal(tr.pHit, tr.vecEndPos, UTIL_GetRandomOne(Decal::SCORCH).m_Index);
@@ -662,7 +672,7 @@ Task CCarpetBombardment::Task_Touch() noexcept
 
 	auto const qRotation = Quaternion::Rotate(Vector(0, 0, 1), tr.vecPlaneNormal);
 
-	array const rgvecVelocitys =
+	array const rgvecVelocitys
 	{
 		get_spherical_coord(Vector::Zero(), qRotation, 1.f, UTIL_Random(20.f, 30.f), 0),
 		get_spherical_coord(Vector::Zero(), qRotation, 1.f, UTIL_Random(20.f, 30.f), 120),
@@ -743,7 +753,7 @@ Task CBullet::Task_Touch() noexcept
 		EHANDLE<CBaseEntity> pVictim{ tr.pHit };
 
 		gUranusCollection.pfnClearMultiDamage();
-		pVictim->TraceAttack(m_pShooter->pev, 100.f, pev->velocity.Normalize(), &tr, DMG_BULLET);
+		pVictim->TraceAttack(m_pShooter->pev, (float)CVar::gs_dmg, pev->velocity.Normalize(), &tr, DMG_BULLET);
 		gUranusCollection.pfnApplyMultiDamage(pev, m_pShooter->pev);
 
 		pev->flags |= FL_KILLME;
@@ -883,7 +893,7 @@ Task CFuelAirExplosive::Task_GasPropagate() noexcept
 	list<Vector> rgvecVarifiedLocations{};
 	bool bGoodToSpawn = false;
 
-	for (auto iCounter = 0ul; iCounter < 50; /* Increase the counter only when successed */)
+	for (auto iCounter = 0ul; iCounter < (decltype(iCounter))CVar::fab_cloud_max; /* Increase the counter only when successed */)
 	{
 	LAB_CONTINUE:;
 		co_await 0.02f;
@@ -1006,7 +1016,7 @@ void CFuelAirExplosive::Touch(CBaseEntity *pOther) noexcept
 	m_bTouched = true;
 	g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, Sounds::CLUSTER_BOMB_DROP, VOL_NORM, 0, SND_STOP, UTIL_Random(92, 112));
 	g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, UTIL_GetRandomOne(Sounds::EXPLOSION_SHORT), VOL_NORM, 0, 0, UTIL_Random(92, 112));
-	g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, UTIL_GetRandomOne(Sounds::HIT_METAL), VOL_NORM, ATTN_NORM, 0, UTIL_Random(92, 112));
+	g_engfuncs.pfnEmitSound(edict(), CHAN_AUTO, UTIL_GetRandomOne(Sounds::HIT_METAL), VOL_NORM, ATTN_NORM, 0, UTIL_Random(92, 112));
 
 	pev->velocity = Vector::Zero();
 	pev->gravity = 0;
@@ -1018,7 +1028,7 @@ void CFuelAirExplosive::Touch(CBaseEntity *pOther) noexcept
 	g_engfuncs.pfnTraceMonsterHull(edict(), pev->origin + Vector(0, 0, 24), pev->origin, ignore_monsters | ignore_glass, nullptr, &tr);
 	g_engfuncs.pfnSetOrigin(edict(), tr.vecEndPos);
 
-	if (auto const tr = Impact(m_pPlayer, this, 180.f); tr.pHit && tr.pHit->v.solid == SOLID_BSP)
+	if (auto const tr = Impact(m_pPlayer, this, (float)CVar::fab_impact_dmg); tr.pHit && tr.pHit->v.solid == SOLID_BSP)
 		UTIL_Decal(tr.pHit, tr.vecEndPos, UTIL_GetRandomOne(Decal::SMALL_SCORCH).m_Index);
 
 	m_Scheduler.Enroll(Task_GasPropagate());
@@ -1184,7 +1194,7 @@ Task CIncendiaryMunition::Task_Fuse() noexcept
 		pPhosphorus->pev->gravity = 0.f;
 		pPhosphorus->pev->velocity = (m_vecTarget - pev->origin).Normalize() * 500;
 
-		for (int i = 0; i < 15; ++i)
+		for (int i = 0; i < (int)CVar::pim_count; ++i)
 		{
 			pPhosphorus = CPhosphorus::Create(m_pPlayer, pev->origin);
 			pPhosphorus->pev->gravity = UTIL_Random(0.1f, 0.25f);
@@ -1225,7 +1235,7 @@ void CIncendiaryMunition::Touch(CBaseEntity *pOther) noexcept
 	if (tr.flFraction == 1)
 		return;
 
-	for (int i = 0; i < 16; ++i)
+	for (int i = 0; i < (int)CVar::pim_count; ++i)
 	{
 		Vector const vecNoise = CrossProduct(
 			Vector{ UTIL_Random(-1.0, 1.0), UTIL_Random(-1.0, 1.0), UTIL_Random(-1.0, 1.0) },
@@ -1249,26 +1259,4 @@ CIncendiaryMunition *CIncendiaryMunition::Create(CBasePlayer *pPlayer, Vector co
 	pPrefab->pev->nextthink = 0.1f;
 
 	return pPrefab;
-}
-
-void CWPMunition_Explo(CBasePlayer* m_pPlayer, Vector const& vecOrigin) noexcept
-{
-	auto pThickSmoke = Prefab_t::Create<CThickStaticSmoke>(vecOrigin);
-	pThickSmoke->LitByFlame(true);
-
-	auto pSpr = CSpriteDisplay::Create(pThickSmoke->pev->origin, kRenderFn::kRenderTransAdd, Sprites::MINOR_EXPLO);
-	pSpr->pev->scale = pThickSmoke->pev->scale * 2.f;
-	pSpr->pev->renderamt = 255.f;
-	pSpr->pev->frame = (float)3;
-	pSpr->m_Scheduler.Enroll(Task_FadeOut(pSpr->pev, 0.f, 2.f, 0.f), TASK_FADE_OUT);
-
-	//UTIL_ExplodeModel(Vector(pev->origin.x, pev->origin.y, pev->absmax.z), 700.f, Models::m_rgLibrary[Models::GIBS_METAL], UTIL_Random(4, 6), UTIL_Random(10.f, 15.f));
-	UTIL_ExplodeModel(vecOrigin, 700.f, Models::m_rgLibrary[Models::GIBS_CONCRETE], UTIL_Random(10, 12), UTIL_Random(7.f, 12.f));
-
-	for (auto i = 0; i < 360; i += 30)
-	{
-		auto pPhosphorus = CPhosphorus::Create(m_pPlayer, vecOrigin + Vector(0, 0, 32));
-
-		pPhosphorus->pev->velocity = get_spherical_coord(UTIL_Random(300.f, 650.f), UTIL_Random(20.0, 30.0), i);
-	}
 }

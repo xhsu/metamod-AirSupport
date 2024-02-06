@@ -3,6 +3,7 @@ export module Hook;
 export import <cstdint>;
 
 export import CBase;
+export import ConsoleVar;
 export import GameRules;
 export import Message;
 export import VTFH;
@@ -52,26 +53,61 @@ export inline cvar_t *gcvarFriendlyFire = nullptr;
 
 export namespace CVar
 {
-	inline cvar_t* CounterTerAI = nullptr;
-	inline cvar_t* TerroristAI = nullptr;
-	inline cvar_t* PlayerInterval = nullptr;	// The player interval was only enforced if calling is from a radio weapon.
-	
-	inline cvar_t* TargetingFX = nullptr;
-	inline cvar_t* TargetingTime = nullptr;
-	inline cvar_t* TargetRenderFX = nullptr;
-	inline cvar_t* TargetIllumination = nullptr;
+#define DECLARE_CVAR(name, val)	inline console_variable_t name{ "airsupport_" #name, val }
 
-	inline cvar_t* PAS_ProjSpeed = nullptr;
-	inline cvar_t* PAS_DmgImpact = nullptr;
-	inline cvar_t* PAS_DmgExplo = nullptr;
-	inline cvar_t* PAS_DmgRadius = nullptr;
-	inline cvar_t* PAS_FxRadius = nullptr;
-	inline cvar_t* PAS_FxPunchMax = nullptr;
-	inline cvar_t* PAS_FxKnock = nullptr;
+	DECLARE_CVAR(ct_think, "12");
+	DECLARE_CVAR(ter_think, "0");
+	DECLARE_CVAR(player_cd, "6");	// The player interval was only enforced if calling is from a radio weapon.
 
-	inline cvar_t* GS_Radius = nullptr;
-	inline cvar_t* GS_BeaconFX = nullptr;
-	inline cvar_t* GS_Holding = nullptr;
+	DECLARE_CVAR(targeting_fx, "9");
+	DECLARE_CVAR(targeting_time, "0.2");
+	DECLARE_CVAR(target_render_fx, "15");	// kRenderFxDistort
+	DECLARE_CVAR(target_illumination, "1");
+
+	DECLARE_CVAR(cloud_dmg_use_percentage, "1");
+
+	DECLARE_CVAR(pas_proj_speed, "1000");
+	DECLARE_CVAR(pas_dmg_impact, "500");
+	DECLARE_CVAR(pas_dmg_explo, "275");
+	DECLARE_CVAR(pas_dmg_radius, "350");
+	DECLARE_CVAR(pas_fx_radius, "700");
+	DECLARE_CVAR(pas_fx_punch, "12");
+	DECLARE_CVAR(pas_fx_knock, "2048");
+
+	DECLARE_CVAR(cc_bomb_dmg, "100");
+	DECLARE_CVAR(cc_bomb_radius, "180");
+	DECLARE_CVAR(cc_bomb_fx_radius, "210");
+	DECLARE_CVAR(cc_charge_dmg, "128");
+	DECLARE_CVAR(cc_charge_radius, "180");
+	DECLARE_CVAR(cc_charge_fx_radius, "210");
+	DECLARE_CVAR(cc_charge_min_fuse, "0.8");	// these are only for type 2.
+	DECLARE_CVAR(cc_charge_max_fuse, "3.3");
+	DECLARE_CVAR(cc_charge_fuse_inc, "0.1");
+
+	DECLARE_CVAR(cb_impact_dmg, "125");
+	DECLARE_CVAR(cb_explo_dmg, "200");
+	DECLARE_CVAR(cb_radius, "250");
+	DECLARE_CVAR(cb_fx_radius, "500");
+
+	DECLARE_CVAR(gs_radius, "500");
+	DECLARE_CVAR(gs_beacon_fx, "1");
+	DECLARE_CVAR(gs_holding, "25");
+	DECLARE_CVAR(gs_dmg, "90");
+
+	DECLARE_CVAR(fab_burning_dmg_mul, "1");
+	DECLARE_CVAR(fab_cloud_max, "50");
+	DECLARE_CVAR(fab_impact_dmg, "180");
+	DECLARE_CVAR(fab_toxic_dmg, "5");
+	DECLARE_CVAR(fab_toxic_inv, "2");
+
+	DECLARE_CVAR(pim_count, "16");
+	DECLARE_CVAR(pim_burning_inv, "0.1");
+	DECLARE_CVAR(pim_burning_dmg, "10");
+	DECLARE_CVAR(pim_burning_time, "35");
+	DECLARE_CVAR(pim_toxic_dmg, "5");
+	DECLARE_CVAR(pim_toxic_inv, "2");
+
+#undef DECLARE_CVAR
 }
 
 extern "C++" void __fastcall OrpheuF_FireBullets(CBaseEntity * pThis, int, unsigned long cShots, Vector vecSrc, Vector vecDirShooting, Vector vecSpread, float flDistance, int iBulletType, int iTracerFreq, int iDamage, entvars_t * pevAttacker) noexcept;

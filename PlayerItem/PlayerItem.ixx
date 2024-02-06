@@ -677,3 +677,18 @@ public:
 	WeaponIdType m_iClientPredictionId{ WEAPON_NONE };	// WEAPON_NONE for disabling client local weapons.
 	uint16_t m_iInternalId{ (uint16_t)-1 };
 };
+
+export template <typename CFinal, typename Base>
+struct Node1 : Base
+{
+};
+
+export template <typename CFinal, template <typename, typename> class TFirst, template <typename, typename> class... TOthers>
+struct LinkWeaponTemplates : TFirst<CFinal, LinkWeaponTemplates<CFinal, TOthers...>>
+{
+};
+
+export template <typename CFinal, template <typename, typename> class TFirst>
+struct LinkWeaponTemplates<CFinal, TFirst> : TFirst<CFinal, CPrefabWeapon>
+{
+};

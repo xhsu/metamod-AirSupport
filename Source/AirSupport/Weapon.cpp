@@ -409,7 +409,7 @@ Task CRadio::Task_FixedTargetCalling() noexcept
 	auto const iTaskId = UTIL_CombineTaskAndIndex(TASK_RADIO_TEAM_CD, m_pPlayer->m_iTeam);
 	TaskScheduler::Delist(iTaskId);
 	TaskScheduler::Enroll(
-		[](int iTeam) -> Task { co_await CVar::PlayerInterval->value; m_rgbTeamCooldown[iTeam] = false; }(m_pPlayer->m_iTeam),
+		[](int iTeam) -> Task { co_await (float)CVar::player_cd; m_rgbTeamCooldown[iTeam] = false; }(m_pPlayer->m_iTeam),
 		iTaskId
 	);
 
