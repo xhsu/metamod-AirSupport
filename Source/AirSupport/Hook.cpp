@@ -156,16 +156,27 @@ static void LoadConfiguration() noexcept
 
 		if (auto f = std::fopen(hGlobalCFG.u8string().c_str(), "wt"); f != nullptr)
 		{
-			std::println(f, "//");
-			std::println(f, "// AIR SUPPORT plugin configuration file");
-			std::println(f, "//");
-			std::println(f, "// Automatically generated");
-			std::print(f, "// Plugin version {}", PLID->version);
-			std::println(f, ".{}", Engine::LocalBuildNumber());	// don't know why, but merging this line and above will cause a linker error.
-			std::println(f, "//");
-			std::println(f, "// You can create a .cfg file with matched map name to further customize the game.");
-			std::println(f, "// For example, a file named 'de_dust2.cfg' will be loaded only and only if you play in that map.");
-			std::println(f, "//");
+			//std::println(f, "//");
+			//std::println(f, "// AIR SUPPORT plugin configuration file");
+			//std::println(f, "//");
+			//std::println(f, "// Automatically generated");
+			//std::print(f, "// Plugin version {}", PLID->version);
+			//std::println(f, ".{}", Engine::LocalBuildNumber());	// don't know why, but merging this line and above will cause a linker error.
+			//std::println(f, "//");
+			//std::println(f, "// You can create a .cfg file with matched map name to further customize the game.");
+			//std::println(f, "// For example, a file named 'de_dust2.cfg' will be loaded only and only if you play in that map.");
+			//std::println(f, "//");
+
+			std::println(f, u8"//");
+			std::println(f, u8"// 空襲插件配置文件");
+			std::println(f, u8"//");
+			std::println(f, u8"// 本文檔係自動生成");
+			std::print(f, u8"// 適用於插件版本 {}", PLID->version);
+			std::println(f, u8".{}", Engine::LocalBuildNumber());	// don't know why, but merging this line and above will cause a linker error.
+			std::println(f, u8"//");
+			std::println(f, u8"// 本插件支援自動讀取本目錄下與當前地圖同名之配置文件。");
+			std::println(f, u8"// 例如，名為'de_dust2.cfg'的配置文件僅在遊玩de_dust2地圖時被讀取。");
+			std::println(f, u8"//");
 
 			// The sort can only be resolved here, as all cvar had been found/registered.
 			std::set<
@@ -192,8 +203,10 @@ static void LoadConfiguration() noexcept
 					}
 
 					std::println(f, "// {}", szDesc.substr(last));
-					std::println(f, "// Valid value: {}", szDomain);
-					std::println(f, "// Default: {}", szDefValue);
+					//std::println(f, "// Valid value: {}", szDomain);
+					//std::println(f, "// Default: {}", szDefValue);
+					std::println(f, u8"// 取值範圍: {}", szDomain);
+					std::println(f, u8"// 默認值: {}", szDefValue);
 				}
 
 				std::println(f, "{} {}", pcvar->Handle()->name, pcvar->Handle()->string);

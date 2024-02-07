@@ -520,9 +520,9 @@ Task CClusterBomb::Task_ClusterBomb2() noexcept
 	WriteData(ent_cast<short>(pev));
 	MsgEnd();
 
-	auto const MIN_FUSE = std::max(0.1f, (float)CVar::cc_charge_min_fuse);
-	auto const FUSE_INC = std::max(0.05f, (float)CVar::cc_charge_fuse_inc);
-	auto const MAX_FUSE = std::max(MIN_FUSE + FUSE_INC * 2.f, (float)CVar::cc_charge_max_fuse);
+	auto const MIN_FUSE = std::max(0.1f, (float)CVar::cc_charge_min_fuze);
+	auto const FUSE_INC = std::max(0.05f, (float)CVar::cc_charge_fuze_inc);
+	auto const MAX_FUSE = std::max(MIN_FUSE + FUSE_INC * 2.f, (float)CVar::cc_charge_max_fuze);
 
 	for (float flFuseTime = MIN_FUSE; flFuseTime < MAX_FUSE; flFuseTime += FUSE_INC)
 	{

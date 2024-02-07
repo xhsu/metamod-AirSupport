@@ -180,12 +180,12 @@ void CRadio::ItemPostFrame() noexcept
 			m_pPlayer->edict(),
 			Menu::Key::AIRSUPPORT,
 			std::format(Menu::Text::AIRSUPPORT_TEMPLATE,
-				iMode == AIR_STRIKE ? "\\d" : "\\w", iMode == AIR_STRIKE ? " - Selected" : "",
-				iMode == CLUSTER_BOMB ? "\\d" : "\\w", iMode == CLUSTER_BOMB ? " - Selected" : "",
-				iMode == CARPET_BOMBARDMENT ? "\\d" : "\\w", iMode == CARPET_BOMBARDMENT ? " - Selected" : "",
-				iMode == GUNSHIP_STRIKE ? "\\d" : "\\w", iMode == GUNSHIP_STRIKE ? " - Selected" : "",
-				iMode == FUEL_AIR_BOMB ? "\\d" : "\\w", iMode == FUEL_AIR_BOMB ? " - Selected" : "",
-				iMode == PHOSPHORUS_MUNITION ? "\\d" : "\\w", iMode == PHOSPHORUS_MUNITION ? " - Selected" : ""
+				iMode == AIR_STRIKE ? "\\d" : "\\w", iMode == AIR_STRIKE ? Menu::Text::SELECTED : "",
+				iMode == CLUSTER_BOMB ? "\\d" : "\\w", iMode == CLUSTER_BOMB ? Menu::Text::SELECTED : "",
+				iMode == CARPET_BOMBARDMENT ? "\\d" : "\\w", iMode == CARPET_BOMBARDMENT ? Menu::Text::SELECTED : "",
+				iMode == GUNSHIP_STRIKE ? "\\d" : "\\w", iMode == GUNSHIP_STRIKE ? Menu::Text::SELECTED : "",
+				iMode == FUEL_AIR_BOMB ? "\\d" : "\\w", iMode == FUEL_AIR_BOMB ? Menu::Text::SELECTED : "",
+				iMode == PHOSPHORUS_MUNITION ? "\\d" : "\\w", iMode == PHOSPHORUS_MUNITION ? Menu::Text::SELECTED : ""
 			)
 		);
 
