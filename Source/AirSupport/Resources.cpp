@@ -10,9 +10,11 @@ import FileSystem;
 import Sprite;
 import Wave;
 
-bool VerifyByCRC64(const char* psz) noexcept
+static bool g_bShouldEnforceModels = true;
+
+static bool VerifyByCRC64(const char* psz) noexcept
 {
-	if (!g_rgiCRC64.contains(psz))
+	if (!g_rgiCRC64.contains(psz) || !g_bShouldEnforceModels)
 		return true;
 
 	if (auto f = FileSystem::StandardOpen(psz, "rb"); f != nullptr)
@@ -26,9 +28,9 @@ bool VerifyByCRC64(const char* psz) noexcept
 	return true;
 }
 
-bool VerifyBySoundLength(const char* psz) noexcept
+static bool VerifyBySoundLength(const char* psz) noexcept
 {
-	if (!g_rgflSoundTime.contains(psz))
+	if (!g_rgflSoundTime.contains(psz) || !g_bShouldEnforceModels)
 		return true;
 
 	std::string const sz = std::string("sound/") + psz;
@@ -44,9 +46,9 @@ bool VerifyBySoundLength(const char* psz) noexcept
 	return true;
 }
 
-bool VerifyByModelAnimations(const char *psz) noexcept
+static bool VerifyByModelAnimations(const char *psz) noexcept
 {
-	if (!g_rgrgflAnimTime.contains(psz))
+	if (!g_rgrgflAnimTime.contains(psz) || !g_bShouldEnforceModels)
 		return true;
 
 	if (auto f = FileSystem::StandardOpen(psz, "rb"); f != nullptr)
@@ -85,9 +87,9 @@ bool VerifyByModelAnimations(const char *psz) noexcept
 	return false;
 }
 
-bool VerifyBySpriteFrame(const char *psz) noexcept
+static bool VerifyBySpriteFrame(const char *psz) noexcept
 {
-	if (!g_rgiSpriteFrameCount.contains(psz))
+	if (!g_rgiSpriteFrameCount.contains(psz) || !g_bShouldEnforceModels)
 		return true;
 
 	if (auto f = FileSystem::StandardOpen(psz, "rb"); f != nullptr)
@@ -103,7 +105,7 @@ bool VerifyBySpriteFrame(const char *psz) noexcept
 
 #endif
 
-__forceinline void PrecacheModel(const char *psz) noexcept
+static void PrecacheModel(const char *psz) noexcept
 {
 	Models::m_rgLibrary[psz] = g_engfuncs.pfnPrecacheModel(psz);
 
@@ -113,7 +115,7 @@ __forceinline void PrecacheModel(const char *psz) noexcept
 #endif
 }
 
-__forceinline void PrecacheSprite(const char *psz) noexcept
+static void PrecacheSprite(const char *psz) noexcept
 {
 	Sprites::m_rgLibrary[psz] = g_engfuncs.pfnPrecacheModel(psz);
 
@@ -123,7 +125,7 @@ __forceinline void PrecacheSprite(const char *psz) noexcept
 #endif
 }
 
-__forceinline void PrecacheSound(const char* psz) noexcept
+static void PrecacheSound(const char* psz) noexcept
 {
 	g_engfuncs.pfnPrecacheSound(psz);
 
@@ -135,6 +137,11 @@ __forceinline void PrecacheSound(const char* psz) noexcept
 
 void Precache(void) noexcept
 {
+#if !defined PACKING_RESOURCES && !defined CREATING_ENFORCING_TABLE
+	if (FileSystem::m_pObject->FileExists("addons/metamod/AirSupport/Config/DONT_ENFORCE_RES"))
+		g_bShouldEnforceModels = false;
+#endif
+
 	// Models
 
 	std::ranges::for_each(Models::PLANE, PrecacheModel);
