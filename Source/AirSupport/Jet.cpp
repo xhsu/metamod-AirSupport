@@ -506,8 +506,8 @@ Task CGunship::Task_Gunship() noexcept
 
 		//gmsgTextMsg::Send(m_pPlayer->edict(), 3, std::format("{}", flSpeed).c_str());
 
-		g_engfuncs.pfnEmitSound(edict(), CHAN_AUTO, UTIL_GetRandomOne(Sounds::Gunship::AC130_FIRE_25MM), VOL_NORM, ATTN_NONE, 0, UTIL_Random(92, 116));
-		co_await 0.2f;	// firerate.
+		g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, UTIL_GetRandomOne(Sounds::Gunship::AC130_FIRE_25MM), VOL_NORM, ATTN_NONE, 0, UTIL_Random(92, 116));
+		co_await (60.f / std::max(1.f, (float)CVar::gs_rpm));	// firerate.
 	}
 
 	// "Reloading"

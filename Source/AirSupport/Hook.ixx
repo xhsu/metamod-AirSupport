@@ -104,6 +104,7 @@ export namespace CVar
 	DECLARE_CVAR(gs_beacon_fx,	"1",	u8"0 or 1", u8"Gunship beacon searching effect.");
 	DECLARE_CVAR(gs_holding,	"25",	u8"[0, ∞)", u8"Time before gunship leaving the map.\n\tUnit: Seconds");
 	DECLARE_CVAR(gs_dmg,		"90",	u8"[0, ∞)", u8"Gunship bullets' base damage.");
+	DECLARE_CVAR(gs_rpm,		"300",	u8"[1, ∞)", u8"Gunship firerate.\n\tUnit: RPM");
 
 	DECLARE_CVAR(fab_burning_dmg_mul,	"1",	u8"[0, ∞)", u8"Fuel-air explosive damage multiplier.\n\tThe base damage of the explosion is determined by sufficiency of the aerosol-air mixing.");
 	DECLARE_CVAR(fab_cloud_max,			"50",	u8"[0, ∞)", u8"The maximum amount of cloud entities in thermobaric weapon releasing phase.");
@@ -168,6 +169,7 @@ export namespace CVar
 	DECLARE_CVAR(gs_beacon_fx,	"1",	u8"0 or 1", u8"【空中炮艦支援】啟用信標索敵效果。");
 	DECLARE_CVAR(gs_holding,	"25",	u8"[0, ∞)", u8"【空中炮艦支援】炮艦停留時間。\n\t單位：秒");
 	DECLARE_CVAR(gs_dmg,		"90",	u8"[0, ∞)", u8"【空中炮艦支援】彈藥基礎傷害。");
+	DECLARE_CVAR(gs_rpm,		"300",	u8"[1, ∞)", u8"【空中炮艦支援】射速。\n\t單位：RPM(發/每分鐘)");
 
 	DECLARE_CVAR(fab_burning_dmg_mul,	"1",	u8"[0, ∞)", u8"【雲爆彈】燃燒傷害乘數。\n\t基準傷害由氣溶膠與空氣混合程度決定，無法調節。");
 	DECLARE_CVAR(fab_cloud_max,			"50",	u8"[0, ∞)", u8"【雲爆彈】氣溶膠實體最大數量。");

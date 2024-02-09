@@ -258,7 +258,7 @@ public:	// CBasePlayerItem
 	//void UpdateItemInfo(void) noexcept override {}	- overridden by CBasePlayerWeapon
 	void ItemPreFrame(void) noexcept override {}
 	//void ItemPostFrame(void) noexcept override {}	- overridden by CBasePlayerWeapon
-	void Drop(void) noexcept override	// #PLANNED_PIW_rewrite this is actually destroying item.
+	void Drop(void) noexcept override	// #PLANNED_PIW_useless this is actually destroying item. Only ref in CBasePlayer::RemoveAllItems()
 	{
 		SetTouch(nullptr);
 		SetThink(&CBaseEntity::SUB_Remove);
