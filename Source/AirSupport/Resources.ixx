@@ -1,10 +1,20 @@
+module;
+
+#ifdef __INTELLISENSE__
+#include <array>
+#include <string_view>
+#include <unordered_map>
+#endif
+
 //#define CONSERVE_SFX_RES_SLOT
 
 export module Resources;
 
+#ifndef __INTELLISENSE__
 export import <array>;
-export import <string>;
+export import <string_view>;
 export import <unordered_map>;
+#endif
 
 #ifdef PACKING_RESOURCES
 export import Transpiler;
@@ -16,7 +26,7 @@ export import :Const;
 #endif
 
 using std::array;
-using std::string;
+using std::string_view;
 using std::unordered_map;
 
 export namespace Models
@@ -45,7 +55,7 @@ export namespace Models
 
 	inline constexpr char SPARK[] = "models/AirSupport/m_flash1.mdl";
 
-	inline unordered_map<string, short> m_rgLibrary{};
+	inline unordered_map<string_view, short> m_rgLibrary{};	// MUST be use with local string!!
 
 	namespace v_radio
 	{
@@ -269,19 +279,6 @@ export namespace Sounds
 		};
 	};
 
-	namespace Length::Radio
-	{
-		inline constexpr array ACCEPTING = { 2.564f, 2.564f, 2.564f, 2.409f, 2.564f, 2.564f };
-		inline constexpr float REQUESTING = 1.003f;
-		inline constexpr array REJECTING = { 2.603f, 2.947f };
-	}
-
-	namespace Length::Gunship
-	{
-		inline constexpr array AC130_RELOAD = { 2.279f, 4.397f, 3.703f };
-		inline constexpr array AC130_DEPARTURE = { 6.388f, 6.478f };
-	}
-
 	namespace Flame
 	{
 		inline constexpr array FLAME =
@@ -361,7 +358,7 @@ export namespace Sprites
 		"sprites/fire_explosion_2.spr",
 	};
 
-	inline unordered_map<string, short> m_rgLibrary{};
+	inline unordered_map<string_view, short> m_rgLibrary{};	// MUST be use with local string!!
 
 	namespace Frames
 	{

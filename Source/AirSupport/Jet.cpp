@@ -512,12 +512,12 @@ Task CGunship::Task_Gunship() noexcept
 
 	// "Reloading"
 	g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, Sounds::Gunship::AC130_RELOAD[m_iReloadSoundIndex], VOL_NORM, ATTN_NONE, 0, UTIL_Random(92, 116));
-	co_await Sounds::Length::Gunship::AC130_RELOAD[m_iReloadSoundIndex];
+	co_await (float)g_rgflSoundTime.at(Sounds::Gunship::AC130_RELOAD[m_iReloadSoundIndex]);
 
 	// Randomly select another SFX as AC130 moving out, with fadeout fx. Stop the old one first.
 	g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, Sounds::Gunship::AC130_AMBIENT[m_iAmbientSoundIndex], VOL_NORM, ATTN_NONE, SND_STOP, UTIL_Random(92, 108));
 	g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, Sounds::Gunship::AC130_DEPARTURE[m_iDepartureSoundIndex], VOL_NORM, ATTN_NONE, 0, UTIL_Random(92, 108));
-	co_await Sounds::Length::Gunship::AC130_DEPARTURE[m_iDepartureSoundIndex];
+	co_await (float)g_rgflSoundTime.at(Sounds::Gunship::AC130_DEPARTURE[m_iDepartureSoundIndex]);
 
 	// Stop the radio background noise
 	g_engfuncs.pfnEmitAmbientSound(m_pPlayer->edict(), m_pPlayer->pev->origin, Sounds::Gunship::NOISE_PILOT, VOL_NORM, ATTN_STATIC, SND_STOP, PITCH_NORM);
