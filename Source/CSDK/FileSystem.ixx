@@ -11,6 +11,8 @@ module;
 export module FileSystem;
 
 export import <cstdio>;
+export import <filesystem>;
+export import <string_view>;
 
 export import Platform;
 
@@ -202,6 +204,14 @@ namespace FileSystem
 		m_pObject->GetLocalPath(pszRelativePath, szBuffer, sizeof(szBuffer) - 1);
 
 		return szBuffer;
+	}
+
+	export std::string RelativeToWorkingDir(std::string_view szRelativePath) noexcept
+	{
+		static auto const ExecutePath = std::filesystem::current_path();
+		auto const AbsolutePath = FileSystem::GetAbsolutePath(szRelativePath.data());
+
+		return std::filesystem::relative(AbsolutePath, ExecutePath).u8string();
 	}
 
 	export FILE *StandardOpen(const char *pszRelativePath, const char *pszMode) noexcept

@@ -50,6 +50,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <OutDir>C:\Program Files (x86)\Steam\steamapps\common\Half-Life\czero\addons\metamod\dlls\</OutDir>
+    <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -227,6 +228,7 @@ start Enforcer.exe</Command>
     <ClCompile Include="Source\AirSupport\Target.cpp" />
     <ClCompile Include="Source\AirSupport\Target.ixx" />
     <ClCompile Include="Source\CSDK\Sprite.ixx" />
+    <ClCompile Include="Source\CSDK\Models.ixx" />
     <ClCompile Include="Source\CSDK\Task.ixx" />
     <ClCompile Include="Source\AirSupport\Explosion.cpp">
       <DisableSpecificWarnings Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">4244;%(DisableSpecificWarnings)</DisableSpecificWarnings>

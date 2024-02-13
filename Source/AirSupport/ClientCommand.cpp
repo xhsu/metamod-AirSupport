@@ -1,5 +1,6 @@
 import <format>;
 import <string>;
+import <filesystem>;
 
 import CBase;
 import Hook;
@@ -8,6 +9,8 @@ import Plugin;
 import Resources;
 import Task;
 import Weapon;
+import Models;
+import FileSystem;
 
 import UtlHook;	// debug command.
 
@@ -84,6 +87,15 @@ META_RES OnClientCommand(CBasePlayer *pPlayer, const string &szCommand) noexcept
 
 		if (auto const fl = std::atof(g_engfuncs.pfnCmd_Argv(1)); fl > 0)
 			*pSysTimeScale = (float)fl;
+
+		return MRES_SUPERCEDE;
+	}
+	else if (szCommand == "test001")
+	{
+		GoldSrc::CacheStudioModelInfo("models/v_ak47.mdl");
+
+		for (auto&& [seqlabel, data] : GoldSrc::GetStudioModelTiming("models/v_AK47.mdl"))
+			g_engfuncs.pfnServerPrint(std::format("{}: [{:.2f} - {:.2f}] of {:.2f}\n", seqlabel, data.m_fz_begin, data.m_fz_end, data.m_total_length).c_str());
 
 		return MRES_SUPERCEDE;
 	}

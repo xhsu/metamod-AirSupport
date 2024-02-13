@@ -400,5 +400,8 @@
     <ClCompile Include="Source\CSDK\ConsoleVar.ixx">
       <Filter>Source\CSDK</Filter>
     </ClCompile>
+    <ClCompile Include="Source\CSDK\Models.ixx">
+      <Filter>Source\CSDK</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

@@ -4,10 +4,12 @@ Created Data: Jan 27 2024
 
 export module ConsoleVar;
 
+export import <charconv>;
 export import <concepts>;
 export import <format>;
 export import <functional>;
 export import <string_view>;
+export import <string>;
 export import <unordered_map>;
 export import <unordered_set>;
 export import <vector>;
