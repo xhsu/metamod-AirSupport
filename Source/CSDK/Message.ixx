@@ -87,7 +87,7 @@ export inline void WriteData(auto&& arg) noexcept
 	else if constexpr (sizeof(T) == 2)	// short, char16_t
 		g_engfuncs.pfnWriteShort(bit_cast<short>(arg));
 
-	else if constexpr (std::is_same_v<T, bool> || (std::is_unsigned_v<T> && sizeof(T) == 1))	// bool, uchar, byte
+	else if constexpr (std::is_same_v<T, bool> || ((std::is_unsigned_v<T> || std::is_enum_v<T>) && sizeof(T) == 1))	// bool, uchar, byte
 		g_engfuncs.pfnWriteByte(bit_cast<unsigned char>(arg));
 	else if constexpr (sizeof(T) == 1)	// signed char
 		g_engfuncs.pfnWriteChar(arg);

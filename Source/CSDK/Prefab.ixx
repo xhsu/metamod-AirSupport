@@ -1,9 +1,6 @@
-module;
-
-#include <cassert>
-
 export module Prefab;
 
+import <cassert>;
 import <cmath>;
 
 import <concepts>;
