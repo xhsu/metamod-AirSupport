@@ -42,7 +42,7 @@ void UTIL_SearchPatterns(bool bDoNoFoundCheck = true) noexcept
 			szReport += std::format("{}{}\", \"", pszModule, pszName);
 		}
 
-		szReport.erase(szReport.end() - 3);
+		szReport.erase(szReport.end() - 4);	// end - 1 is the actual last.
 		szReport += " no found!";
 		szReport += std::format("\nPlugin Build Number: {} {}", Engine::BUILD_NUMBER_LOCAL, __TIME__);
 
@@ -64,10 +64,11 @@ export namespace Uranus
 			ClearMultiDamage, ApplyMultiDamage, AddMultiDamage,
 			TEXTURETYPE_PlaySound,
 			W_Precache, UTIL_PrecacheOther, UTIL_PrecacheOtherWeapon, WriteSigonMessages,
+			CheckStartMoney,
 			BaseEntity::Create, BaseEntity::FireBullets3,
 			BaseDelay::SUB_UseTargets,
 			BaseWeapon::DefaultDeploy,
-			BasePlayer::HintMessage, BasePlayer::SetAnimation, BasePlayer::DropShield, BasePlayer::CanPlayerBuy
+			BasePlayer::HintMessage, BasePlayer::SetAnimation, BasePlayer::DropShield, BasePlayer::CanPlayerBuy, BasePlayer::AddAccount
 		>(bCrashIfNoFound);
 
 		UTIL_SearchPatterns<

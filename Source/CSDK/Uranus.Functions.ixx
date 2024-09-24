@@ -16,7 +16,7 @@ export import CBase;
 
 export struct uranus_func_collection_t final
 {
-	std::uintptr_t m_iVersion = 8;
+	std::uintptr_t m_iVersion = 2024'09'25;
 
 	CBaseEntity*	(__cdecl*		pfnCreate)					(const char* pszName, Vector const& vecOrigin, Angles const& vecAngles, edict_t* pentOwner) noexcept = nullptr;
 	Vector*			(__fastcall*	pfnFireBullets3)			(CBaseEntity* pThis, void* edx, Vector* pret, Vector vecSrc, Vector vecDirShooting, float flSpread, float flDistance, int iPenetration, int iBulletType, int iDamage, float flRangeModifier, entvars_t* pevAttacker, qboolean bPistol, int shared_rand) noexcept = nullptr;
@@ -26,6 +26,7 @@ export struct uranus_func_collection_t final
 	void			(__fastcall*	pfnSetAnimation)			(CBasePlayer* pPlayer, std::intptr_t, PLAYER_ANIM playerAnim) noexcept = nullptr;
 	void			(__thiscall*	pfnDropShield)				(CBasePlayer* pPlayer, bool bCallDeploy) noexcept = nullptr;
 	bool			(__thiscall*	pfnCanPlayerBuy)			(CBasePlayer* pPlayer, bool bShowMessage) noexcept = nullptr;
+	void			(__thiscall*	pfnAddAccount)				(CBasePlayer* pPlayer, int32_t iAmount, bool bTrackChange) noexcept = nullptr;
 
 	void			(__cdecl*		pfnEmptyEntityHashTable)	(void) noexcept = nullptr;
 	void			(__cdecl*		pfnAddEntityHashValue)		(entvars_t* pev, const char* pszClassname, int32_t) noexcept = nullptr;
@@ -41,6 +42,7 @@ export struct uranus_func_collection_t final
 	void			(__cdecl*		pfnUTIL_PrecacheOther)		(const char* szClassname) noexcept = nullptr;
 	void			(__cdecl*		pfnUTIL_PrecacheOtherWeapon)(const char* szClassname) noexcept = nullptr;
 	void			(__cdecl*		pfnWriteSigonMessages)		(void) noexcept = nullptr;
+	void			(__cdecl*		pfnCheckStartMoney)			(void) noexcept = nullptr;
 
 	// hw.dll
 
@@ -250,6 +252,23 @@ export namespace Uranus
 		}
 	};
 
+	struct CheckStartMoney final
+	{
+		static inline constexpr char MODULE[] = "mp.dll";
+		static inline constexpr char NAME[] = u8"::CheckStartMoney";
+		static inline constexpr std::tuple PATTERNS
+		{
+			std::cref("\xCC\xF3\x0F\x2C\x05\x2A\x2A\x2A\x2A\x3D\x2A\x2A\x2A\x2A\x7E\x17\x51"),	// ANNIV
+		};
+		static inline constexpr std::ptrdiff_t DISPLACEMENT = 1;
+		static inline auto& pfn = gUranusCollection.pfnCheckStartMoney;
+
+		inline void operator() (void) const noexcept
+		{
+			return pfn();
+		}
+	};
+
 	namespace BaseEntity
 	{
 		struct Create final
@@ -412,6 +431,23 @@ export namespace Uranus
 			inline auto operator() (CBasePlayer* pPlayer, bool bShowMessage = true) const noexcept
 			{
 				return pfn(pPlayer, bShowMessage);
+			}
+		};
+
+		struct AddAccount final
+		{
+			static inline constexpr char MODULE[] = "mp.dll";
+			static inline constexpr char NAME[] = u8"::CBasePlayer::AddAccount";
+			static inline constexpr std::tuple PATTERNS
+			{
+				std::cref("\xCC\x55\x8B\xEC\x8B\x45\x08\x56\x8B\xF1\x01\x86\x2A\x2A\x2A\x2A\x79\x0C"),	// ANNIV
+			};
+			static inline constexpr std::ptrdiff_t DISPLACEMENT = 1;
+			static inline auto& pfn = gUranusCollection.pfnAddAccount;
+
+			inline auto operator() (CBasePlayer* pPlayer, int32_t iAmount, bool bTrackChange = true) const noexcept
+			{
+				return pfn(pPlayer, iAmount, bTrackChange);
 			}
 		};
 	};
