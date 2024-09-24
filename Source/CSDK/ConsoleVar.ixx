@@ -8,10 +8,10 @@ export import <charconv>;
 export import <concepts>;
 export import <format>;
 export import <functional>;
+export import <set>;
 export import <string_view>;
 export import <string>;
 export import <unordered_map>;
-export import <unordered_set>;
 export import <vector>;
 
 export import eiface;
@@ -20,12 +20,25 @@ export import cvardef;
 export inline std::vector<std::move_only_function<void()>> grgCVarInitFN;
 export inline std::unordered_map<std::string_view, std::tuple<std::string_view, std::string_view, std::string_view>> grgCVarDesc;
 
+// msvc++ bug?
+// decltype(lambda) gets error..
+export struct cvar_wrapper_sorter final
+{
+	/*static*/ constexpr bool operator() (auto lhs, auto rhs) const noexcept
+	{
+		// remember to sort the string, not the address of that string.
+		return
+			std::string_view{ &lhs->Handle()->name[0] }
+			<
+			std::string_view{ &rhs->Handle()->name[0] };
+	}
+};
 
 export struct console_variable_t final
 {
 	// MUST be used with static string literal
 	template <size_t N1, size_t N2>
-	console_variable_t(const char (&szCVarName)[N1], const char (&szValue)[N2]) noexcept
+	console_variable_t(const char(&szCVarName)[N1], const char(&szValue)[N2]) noexcept
 	{
 		grgCVarInitFN.emplace_back(
 			// Capture this by ref, the others with copy.
@@ -37,7 +50,7 @@ export struct console_variable_t final
 
 	// MUST be used with static string literal
 	template <size_t N1, size_t N2, size_t N3, size_t N4>
-	console_variable_t(const char (&szCVarName)[N1], const char (&szDefValue)[N2], const char (&szDomain)[N3], const char (&szDescription)[N4]) noexcept
+	console_variable_t(const char(&szCVarName)[N1], const char(&szDefValue)[N2], const char(&szDomain)[N3], const char(&szDescription)[N4]) noexcept
 		: console_variable_t(szCVarName, szDefValue)
 	{
 		grgCVarDesc.try_emplace(szCVarName, szDefValue, szDomain, szDescription);
@@ -114,13 +127,13 @@ export struct console_variable_t final
 
 	// A bit dangerous, but necessary.
 	template <typename T> __forceinline
-	explicit operator T() const noexcept
+		explicit operator T() const noexcept
 	{
 		return Get<T>();
 	}
 
-	// keep a record.
-	static inline std::unordered_set<console_variable_t*> all;
+	// keep a record. sorted by address because the m_handle is nullptr at this point.
+	static inline std::set<console_variable_t*> all;
 
 private:
 	cvar_t* m_handle{};

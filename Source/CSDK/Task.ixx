@@ -1,18 +1,5 @@
-module;
-
-#ifdef __INTELLISENSE__
-#include <cstdint>
-
-#include <array>
-#include <coroutine>
-#include <exception>
-#include <functional>
-#include <list>
-#endif
-
 export module Task;
 
-#ifndef __INTELLISENSE__
 export import <cstdint>;
 
 export import <array>;
@@ -20,7 +7,6 @@ export import <coroutine>;
 export import <exception>;
 export import <functional>;
 export import <list>;
-#endif
 
 export import progdefs;
 

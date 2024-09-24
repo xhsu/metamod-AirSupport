@@ -63,11 +63,11 @@ export namespace Uranus
 			EmptyEntityHashTable, AddEntityHashValue, RemoveEntityHashValue,
 			ClearMultiDamage, ApplyMultiDamage, AddMultiDamage,
 			TEXTURETYPE_PlaySound,
-			W_Precache, UTIL_PrecacheOther, UTIL_PrecacheOtherWeapon,
+			W_Precache, UTIL_PrecacheOther, UTIL_PrecacheOtherWeapon, WriteSigonMessages,
 			BaseEntity::Create, BaseEntity::FireBullets3,
 			BaseDelay::SUB_UseTargets,
 			BaseWeapon::DefaultDeploy,
-			BasePlayer::HintMessage, BasePlayer::SetAnimation
+			BasePlayer::HintMessage, BasePlayer::SetAnimation, BasePlayer::DropShield, BasePlayer::CanPlayerBuy
 		>(bCrashIfNoFound);
 
 		UTIL_SearchPatterns<

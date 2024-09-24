@@ -16,7 +16,7 @@ export import CBase;
 
 export struct uranus_func_collection_t final
 {
-	std::uintptr_t m_iVersion = 6;
+	std::uintptr_t m_iVersion = 8;
 
 	CBaseEntity*	(__cdecl*		pfnCreate)					(const char* pszName, Vector const& vecOrigin, Angles const& vecAngles, edict_t* pentOwner) noexcept = nullptr;
 	Vector*			(__fastcall*	pfnFireBullets3)			(CBaseEntity* pThis, void* edx, Vector* pret, Vector vecSrc, Vector vecDirShooting, float flSpread, float flDistance, int iPenetration, int iBulletType, int iDamage, float flRangeModifier, entvars_t* pevAttacker, qboolean bPistol, int shared_rand) noexcept = nullptr;
@@ -24,6 +24,8 @@ export struct uranus_func_collection_t final
 	qboolean		(__thiscall*	pfnDefaultDeploy)			(CBasePlayerWeapon* pWeapon, const char* szViewModel, const char* szWeaponModel, int iAnim, const char* szAnimExt, qboolean skiplocal) noexcept = nullptr;
 	bool			(__thiscall*	pfnHintMessage)				(CBasePlayer* pPlayer, const char* pMessage, qboolean bDisplayIfDead, qboolean bOverrideClientSettings) noexcept = nullptr;
 	void			(__fastcall*	pfnSetAnimation)			(CBasePlayer* pPlayer, std::intptr_t, PLAYER_ANIM playerAnim) noexcept = nullptr;
+	void			(__thiscall*	pfnDropShield)				(CBasePlayer* pPlayer, bool bCallDeploy) noexcept = nullptr;
+	bool			(__thiscall*	pfnCanPlayerBuy)			(CBasePlayer* pPlayer, bool bShowMessage) noexcept = nullptr;
 
 	void			(__cdecl*		pfnEmptyEntityHashTable)	(void) noexcept = nullptr;
 	void			(__cdecl*		pfnAddEntityHashValue)		(entvars_t* pev, const char* pszClassname, int32_t) noexcept = nullptr;
@@ -38,6 +40,7 @@ export struct uranus_func_collection_t final
 	void			(__cdecl*		pfnW_Precache)				(void) noexcept = nullptr;
 	void			(__cdecl*		pfnUTIL_PrecacheOther)		(const char* szClassname) noexcept = nullptr;
 	void			(__cdecl*		pfnUTIL_PrecacheOtherWeapon)(const char* szClassname) noexcept = nullptr;
+	void			(__cdecl*		pfnWriteSigonMessages)		(void) noexcept = nullptr;
 
 	// hw.dll
 
@@ -230,6 +233,23 @@ export namespace Uranus
 		}
 	};
 
+	struct WriteSigonMessages final
+	{
+		static inline constexpr char MODULE[] = "mp.dll";
+		static inline constexpr char NAME[] = u8"::WriteSigonMessages";
+		static inline constexpr std::tuple PATTERNS
+		{
+			std::cref("\xCC\x55\x8B\xEC\x51\x53\x8B\x1D\x2A\x2A\x2A\x2A\x56\x57\xBF\x2A\x2A\x2A\x2A\x83\x7F\x10\x00"),	// ANNIV
+		};
+		static inline constexpr std::ptrdiff_t DISPLACEMENT = 1;
+		static inline auto& pfn = gUranusCollection.pfnWriteSigonMessages;
+
+		inline void operator() (void) const noexcept
+		{
+			return pfn();
+		}
+	};
+
 	namespace BaseEntity
 	{
 		struct Create final
@@ -356,6 +376,42 @@ export namespace Uranus
 			inline void operator() (CBasePlayer* pPlayer, PLAYER_ANIM playerAnim) const noexcept
 			{
 				pfn(pPlayer, 0, playerAnim);
+			}
+		};
+
+		struct DropShield final
+		{
+			static inline constexpr char MODULE[] = "mp.dll";
+			static inline constexpr char NAME[] = u8"::CBasePlayer::DropShield";
+			static inline constexpr std::tuple PATTERNS
+			{
+				std::cref("\x90\x83\xEC\x18\x53\x56\x8B\xF1\x33\xDB\x38\x9E\x2A\x2A\x2A\x2A\x0F\x84"),	// LEGACY
+				std::cref("\xCC\x55\x8B\xEC\x83\xEC\x18\x57\x8B\xF9\x80\xBF\x2A\x2A\x2A\x2A\x2A\x0F\x84"),	// ANNIV
+			};
+			static inline constexpr std::ptrdiff_t DISPLACEMENT = 1;
+			static inline auto& pfn = gUranusCollection.pfnDropShield;
+
+			inline auto operator() (CBasePlayer* pPlayer, bool bCallDeploy = true) const noexcept
+			{
+				return pfn(pPlayer, bCallDeploy);
+			}
+		};
+
+		struct CanPlayerBuy final
+		{
+			static inline constexpr char MODULE[] = "mp.dll";
+			static inline constexpr char NAME[] = u8"::CBasePlayer::CanPlayerBuy";
+			static inline constexpr std::tuple PATTERNS
+			{
+				std::cref("\x90\x51\x53\x55\x56\x57\x8B\xF9\x8B\x0D\x2A\x2A\x2A\x2A\x8B\x01\xFF\x50\x18"),	// LEGACY
+				std::cref("\xCC\x55\x8B\xEC\x51\x56\x8B\xF1\x8B\x0D\x2A\x2A\x2A\x2A\x8B\x01\xFF\x50\x18"),	// ANNIV
+			};
+			static inline constexpr std::ptrdiff_t DISPLACEMENT = 1;
+			static inline auto& pfn = gUranusCollection.pfnCanPlayerBuy;
+
+			inline auto operator() (CBasePlayer* pPlayer, bool bShowMessage = true) const noexcept
+			{
+				return pfn(pPlayer, bShowMessage);
 			}
 		};
 	};

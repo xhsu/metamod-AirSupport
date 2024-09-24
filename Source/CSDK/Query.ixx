@@ -1,8 +1,18 @@
+module;
+
+#ifdef __INTELLISENSE__
+#include <experimental/generator>
+#include <ranges>
+#include <span>
+#endif
+
 export module Query;
 
+#ifndef __INTELLISENSE__
 export import <experimental/generator>;	// #UPDATE_AT_CPP23
 export import <ranges>;
 export import <span>;
+#endif
 
 export import eiface;
 export import progdefs;
@@ -16,12 +26,12 @@ namespace Query
 	export inline decltype(auto) all_players(void) noexcept
 	{
 		return
-			std::span(g_engfuncs.pfnPEntityOfEntIndex(1), gpGlobals->maxClients) |	// from 1 to 32 actually, iota parsed as [1, 33)
-			std::views::transform([](edict_t &ent) noexcept { return ent.free ? nullptr : (CBasePlayer *)ent.pvPrivateData; }) |
-			std::views::filter([](void *p) noexcept { return p != nullptr; }) |
+			std::span(g_engfuncs.pfnPEntityOfEntIndex(1), gpGlobals->maxClients) // from 1 to 32 actually, iota parsed as [1, 33)
+			| std::views::transform([](edict_t &ent) noexcept { return ent.free ? nullptr : (CBasePlayer *)ent.pvPrivateData; })
+			| std::views::filter([](void *p) noexcept { return p != nullptr; })
 
 			// Connected but not necessary alive.
-			std::views::filter([](CBasePlayer *pPlayer) noexcept { return !pPlayer->has_disconnected && !(pPlayer->pev->flags & FL_DORMANT); })
+			| std::views::filter([](CBasePlayer *pPlayer) noexcept { return !pPlayer->has_disconnected && !(pPlayer->pev->flags & FL_DORMANT); })
 			;
 	}
 
