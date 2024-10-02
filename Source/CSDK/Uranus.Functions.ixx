@@ -14,9 +14,11 @@ export import sizebuf;
 
 export import CBase;
 
+using PFN_ENTITYINIT = void (*)(entvars_t* pev) noexcept;
+
 export struct uranus_func_collection_t final
 {
-	std::uintptr_t m_iVersion = 2024'09'25;
+	std::uintptr_t m_iVersion = 2024'10'03;
 
 	CBaseEntity*	(__cdecl*		pfnCreate)					(const char* pszName, Vector const& vecOrigin, Angles const& vecAngles, edict_t* pentOwner) noexcept = nullptr;
 	Vector*			(__fastcall*	pfnFireBullets3)			(CBaseEntity* pThis, void* edx, Vector* pret, Vector vecSrc, Vector vecDirShooting, float flSpread, float flDistance, int iPenetration, int iBulletType, int iDamage, float flRangeModifier, entvars_t* pevAttacker, qboolean bPistol, int shared_rand) noexcept = nullptr;
@@ -48,6 +50,7 @@ export struct uranus_func_collection_t final
 
 	void			(__cdecl*		pfnSys_Error)				(const char* Format, ...) noexcept = nullptr;	// [[noreturn]]
 	void*			(__cdecl*		pfnSZ_GetSpace)				(sizebuf_t* buf, uint32_t length) noexcept = nullptr;
+	PFN_ENTITYINIT	(__cdecl*		pfnGetDispatch)				(char const* pszClassName) noexcept = nullptr;
 };
 
 export inline uranus_func_collection_t gUranusCollection;
@@ -479,5 +482,23 @@ export namespace HW
 		};
 		static inline constexpr std::ptrdiff_t DISPLACEMENT = 1;
 		static inline auto& pfn = gUranusCollection.pfnSZ_GetSpace;
+	};
+
+	struct GetDispatch final
+	{
+		static inline constexpr char MODULE[] = "hw.dll";
+		static inline constexpr char NAME[] = u8"::GetDispatch";
+		static inline constexpr std::tuple PATTERNS
+		{
+			std::cref("\x90\xA1****\x53\x55\x56\x57\x33\xFF\x85\xC0\x7E\x26"),	// 3266, untested
+			std::cref("\xCC\x55\x8B\xEC\x53\x56\x33\xF6\x57\x39\x35****\x7E\x29\x8B\x5D\x08\xBF"),	// ANNIV
+		};
+		static inline constexpr std::ptrdiff_t DISPLACEMENT = 1;
+		static inline auto& pfn = gUranusCollection.pfnGetDispatch;
+
+		inline auto operator() (const char* pszClassName) const noexcept
+		{
+			return pfn(pszClassName);
+		}
 	};
 }

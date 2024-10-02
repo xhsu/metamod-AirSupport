@@ -73,7 +73,8 @@ export namespace Uranus
 
 		UTIL_SearchPatterns<
 			HW::Sys_Error,
-			HW::SZ_GetSpace
+			HW::SZ_GetSpace,
+			HW::GetDispatch
 		>(bCrashIfNoFound);
 	}
 }
