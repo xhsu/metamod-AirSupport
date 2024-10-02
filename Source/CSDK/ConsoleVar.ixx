@@ -1,5 +1,5 @@
 /*
-Created Data: Jan 27 2024
+Created Date: Jan 27 2024
 */
 
 export module ConsoleVar;
@@ -17,8 +17,29 @@ export import <vector>;
 export import eiface;
 export import cvardef;
 
-export inline std::vector<std::move_only_function<void()>> grgCVarInitFN;
-export inline std::unordered_map<std::string_view, std::tuple<std::string_view, std::string_view, std::string_view>> grgCVarDesc;
+struct console_variable_t;	// forward declearation
+
+// Luna: The initialization order was unspecified due to CVARs being defined in other translation units.
+// Only singleton can resolve this problem.
+// Hence we are here. Fuck C++export struct CVarManager
+export struct CVarManager final
+{
+	std::vector<std::move_only_function<void() const noexcept>> m_InitFuncs{};
+	std::unordered_map<std::string_view, std::tuple<std::string_view, std::string_view, std::string_view>> m_Desc{};
+	std::set<console_variable_t*, std::less<>> m_all{};	// keep a record. sorted by address because the m_handle is nullptr at this point.
+
+	static CVarManager* Instance() noexcept
+	{
+		static CVarManager singleton{};
+		return &singleton;
+	}
+
+	static void Init() noexcept
+	{
+		for (auto&& fn : Instance()->m_InitFuncs)
+			std::invoke(fn);
+	}
+};
 
 // msvc++ bug?
 // decltype(lambda) gets error..
@@ -40,12 +61,12 @@ export struct console_variable_t final
 	template <size_t N1, size_t N2>
 	console_variable_t(const char(&szCVarName)[N1], const char(&szValue)[N2]) noexcept
 	{
-		grgCVarInitFN.emplace_back(
+		CVarManager::Instance()->m_InitFuncs.emplace_back(
 			// Capture this by ref, the others with copy.
 			[this, szCVarName, szValue]() noexcept { Init(szCVarName, szValue); }
 		);
 
-		all.insert(this);
+		CVarManager::Instance()->m_all.insert(this);
 	}
 
 	// MUST be used with static string literal
@@ -53,7 +74,7 @@ export struct console_variable_t final
 	console_variable_t(const char(&szCVarName)[N1], const char(&szDefValue)[N2], const char(&szDomain)[N3], const char(&szDescription)[N4]) noexcept
 		: console_variable_t(szCVarName, szDefValue)
 	{
-		grgCVarDesc.try_emplace(szCVarName, szDefValue, szDomain, szDescription);
+		CVarManager::Instance()->m_Desc.try_emplace(szCVarName, szDefValue, szDomain, szDescription);
 	}
 
 	bool Init(const char* pszCVarName, const char* pszValue, int bitsFlags = FCVAR_SERVER | FCVAR_EXTDLL) noexcept
@@ -131,9 +152,6 @@ export struct console_variable_t final
 	{
 		return Get<T>();
 	}
-
-	// keep a record. sorted by address because the m_handle is nullptr at this point.
-	static inline std::set<console_variable_t*> all;
 
 private:
 	cvar_t* m_handle{};
