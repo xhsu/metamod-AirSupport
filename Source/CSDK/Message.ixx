@@ -10,22 +10,12 @@ module;
 
 #define USING_METAMOD
 
-#ifdef __INTELLISENSE__
 #include <cassert>
-#include <cstdint>
-
-#include <bit>
-#endif
 
 export module Message;
 
-#ifndef __INTELLISENSE__
-export import <cassert>;
-export import <cstdint>;
-#endif
-
-export import util;
-export import vector;
+export import std;
+export import hlsdk;
 
 #ifdef USING_METAMOD
 export import Plugin;
@@ -34,6 +24,10 @@ export import Plugin;
 export import UtlConcepts;
 
 using std::bit_cast;
+using std::uint8_t;
+using std::uint16_t;
+using std::int8_t;
+using std::int16_t;
 
 // A wrapper that force pfnWriteAngle
 export struct msg_angle_t final
@@ -42,22 +36,22 @@ export struct msg_angle_t final
 	float m_angle_data{};
 };
 
-export inline void MsgSend(entvars_t *pev, int iMessageIndex) noexcept
+export inline void MsgSend(entvars_t *pev, ESvcCommands iMessageIndex) noexcept
 {
 	g_engfuncs.pfnMessageBegin(MSG_ONE, iMessageIndex, nullptr, ent_cast<edict_t *>(pev));
 }
 
-export inline void MsgAll(int iMessageIndex) noexcept
+export inline void MsgAll(ESvcCommands iMessageIndex) noexcept
 {
 	g_engfuncs.pfnMessageBegin(MSG_ALL, iMessageIndex, nullptr, nullptr);
 }
 
-export inline void MsgBroadcast(int iMessageIndex) noexcept
+export inline void MsgBroadcast(ESvcCommands iMessageIndex) noexcept
 {
 	g_engfuncs.pfnMessageBegin(MSG_BROADCAST, iMessageIndex, nullptr, nullptr);
 }
 
-export inline void MsgPVS(int iMessageIndex, const Vector &vecOrigin) noexcept
+export inline void MsgPVS(ESvcCommands iMessageIndex, const Vector &vecOrigin) noexcept
 {
 	g_engfuncs.pfnMessageBegin(MSG_PVS, iMessageIndex, vecOrigin, nullptr);
 }
@@ -117,7 +111,11 @@ inline void WriteScaledFloat(double fl) noexcept
 struct StringLiteral
 {
 	// Constructor
+#ifdef __INTELLISENSE__
+	template <size_t N> constexpr StringLiteral(const char(&str)[N]) noexcept {}	// Fucking buggy intellisense. #MSVC_BUG_INTELLISENSE
+#else
 	template <size_t N> constexpr StringLiteral(const char(&str)[N]) noexcept : m_psz(str), m_length(N) {}
+#endif
 	constexpr StringLiteral(StringLiteral const&) noexcept = default;
 	constexpr StringLiteral& operator= (StringLiteral const&) noexcept = default;
 
@@ -149,7 +147,7 @@ struct Message_t final
 	static_assert(SIZE < 192U, "The size of entire message must less than 192 bytes.");
 
 	// Members
-	static inline int m_iMessageIndex = 0;
+	static inline ESvcCommands m_iMessageIndex = (ESvcCommands)0;	// initialize with SVC_BAD
 
 	// Methods
 	static void Register(void) noexcept
@@ -180,7 +178,7 @@ struct Message_t final
 	}
 #endif
 
-	template <int iDest>
+	template <MSG_DEST iDest>
 	static void Marshalled(const Vector &vecOrigin, edict_t *pClient, const Tys&... args) noexcept
 	{
 		assert(m_iMessageIndex > 0);
@@ -207,7 +205,7 @@ struct Message_t final
 		g_engfuncs.pfnMessageEnd();
 	}
 
-	template <int iDest, typename... Ts>
+	template <MSG_DEST iDest, typename... Ts>
 	static void Unmanaged(const Vector &vecOrigin, edict_t *pClient, const Ts&... args) noexcept
 	{
 		assert(m_iMessageIndex > 0);
@@ -235,8 +233,8 @@ struct Message_t final
 	}
 
 	static inline void Send(edict_t *pClient, const Tys&... args) noexcept { return Marshalled<MSG_ONE>(Vector::Zero(), pClient, args...); }
-	template <int _dest> static inline void Broadcast(const Tys&... args) noexcept { return Marshalled<_dest>(Vector::Zero(), nullptr, args...); }
-	template <int _dest> static inline void Region(const Vector &vecOrigin, const Tys&... args) noexcept { return Marshalled<_dest>(vecOrigin, nullptr, args...); }
+	template <MSG_DEST _dest> static inline void Broadcast(const Tys&... args) noexcept { return Marshalled<_dest>(Vector::Zero(), nullptr, args...); }
+	template <MSG_DEST _dest> static inline void Region(const Vector &vecOrigin, const Tys&... args) noexcept { return Marshalled<_dest>(vecOrigin, nullptr, args...); }
 
 	// Client side stuff.
 
@@ -293,6 +291,7 @@ export using gmsgBarTime = Message_t<"BarTime", int16_t>;
 export using gmsgBrass = Message_t<"Brass", Vector/*origin*/, Vector/*velocity*/, msg_angle_t/*rotation*/, int16_t/*model*/, uint8_t/*soundtype*/, uint8_t/*entityIndex*/>;
 export using gmsgCurWeapon = Message_t<"CurWeapon", uint8_t/*state*/, uint8_t/*iId*/, uint8_t/*iClip*/>;
 export using gmsgHudText = Message_t<"HudTextPro", const char*/*message*/, uint8_t/*is_hint*/>;	// Arkshine: not usable except build-in texts.
+export using gmsgRoundTime = Message_t<"RoundTime", uint16_t/*countdown*/>;
 export using gmsgScreenFade = Message_t<"ScreenFade", uint16_t, uint16_t, uint16_t, uint8_t, uint8_t, uint8_t, uint8_t>;
 export using gmsgScreenShake = Message_t<"ScreenShake", uint16_t, uint16_t, uint16_t>;
 export using gmsgShowMenu = Message_t<"ShowMenu", uint16_t, int8_t, uint8_t, const char*>;
@@ -310,6 +309,7 @@ export void RetrieveMessageHandles(void) noexcept
 	gmsgBrass::Retrieve();
 	gmsgCurWeapon::Retrieve();
 	gmsgHudText::Retrieve();
+	gmsgRoundTime::Retrieve();
 	gmsgScreenFade::Retrieve();
 	gmsgScreenShake::Retrieve();
 	gmsgShowMenu::Retrieve();

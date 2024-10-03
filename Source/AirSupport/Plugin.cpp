@@ -1,6 +1,6 @@
-import eiface;
 
-import engine_api;
+import std.compat;
+import hlsdk;
 
 import Plugin;
 

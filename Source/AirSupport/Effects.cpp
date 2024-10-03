@@ -1,16 +1,12 @@
-import <cassert>;
+#include <cassert>
 
-import <array>;
-import <chrono>;
-import <numbers>;
-
-import edict;
-import shake;
-import util;
+import std;
+import hlsdk;
 
 import DamageOverTime;
 import Effects;
 import Math;
+import Message;
 import Projectile;
 import Query;
 import Resources;
@@ -258,16 +254,16 @@ Task Task_Fade(entvars_t *const pev, float const INC, float const DEC, float con
 	pev->flags |= FL_KILLME;
 }
 
-Task Task_SpriteOnEnt_NotOwned(entvars_t *const pev, EHANDLE<CBaseEntity> pEnt, uint16_t const ATTACHMENT, Vector const vecOfs, float const INC, float const PEAK, float const DECAY) noexcept
+Task Task_SpriteOnAttachment_NotOwned(entvars_t *const pev, EHANDLE<CBaseEntity> pAttachTo, uint16_t const ATTACHMENT, Vector const vecOfs, float const INC, float const PEAK, float const DECAY) noexcept
 {
 	Vector vecAttOrigin{}, vecTransformedOfs{};
 	auto const me = ent_cast<edict_t *>(pev);
 
-	for (; pEnt;)	// Must be a post-awaiting. Otherwise the validity of entity is subject to change after the check.
+	for (; pAttachTo;)	// Must be a post-awaiting. Otherwise the validity of entity is subject to change after the check.
 	{
-		auto&& [f, r, u] = pEnt->pev->angles.AngleVectors();
+		auto&& [f, r, u] = pAttachTo->pev->angles.AngleVectors();
 		vecTransformedOfs = vecOfs.x * f + vecOfs.y * r + vecOfs.z * u;
-		vecAttOrigin = UTIL_GetAttachment(pEnt.Get(), ATTACHMENT);	// LUNA: DO NOT use the engine version, it's buggy.
+		vecAttOrigin = UTIL_GetAttachment(pAttachTo.Get(), ATTACHMENT);	// LUNA: DO NOT use the engine version, it's buggy.
 
 		g_engfuncs.pfnSetOrigin(me, vecAttOrigin + vecTransformedOfs);
 
@@ -286,13 +282,13 @@ Task Task_SpriteOnEnt_NotOwned(entvars_t *const pev, EHANDLE<CBaseEntity> pEnt, 
 	co_return;
 }
 
-Task Task_SpriteEnterLoopOut(entvars_t *const pev, EHANDLE<CBaseEntity> pEnt, uint16_t const LOOP_START_POS, uint16_t const LOOP_END_POS_EXC, uint16_t const FRAME_COUNT, float const FPS) noexcept
+Task Task_SpriteEnterLoopOut(entvars_t *const pev, EHANDLE<CBaseEntity> pExistanceRelyOn, uint16_t const LOOP_START_POS, uint16_t const LOOP_END_POS_EXC, uint16_t const FRAME_COUNT, float const FPS) noexcept
 {
 	uint16_t iFrame = 0;
 
 	co_await float(1.0 / FPS);
 
-	for (; pEnt && iFrame < LOOP_START_POS;)
+	for (; pExistanceRelyOn && iFrame < LOOP_START_POS;)
 	{
 		pev->framerate = float(1.0 / FPS);
 		pev->frame = ++iFrame;
@@ -303,7 +299,7 @@ Task Task_SpriteEnterLoopOut(entvars_t *const pev, EHANDLE<CBaseEntity> pEnt, ui
 
 	auto const iLoopFrameCount = LOOP_END_POS_EXC - LOOP_START_POS;
 
-	for (; pEnt;)
+	for (; pExistanceRelyOn;)
 	{
 		iFrame = (iFrame + 1) % iLoopFrameCount;
 
@@ -350,7 +346,7 @@ Task CFlame::Task_DetectGround() noexcept	// Deprecated
 			MsgBroadcast(SVC_TEMPENTITY);
 			WriteData(TE_WORLDDECAL);
 			WriteData(tr.vecEndPos);
-			WriteData((byte)UTIL_GetRandomOne(Decal::SCORCH).m_Index);
+			WriteData((uint8_t)UTIL_GetRandomOne(Decal::SCORCH).m_Index);
 			MsgEnd();
 
 			pev->view_ofs = pev->origin + Vector(0, 0, 64.0 * pev->scale);
@@ -383,13 +379,13 @@ Task CFlame::Task_EmitLight() noexcept
 		MsgPVS(SVC_TEMPENTITY, pev->view_ofs);
 		WriteData(TE_DLIGHT);
 		WriteData(pev->origin + vecNoise);	// pos
-		WriteData((byte)UTIL_Random(12, 14));	// rad in 10's
-		WriteData((byte)UTIL_Random(0xC3, 0xCD));	// r
-		WriteData((byte)UTIL_Random(0x3E, 0x46));	// g
-		WriteData((byte)UTIL_Random(0x05, 0x10));	// b
-		WriteData((byte)2);	// brightness
-		WriteData((byte)0);	// life in 10's
-		WriteData((byte)1);	// decay in 10's
+		WriteData((uint8_t)UTIL_Random(12, 14));	// rad in 10's
+		WriteData((uint8_t)UTIL_Random(0xC3, 0xCD));	// r
+		WriteData((uint8_t)UTIL_Random(0x3E, 0x46));	// g
+		WriteData((uint8_t)UTIL_Random(0x05, 0x10));	// b
+		WriteData((uint8_t)2);	// brightness
+		WriteData((uint8_t)0);	// life in 10's
+		WriteData((uint8_t)1);	// decay in 10's
 		MsgEnd();
 	}
 }
@@ -410,8 +406,8 @@ Task CFlame::Task_EmitSmoke() noexcept
 		WriteData(TE_SMOKE);
 		WriteData(pev->view_ofs + vecNoise);
 		WriteData((short)Sprites::m_rgLibrary[UTIL_GetRandomOne(Sprites::BLACK_SMOKE)]);
-		WriteData((byte)UTIL_Random(10, 20));	// (scale in 0.1's)
-		WriteData((byte)UTIL_Random(15, 20));	// (framerate)
+		WriteData((uint8_t)UTIL_Random(10, 20));	// (scale in 0.1's)
+		WriteData((uint8_t)UTIL_Random(15, 20));	// (framerate)
 		MsgEnd();
 
 		//MsgPVS(SVC_TEMPENTITY, pev->view_ofs);
@@ -419,9 +415,9 @@ Task CFlame::Task_EmitSmoke() noexcept
 		//WriteData(pev->view_ofs + vecNoise);
 		//WriteData((short)UTIL_Random(-32.0 * pev->scale, 32.0 * pev->scale));
 		//WriteData((short)Sprite::m_rgLibrary[Sprite::BLACK_SMOKE]);
-		//WriteData((byte)UTIL_Random(2, 4));
-		//WriteData((byte)(TEFIRE_FLAG_SOMEFLOAT | TEFIRE_FLAG_ALPHA));
-		//WriteData((byte)25);
+		//WriteData((uint8_t)UTIL_Random(2, 4));
+		//WriteData((uint8_t)(TEFIRE_FLAG_SOMEFLOAT | TEFIRE_FLAG_ALPHA));
+		//WriteData((uint8_t)25);
 		//MsgEnd();
 	}
 }
@@ -483,7 +479,7 @@ void CFlame::Touch_AttachingSurface(CBaseEntity *pOther) noexcept
 		MsgBroadcast(SVC_TEMPENTITY);
 		WriteData(TE_WORLDDECAL);
 		WriteData(tr.vecEndPos);
-		WriteData((byte)UTIL_GetRandomOne(Decal::SCORCH).m_Index);
+		WriteData((uint8_t)UTIL_GetRandomOne(Decal::SCORCH).m_Index);
 		MsgEnd();
 	}
 
@@ -501,7 +497,7 @@ void CFlame::Touch_AttachingSurface(CBaseEntity *pOther) noexcept
 
 void CFlame::Touch_DealBurnDmg(CBaseEntity *pOther) noexcept
 {
-	if (!pOther || pev_valid(pOther->pev) != 2)
+	if (!pOther || pev_valid(pOther->pev) != EValidity::Full)
 		return;
 
 	if (pOther->pev->takedamage == DAMAGE_NO)
@@ -869,8 +865,8 @@ Task CDebris::Task_Debris() noexcept
 		WriteData(TE_SMOKE);
 		WriteData(pev->origin);
 		WriteData((short)Sprites::m_rgLibrary[UTIL_GetRandomOne(Sprites::BLACK_SMOKE)]);
-		WriteData((byte)UTIL_Random(5, 10));	// (scale in 0.1's)
-		WriteData((byte)UTIL_Random(15, 20));	// (framerate)
+		WriteData((uint8_t)UTIL_Random(5, 10));	// (scale in 0.1's)
+		WriteData((uint8_t)UTIL_Random(15, 20));	// (framerate)
 		MsgEnd();
 
 		pev->renderamt -= 0.1f;
@@ -1098,7 +1094,7 @@ Task CFuelAirCloud::Task_Ignite(void) noexcept
 	m_Scheduler.Enroll(Task_SpritePlayOnce(pev, iFrameCount, 25), TASK_ANIMATION);	// 2 secs
 	m_Scheduler.Enroll(Task_EmitLight(), TASK_ACTION);
 
-	g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, UTIL_GetRandomOne(Sounds::FuelAirBomb::GAS_EXPLO), VOL_NORM, UTIL_Random(ATTN_NORM / 2.f, ATTN_NORM), 0, UTIL_Random(88, 116));
+	g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, UTIL_GetRandomOne(Sounds::FuelAirBomb::GAS_EXPLO), VOL_NORM, UTIL_Random(ATTN_NORM / 2.f, ATTN_NORM), SND_FL_NONE, UTIL_Random(88, 116));
 
 	co_await 0.1f;
 
@@ -1124,13 +1120,13 @@ Task CFuelAirCloud::Task_EmitLight(void) noexcept
 		MsgPVS(SVC_TEMPENTITY, pev->origin);
 		WriteData(TE_DLIGHT);
 		WriteData(pev->origin + vecNoise);	// pos
-		WriteData((byte)UTIL_Random(40, 50));	// rad in 10's
-		WriteData((byte)UTIL_Random(0xC3, 0xCD));	// r
-		WriteData((byte)UTIL_Random(0x3E, 0x46));	// g
-		WriteData((byte)UTIL_Random(0x05, 0x10));	// b
-		WriteData((byte)2);	// brightness
-		WriteData((byte)0);	// life in 10's
-		WriteData((byte)1);	// decay in 10's
+		WriteData((uint8_t)UTIL_Random(40, 50));	// rad in 10's
+		WriteData((uint8_t)UTIL_Random(0xC3, 0xCD));	// r
+		WriteData((uint8_t)UTIL_Random(0x3E, 0x46));	// g
+		WriteData((uint8_t)UTIL_Random(0x05, 0x10));	// b
+		WriteData((uint8_t)2);	// brightness
+		WriteData((uint8_t)0);	// life in 10's
+		WriteData((uint8_t)1);	// decay in 10's
 		MsgEnd();
 	}
 }
@@ -1400,7 +1396,7 @@ void CFuelAirCloud::OnTraceAttack(TraceResult const &tr, EHANDLE<CBaseEntity> pS
 		if (((tr.vecEndPos + tr.vecPlaneNormal * 24.0) - pCloud->pev->origin).LengthSquared() < (72.0 * 72.0))
 		{
 			auto const pEdict = Prefab_t::Create<CSparkSpr>(tr.vecEndPos)->edict();
-			g_engfuncs.pfnEmitSound(pEdict, CHAN_STATIC, UTIL_GetRandomOne(Sounds::HIT_METAL), VOL_NORM, ATTN_NORM, 0, UTIL_Random(96, 108));
+			g_engfuncs.pfnEmitSound(pEdict, CHAN_STATIC, UTIL_GetRandomOne(Sounds::HIT_METAL), VOL_NORM, ATTN_NORM, SND_FL_NONE, UTIL_Random(96, 108));
 
 			Angles vecAngles{};
 			g_engfuncs.pfnVecToAngles(-tr.vecPlaneNormal, vecAngles);
@@ -1415,7 +1411,7 @@ void CFuelAirCloud::OnTraceAttack(TraceResult const &tr, EHANDLE<CBaseEntity> pS
 			g_engfuncs.pfnGetAttachment(pPlayer->edict(), 0, vecAttachmentPos, vecAngles);
 
 			auto const pEdict = Prefab_t::Create<CSparkSpr>(vecAttachmentPos)->edict();
-			g_engfuncs.pfnEmitSound(pEdict, CHAN_STATIC, UTIL_GetRandomOne(Sounds::HIT_METAL), VOL_NORM, ATTN_NORM, 0, UTIL_Random(96, 108));
+			g_engfuncs.pfnEmitSound(pEdict, CHAN_STATIC, UTIL_GetRandomOne(Sounds::HIT_METAL), VOL_NORM, ATTN_NORM, SND_FL_NONE, UTIL_Random(96, 108));
 
 			pCloud->Ignite();
 		}
@@ -1459,7 +1455,7 @@ CSpriteDisplay *CSpriteDisplay::Create(Vector const &vecOrigin, kRenderFn iRende
 CPhosphorus::~CPhosphorus() noexcept
 {
 	g_engfuncs.pfnEmitAmbientSound(edict(), pev->origin, Sounds::Thermite::BURNING_LOOP, 0.75f, ATTN_STATIC, SND_STOP, UTIL_Random(88, 112));
-	g_engfuncs.pfnEmitAmbientSound(edict(), pev->origin, Sounds::Thermite::BURNING_END, 0.75f, ATTN_STATIC, 0, UTIL_Random(88, 112));
+	g_engfuncs.pfnEmitAmbientSound(edict(), pev->origin, Sounds::Thermite::BURNING_END, 0.75f, ATTN_STATIC, SND_FL_NONE, UTIL_Random(88, 112));
 }
 
 void CPhosphorus::Spawn() noexcept
@@ -1531,18 +1527,18 @@ void CPhosphorus::Touch_Flying(CBaseEntity *pOther) noexcept
 	MsgPVS(SVC_TEMPENTITY, pev->origin);	// the light for the spark
 	WriteData(TE_DLIGHT);
 	WriteData(pev->origin);	// pos
-	WriteData((byte)40);	// rad in 10's
-	WriteData((byte)255);	// r
-	WriteData((byte)255);	// g
-	WriteData((byte)255);	// b
-	WriteData((byte)8);		// life in 10's
-	WriteData((byte)60);	// decay in 10's
+	WriteData((uint8_t)40);	// rad in 10's
+	WriteData((uint8_t)255);	// r
+	WriteData((uint8_t)255);	// g
+	WriteData((uint8_t)255);	// b
+	WriteData((uint8_t)8);		// life in 10's
+	WriteData((uint8_t)60);	// decay in 10's
 	MsgEnd();
 
 	if (m_tr.pHit && m_tr.pHit->v.solid == SOLID_BSP)
 		UTIL_Decal(m_tr.pHit, m_tr.vecEndPos, UTIL_GetRandomOne(Decal::SCORCH).m_Index);
 
-	g_engfuncs.pfnEmitAmbientSound(edict(), pev->origin, Sounds::Thermite::BURNING_LOOP, 0.75f, ATTN_STATIC, 0, UTIL_Random(88, 112));
+	g_engfuncs.pfnEmitAmbientSound(edict(), pev->origin, Sounds::Thermite::BURNING_LOOP, 0.75f, ATTN_STATIC, SND_FL_NONE, UTIL_Random(88, 112));
 
 	for (auto &&pPlayer :
 		Query::all_living_players()
@@ -1555,7 +1551,7 @@ void CPhosphorus::Touch_Flying(CBaseEntity *pOther) noexcept
 
 void CPhosphorus::Touch_Burning(CBaseEntity *pOther) noexcept
 {
-	if (!pOther || pev_valid(pOther->pev) != 2)
+	if (!pOther || pev_valid(pOther->pev) != EValidity::Full)
 		return;
 
 	if (pOther->pev->takedamage == DAMAGE_NO)
@@ -1604,12 +1600,12 @@ Task CPhosphorus::Task_EmitExhaust() noexcept
 	WriteData(TE_BEAMFOLLOW);
 	WriteData(entindex());	// short (entity:attachment to follow)
 	WriteData(Sprites::m_rgLibrary[Sprites::TRAIL]);	// short (sprite index)
-	WriteData((byte)UTIL_Random(20, 40));	// byte (life in 0.1's) 
-	WriteData((byte)3);		// byte (line width in 0.1's) 
-	WriteData((byte)255);	// r
-	WriteData((byte)255);	// g
-	WriteData((byte)191);	// b
-	WriteData((byte)255);	// byte (brightness)
+	WriteData((uint8_t)UTIL_Random(20, 40));	// byte (life in 0.1's) 
+	WriteData((uint8_t)3);		// byte (line width in 0.1's) 
+	WriteData((uint8_t)255);	// r
+	WriteData((uint8_t)255);	// g
+	WriteData((uint8_t)191);	// b
+	WriteData((uint8_t)255);	// byte (brightness)
 	MsgEnd();
 
 	// If the phosphorus gets spawned directly from the sky, then we actually needs to wait.
@@ -1688,13 +1684,13 @@ Task CPhosphorus::Task_EmitLight() noexcept
 		MsgPVS(SVC_TEMPENTITY, pev->view_ofs);
 		WriteData(TE_DLIGHT);
 		WriteData(vecNoise);	// pos
-		WriteData((byte)UTIL_Random(11, 13));	// rad in 10's
-		WriteData((byte)255);	// r
-		WriteData((byte)255);	// g
-		WriteData((byte)UTIL_Random(190, 210));	// b
-		WriteData((byte)2);	// brightness
-		WriteData((byte)0);	// life in 10's
-		WriteData((byte)1);	// decay in 10's
+		WriteData((uint8_t)UTIL_Random(11, 13));	// rad in 10's
+		WriteData((uint8_t)255);	// r
+		WriteData((uint8_t)255);	// g
+		WriteData((uint8_t)UTIL_Random(190, 210));	// b
+		WriteData((uint8_t)2);	// brightness
+		WriteData((uint8_t)0);	// life in 10's
+		WriteData((uint8_t)1);	// decay in 10's
 		MsgEnd();
 	}
 }
@@ -1773,13 +1769,13 @@ Task CShower2::Task_Flashing() noexcept
 		MsgPVS(SVC_TEMPENTITY, pev->origin);
 		WriteData(TE_DLIGHT);
 		WriteData(pev->origin);	// pos
-		WriteData((byte)UTIL_Random(12, 14));	// rad in 10's
-		WriteData((byte)255);	// r
-		WriteData((byte)255);	// g
-		WriteData((byte)255);	// b
-		WriteData((byte)2);	// brightness
-		WriteData((byte)0);	// life in 10's
-		WriteData((byte)1);	// decay in 10's
+		WriteData((uint8_t)UTIL_Random(12, 14));	// rad in 10's
+		WriteData((uint8_t)255);	// r
+		WriteData((uint8_t)255);	// g
+		WriteData((uint8_t)255);	// b
+		WriteData((uint8_t)2);	// brightness
+		WriteData((uint8_t)0);	// life in 10's
+		WriteData((uint8_t)1);	// decay in 10's
 		MsgEnd();
 
 		pev->speed -= 0.1f;

@@ -1,7 +1,6 @@
 export module Projectile;
 
-export import <list>;
-export import <vector>;
+export import std;
 
 export import Beam;
 export import Effects;

@@ -1,20 +1,13 @@
 module;
 
 #ifdef __INTELLISENSE__
-#include <charconv>
 #include <ranges>
-#include <string_view>
 #endif
 
 export module Engine;
 
-#ifndef __INTELLISENSE__
-import <charconv>;
-import <ranges>;
-import <string_view>;
-#endif
-
-export import eiface;
+import std;
+import hlsdk;
 
 export import Platform;
 
@@ -92,50 +85,37 @@ export namespace Engine
 		BUILD_NUMBER = m_pfnBuildNumber();
 	}
 
-	constexpr auto LocalBuildNumber(void) noexcept
+	constexpr auto LocalBuildNumber(std::string_view COMPILE_DATE = __DATE__, int32_t bias = 0) noexcept
 	{
-#define COMPILE_DATE __DATE__
-
-		// #UPDATE_AT_CPP23 P2647R1
-		constexpr auto today_m = std::string_view{ COMPILE_DATE, 3 };
-		constexpr auto today_d = []() consteval { int d{}; std::from_chars(&COMPILE_DATE[4], &COMPILE_DATE[6], d); return d; }();
-		constexpr auto today_y = []() consteval { int d{}; std::from_chars(&COMPILE_DATE[7], &COMPILE_DATE[11], d); return d; }();
-
 		constexpr std::string_view mon[12] =
 		{ "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
-		constexpr char mond[12] =
+		constexpr uint8_t mond[12] =
 		{ 31,    28,    31,    30,    31,    30,    31,    31,    30,    31,    30,    31 };
 
-		int m = 0;
-		int d = 0;
-		int y = 0;
+		// #UPDATE_AT_CPP23 P2647R1
+		const auto today_m = COMPILE_DATE.substr(0, 3);
+		const auto today_d = (COMPILE_DATE[5] - '0') + (COMPILE_DATE[4] != ' ' ? (COMPILE_DATE[4] - '0') : 0) * 10;
+		const auto today_y = (COMPILE_DATE[10] - '0') + (COMPILE_DATE[9] - '0') * 10 + (COMPILE_DATE[8] - '0') * 100 + (COMPILE_DATE[7] - '0') * 1000;
 
-		for (auto&& [szMonth, iDayCount] : std::views::zip(mon, mond))
-		{
-			if (today_m == szMonth)
-				break;
+		const auto this_leap = std::chrono::year{ today_y }.is_leap();
 
-			d += iDayCount;
-		}
+		const auto m = std::ranges::find(mon, today_m) - std::ranges::begin(mon) + 1;	// "Jan" at index 0
+		const auto d = std::ranges::fold_left(mond | std::views::take(m - 1), today_d - (this_leap ? 0 : 1), std::plus<>{});
+		const auto y = today_y - 1900;
 
-		d += today_d - 1;
-		y = today_y - 1900;
-
-		auto m_nBuildNumber = d + static_cast<int>((y - 1) * 365.25);
-
-		if (((y % 4) == 0) && m > 1)
-		{
-			m_nBuildNumber += 1;
-		}
-
-		//m_nBuildNumber -= 34995; // Oct 24 1996 (Quake)
-		//m_nBuildNumber -= 35739;  // Nov 7 1998 (HL1 Gold Date)
-		m_nBuildNumber -= 37679;	// Mar 01 2004 (Condition Zero)
-
-		return m_nBuildNumber;
-
-#undef COMPILE_DATE
+		return
+			d
+			// the rounding down is actually dropping the years before next leap.
+			// hence the averaged 0.25 wont affect the accurate value.
+			// Gregorian additional rule wont take effect in the next 100 years.
+			// Let's adjust the algorithm then.
+			+static_cast<decltype(d)>((y - 1) * 365.25)
+			- bias;
 	}
 
-	inline constexpr auto BUILD_NUMBER_LOCAL = LocalBuildNumber();
+	//m_nBuildNumber -= 34995; // Oct 24 1996 (Quake)
+	//m_nBuildNumber -= 35739;  // Nov 7 1998 (HL1 Gold Date)
+	//m_nBuildNumber -= 37679;	// Mar 01 2004 (Condition Zero)
+
+	inline constexpr auto BUILD_NUMBER_LOCAL = LocalBuildNumber(__DATE__, 37679);
 };

@@ -1,8 +1,5 @@
 export module Beam;
 
-import <algorithm>;
-import <bit>;
-
 /* AMX Mod X
 *    Beam entities include by KORD_12.7.
 *
@@ -16,21 +13,19 @@ import <bit>;
 // These functions are here to show the way beams are encoded as entities.
 // Encoding beams as entities simplifies their management in the client/server architecture.
 
-export import const_;
-export import customentity;	// Beam types & flags
-export import eiface;
-import util;
+export import std;
+export import hlsdk;	// Beam types & flags
 
 export import CBase;
 
 
 /* stock Beam_SetType(const iBeamEntity, const iType)
 	return set_pev(iBeamEntity, pev_rendermode, (pev(iBeamEntity, pev_rendermode) & 0xF0) | iType & 0x0F); */
-export inline void Beam_SetType(entvars_t *pev, EBeamTypes iType) noexcept { pev->rendermode = (pev->rendermode & 0xF0 | iType & 0x0F); }
+export inline void Beam_SetType(entvars_t *pev, EBeamTypes iType) noexcept { pev->rendermode = (kRenderFn)(pev->rendermode & 0xF0 | iType & 0x0F); }
 
 /* stock Beam_SetFlags(const iBeamEntity, const iType)
 	return set_pev(iBeamEntity, pev_rendermode, (pev(iBeamEntity, pev_rendermode) & 0x0F) | iType & 0xF0); */
-export inline void Beam_SetFlags(entvars_t *pev, EBeamFlags iType) noexcept { pev->rendermode = (pev->rendermode & 0x0F | iType & 0xF0); }
+export inline void Beam_SetFlags(entvars_t *pev, EBeamFlags iType) noexcept { pev->rendermode = (kRenderFn)(pev->rendermode & 0x0F | iType & 0xF0); }
 
 /* stock Beam_SetStartPos(const iBeamEntity, const Float: flVecStart[3])
 	return set_pev(iBeamEntity, pev_origin, flVecStart); */
@@ -129,7 +124,8 @@ export inline Vector &Beam_GetStartPos(entvars_t *pev) noexcept
 {
 	auto const iStartEnt = Beam_GetStartEntity(pev);
 
-	if (auto const pevStartEnt = ent_cast<entvars_t *>(iStartEnt); pev_valid(pevStartEnt) == 2 && Beam_GetType(pevStartEnt) == BEAM_ENTS)
+	if (auto const pevStartEnt = ent_cast<entvars_t *>(iStartEnt);
+		pev_valid(pevStartEnt) == EValidity::Full && Beam_GetType(pevStartEnt) == BEAM_ENTS)
 	{
 		return pevStartEnt->origin;
 	}
@@ -174,7 +170,8 @@ export inline Vector &Beam_GetEndPos(entvars_t *pev) noexcept
 	default:
 		auto const iEndEnt = Beam_GetEndEntity(pev);
 
-		if (auto const pevEndEnt = ent_cast<entvars_t *>(iEndEnt); pev_valid(pevEndEnt) == 2)
+		if (auto const pevEndEnt = ent_cast<entvars_t *>(iEndEnt);
+			pev_valid(pevEndEnt) == EValidity::Full)
 			return pevEndEnt->origin;
 
 		return *reinterpret_cast<Vector *>(&pev->angles);
@@ -218,7 +215,7 @@ export inline edict_t *Beam_Create(const char *pszSpriteName, float flWidth) noe
 {
 	auto const pEntity = g_engfuncs.pfnCreateNamedEntity(MAKE_STRING("beam"));
 
-	if (pev_valid(pEntity) != 2)
+	if (pev_valid(pEntity) != EValidity::Full)
 		return nullptr;
 
 	Beam_Init(pEntity, pszSpriteName, flWidth);
@@ -240,7 +237,7 @@ export inline void Beam_Init(edict_t *pEdict, const char *pszSpriteName, float f
 
 	pEdict->v.skin = 0;
 	pEdict->v.sequence = 0;
-	pEdict->v.rendermode = 0;
+	pEdict->v.rendermode = kRenderNormal;
 }
 
 export inline void Beam_PointsInit(edict_t *pEdict, const Vector& vecSrc, const Vector& vecEnd) noexcept
@@ -337,8 +334,8 @@ public:
 		}
 	}
 
-	void SetType(int type) noexcept { pev->rendermode = (pev->rendermode & 0xF0) | (type & 0x0F); }
-	void SetFlags(int flags) noexcept { pev->rendermode = (pev->rendermode & 0x0F) | (flags & 0xF0); }
+	void SetType(int type) noexcept { pev->rendermode = (kRenderFn)((pev->rendermode & 0xF0) | (type & 0x0F)); }
+	void SetFlags(int flags) noexcept { pev->rendermode = (kRenderFn)((pev->rendermode & 0x0F) | (flags & 0xF0)); }
 	void SetStartEntity(int entityIndex) noexcept
 	{
 		pev->sequence = (entityIndex & 0x0FFF) | (pev->sequence & 0xF000);
@@ -428,7 +425,7 @@ public:
 
 		pev->skin = 0;
 		pev->sequence = 0;
-		pev->rendermode = 0;
+		pev->rendermode = kRenderNormal;
 	}
 	void PointsInit(const Vector &start, const Vector &end) noexcept
 	{

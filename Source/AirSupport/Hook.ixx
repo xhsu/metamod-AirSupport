@@ -1,13 +1,12 @@
+#define USE_CHT_VER
+
 export module Hook;
 
-export import <cstdint>;
-
-export import <array>;
+export import std;
 
 export import CBase;
 export import ConsoleVar;
 export import GameRules;
-export import Message;
 export import VTFH;
 
 export import UtlHook;
@@ -57,6 +56,7 @@ export namespace CVar
 {
 #define DECLARE_CVAR(name, val, ...)	inline console_variable_t name{ "airsupport_" #name, val, __VA_ARGS__ }
 
+#ifndef USE_CHT_VER
 	DECLARE_CVAR(ct_think, "12", u8"[0, ∞)", u8"Interval between calling attempt from CT BOTs.\n\t0 to turn it off.\n\tUnit: Seconds");
 	DECLARE_CVAR(ter_think, "0", u8"[0, ∞)", u8"Interval between calling attempt from TER BOTs.\n\t0 to turn it off.\n\tUnit: Seconds");
 
@@ -121,7 +121,8 @@ export namespace CVar
 	DECLARE_CVAR(pim_toxic_dmg,			"4",	u8"[0, ∞)", u8"The toxic damage caused by phosphorus pentoxide emitted during combustion.");
 	DECLARE_CVAR(pim_toxic_inv,			"2",	u8"[0.6, ∞)", u8"The toxic damaging interval of phosphorus pentoxide emitted during combustion.\n\tUnit: Seconds");
 
-	/*
+#else
+
 	DECLARE_CVAR(ct_think, "12", u8"[0, ∞)", u8"反恐菁英BOT安排空襲的間隔。\n\t置0以禁用反恐菁英空襲。\n\t單位：秒");
 	DECLARE_CVAR(ter_think, "0", u8"[0, ∞)", u8"恐怖分子BOT安排空襲的間隔。\n\t置0以禁用恐怖分子空襲。\n\t單位：秒");
 
@@ -185,7 +186,8 @@ export namespace CVar
 	DECLARE_CVAR(pim_perm_burning_dmg,	"10",	u8"[0, ∞)", u8"【白磷彈】覆蓋性燃燒傷害。\n\t傷害公式：max(dmg, health * dmg/100)\n\t\t其中：'health'為受害者當前生命值。");
 	DECLARE_CVAR(pim_toxic_dmg,			"4",	u8"[0, ∞)", u8"【白磷彈】五氧化二磷白煙的毒性傷害。");
 	DECLARE_CVAR(pim_toxic_inv,			"2",	u8"[0.6, ∞)", u8"【白磷彈】五氧化二磷白煙的毒性傷害間隔。\n\t單位：秒");
-	*/
+
+#endif
 #undef DECLARE_CVAR
 }
 

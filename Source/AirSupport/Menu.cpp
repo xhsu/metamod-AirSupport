@@ -1,6 +1,9 @@
+import Message;
+
 import Menu;
 import Target;
 import Weapon;
+
 
 void UTIL_ShowMenu(edict_t *pPlayer, uint16_t bitsValidSlots, std::string szText) noexcept
 {

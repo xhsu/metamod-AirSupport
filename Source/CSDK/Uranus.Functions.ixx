@@ -1,18 +1,11 @@
-module;
-
-#ifdef __INTELLISENSE__
-#include <tuple>
-#endif
-
 export module Uranus:Functions;
 
-#ifndef __INTELLISENSE__
-export import <tuple>;
-#endif
-
-export import sizebuf;
+export import std;
+export import hlsdk;
 
 export import CBase;
+
+using std::uint32_t;
 
 using PFN_ENTITYINIT = void (*)(entvars_t* pev) noexcept;
 

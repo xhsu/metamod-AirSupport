@@ -1,14 +1,11 @@
+module;
+
+#include <limits>
+
 export module Task;
 
-export import <cstdint>;
-
-export import <array>;
-export import <coroutine>;
-export import <exception>;
-export import <functional>;
-export import <list>;
-
-export import progdefs;
+export import std;
+export import hlsdk;
 
 export import Platform;
 
@@ -53,10 +50,10 @@ export struct Task final
 	Task(Task &&rhs) noexcept : m_handle{ std::exchange(rhs.m_handle, nullptr) }, m_iCoroutineMarker{ rhs.m_iCoroutineMarker } {}	// Move only
 	~Task() noexcept { if (m_handle) m_handle.destroy(); }
 
-	__forceinline bool Done(void) const noexcept { return m_handle.done(); }
-	__forceinline bool ShouldResume(void) const noexcept { return m_handle.promise().m_flNextThink < gpGlobals->time; }
-	__forceinline void Resume(void) const noexcept { return m_handle.resume(); }
-	__forceinline auto operator<=> (Task const &rhs) const noexcept { return this->m_handle.promise().m_flNextThink <=> rhs.m_handle.promise().m_flNextThink; }
+	inline bool Done(void) const noexcept { return m_handle.done(); }
+	inline bool ShouldResume(void) const noexcept { return m_handle.promise().m_flNextThink < gpGlobals->time; }
+	inline void Resume(void) const noexcept { return m_handle.resume(); }
+	inline auto operator<=> (Task const& rhs) const noexcept { return this->m_handle.promise().m_flNextThink <=> rhs.m_handle.promise().m_flNextThink; }
 };
 
 export struct TaskScheduler_t final
@@ -193,12 +190,7 @@ export namespace TaskScheduler
 
 export namespace TaskScheduler::NextFrame
 {
-	// #UPDATE_AT_MSVC_FIX INTELLISENSE
-#ifdef __INTELLISENSE__
-	inline constexpr array<decltype(gpGlobals->time), 10> Rank
-#else
 	inline constexpr array Rank
-#endif
 	{
 		std::numeric_limits<decltype(gpGlobals->time)>::epsilon(),
 		std::numeric_limits<decltype(gpGlobals->time)>::epsilon() * 2.f,

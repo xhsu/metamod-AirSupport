@@ -1,7 +1,10 @@
+module;
+
+#include <cassert>
+
 export module ZBot;
 
-import <cassert>;
-import <list>;
+import std;
 
 import UtlHook;
 

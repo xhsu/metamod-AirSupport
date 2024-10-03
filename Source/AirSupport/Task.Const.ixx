@@ -1,8 +1,8 @@
 export module Task.Const;
 
-export import <cstdint>;
+import std;
 
-export enum ETaskFlags : uint64_t
+export enum ETaskFlags : std::uint64_t
 {
 	TASK_ANIMATION = (1 << 0),
 	TASK_FADE_OUT = (1 << 1),

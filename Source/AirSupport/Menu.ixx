@@ -1,7 +1,8 @@
-﻿export module Menu;
+﻿#define USE_CHT_VER
 
-export import <array>;
-export import <string>;
+export module Menu;
+
+export import std;
 
 export import Hook;
 export import Plugin;
@@ -14,6 +15,8 @@ export enum EAirSupportTypes
 	GUNSHIP_STRIKE,
 	FUEL_AIR_BOMB,	// thermobaric weapon
 	PHOSPHORUS_MUNITION,
+
+	AIRSUPPORT_TYPES,
 };
 
 export inline std::array<EAirSupportTypes, 33> g_rgiAirSupportSelected = {};
@@ -69,6 +72,7 @@ export namespace Menu
 			;
 
 		// #SHOULD_DO_ON_FREE move to localization somehow?
+#ifndef USE_CHT_VER
 		inline constexpr char AIRSUPPORT_TEMPLATE[] =
 			"\\yAir Support Selection\\w\n"
 			"\n"
@@ -82,21 +86,23 @@ export namespace Menu
 			"\\w0. Exit\n"
 			;
 
-		//inline constexpr char AIRSUPPORT_TEMPLATE[] =
-		//	u8"\\y空襲類別選單\\w\n"
-		//	u8"\n"
-		//	u8"{}1. 精確導彈打擊{}\n"
-		//	u8"{}2. 集束炸藥{}\n"
-		//	u8"{}3. 地毯式轟炸{}\n"
-		//	u8"{}4. 空中炮艦支援{}\n"
-		//	u8"{}5. 雲爆彈{}\n"
-		//	u8"{}6. 白磷彈{}\n"
-		//	u8"\n"
-		//	u8"\\w0. 離開\n"
-		//	;
-
 		inline constexpr char SELECTED[] = " - Selected";
-		//inline constexpr char SELECTED[] = u8" - 已選取";
+#else
+		inline constexpr char AIRSUPPORT_TEMPLATE[] =
+			u8"\\y空襲類別選單\\w\n"
+			u8"\n"
+			u8"{}1. 精確導彈打擊{}\n"
+			u8"{}2. 集束炸藥{}\n"
+			u8"{}3. 地毯式轟炸{}\n"
+			u8"{}4. 空中炮艦支援{}\n"
+			u8"{}5. 雲爆彈{}\n"
+			u8"{}6. 白磷彈{}\n"
+			u8"\n"
+			u8"\\w0. 離開\n"
+			;
+
+		inline constexpr char SELECTED[] = u8" - 已選取";
+#endif
 	};
 
 	namespace Key

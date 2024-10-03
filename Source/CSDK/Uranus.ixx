@@ -1,10 +1,10 @@
+module;
+
+#include <cassert>
+
 export module Uranus;
 
-import <cassert>;
-
-import <array>;
-import <format>;
-import <ranges>;
+import std;
 
 import CBase;
 import Engine;

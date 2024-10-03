@@ -1,6 +1,6 @@
 export module Target;
 
-export import <array>;
+export import std;
 
 export import Beam;
 export import Effects;
@@ -15,6 +15,7 @@ export struct CDynamicTarget : public Prefab_t
 	static inline constexpr size_t BEACON_COUNT = 12;
 	static inline constexpr double CARPET_BOMBARDMENT_INTERVAL = 250.0;
 	static inline mstudiobonecontroller_t ARROW_CONTROLLER{}, MINIATURE_CONTROLLER{};
+	static inline std::array<std::vector<int>, AIRSUPPORT_TYPES> FX_BONES_IDX;
 
 	// The beam have no its own class.
 	static inline constexpr char BEAM_CLASSNAME[] = "info_airsupport_beam";
@@ -48,9 +49,10 @@ export struct CDynamicTarget : public Prefab_t
 	Vector m_vecNormRotatingTo{};	// the endpos of current slerp, use it when converting to fixed target.
 	std::array<EHANDLE<CSpriteDisplay>, 4> m_rgpAttachedSpr{};	// 4 == maxium attachment count on vanilla GoldSrc.
 	std::array<EHANDLE<CBeam>, BEACON_COUNT> m_rgpBeacons{};
-	std::array<BodyEnumInfo_t, 3> m_rgBodyInfo{ {{0, 1}, {0, 7}, {0, 2}} };
+	std::array<BodyEnumInfo_t, 4> m_rgBodyInfo{ {{0, 1}, {0, 7}, {0, 2}, {0, 2}} };
 	int &m_iAirSupportTypeModel{ m_rgBodyInfo[1].m_index };
 	qboolean &m_bShowArror{ m_rgBodyInfo[2].m_index };
+	Quaternion m_qAngles{};	// instead of pev->angles
 	bool m_bFreezed{};	// Use enable/disable beacons instead. Indicator of carpet bombardment direction.
 };
 

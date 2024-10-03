@@ -1,7 +1,6 @@
-import <cassert>;
+#include <cassert>
 
-import <chrono>;
-import <numbers>;
+import std;
 
 import Beam;
 import Effects;
@@ -18,6 +17,8 @@ import Waypoint;
 import Weapon;
 
 import UtlRandom;
+
+using namespace std::literals;
 
 //
 // Laser
@@ -43,7 +44,7 @@ extern "C++" namespace Laser
 	void Think(CBaseEntity *pEntity) noexcept
 	{
 		[[unlikely]]
-		if (pev_valid(pEntity->pev->euser1) != 2 || !((CBasePlayer *)pEntity->pev->euser1->pvPrivateData)->IsAlive())
+		if (pev_valid(pEntity->pev->euser1) != EValidity::Full || !((CBasePlayer *)pEntity->pev->euser1->pvPrivateData)->IsAlive())
 		{
 			pEntity->pev->flags |= FL_KILLME;
 			//pEntity->pev->euser2->v.flags |= FL_KILLME;
@@ -62,7 +63,7 @@ extern "C++" namespace Laser
 		Vector vecEnd = vecSrc + gpGlobals->v_forward * 4096.f;
 		TraceResult tr{};
 
-		g_engfuncs.pfnTraceLine(vecSrc, vecEnd, ignore_monsters, pEntity->pev->euser1, &tr);
+		g_engfuncs.pfnTraceLine(vecSrc, vecEnd, ignore_monsters | ignore_glass, pEntity->pev->euser1, &tr);
 
 		Beam_SetStartPos(pEntity->pev, tr.vecEndPos);
 		Beam_SetEndPos(pEntity->pev, tr.vecEndPos + tr.vecPlaneNormal * 96);
@@ -173,8 +174,12 @@ CDynamicTarget::~CDynamicTarget() noexcept
 
 Task CDynamicTarget::Task_Animation() noexcept
 {
+	using std::chrono::duration_cast;
+	using std::chrono::high_resolution_clock;
+	using std::chrono::nanoseconds;
+
 	// This variable should never be a part of the class. It doesn't even being ref anywhere else.
-	auto LastAnimUpdate = std::chrono::high_resolution_clock::now();
+	auto LastAnimUpdate = high_resolution_clock::now();
 	auto vecHeadOrg = Vector::Zero();
 
 	for (;;)
@@ -207,16 +212,18 @@ Task CDynamicTarget::Task_Animation() noexcept
 			continue;
 		}
 
-		auto const CurTime = std::chrono::high_resolution_clock::now();
-		auto const flTimeDelta = std::chrono::duration_cast<std::chrono::nanoseconds>(CurTime - LastAnimUpdate).count() / 1'000'000'000.0;
+		auto const CurTime = high_resolution_clock::now();
+		auto const flTimeDelta = duration_cast<nanoseconds>(CurTime - LastAnimUpdate).count() / 1'000'000'000.0;
 
 		pev->framerate = float(Models::targetmdl::FPS * flTimeDelta);
 		pev->frame += pev->framerate;
 		pev->animtime = gpGlobals->time;
 
+		// model sequence is different from SPRITE, no matter now many frame you have, it will stretch/squeeze into 256.
+
 		[[unlikely]]
 		if (pev->frame < 0 || pev->frame >= 256)
-			pev->frame -= float((pev->frame / 256.0) * 256.0);	// model sequence is different from SPRITE, no matter now many frame you have, it will stretch/squeeze into 256.
+			pev->frame -= float((pev->frame / 256.0) * 256.0);
 
 		LastAnimUpdate = CurTime;
 	}
@@ -409,9 +416,9 @@ Task CDynamicTarget::Task_QuickEval_AirStrike() noexcept
 			goto LAB_CONTINUE;	// there's no set origin.
 		}
 
-		if (pev_valid(tr.pHit) != 2 && flLastValidTracking < gpGlobals->time - 0.5f)	// Snapping: compensenting bad aiming
+		if (pev_valid(tr.pHit) != EValidity::Full && flLastValidTracking < gpGlobals->time - 0.5f)	// Snapping: compensenting bad aiming
 			m_pTargeting = nullptr;
-		else if (pev_valid(tr.pHit) == 2)
+		else if (pev_valid(tr.pHit) == EValidity::Full)
 		{
 			m_pTargeting = tr.pHit;
 			flLastValidTracking = gpGlobals->time;
@@ -748,9 +755,9 @@ Task CDynamicTarget::Task_QuickEval_Gunship() noexcept
 			continue;	// there's no set origin.
 		}
 
-		if (pev_valid(tr.pHit) != 2 && flLastValidTracking < gpGlobals->time - 0.5f)	// Snapping: compensating bad aiming
+		if (pev_valid(tr.pHit) != EValidity::Full && flLastValidTracking < gpGlobals->time - 0.5f)	// Snapping: compensating bad aiming
 			m_pTargeting = nullptr;
-		else if (pev_valid(tr.pHit) == 2)
+		else if (pev_valid(tr.pHit) == EValidity::Full)
 		{
 			m_pTargeting = tr.pHit;
 			flLastValidTracking = gpGlobals->time;
@@ -796,7 +803,7 @@ Task CDynamicTarget::Task_QuickEval_Gunship() noexcept
 				if (flLastAttackingVoice < gpGlobals->time)
 				{
 					flLastAttackingVoice = gpGlobals->time + 1.f;
-					g_engfuncs.pfnEmitSound(m_pRadio.Get(), CHAN_AUTO, Sounds::Gunship::RESELECT_TARGET, VOL_NORM, ATTN_STATIC, 0, PITCH_NORM);
+					g_engfuncs.pfnEmitSound(m_pRadio.Get(), CHAN_AUTO, Sounds::Gunship::RESELECT_TARGET, VOL_NORM, ATTN_STATIC, SND_FL_NONE, PITCH_NORM);
 					gmsgTextMsg::Send(m_pPlayer->edict(), 4, Localization::GUNSHIP_RESELECT_TARGET);
 				}
 
@@ -852,7 +859,7 @@ Task CDynamicTarget::Task_QuickEval_Phosphorus() noexcept
 			
 			gmsgTextMsg::Unmanaged<MSG_ONE>(
 				g_vecZero, m_pPlayer->edict(),
-				(byte)4, Localization::REJECT_HEIGHT_NOT_ENOUGH, szHeightDiff.c_str()
+				(uint8_t)4, Localization::REJECT_HEIGHT_NOT_ENOUGH, szHeightDiff.c_str()
 			);
 
 			flLastHintTime = gpGlobals->time;
@@ -1014,7 +1021,7 @@ void CDynamicTarget::EnableFireSphere() noexcept
 		pSphere = CSpriteDisplay::Create(vecOrigin, kRenderTransAdd, Sprites::FLAME[1]);	// flame2.spr is smaller thus fits better.
 		pSphere->pev->renderamt = 0;
 		pSphere->pev->scale = 0.2f;
-		pSphere->m_Scheduler.Enroll(Task_SpriteOnEnt_NotOwned(pSphere->pev, this, idx, { -8, 0, 0 }, 2.f, 220.f, 3.f), TASK_ANIMATION);
+		pSphere->m_Scheduler.Enroll(Task_SpriteOnAttachment_NotOwned(pSphere->pev, this, idx, { -8, 0, 0 }, 2.f, 220.f, 3.f), TASK_ANIMATION);
 		pSphere->m_Scheduler.Enroll(Task_SpriteEnterLoopOut(pSphere->pev, this, 3, 20, 24, 24), TASK_ANIMATION);
 
 		++idx;
@@ -1074,10 +1081,40 @@ void CDynamicTarget::RetrieveModelInfo(void) noexcept
 	g_engfuncs.pfnSetModel(pEdict, Models::TARGET);
 
 	auto const pstudiohdr = g_engfuncs.pfnGetModelPtr(pEdict);
-	auto pbonecontroller = (mstudiobonecontroller_t *)((byte *)pstudiohdr + pstudiohdr->bonecontrollerindex);
+	auto pbonecontroller = (mstudiobonecontroller_t *)((uint8_t *)pstudiohdr + pstudiohdr->bonecontrollerindex);
+
+	// fetch controller
 
 	memcpy(&ARROW_CONTROLLER, pbonecontroller, sizeof(ARROW_CONTROLLER));
 	memcpy(&MINIATURE_CONTROLLER, ++pbonecontroller, sizeof(MINIATURE_CONTROLLER));
+
+	// fetch bones
+
+	static constexpr std::array FX_BONES_NAME{
+		"PrecisionGuide_"sv,
+		"ClusterMunitions_"sv,
+		"CarpetBombing_"sv,
+		"GunshipStrike_"sv,
+		"FuelAirExplosive_"sv,
+		"PhosphorusMunition_"sv,
+	};
+	static_assert(FX_BONES_NAME.size() == AIRSUPPORT_TYPES);
+
+	for (auto const pbones = (mstudiobone_t*)((uint8_t*)pstudiohdr + pstudiohdr->boneindex);
+		auto&& [szName, rgiIndeces] : std::views::zip(FX_BONES_NAME, FX_BONES_IDX))
+	{
+		rgiIndeces.clear();
+		rgiIndeces.reserve(4);
+
+		unsigned iCount = 0;
+		for (auto pbone = pbones; iCount < pstudiohdr->numbones; ++iCount, ++pbone)
+		{
+			if (!std::ranges::starts_with(pbone->name, szName))
+				continue;
+
+			rgiIndeces.push_back(iCount);
+		}
+	}
 
 	g_engfuncs.pfnRemoveEntity(pEdict);
 	bDone = true;
@@ -1291,7 +1328,7 @@ Task CFixedTarget::Task_RecruitJet() noexcept
 
 	if (m_vecJetSpawn == Vector::Zero())
 	{
-		gmsgTextMsg::Send(m_pPlayer->edict(), (byte)4, Localization::REJECT_NO_JET_SPAWN);
+		gmsgTextMsg::Send(m_pPlayer->edict(), (uint8_t)4, Localization::REJECT_NO_JET_SPAWN);
 		pev->flags |= FL_KILLME;
 		co_return;
 	}
@@ -1303,7 +1340,7 @@ Task CFixedTarget::Task_RecruitJet() noexcept
 		[[unlikely]]
 		if (!pJet)	// Jet found no way to launch missile
 		{
-			gmsgTextMsg::Send(m_pPlayer->edict(), (byte)4, Localization::REJECT_NO_VALID_TRACELINE);
+			gmsgTextMsg::Send(m_pPlayer->edict(), (uint8_t)4, Localization::REJECT_NO_VALID_TRACELINE);
 			pev->flags |= FL_KILLME;
 			co_return;
 		}
@@ -1352,12 +1389,12 @@ Task CFixedTarget::Task_TimeOut() noexcept
 	{
 	case GUNSHIP_STRIKE:
 		co_await (float)CVar::gs_holding;
-		gmsgTextMsg::Send(m_pPlayer->edict(), (byte)4, Localization::GUNSHIP_DESPAWNING);
+		gmsgTextMsg::Send(m_pPlayer->edict(), (uint8_t)4, Localization::GUNSHIP_DESPAWNING);
 		break;
 
 	default:
 		co_await 10.f;
-		gmsgTextMsg::Send(m_pPlayer->edict(), (byte)4, Localization::REJECT_TIME_OUT);
+		gmsgTextMsg::Send(m_pPlayer->edict(), (uint8_t)4, Localization::REJECT_TIME_OUT);
 		break;
 	}
 

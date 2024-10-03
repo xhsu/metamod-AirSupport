@@ -1,9 +1,7 @@
 export module Round;
 
-export import <vector>;
-
-export import cvardef;
-export import edict;
+export import std;
+export import hlsdk;
 
 export import Task;
 

@@ -1,4 +1,4 @@
-import util;
+import hlsdk;
 
 import Effects;
 import GameRules;
@@ -172,7 +172,7 @@ Task Task_TeamwiseAI(cvar_t const* pcvarEnable, std::vector<edict_t*> const* pTe
 		for (auto&& pPlayer : rgpCandidates)
 		{
 			auto const vecSky = pPlayer->pev->origin + Vector{ 0, 0, 4096 };
-			g_engfuncs.pfnTraceLine(pPlayer->pev->origin, vecSky, ignore_monsters, nullptr, &tr);
+			g_engfuncs.pfnTraceLine(pPlayer->pev->origin, vecSky, ignore_monsters | ignore_glass, nullptr, &tr);
 
 			// only this guy needs to appear under the sky.
 			if (g_engfuncs.pfnPointContents(tr.vecEndPos) != CONTENTS_SKY)
@@ -215,7 +215,7 @@ Task Task_TeamwiseAI(cvar_t const* pcvarEnable, std::vector<edict_t*> const* pTe
 				g_engfuncs.pfnTraceLine(
 					pPlayer->pev->origin + pPlayer->pev->view_ofs,
 					pTarget->pev->origin,
-					ignore_monsters,
+					ignore_monsters | ignore_glass,
 					nullptr,
 					&tr
 				);

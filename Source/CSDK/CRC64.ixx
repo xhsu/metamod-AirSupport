@@ -1,14 +1,14 @@
 module;
 
 #include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 export module CRC64;
 
-export import <cstddef>;
-export import <cstdio>;
+export import std;
 
-export import <bit>;
-
+using std::uint64_t;
 using std::bit_cast;
 
 inline constexpr uint64_t crc64_tab[256] =

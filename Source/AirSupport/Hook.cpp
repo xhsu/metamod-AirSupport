@@ -1,25 +1,21 @@
-import <cassert>;
+#define USE_CHT_VER
 
-import <cstdio>;
-import <cstring>;
+#include <cassert>
 
-import <filesystem>;
-import <print>;
-import <set>;
-import <string>;
-
-import progdefs;	// edict_t
-import util;
+import std;
+import hlsdk;
 
 import UtlHook;
 
 import CBase;
+import ConditionZero;
 import Effects;
 import Engine;
 import FileSystem;
 import GameRules;
 import Hook;
 import Jet;
+import Message;
 import Platform;
 import Plugin;
 import Round;
@@ -119,8 +115,7 @@ static void RetrieveCVarHandles() noexcept
 	gcvarMaxSpeed = g_engfuncs.pfnCVarGetPointer("sv_maxspeed");
 	gcvarMaxVelocity = g_engfuncs.pfnCVarGetPointer("sv_maxvelocity");
 
-	for (auto&& fnCVarInit : grgCVarInitFN)
-		std::invoke(fnCVarInit);
+	CVarManager::Init();
 }
 
 static void DeployConsoleCommand() noexcept
@@ -156,6 +151,7 @@ static void LoadConfiguration() noexcept
 
 		if (auto f = std::fopen(hGlobalCFG.u8string().c_str(), "wt"); f != nullptr)
 		{
+#ifndef USE_CHT_VER
 			std::println(f, "//");
 			std::println(f, "// AIR SUPPORT plugin configuration file");
 			std::println(f, "//");
@@ -166,33 +162,30 @@ static void LoadConfiguration() noexcept
 			std::println(f, "// You can create a .cfg file with matched map name to further customize the game.");
 			std::println(f, "// For example, a file named 'de_dust2.cfg' will be loaded only and only if you play in that map.");
 			std::println(f, "//");
-
-			//std::println(f, u8"//");
-			//std::println(f, u8"// 空襲插件配置文件");
-			//std::println(f, u8"//");
-			//std::println(f, u8"// 本文檔係自動生成");
-			//std::print(f, u8"// 適用於插件版本 {}", PLID->version);
-			//std::println(f, u8".{}", Engine::LocalBuildNumber());	// don't know why, but merging this line and above will cause a linker error.
-			//std::println(f, u8"//");
-			//std::println(f, u8"// 本插件支援自動讀取本目錄下與當前地圖同名之配置文件。");
-			//std::println(f, u8"// 例如，名為'de_dust2.cfg'的配置文件僅在遊玩de_dust2地圖時被讀取。");
-			//std::println(f, u8"//");
-
+#else
+			std::println(f, u8"//");
+			std::println(f, u8"// 空襲插件配置文件");
+			std::println(f, u8"//");
+			std::println(f, u8"// 本文檔係自動生成");
+			std::print(f, u8"// 適用於插件版本 {}", PLID->version);
+			std::println(f, u8".{}", Engine::LocalBuildNumber());	// don't know why, but merging this line and above will cause a linker error.
+			std::println(f, u8"//");
+			std::println(f, u8"// 本插件支援自動讀取本目錄下與當前地圖同名之配置文件。");
+			std::println(f, u8"// 例如，名為'de_dust2.cfg'的配置文件僅在遊玩de_dust2地圖時被讀取。");
+			std::println(f, u8"//");
+#endif
 			// The sort can only be resolved here, as all cvar had been found/registered.
-			std::set<
-				console_variable_t*,
-				// remember to sort the string, not the address of that string.
-				decltype([](auto lhs, auto rhs) noexcept { return std::string_view{ &lhs->Handle()->name[0] } < std::string_view{ &rhs->Handle()->name[0] }; })
-				> const
-				sorted_cvars{ std::from_range, console_variable_t::all };
+			// i.e. the m_handle is not null
+			std::set<console_variable_t*, cvar_wrapper_sorter> const
+				sorted_cvars{ std::from_range, CVarManager::Instance()->m_all };
 
 			for (auto&& pcvar : sorted_cvars)
 			{
 				std::println(f, "");
 
-				if (grgCVarDesc.contains(pcvar->Handle()->name))
+				if (CVarManager::Instance()->m_Desc.contains(pcvar->Handle()->name))
 				{
-					auto&& [szDefValue, szDomain, szDesc] = grgCVarDesc.at(pcvar->Handle()->name);
+					auto&& [szDefValue, szDomain, szDesc] = CVarManager::Instance()->m_Desc.at(pcvar->Handle()->name);
 
 					// Split the desc into multiple lines.
 					size_t last = 0, next = 0;
@@ -203,10 +196,14 @@ static void LoadConfiguration() noexcept
 					}
 
 					std::println(f, "// {}", szDesc.substr(last));
+
+#ifndef USE_CHT_VER
 					std::println(f, "// Valid value: {}", szDomain);
 					std::println(f, "// Default: {}", szDefValue);
-					//std::println(f, u8"// 取值範圍: {}", szDomain);
-					//std::println(f, u8"// 默認值: {}", szDefValue);
+#else
+					std::println(f, u8"// 取值範圍: {}", szDomain);
+					std::println(f, u8"// 默認值: {}", szDefValue);
+#endif
 				}
 
 				std::println(f, "{} {}", pcvar->Handle()->name, pcvar->Handle()->string);
@@ -277,7 +274,7 @@ void fw_ClientCommand(edict_t *pEdict) noexcept
 	gpMetaGlobals->mres = MRES_IGNORED;
 
 	[[unlikely]]
-	if (pev_valid(pEdict) != 2)
+	if (pev_valid(pEdict) != EValidity::Full)
 		return;
 
 	if (auto const pEntity = (CBaseEntity *)pEdict->pvPrivateData; !pEntity->IsPlayer())
@@ -480,7 +477,7 @@ int fw_PrecacheSound(const char *s) noexcept
 	return 0;
 }
 
-void fw_TraceLine_Post(const float *v1, const float *v2, int fNoMonsters, edict_t *pentToSkip, TraceResult *ptr) noexcept
+void fw_TraceLine_Post(const float *v1, const float *v2, TRACE_FL fNoMonsters, edict_t *pentToSkip, TraceResult *ptr) noexcept
 {
 	gpMetaGlobals->mres = MRES_IGNORED;
 	// post

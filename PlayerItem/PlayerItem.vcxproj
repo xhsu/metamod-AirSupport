@@ -181,6 +181,11 @@
     <ClCompile Include="Weapons.ixx" />
     <ClCompile Include="Weapons.Melee.ixx" />
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Weapons.Pistol.ixx">
+      <FileType>Document</FileType>
+    </ClCompile>
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

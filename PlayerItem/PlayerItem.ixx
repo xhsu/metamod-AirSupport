@@ -1,11 +1,11 @@
 export module PlayerItem;
 
-export import CBase;
-export import ConditionZero;
-export import GameRules;
-export import Message;
-export import Task;
-export import VTFH;
+import CBase;
+import ConditionZero;
+import GameRules;
+import Message;
+import Task;
+import VTFH;
 
 export inline constexpr auto WEAPON_IS_ONTARGET = 0x40;
 
@@ -372,10 +372,10 @@ public:	// CBasePlayerWeapon
 			case WEAPON_DEAGLE:
 			case WEAPON_ELITE:
 			case WEAPON_FIVESEVEN:
-				g_engfuncs.pfnEmitSound(m_pPlayer->edict(), CHAN_WEAPON, "weapons/dryfire_pistol.wav", 0.8f, ATTN_NORM, 0, PITCH_NORM);
+				g_engfuncs.pfnEmitSound(m_pPlayer->edict(), CHAN_WEAPON, "weapons/dryfire_pistol.wav", 0.8f, ATTN_NORM, SND_FL_NONE, PITCH_NORM);
 				break;
 			default:
-				g_engfuncs.pfnEmitSound(m_pPlayer->edict(), CHAN_WEAPON, "weapons/dryfire_rifle.wav", 0.8f, ATTN_NORM, 0, PITCH_NORM);
+				g_engfuncs.pfnEmitSound(m_pPlayer->edict(), CHAN_WEAPON, "weapons/dryfire_rifle.wav", 0.8f, ATTN_NORM, SND_FL_NONE, PITCH_NORM);
 				break;
 			}
 		}

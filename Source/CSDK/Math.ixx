@@ -1,14 +1,12 @@
-﻿export module Math;
+﻿module;
 
-export import <cassert>;
-export import <cmath>;
+#include <cassert>
 
-export import <algorithm>;
-export import <functional>;
-export import <numbers>;
+export module Math;
 
-export import mathlib;
-export import vector;
+export import hlsdk;
+export import std.compat;
+
 
 export inline auto get_spherical_coord(const Vector &vecOrigin, const Quaternion &qRotation, double radius, double inclination, double azimuth) noexcept
 {

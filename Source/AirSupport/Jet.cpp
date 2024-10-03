@@ -31,11 +31,11 @@ Task CJet::Task_BeamAndSound() noexcept
 	switch (m_AirSupportType)
 	{
 	case CARPET_BOMBARDMENT:
-		g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, Sounds::BOMBER[m_iFlyingSoundIndex], VOL_NORM, ATTN_NONE, 0, UTIL_Random(92, 118));
+		g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, Sounds::BOMBER[m_iFlyingSoundIndex], VOL_NORM, ATTN_NONE, SND_FL_NONE, UTIL_Random(92, 118));
 		break;
 
 	default:
-		g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, Sounds::JET[m_iFlyingSoundIndex], VOL_NORM, ATTN_NONE, 0, UTIL_Random(92, 118));
+		g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, Sounds::JET[m_iFlyingSoundIndex], VOL_NORM, ATTN_NONE, SND_FL_NONE, UTIL_Random(92, 118));
 		break;
 	}
 
@@ -49,12 +49,12 @@ Task CJet::Task_BeamAndSound() noexcept
 		WriteData(TE_BEAMFOLLOW);
 		WriteData(iEntAtt);
 		WriteData((short)Sprites::m_rgLibrary[Sprites::TRAIL]);
-		WriteData((byte)4);		// life
-		WriteData((byte)10);	// width
-		WriteData((byte)255);	// r
-		WriteData((byte)255);	// g
-		WriteData((byte)255);	// b
-		WriteData((byte)255);	// brightness
+		WriteData((uint8_t)4);		// life
+		WriteData((uint8_t)10);		// width
+		WriteData((uint8_t)255);	// r
+		WriteData((uint8_t)255);	// g
+		WriteData((uint8_t)255);	// b
+		WriteData((uint8_t)255);	// brightness
 		MsgEnd();
 	}
 }
@@ -94,7 +94,7 @@ Task CJet::Task_AirStrike() noexcept
 	for (TraceResult tr{}; m_pTarget;)
 	{
 		vecLaunchingSpot = pev->origin - Vector(0, 0, 8);
-		fnTraceHull(vecLaunchingSpot, m_pTarget->pev->origin, dont_ignore_monsters, edict(), &tr);
+		fnTraceHull(vecLaunchingSpot, m_pTarget->pev->origin, dont_ignore_monsters | dont_ignore_glass, edict(), &tr);
 
 		// Sky height issue?
 		if ((tr.flFraction > 0.95f || (m_pTarget->pev->origin - tr.vecEndPos).LengthSquared() < (10.0 * 10.0))
@@ -144,7 +144,7 @@ Task CJet::Task_ClusterBomb() noexcept
 			g_engfuncs.pfnTraceLine(
 				m_pTarget->pev->origin,
 				Vector(m_pTarget->pev->origin.x, m_pTarget->pev->origin.y, 8192),
-				ignore_glass | ignore_monsters,
+				ignore_monsters | ignore_glass,
 				edict(),
 				&tr
 			);
@@ -301,7 +301,7 @@ Task CJet::Task_Phosphorus() noexcept
 		if (auto const flDist = (pev->origin - m_pTarget->pev->origin).Length(); flDist < 800)
 			goto LAB_CONTINUE;
 
-		fnTraceHull(pev->origin - Vector(0, 0, 8), m_pTarget->pev->origin, dont_ignore_monsters, edict(), &tr);
+		fnTraceHull(pev->origin - Vector(0, 0, 8), m_pTarget->pev->origin, dont_ignore_monsters | dont_ignore_glass, edict(), &tr);
 
 		if (tr.flFraction > 0.95f && !tr.fAllSolid && !tr.fStartSolid && tr.fInOpen)
 		{
@@ -422,9 +422,9 @@ Task CGunship::Task_Gunship() noexcept
 	for (edict_t *pEdict : (m_pPlayer->m_iTeam == TEAM_CT ? g_rgpPlayersOfTerrorist : g_rgpPlayersOfCT))
 		g_engfuncs.pfnClientCommand(pEdict, "spk %s\n", Sounds::ALERT_AC130);
 
-	g_engfuncs.pfnEmitAmbientSound(m_pPlayer->edict(), m_pPlayer->pev->origin, Sounds::Gunship::NOISE_PILOT, VOL_NORM, ATTN_STATIC, 0, PITCH_NORM);
-	g_engfuncs.pfnEmitAmbientSound(m_pPlayer->edict(), m_pPlayer->pev->origin, Sounds::Gunship::AC130_IS_IN_AIR, VOL_NORM, ATTN_STATIC, 0, UTIL_Random(92, 108));
-	g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, Sounds::Gunship::AC130_AMBIENT[m_iAmbientSoundIndex], VOL_NORM, ATTN_NONE, 0, UTIL_Random(92, 108));
+	g_engfuncs.pfnEmitAmbientSound(m_pPlayer->edict(), m_pPlayer->pev->origin, Sounds::Gunship::NOISE_PILOT, VOL_NORM, ATTN_STATIC, SND_FL_NONE, PITCH_NORM);
+	g_engfuncs.pfnEmitAmbientSound(m_pPlayer->edict(), m_pPlayer->pev->origin, Sounds::Gunship::AC130_IS_IN_AIR, VOL_NORM, ATTN_STATIC, SND_FL_NONE, UTIL_Random(92, 108));
+	g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, Sounds::Gunship::AC130_AMBIENT[m_iAmbientSoundIndex], VOL_NORM, ATTN_NONE, SND_FL_NONE, UTIL_Random(92, 108));
 
 	co_await (float)g_rgflSoundTime.at(Sounds::Gunship::AC130_IS_IN_AIR);
 
@@ -454,7 +454,7 @@ Task CGunship::Task_Gunship() noexcept
 		{
 			std::string_view const szKillConfirmed = UTIL_GetRandomOne(Sounds::Gunship::KILL_CONFIRMED);
 
-			g_engfuncs.pfnEmitSound(m_pPlayer->edict(), CHAN_AUTO, szKillConfirmed.data(), VOL_NORM, ATTN_STATIC, 0, UTIL_Random(92, 108));
+			g_engfuncs.pfnEmitSound(m_pPlayer->edict(), CHAN_AUTO, szKillConfirmed.data(), VOL_NORM, ATTN_STATIC, SND_FL_NONE, UTIL_Random(92, 108));
 
 			pEnemy = nullptr;	// Only after we set it to null will the CFixedTarget to find another target.
 			co_await (float)(g_rgflSoundTime.at(szKillConfirmed) + 0.1);
@@ -474,7 +474,7 @@ Task CGunship::Task_Gunship() noexcept
 
 			if (g_engfuncs.pfnPointContents(tr.vecEndPos) != CONTENTS_SKY)	// This guy runs into shelter.
 			{
-				g_engfuncs.pfnEmitSound(m_pPlayer->edict(), CHAN_AUTO, Sounds::Gunship::TARGET_RAN_TO_COVER, VOL_NORM, ATTN_STATIC, 0, PITCH_NORM);
+				g_engfuncs.pfnEmitSound(m_pPlayer->edict(), CHAN_AUTO, Sounds::Gunship::TARGET_RAN_TO_COVER, VOL_NORM, ATTN_STATIC, SND_FL_NONE, PITCH_NORM);
 				pEnemy = nullptr;
 				continue;
 			}
@@ -506,17 +506,17 @@ Task CGunship::Task_Gunship() noexcept
 
 		//gmsgTextMsg::Send(m_pPlayer->edict(), 3, std::format("{}", flSpeed).c_str());
 
-		g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, UTIL_GetRandomOne(Sounds::Gunship::AC130_FIRE_25MM), VOL_NORM, ATTN_NONE, 0, UTIL_Random(92, 116));
+		g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, UTIL_GetRandomOne(Sounds::Gunship::AC130_FIRE_25MM), VOL_NORM, ATTN_NONE, SND_FL_NONE, UTIL_Random(92, 116));
 		co_await (60.f / std::max(1.f, (float)CVar::gs_rpm));	// firerate.
 	}
 
 	// "Reloading"
-	g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, Sounds::Gunship::AC130_RELOAD[m_iReloadSoundIndex], VOL_NORM, ATTN_NONE, 0, UTIL_Random(92, 116));
+	g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, Sounds::Gunship::AC130_RELOAD[m_iReloadSoundIndex], VOL_NORM, ATTN_NONE, SND_FL_NONE, UTIL_Random(92, 116));
 	co_await (float)g_rgflSoundTime.at(Sounds::Gunship::AC130_RELOAD[m_iReloadSoundIndex]);
 
 	// Randomly select another SFX as AC130 moving out, with fadeout fx. Stop the old one first.
 	g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, Sounds::Gunship::AC130_AMBIENT[m_iAmbientSoundIndex], VOL_NORM, ATTN_NONE, SND_STOP, UTIL_Random(92, 108));
-	g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, Sounds::Gunship::AC130_DEPARTURE[m_iDepartureSoundIndex], VOL_NORM, ATTN_NONE, 0, UTIL_Random(92, 108));
+	g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, Sounds::Gunship::AC130_DEPARTURE[m_iDepartureSoundIndex], VOL_NORM, ATTN_NONE, SND_FL_NONE, UTIL_Random(92, 108));
 	co_await (float)g_rgflSoundTime.at(Sounds::Gunship::AC130_DEPARTURE[m_iDepartureSoundIndex]);
 
 	// Stop the radio background noise

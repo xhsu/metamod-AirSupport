@@ -1,3 +1,8 @@
+module;
+
+#include <cassert>
+#include <cstddef>	// offsetof
+
 export module CBase;
 
 // LUNA: This module consists of multiple portions.
@@ -5,22 +10,8 @@ export module CBase;
 //		 Find more in ConditionZero.ixx
 //		 For virtual functions, they are located in VTFH.ixx
 
-//#ifndef offsetof
-//#define offsetof(s,m) ((::size_t)&reinterpret_cast<char const volatile&>((((s*)0)->m)))
-//#endif
-export import <cassert>;
-export import <cstddef>;
-
-export import <concepts>;
-export import <span>;
-
-export import activity;
-export import cdll_dll;
-export import eiface;
-export import monsterevent;
-export import pm_materials;
-export import progdefs;
-export import util;
+export import std;
+export import hlsdk;
 
 // These are caps bits to indicate what an object's capabilities (currently used for save/restore and level transitions)
 export inline constexpr auto FCAP_CUSTOMSAVE = 0x00000001;
@@ -954,7 +945,7 @@ public:
 	Activity m_IdealActivity;
 	int m_LastHitGroup;
 	int m_bitsDamageType;
-	byte m_rgbTimeBasedDamage[CDMG_TIMEBASED];
+	uint8_t m_rgbTimeBasedDamage[CDMG_TIMEBASED];
 	MONSTERSTATE m_MonsterState;
 	MONSTERSTATE m_IdealMonsterState;
 	int m_afConditions;

@@ -1,21 +1,15 @@
 ﻿#ifdef __INTELLISENSE__
-#include <cassert>
-
-#include <array>
-#include <list>
 #include <ranges>
-#else
-import <cassert>;
-
-import <array>;
-import <list>;
-import <ranges>;
 #endif
+
+import std;
+import hlsdk;
 
 import Effects;
 import Hook;
 import Math;
 import Menu;
+import Message;
 import Projectile;
 import Ray;
 import Resources;
@@ -52,7 +46,7 @@ Task CPrecisionAirStrike::Task_Deviation() noexcept
 			vecCurDir = this->pev->velocity.Normalize();
 			vecEstVel = arithmetic_lerp(vecDir, vecCurDir, 0.55).Normalize() * (float)CVar::pas_proj_speed;
 
-			fnTraceHull(pev->origin, pev->origin + vecEstVel, dont_ignore_monsters, edict(), &tr);
+			fnTraceHull(pev->origin, pev->origin + vecEstVel, dont_ignore_monsters | dont_ignore_glass, edict(), &tr);
 
 			// If the correction is leading to hit a wall, skip it.
 			if (EHANDLE<CBaseEntity> pHit{ tr.pHit }; pHit && pHit->IsBSPModel())
@@ -85,8 +79,8 @@ Task CPrecisionAirStrike::Task_Deviation() noexcept
 		WriteData(TE_SPRITE);
 		WriteData(vecOrigin);
 		WriteData((short)Sprites::m_rgLibrary[Sprites::ROCKET_EXHAUST_FLAME]);
-		WriteData((byte)3);
-		WriteData((byte)255);
+		WriteData((uint8_t)3);
+		WriteData((uint8_t)255);
 		MsgEnd();
 	}
 }
@@ -95,7 +89,7 @@ Task CPrecisionAirStrike::Task_EmitExhaust() noexcept
 {
 	pev->effects = EF_LIGHT | EF_BRIGHTLIGHT;
 
-	g_engfuncs.pfnEmitAmbientSound(edict(), pev->origin, Sounds::TRAVEL, VOL_NORM, 0.3f, 0, UTIL_Random(94, 112));
+	g_engfuncs.pfnEmitAmbientSound(edict(), pev->origin, Sounds::TRAVEL, VOL_NORM, 0.3f, SND_FL_NONE, UTIL_Random(94, 112));
 
 	co_await 0.25f;	// The entity must flying into the world before the beam can correctly displayed.
 
@@ -103,12 +97,12 @@ Task CPrecisionAirStrike::Task_EmitExhaust() noexcept
 	WriteData(TE_BEAMFOLLOW);
 	WriteData(entindex());	// short (entity:attachment to follow)
 	WriteData(Sprites::m_rgLibrary[Sprites::TRAIL]);	// short (sprite index)
-	WriteData((byte)UTIL_Random(20, 40));	// byte (life in 0.1's) 
-	WriteData((byte)3);		// byte (line width in 0.1's) 
-	WriteData((byte)255);	// r
-	WriteData((byte)255);	// g
-	WriteData((byte)191);	// b
-	WriteData((byte)255);	// byte (brightness)
+	WriteData((uint8_t)UTIL_Random(20, 40));	// byte (life in 0.1's) 
+	WriteData((uint8_t)3);		// byte (line width in 0.1's) 
+	WriteData((uint8_t)255);	// r
+	WriteData((uint8_t)255);	// g
+	WriteData((uint8_t)191);	// b
+	WriteData((uint8_t)255);	// byte (brightness)
 	MsgEnd();
 
 	for (;;)
@@ -153,7 +147,7 @@ void CPrecisionAirStrike::Touch(CBaseEntity *pOther) noexcept
 		return;
 	}
 
-	g_engfuncs.pfnEmitSound(edict(), CHAN_AUTO, UTIL_GetRandomOne(Sounds::EXPLOSION), VOL_NORM, 0.3f, 0, UTIL_Random(92, 116));
+	g_engfuncs.pfnEmitSound(edict(), CHAN_AUTO, UTIL_GetRandomOne(Sounds::EXPLOSION), VOL_NORM, 0.3f, SND_FL_NONE, UTIL_Random(92, 116));
 
 	Impact(m_pPlayer, this, (float)CVar::pas_dmg_impact);
 	RangeDamage(m_pPlayer, pev->origin, (float)CVar::pas_dmg_radius, (float)CVar::pas_dmg_explo);
@@ -217,8 +211,8 @@ Task CClusterCharge::Task_Explo() noexcept
 	WriteData(TE_EXPLOSION);
 	WriteData(pev->origin);
 	WriteData(Sprites::m_rgLibrary[Sprites::MINOR_EXPLO]);
-	WriteData((byte)UTIL_Random(10, 20));
-	WriteData((byte)20);
+	WriteData((uint8_t)UTIL_Random(10, 20));
+	WriteData((uint8_t)20);
 	WriteData(TE_EXPLFLAG_NONE);
 	MsgEnd();
 
@@ -263,8 +257,8 @@ Task CClusterCharge::Task_VisualEffects() noexcept
 		WriteData(TE_SMOKE);
 		WriteData(pev->origin);
 		WriteData((short)Sprites::m_rgLibrary[UTIL_GetRandomOne(Sprites::BLACK_SMOKE)]);
-		WriteData((byte)UTIL_Random(5, 10));	// (scale in 0.1's)
-		WriteData((byte)UTIL_Random(15, 20));	// (framerate)
+		WriteData((uint8_t)UTIL_Random(5, 10));	// (scale in 0.1's)
+		WriteData((uint8_t)UTIL_Random(15, 20));	// (framerate)
 		MsgEnd();
 	}
 }
@@ -314,11 +308,11 @@ void CClusterCharge::Touch(CBaseEntity *pOther) noexcept
 		{
 			// Regular sound
 			if (gpGlobals->time < (pev->dmgtime - m_flTotalFuseTime * 0.65f))
-				g_engfuncs.pfnEmitSound(edict(), CHAN_VOICE, Sounds::GRENADE_BOUNCE[1], VOL_NORM, ATTN_NORM, 0, UTIL_Random(96, 108));
+				g_engfuncs.pfnEmitSound(edict(), CHAN_VOICE, Sounds::GRENADE_BOUNCE[1], VOL_NORM, ATTN_NORM, SND_FL_NONE, UTIL_Random(96, 108));
 
 			// Damger sound
 			else
-				g_engfuncs.pfnEmitSound(edict(), CHAN_VOICE, Sounds::GRENADE_BOUNCE[0], VOL_NORM, ATTN_NORM, 0, UTIL_Random(96, 108));
+				g_engfuncs.pfnEmitSound(edict(), CHAN_VOICE, Sounds::GRENADE_BOUNCE[0], VOL_NORM, ATTN_NORM, SND_FL_NONE, UTIL_Random(96, 108));
 		}
 
 		if (m_iBounceCount >= 10)
@@ -381,20 +375,20 @@ Task CClusterBomb::Task_ClusterBomb() noexcept
 	WriteData(TE_EXPLOSION);
 	WriteData(pev->origin);
 	WriteData(Sprites::m_rgLibrary[Sprites::AIRBURST]);
-	WriteData((byte)35);
-	WriteData((byte)12);
+	WriteData((uint8_t)35);
+	WriteData((uint8_t)12);
 	WriteData(TE_EXPLFLAG_NONE);
 	MsgEnd();
 
 	MsgBroadcast(SVC_TEMPENTITY);
 	WriteData(TE_DLIGHT);
 	WriteData(pev->origin);
-	WriteData((byte)70);
-	WriteData((byte)255);
-	WriteData((byte)0);
-	WriteData((byte)0);
-	WriteData((byte)2);
-	WriteData((byte)0);
+	WriteData((uint8_t)70);
+	WriteData((uint8_t)255);
+	WriteData((uint8_t)0);
+	WriteData((uint8_t)0);
+	WriteData((uint8_t)2);
+	WriteData((uint8_t)0);
 	MsgEnd();
 
 	pev->solid = SOLID_NOT;
@@ -459,8 +453,8 @@ Task CClusterBomb::Task_ClusterBomb() noexcept
 		WriteData(TE_EXPLOSION);
 		WriteData(vec);
 		WriteData(Sprites::m_rgLibrary[Sprites::MINOR_EXPLO]);
-		WriteData((byte)UTIL_Random(5, 15));
-		WriteData((byte)24);
+		WriteData((uint8_t)UTIL_Random(5, 15));
+		WriteData((uint8_t)24);
 		WriteData(TE_EXPLFLAG_NONE);
 		MsgEnd();
 
@@ -493,20 +487,20 @@ Task CClusterBomb::Task_ClusterBomb2() noexcept
 	WriteData(TE_EXPLOSION);
 	WriteData(pev->origin);
 	WriteData(Sprites::m_rgLibrary[Sprites::AIRBURST]);
-	WriteData((byte)35);
-	WriteData((byte)12);
+	WriteData((uint8_t)35);
+	WriteData((uint8_t)12);
 	WriteData(TE_EXPLFLAG_NONE);
 	MsgEnd();
 
 	MsgBroadcast(SVC_TEMPENTITY);
 	WriteData(TE_DLIGHT);
 	WriteData(pev->origin);
-	WriteData((byte)70);
-	WriteData((byte)255);
-	WriteData((byte)0);
-	WriteData((byte)0);
-	WriteData((byte)2);
-	WriteData((byte)0);
+	WriteData((uint8_t)70);
+	WriteData((uint8_t)255);
+	WriteData((uint8_t)0);
+	WriteData((uint8_t)0);
+	WriteData((uint8_t)2);
+	WriteData((uint8_t)0);
 	MsgEnd();
 
 	pev->solid = SOLID_NOT;
@@ -574,15 +568,15 @@ void CClusterBomb::Spawn() noexcept
 	WriteData(TE_BEAMFOLLOW);
 	WriteData(entindex());
 	WriteData(Sprites::m_rgLibrary[Sprites::TRAIL]);
-	WriteData((byte)20);
-	WriteData((byte)3);
-	WriteData((byte)255);
-	WriteData((byte)255);
-	WriteData((byte)255);
-	WriteData((byte)255);
+	WriteData((uint8_t)20);
+	WriteData((uint8_t)3);
+	WriteData((uint8_t)255);
+	WriteData((uint8_t)255);
+	WriteData((uint8_t)255);
+	WriteData((uint8_t)255);
 	MsgEnd();
 
-	g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, Sounds::CLUSTER_BOMB_DROP, VOL_NORM, 0, 0, UTIL_Random(92, 112));
+	g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, Sounds::CLUSTER_BOMB_DROP, VOL_NORM, ATTN_NONE, SND_FL_NONE, UTIL_Random(92, 112));
 
 	m_Scheduler.Enroll(Task_ClusterBomb2());
 	// Calculate everything, including all those detonation spots and where is the first detonation.
@@ -639,12 +633,12 @@ Task CCarpetBombardment::Task_Touch() noexcept
 	WriteData(TE_EXPLOSION);
 	WriteData(pev->origin + Vector(0, 0, 70));
 	WriteData(Sprites::m_rgLibrary[Sprites::CARPET_FRAGMENT_EXPLO]);
-	WriteData((byte)UTIL_Random(20, 30));
-	WriteData((byte)12);
+	WriteData((uint8_t)UTIL_Random(20, 30));
+	WriteData((uint8_t)12);
 	WriteData(TE_EXPLFLAG_NOSOUND);
 	MsgEnd();
 
-	g_engfuncs.pfnEmitSound(edict(), CHAN_AUTO, UTIL_GetRandomOne(Sounds::EXPLOSION_SHORT), VOL_NORM, 0.3f, 0, UTIL_Random(92, 116));
+	g_engfuncs.pfnEmitSound(edict(), CHAN_AUTO, UTIL_GetRandomOne(Sounds::EXPLOSION_SHORT), VOL_NORM, 0.3f, SND_FL_NONE, UTIL_Random(92, 116));
 
 	co_await TaskScheduler::NextFrame::Rank[0];
 
@@ -743,7 +737,7 @@ CCarpetBombardment *CCarpetBombardment::Create(CBasePlayer *pPlayer, Vector cons
 Task CBullet::Task_Touch() noexcept
 {
 	TraceResult tr{};
-	g_engfuncs.pfnTraceLine(m_vecLastTraceSrc, pev->origin + pev->velocity, dont_ignore_monsters, edict(), &tr);
+	g_engfuncs.pfnTraceLine(m_vecLastTraceSrc, pev->origin + pev->velocity, dont_ignore_monsters | dont_ignore_glass, edict(), &tr);
 
 	if (tr.pHit && tr.pHit->v.solid == SOLID_BSP)
 		UTIL_Decal(tr.pHit, tr.vecEndPos, UTIL_GetRandomOne(Decal::BIGSHOT).m_Index);
@@ -814,7 +808,7 @@ Task CBullet::Task_Fly() noexcept
 			g_engfuncs.pfnClientCommand(pEdict, "spk %s\n", UTIL_GetRandomOne(Sounds::WHIZZ));
 		}
 
-		g_engfuncs.pfnTraceLine(m_vecLastTraceSrc, pev->origin, dont_ignore_monsters, edict(), &tr);
+		g_engfuncs.pfnTraceLine(m_vecLastTraceSrc, pev->origin, dont_ignore_monsters | dont_ignore_glass, edict(), &tr);
 
 		if (tr.pHit && tr.pHit->v.takedamage != DAMAGE_NO)
 		{
@@ -844,12 +838,12 @@ void CBullet::Spawn() noexcept
 	WriteData(TE_BEAMFOLLOW);
 	WriteData(entindex());
 	WriteData(Sprites::m_rgLibrary[Sprites::BEAM]);
-	WriteData((byte)1);
-	WriteData((byte)1);
-	WriteData((byte)255);
-	WriteData((byte)200);
-	WriteData((byte)120);
-	WriteData((byte)UTIL_Random(192, 255));
+	WriteData((uint8_t)1);
+	WriteData((uint8_t)1);
+	WriteData((uint8_t)255);
+	WriteData((uint8_t)200);
+	WriteData((uint8_t)120);
+	WriteData((uint8_t)UTIL_Random(192, 255));
 	MsgEnd();
 
 	m_Scheduler.Enroll(Task_Fly());
@@ -886,7 +880,7 @@ CBullet *CBullet::Create(Vector const &vecOrigin, Vector const &vecVelocity, CBa
 Task CFuelAirExplosive::Task_GasPropagate() noexcept
 {
 	m_bReleasingGas = true;
-	g_engfuncs.pfnEmitAmbientSound(edict(), pev->origin, Sounds::FuelAirBomb::GAS_LEAK_LOOP, VOL_NORM, ATTN_NORM, 0, UTIL_Random(92, 112));
+	g_engfuncs.pfnEmitAmbientSound(edict(), pev->origin, Sounds::FuelAirBomb::GAS_LEAK_LOOP, VOL_NORM, ATTN_NORM, SND_FL_NONE, UTIL_Random(92, 112));
 
 	TraceResult tr{};
 	auto const vecTestSrc = pev->origin + Vector::Up() * 5.0;
@@ -947,7 +941,7 @@ Task CFuelAirExplosive::Task_GasPropagate() noexcept
 
 	// all the gases are out.
 	g_engfuncs.pfnEmitAmbientSound(edict(), pev->origin, Sounds::FuelAirBomb::GAS_LEAK_LOOP, VOL_NORM, ATTN_NORM, SND_STOP, UTIL_Random(92, 112));
-	g_engfuncs.pfnEmitAmbientSound(edict(), pev->origin, Sounds::FuelAirBomb::GAS_LEAK_FADEOUT, VOL_NORM, ATTN_NORM, 0, UTIL_Random(92, 112));
+	g_engfuncs.pfnEmitAmbientSound(edict(), pev->origin, Sounds::FuelAirBomb::GAS_LEAK_FADEOUT, VOL_NORM, ATTN_NORM, SND_FL_NONE, UTIL_Random(92, 112));
 	m_bReleasingGas = false;
 	m_bGasAllOut = true;
 
@@ -1000,23 +994,23 @@ void CFuelAirExplosive::Spawn() noexcept
 	WriteData(TE_BEAMFOLLOW);
 	WriteData(entindex());
 	WriteData(Sprites::m_rgLibrary[Sprites::TRAIL]);
-	WriteData((byte)20);
-	WriteData((byte)3);
-	WriteData((byte)255);
-	WriteData((byte)255);
-	WriteData((byte)255);
-	WriteData((byte)255);
+	WriteData((uint8_t)20);
+	WriteData((uint8_t)3);
+	WriteData((uint8_t)255);
+	WriteData((uint8_t)255);
+	WriteData((uint8_t)255);
+	WriteData((uint8_t)255);
 	MsgEnd();
 
-	g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, Sounds::CLUSTER_BOMB_DROP, VOL_NORM, 0, 0, UTIL_Random(92, 112));
+	g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, Sounds::CLUSTER_BOMB_DROP, VOL_NORM, ATTN_NONE, SND_FL_NONE, UTIL_Random(92, 112));
 }
 
 void CFuelAirExplosive::Touch(CBaseEntity *pOther) noexcept
 {
 	m_bTouched = true;
 	g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, Sounds::CLUSTER_BOMB_DROP, VOL_NORM, 0, SND_STOP, UTIL_Random(92, 112));
-	g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, UTIL_GetRandomOne(Sounds::EXPLOSION_SHORT), VOL_NORM, 0, 0, UTIL_Random(92, 112));
-	g_engfuncs.pfnEmitSound(edict(), CHAN_AUTO, UTIL_GetRandomOne(Sounds::HIT_METAL), VOL_NORM, ATTN_NORM, 0, UTIL_Random(92, 112));
+	g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, UTIL_GetRandomOne(Sounds::EXPLOSION_SHORT), VOL_NORM, ATTN_NONE, SND_FL_NONE, UTIL_Random(92, 112));
+	g_engfuncs.pfnEmitSound(edict(), CHAN_AUTO, UTIL_GetRandomOne(Sounds::HIT_METAL), VOL_NORM, ATTN_NORM, SND_FL_NONE, UTIL_Random(92, 112));
 
 	pev->velocity = Vector::Zero();
 	pev->gravity = 0;
@@ -1062,8 +1056,8 @@ qboolean CFuelAirExplosive::TakeDamage(entvars_t *pevInflictor, entvars_t *pevAt
 	WriteData(TE_SPRITE);
 	WriteData(vecExplo);
 	WriteData(Sprites::m_rgLibrary[Sprites::GIGANTIC_EXPLO]);
-	WriteData((byte)(SCALE * 10));
-	WriteData((byte)255);
+	WriteData((uint8_t)(SCALE * 10));
+	WriteData((uint8_t)255);
 	MsgEnd();
 
 	pev->effects = EF_NODRAW;
@@ -1080,13 +1074,13 @@ qboolean CFuelAirExplosive::TakeDamage(entvars_t *pevInflictor, entvars_t *pevAt
 	// Huge-o-explo will only occurs when the gas isn't out.
 	if (!m_bGasAllOut)
 	{
-		g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, UTIL_GetRandomOne(Sounds::EXPLOSION_BIG), VOL_NORM, ATTN_NONE, 0, UTIL_Random(92, 112));
+		g_engfuncs.pfnEmitSound(edict(), CHAN_STATIC, UTIL_GetRandomOne(Sounds::EXPLOSION_BIG), VOL_NORM, ATTN_NONE, SND_FL_NONE, UTIL_Random(92, 112));
 
 		// Potential self-damaging, and cause inf-loop
 		RangeDamage(m_pPlayer, pev->origin, 128.f * SCALE, 750.f);
 	}
 
-	g_engfuncs.pfnEmitSound(edict(), CHAN_BODY, UTIL_GetRandomOne(Sounds::HIT_METAL), VOL_NORM, ATTN_NORM, 0, UTIL_Random(92, 112));
+	g_engfuncs.pfnEmitSound(edict(), CHAN_BODY, UTIL_GetRandomOne(Sounds::HIT_METAL), VOL_NORM, ATTN_NORM, SND_FL_NONE, UTIL_Random(92, 112));
 
 	m_Scheduler.Enroll(Task_StopSoundAndRemove());
 	return true;
@@ -1137,7 +1131,7 @@ Task CIncendiaryMunition::Task_EmitExhaust() noexcept
 {
 	pev->effects = EF_LIGHT | EF_BRIGHTLIGHT;
 
-	g_engfuncs.pfnEmitAmbientSound(edict(), pev->origin, Sounds::TRAVEL, VOL_NORM, 0.3f, 0, UTIL_Random(94, 112));
+	g_engfuncs.pfnEmitAmbientSound(edict(), pev->origin, Sounds::TRAVEL, VOL_NORM, 0.3f, SND_FL_NONE, UTIL_Random(94, 112));
 
 	co_await 0.25f;	// The entity must flying into the world before the beam can correctly displayed.
 
@@ -1145,12 +1139,12 @@ Task CIncendiaryMunition::Task_EmitExhaust() noexcept
 	WriteData(TE_BEAMFOLLOW);
 	WriteData(entindex());	// short (entity:attachment to follow)
 	WriteData(Sprites::m_rgLibrary[Sprites::TRAIL]);	// short (sprite index)
-	WriteData((byte)UTIL_Random(20, 40));	// byte (life in 0.1's) 
-	WriteData((byte)3);		// byte (line width in 0.1's) 
-	WriteData((byte)255);	// r
-	WriteData((byte)255);	// g
-	WriteData((byte)191);	// b
-	WriteData((byte)255);	// byte (brightness)
+	WriteData((uint8_t)UTIL_Random(20, 40));	// byte (life in 0.1's) 
+	WriteData((uint8_t)3);		// byte (line width in 0.1's) 
+	WriteData((uint8_t)255);	// r
+	WriteData((uint8_t)255);	// g
+	WriteData((uint8_t)191);	// b
+	WriteData((uint8_t)255);	// byte (brightness)
 	MsgEnd();
 
 	co_await 0.25f;
@@ -1185,8 +1179,8 @@ Task CIncendiaryMunition::Task_Fuse() noexcept
 		WriteData(TE_EXPLOSION);
 		WriteData(pev->origin);
 		WriteData(Sprites::m_rgLibrary[Sprites::MINOR_EXPLO]);
-		WriteData((byte)UTIL_Random(10, 20));
-		WriteData((byte)20);
+		WriteData((uint8_t)UTIL_Random(10, 20));
+		WriteData((uint8_t)20);
 		WriteData(TE_EXPLFLAG_NONE);
 		MsgEnd();
 

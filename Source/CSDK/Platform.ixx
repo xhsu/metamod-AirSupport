@@ -8,15 +8,14 @@ module;
 #define NOMINMAX	// LUNA: first thing to do when using windows header. It makes 'Windows SDK for C++' compatiable with C++. Fuck Microsoft.
 #include <Windows.h>
 
+#include <stdio.h>
 #include <wchar.h>
+
+#define _countof(array) (sizeof(array) / sizeof(array[0]))
 
 export module Platform;
 
-export import <algorithm>;
-export import <bit>;
-export import <codecvt>;
-export import <locale>;
-export import <stacktrace>;
+export import std;
 
 export inline std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> g_utf_converter;
 

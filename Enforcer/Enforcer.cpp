@@ -1,37 +1,12 @@
 // Enforcer.cpp : This file contains the 'main' function. Program execution begins and ends there.
 //
 
+#include <cstdio>
+
 // Should output timepoint?
 //#define SHOW_TIME_POINT
 
-#ifndef __INTELLISENSE__
-import <cstdint>;
-import <cstdio>;
-import <cstdlib>;
-
-import <algorithm>;
-import <format>;
-import <fstream>;
-import <map>;
-import <print>;
-import <ranges>;
-import <span>;
-import <vector>;
-#else
-#include <cstdint>
-#include <cstdio>
-#include <cstdlib>
-
-#include <algorithm>
-#include <format>
-#include <fstream>
-#include <map>
-#include <print>
-#include <ranges>
-#include <span>
-#include <vector>
-#endif
-
+import std.compat;
 
 import CRC64;
 import Localization;
@@ -39,7 +14,7 @@ import Resources;
 import Sprite;
 import Wave;
 
-import studio;
+import hlsdk;
 
 using std::map;
 using std::string;

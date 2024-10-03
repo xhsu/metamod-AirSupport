@@ -1,11 +1,15 @@
+module;
+
+#include <stdint.h>
+#include <stdio.h>
+
+#ifdef __INTELLISENSE__
+#include <ranges>
+#endif
+
 export module Wave;
 
-export import <stdint.h>;
-export import <string.h>;
-
-export import <algorithm>;
-export import <fstream>;
-export import <string_view>;
+import std;
 
 using std::string_view;
 
@@ -52,7 +56,7 @@ export namespace Wave
 			fread(&Chunk, sizeof(Chunk), 1, f);
 			fseek(f, Chunk.m_iChunkSize, SEEK_CUR);
 
-			std::ranges::transform(Chunk.m_desc, Chunk.m_desc, tolower);
+			std::ranges::transform(Chunk.m_desc, Chunk.m_desc, [](auto c) noexcept { return std::tolower(c); });
 
 			if (szChunkDesc == "data")
 				iSampledDataLength = Chunk.m_iChunkSize;

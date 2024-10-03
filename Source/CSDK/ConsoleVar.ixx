@@ -4,18 +4,11 @@ Created Date: Jan 27 2024
 
 export module ConsoleVar;
 
-export import <charconv>;
-export import <concepts>;
-export import <format>;
-export import <functional>;
-export import <set>;
-export import <string_view>;
-export import <string>;
-export import <unordered_map>;
-export import <vector>;
+export import std;
+export import hlsdk;
 
-export import eiface;
-export import cvardef;
+using std::uint32_t;	// #MSVC_BUG_STDCOMPAT std.compat crashing INTELLISENSE
+using std::strlen;
 
 struct console_variable_t;	// forward declearation
 
@@ -77,7 +70,7 @@ export struct console_variable_t final
 		CVarManager::Instance()->m_Desc.try_emplace(szCVarName, szDefValue, szDomain, szDescription);
 	}
 
-	bool Init(const char* pszCVarName, const char* pszValue, int bitsFlags = FCVAR_SERVER | FCVAR_EXTDLL) noexcept
+	bool Init(const char* pszCVarName, const char* pszValue, uint32_t bitsFlags = FCVAR_SERVER | FCVAR_EXTDLL) noexcept
 	{
 		if ((m_handle = g_engfuncs.pfnCVarGetPointer(pszCVarName)) == nullptr)
 		{
@@ -96,7 +89,7 @@ export struct console_variable_t final
 		return m_handle != nullptr;
 	}
 
-	bool Register(const char* pszCVarName, const char* pszValue, int bitsFlags = FCVAR_SERVER | FCVAR_EXTDLL) noexcept
+	bool Register(const char* pszCVarName, const char* pszValue, uint32_t bitsFlags = FCVAR_SERVER | FCVAR_EXTDLL) noexcept
 	{
 		cvar_t data{ pszCVarName, pszValue, bitsFlags };
 		g_engfuncs.pfnCVarRegister(&data);

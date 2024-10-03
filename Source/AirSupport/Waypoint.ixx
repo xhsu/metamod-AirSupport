@@ -1,7 +1,6 @@
 export module Waypoint;
 
-export import <span>;
-export import <vector>;
+export import std;
 
 export import vector;
 
@@ -19,6 +18,6 @@ export inline struct WaypointMgr_t
 	size_t m_iCount = 0;
 	Vector *m_prgvecOrigins = nullptr;
 	bool m_bPointerOwnership = false;
-	span<Vector> m_rgvecOrigins = g_rgvecValidJetSpawn;
+	span<Vector> m_rgvecOrigins{ g_rgvecValidJetSpawn };
 }
 g_WaypointMgr = {};

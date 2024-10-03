@@ -8,11 +8,11 @@ module;
 #define NOMINMAX	// LUNA: first thing to do when using windows header. It makes 'Windows SDK for C++' compatiable with C++. Fuck Microsoft.
 #include <Windows.h>
 
+#include <stdio.h>
+
 export module FileSystem;
 
-export import <cstdio>;
-export import <filesystem>;
-export import <string_view>;
+export import std;
 
 export import Platform;
 

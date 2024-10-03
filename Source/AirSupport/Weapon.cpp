@@ -1,6 +1,6 @@
-﻿import <cassert>;
+﻿#include <cassert>
 
-import meta_api;
+import metamod_api;
 
 import Effects;
 import Jet;
@@ -200,8 +200,8 @@ void CRadio::ItemPostFrame() noexcept
 		[[maybe_unused]] TraceResult tr{}, tr2{};
 		auto const vecSrc = m_pPlayer->GetGunPosition();
 		auto const vecEnd = vecSrc + gpGlobals->v_forward * 4096.0;
-		g_engfuncs.pfnTraceLine(vecSrc, vecEnd, dont_ignore_monsters, m_pPlayer->edict(), &tr);
-		g_engfuncs.pfnTraceLine(m_pPlayer->pev->origin, m_pPlayer->pev->origin + Vector(0, 0, 4096), ignore_monsters, m_pPlayer->edict(), &tr2);
+		g_engfuncs.pfnTraceLine(vecSrc, vecEnd, dont_ignore_monsters | dont_ignore_glass, m_pPlayer->edict(), &tr);
+		g_engfuncs.pfnTraceLine(m_pPlayer->pev->origin, m_pPlayer->pev->origin + Vector(0, 0, 4096), ignore_monsters | ignore_glass, m_pPlayer->edict(), &tr2);
 
 		if (EHANDLE<CBaseEntity> aiming{ tr.pHit }; aiming && aiming->IsPlayer())
 		{
@@ -371,12 +371,12 @@ Task CRadio::Task_CallAnimation(bool bGotoHolster) noexcept
 Task CRadio::Task_CallSoundFx(bool bAccepted) noexcept
 {
 	m_bSoundSeqFinished = false;
-	g_engfuncs.pfnEmitSound(edict(), CHAN_AUTO, Sounds::NOISE, VOL_NORM, ATTN_STATIC, 0, UTIL_Random(92, 108));
+	g_engfuncs.pfnEmitSound(edict(), CHAN_AUTO, Sounds::NOISE, VOL_NORM, ATTN_STATIC, SND_FL_NONE, UTIL_Random(92, 108));
 
 	static constexpr float TIME_PRESS_TALK = 19.f / 45.f;
 	co_await TIME_PRESS_TALK;
 
-	g_engfuncs.pfnEmitSound(edict(), CHAN_AUTO, Sounds::REQUESTING, 0.75f, ATTN_STATIC, 0, UTIL_Random(92, 108));
+	g_engfuncs.pfnEmitSound(edict(), CHAN_AUTO, Sounds::REQUESTING, 0.75f, ATTN_STATIC, SND_FL_NONE, UTIL_Random(92, 108));
 
 	co_await (float)g_rgflSoundTime.at(Sounds::REQUESTING);
 
@@ -385,12 +385,12 @@ Task CRadio::Task_CallSoundFx(bool bAccepted) noexcept
 	{
 		auto const& iAirsupportType = g_rgiAirSupportSelected[m_pPlayer->entindex()];
 		szSFX = Sounds::ACCEPTING[iAirsupportType];
-		g_engfuncs.pfnEmitSound(edict(), CHAN_AUTO, szSFX.data(), 0.75f, ATTN_STATIC, 0, UTIL_Random(92, 108));
+		g_engfuncs.pfnEmitSound(edict(), CHAN_AUTO, szSFX.data(), 0.75f, ATTN_STATIC, SND_FL_NONE, UTIL_Random(92, 108));
 	}
 	else
 	{
 		szSFX = UTIL_GetRandomOne(Sounds::REJECTING);
-		g_engfuncs.pfnEmitSound(edict(), CHAN_AUTO, szSFX.data(), 0.75f, ATTN_STATIC, 0, UTIL_Random(92, 108));
+		g_engfuncs.pfnEmitSound(edict(), CHAN_AUTO, szSFX.data(), 0.75f, ATTN_STATIC, SND_FL_NONE, UTIL_Random(92, 108));
 
 		gmsgTextMsg::Send(m_pPlayer->edict(), 4, Localization::REJECT_COVERED_LOCATION);
 	}

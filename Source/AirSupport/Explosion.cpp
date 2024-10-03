@@ -1,19 +1,12 @@
-﻿import <cmath>;
-
-import <array>;
-import <bit>;
-import <numbers>;
-import <ranges>;
-import <vector>;
-
-import meta_api;
-import shake;
+﻿import std;
+import hlsdk;
 
 import UtlRandom;
 
 import Effects;
 import Hook;
 import Math;
+import Message;
 import Query;
 import Resources;
 import Task;
@@ -23,7 +16,7 @@ using std::array;
 using std::bit_cast;
 using std::vector;
 
-float GetAmountOfPlayerVisible(const Vector& vecSrc, CBaseEntity *pEntity) noexcept
+static float GetAmountOfPlayerVisible(const Vector& vecSrc, CBaseEntity *pEntity) noexcept
 {
 	float retval = 0.0f;
 	TraceResult tr{};
@@ -42,7 +35,7 @@ float GetAmountOfPlayerVisible(const Vector& vecSrc, CBaseEntity *pEntity) noexc
 	if (!pEntity->IsPlayer())
 	{
 		// the entity is not a player, so the damage is all or nothing.
-		g_engfuncs.pfnTraceLine(vecSrc, pEntity->Center(), ignore_monsters, nullptr, &tr);
+		g_engfuncs.pfnTraceLine(vecSrc, pEntity->Center(), ignore_monsters | ignore_glass, nullptr, &tr);
 
 		if (tr.flFraction == 1.0f)
 			retval = 1.0f;
@@ -52,14 +45,14 @@ float GetAmountOfPlayerVisible(const Vector& vecSrc, CBaseEntity *pEntity) noexc
 
 	// check chest
 	Vector vecChest = pEntity->pev->origin;
-	g_engfuncs.pfnTraceLine(vecSrc, vecChest, ignore_monsters, nullptr, &tr);
+	g_engfuncs.pfnTraceLine(vecSrc, vecChest, ignore_monsters | ignore_glass, nullptr, &tr);
 
 	if (tr.flFraction == 1.0f)
 		retval += damagePercentageChest;
 
 	// check top of head
 	Vector vecHead = pEntity->pev->origin + Vector(0, 0, topOfHead);
-	g_engfuncs.pfnTraceLine(vecSrc, vecHead, ignore_monsters, nullptr, &tr);
+	g_engfuncs.pfnTraceLine(vecSrc, vecHead, ignore_monsters | ignore_glass, nullptr, &tr);
 
 	if (tr.flFraction == 1.0f)
 		retval += damagePercentageHead;
@@ -68,7 +61,7 @@ float GetAmountOfPlayerVisible(const Vector& vecSrc, CBaseEntity *pEntity) noexc
 	Vector vecFeet = pEntity->pev->origin;
 	vecFeet.z -= (pEntity->pev->flags & FL_DUCKING) ? crouchFeet : standFeet;
 
-	g_engfuncs.pfnTraceLine(vecSrc, vecFeet, ignore_monsters, nullptr, &tr);
+	g_engfuncs.pfnTraceLine(vecSrc, vecFeet, ignore_monsters | ignore_glass, nullptr, &tr);
 
 	if (tr.flFraction == 1.0f)
 		retval += damagePercentageFeet;
@@ -80,13 +73,13 @@ float GetAmountOfPlayerVisible(const Vector& vecSrc, CBaseEntity *pEntity) noexc
 	Vector vecLeftSide = pEntity->pev->origin - Vector(perp.x, perp.y, 0);
 
 	// check right "edge"
-	g_engfuncs.pfnTraceLine(vecSrc, vecRightSide, ignore_monsters, nullptr, &tr);
+	g_engfuncs.pfnTraceLine(vecSrc, vecRightSide, ignore_monsters | ignore_glass, nullptr, &tr);
 
 	if (tr.flFraction == 1.0f)
 		retval += damagePercentageRightSide;
 
 	// check left "edge"
-	g_engfuncs.pfnTraceLine(vecSrc, vecLeftSide, ignore_monsters, nullptr, &tr);
+	g_engfuncs.pfnTraceLine(vecSrc, vecLeftSide, ignore_monsters | ignore_glass, nullptr, &tr);
 
 	if (tr.flFraction == 1.0f)
 		retval += damagePercentageLeftSide;
@@ -178,40 +171,40 @@ Task VisualEffects(const Vector vecOrigin, float const flRadius) noexcept	// The
 	WriteData(TE_SPRITE);
 	WriteData(Vector(vecOrigin.x, vecOrigin.y, vecOrigin.z + 200.0));
 	WriteData((short)Sprites::m_rgLibrary[Sprites::ROCKET_EXPLO]);
-	WriteData((byte)20);
-	WriteData((byte)100);
+	WriteData((uint8_t)20);
+	WriteData((uint8_t)100);
 	MsgEnd();
 
 	MsgBroadcast(SVC_TEMPENTITY);
 	WriteData(TE_SPRITE);
 	WriteData(Vector(vecOrigin.x, vecOrigin.y, vecOrigin.z + 70.0));
 	WriteData((short)Sprites::m_rgLibrary[Sprites::ROCKET_EXPLO2]);
-	WriteData((byte)30);
-	WriteData((byte)255);
+	WriteData((uint8_t)30);
+	WriteData((uint8_t)255);
 	MsgEnd();
 
 	MsgBroadcast(SVC_TEMPENTITY);
 	WriteData(TE_WORLDDECAL);
 	WriteData(vecOrigin);
-	WriteData((byte)UTIL_GetRandomOne(Decal::SCORCH).m_Index);
+	WriteData((uint8_t)UTIL_GetRandomOne(Decal::SCORCH).m_Index);
 	MsgEnd();
 
 	MsgBroadcast(SVC_TEMPENTITY);
 	WriteData(TE_DLIGHT);
 	WriteData(vecOrigin);
-	WriteData((byte)70);
-	WriteData((byte)255);
-	WriteData((byte)0);
-	WriteData((byte)0);
-	WriteData((byte)2);
-	WriteData((byte)0);
+	WriteData((uint8_t)70);
+	WriteData((uint8_t)255);
+	WriteData((uint8_t)0);
+	WriteData((uint8_t)0);
+	WriteData((uint8_t)2);
+	WriteData((uint8_t)0);
 	MsgEnd();
 
 	co_await gpGlobals->frametime;
 
 	TraceResult tr{};
-	g_engfuncs.pfnTraceLine(vecOrigin, Vector(vecOrigin.x, vecOrigin.y, 8192.f), ignore_monsters, nullptr, &tr);
-	g_engfuncs.pfnTraceLine(tr.vecEndPos, Vector(vecOrigin.x, vecOrigin.y, -8192.f), ignore_monsters, nullptr, &tr);
+	g_engfuncs.pfnTraceLine(vecOrigin, Vector(vecOrigin.x, vecOrigin.y, 8192.f), ignore_monsters | ignore_glass, nullptr, &tr);
+	g_engfuncs.pfnTraceLine(tr.vecEndPos, Vector(vecOrigin.x, vecOrigin.y, -8192.f), ignore_monsters | ignore_glass, nullptr, &tr);
 
 	for (int i = 0; i < 3; ++i)
 	{
@@ -295,9 +288,9 @@ TraceResult Impact(CBasePlayer *pAttacker, CBaseEntity *pProjectile, float flDam
 	g_engfuncs.pfnMakeVectors(Angles{ -pProjectile->pev->angles.pitch, pProjectile->pev->angles.yaw, pProjectile->pev->angles.roll });
 
 	TraceResult tr{};
-	g_engfuncs.pfnTraceLine(pProjectile->pev->origin, pProjectile->pev->origin + gpGlobals->v_forward * 32.f, dont_ignore_monsters, ent_cast<edict_t *>(pProjectile->pev), &tr);
+	g_engfuncs.pfnTraceLine(pProjectile->pev->origin, pProjectile->pev->origin + gpGlobals->v_forward * 32.f, dont_ignore_monsters | dont_ignore_glass, ent_cast<edict_t *>(pProjectile->pev), &tr);
 
-	if (pev_valid(tr.pHit) != 2)
+	if (pev_valid(tr.pHit) != EValidity::Full)
 		return tr;
 
 	CBaseEntity *pOther = (CBaseEntity *)tr.pHit->pvPrivateData;

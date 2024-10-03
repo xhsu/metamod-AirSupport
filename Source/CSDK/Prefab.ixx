@@ -1,14 +1,11 @@
+module;
+
+#include <cassert>
+
 export module Prefab;
 
-import <cassert>;
-import <cmath>;
-
-import <concepts>;
-import <functional>;
-import <list>;
-import <utility>;
-
-import util;
+import std;
+import hlsdk;
 
 export import CBase;
 export import Task;

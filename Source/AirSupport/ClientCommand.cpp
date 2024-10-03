@@ -39,7 +39,7 @@ META_RES OnClientCommand(CBasePlayer *pPlayer, const string &szCommand) noexcept
 		auto const vecEnd = vecSrc + gpGlobals->v_forward * 4096.f;
 
 		TraceResult tr{};
-		g_engfuncs.pfnTraceLine(vecSrc, vecEnd, ignore_monsters, pEdict, &tr);
+		g_engfuncs.pfnTraceLine(vecSrc, vecEnd, ignore_monsters | ignore_glass, pEdict, &tr);
 
 		g_engfuncs.pfnClientPrintf(pEdict, print_console, std::format("[AIMING AT]:\n\t{}\n\t{}\n\t{}\n", tr.vecEndPos.x, tr.vecEndPos.y, tr.vecEndPos.z).c_str());
 		return MRES_SUPERCEDE;

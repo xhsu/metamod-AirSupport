@@ -1,22 +1,14 @@
 module;
 
 #ifdef __INTELLISENSE__
-#include <experimental/generator>
 #include <ranges>
-#include <span>
 #endif
 
 export module Query;
 
-#ifndef __INTELLISENSE__
 export import <experimental/generator>;	// #UPDATE_AT_CPP23
-export import <ranges>;
-export import <span>;
-#endif
-
-export import eiface;
-export import progdefs;
-export import util;
+export import std;
+export import hlsdk;
 
 export import CBase;
 

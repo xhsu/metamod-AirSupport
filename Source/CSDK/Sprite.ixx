@@ -1,14 +1,20 @@
+module;
+
+#include <cstdio>
+#include <cstddef>
+
 export module Sprite;
 
-export import <cstdio>;
-
-export import <memory>;
-export import <vector>;
-
-export import const_;
+export import std;
+export import hlsdk;
 
 using std::unique_ptr;
 using std::vector;
+
+using std::int32_t;
+using std::uint8_t;
+using std::uint16_t;
+using std::uint32_t;
 
 export namespace GoldSrc
 {
@@ -86,9 +92,9 @@ export namespace GoldSrc
 			{
 				auto&& Color24 = pSprite->m_rgColorPalette.emplace_back();
 
-				fread(&Color24.r, sizeof(byte), 1, f);
-				fread(&Color24.g, sizeof(byte), 1, f);
-				fread(&Color24.b, sizeof(byte), 1, f);
+				fread(&Color24.r, sizeof(std::byte), 1, f);
+				fread(&Color24.g, sizeof(std::byte), 1, f);
+				fread(&Color24.b, sizeof(std::byte), 1, f);
 			}
 
 			for (decltype(pSprite->m_iNumOfFrames) i = 0; i < pSprite->m_iNumOfFrames; ++i)

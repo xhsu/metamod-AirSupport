@@ -1,20 +1,9 @@
 #include <cassert>
+#include <cstdio>
 
-import <cmath>;
-import <cstdint>;
-import <cstdio>;
+import std.compat;
 
-import <algorithm>;
-import <array>;
-import <filesystem>;
-import <format>;
-import <numbers>;
-import <span>;
-import <vector>;
-
-import eiface;
-import progdefs;
-import util;
+import hlsdk;
 
 import Task;
 import Waypoint;

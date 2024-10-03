@@ -1,7 +1,6 @@
 export module Ray;
 
-export import eiface;
-export import util;
+export import hlsdk;
 
 export struct trace_hull_functor_t final
 {
@@ -22,7 +21,7 @@ export struct trace_hull_functor_t final
 	inline edict_t *operator-> () const noexcept { return m_ent; }
 	inline edict_t &operator* () const noexcept { return *m_ent; }
 
-	inline void operator() (Vector const &vecSrc, Vector const &vecEnd, int const iIgnore, edict_t *const pEdict, TraceResult *ptr) const noexcept
+	inline void operator() (Vector const &vecSrc, Vector const &vecEnd, TRACE_FL const iIgnore, edict_t *const pEdict, TraceResult *ptr) const noexcept
 	{
 		g_engfuncs.pfnTraceMonsterHull(m_ent, vecSrc, vecEnd, iIgnore, pEdict, ptr);
 	}
@@ -44,7 +43,7 @@ export struct trace_arc_functor_t final
 	inline edict_t *operator-> () const noexcept { return m_ent; }
 	inline edict_t &operator* () const noexcept { return *m_ent; }
 
-	inline bool operator() (Vector const &vecSrc, Vector const &vecEnd, int const iIgnore, edict_t *const pEdict = nullptr) const noexcept
+	inline bool operator() (Vector const &vecSrc, Vector const &vecEnd, TRACE_FL const iIgnore, edict_t *const pEdict = nullptr) const noexcept
 	{
 		auto const vecDir = vecEnd.Make2D() - vecSrc.Make2D();
 		auto const H = vecSrc.z - vecEnd.z;

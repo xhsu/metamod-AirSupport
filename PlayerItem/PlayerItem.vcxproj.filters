@@ -321,5 +321,8 @@
     <ClCompile Include="..\..\metamod-p\hlsdk\engine\sizebuf.ixx">
       <Filter>HLSDK\engine</Filter>
     </ClCompile>
+    <ClCompile Include="Weapons.Pistol.ixx">
+      <Filter>Source</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

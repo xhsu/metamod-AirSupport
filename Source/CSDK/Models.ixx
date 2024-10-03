@@ -1,37 +1,15 @@
 module;
 
-#ifdef __INTELLISENSE__
-#include <cstdio>
+#include <stdio.h>
 
+#ifdef __INTELLISENSE__
 #include <algorithm>
-#include <filesystem>
-#include <format>
-#include <map>
-#include <ranges>
-#include <span>
-#include <string_view>
-#include <string>
-#include <vector>
 #endif
 
 export module Models;
 
-#ifndef __INTELLISENSE__
-export import <cstdio>;
-
-export import <algorithm>;
-export import <filesystem>;
-export import <format>;
-export import <map>;
-export import <ranges>;
-export import <span>;
-export import <string_view>;
-export import <string>;
-export import <vector>;
-#endif // !__INTELLISENSE__
-
-// HLSDK
-export import studio;
+export import std;
+export import hlsdk;
 
 export import FileSystem;
 export import Platform;

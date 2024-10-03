@@ -6,15 +6,14 @@ module;
 
 export module ConditionZero;
 
-export import <span>;
-
-export import event_flags;
+export import std;
+export import hlsdk;
 
 export import CBase;
 export import GameRules;	// only used in CBase extensions.
-export import Message;	// only used in CBase extensions.
+export import Message;		// only used in CBase extensions.
 export import Platform;
-export import Uranus;	// runtime hook compatibility
+export import Uranus;		// runtime hook compatibility
 
 import UtlHook;
 import UtlRandom;
@@ -143,7 +142,7 @@ void CBasePlayerItem::DefaultTouch(CBaseEntity* pOther) noexcept
 	if (pOther->AddPlayerItem(this))
 	{
 		AttachToPlayer(pPlayer);
-		g_engfuncs.pfnEmitSound(pPlayer->edict(), CHAN_ITEM, "items/gunpickup2.wav", VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
+		g_engfuncs.pfnEmitSound(pPlayer->edict(), CHAN_ITEM, "items/gunpickup2.wav", VOL_NORM, ATTN_NORM, SND_FL_NONE, PITCH_NORM);
 	}
 
 	SUB_UseTargets(pOther, USE_TOGGLE, 0);
@@ -157,9 +156,9 @@ void CBasePlayerItem::FallThink(void) noexcept
 	{
 		// clatter if we have an owner (i.e., dropped by someone)
 		// don't clatter if the gun is waiting to respawn (if it's waiting, it is invisible!)
-		if (pev_valid(pev->owner) != 2)
+		if (pev_valid(pev->owner) != EValidity::Full)
 		{
-			g_engfuncs.pfnEmitSound(edict(), CHAN_VOICE, "items/weapondrop1.wav", VOL_NORM, ATTN_NORM, 0, UTIL_Random(0, 29) + 95);
+			g_engfuncs.pfnEmitSound(edict(), CHAN_VOICE, "items/weapondrop1.wav", VOL_NORM, ATTN_NORM, SND_FL_NONE, UTIL_Random(0, 29) + 95);
 		}
 
 		// lie flat
@@ -177,7 +176,7 @@ void CBasePlayerItem::Materialize() noexcept
 		// changing from invisible state to visible.
 		if (g_pGameRules->IsMultiplayer())
 		{
-			g_engfuncs.pfnEmitSound(edict(), CHAN_WEAPON, "items/suitchargeok1.wav", VOL_NORM, ATTN_NORM, 0, 150);
+			g_engfuncs.pfnEmitSound(edict(), CHAN_WEAPON, "items/suitchargeok1.wav", VOL_NORM, ATTN_NORM, SND_FL_NONE, 150);
 		}
 
 		pev->effects &= ~EF_NODRAW;
@@ -344,7 +343,7 @@ qboolean CBasePlayerWeapon::AddPrimaryAmmo(int iCount, const char* szName, int i
 		{
 			// play the "got ammo" sound only if we gave some ammo to a player that already had this gun.
 			// if the player is just getting this gun for the first time, DefaultTouch will play the "picked up gun" sound for us.
-			g_engfuncs.pfnEmitSound(edict(), CHAN_ITEM, "items/9mmclip1.wav", VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
+			g_engfuncs.pfnEmitSound(edict(), CHAN_ITEM, "items/9mmclip1.wav", VOL_NORM, ATTN_NORM, SND_FL_NONE, PITCH_NORM);
 		}
 	}
 
@@ -358,7 +357,7 @@ qboolean CBasePlayerWeapon::AddSecondaryAmmo(int iCount, const char* szName, int
 	if (iIdAmmo > 0)
 	{
 		m_iSecondaryAmmoType = iIdAmmo;
-		g_engfuncs.pfnEmitSound(edict(), CHAN_ITEM, "items/9mmclip1.wav", VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
+		g_engfuncs.pfnEmitSound(edict(), CHAN_ITEM, "items/9mmclip1.wav", VOL_NORM, ATTN_NORM, SND_FL_NONE, PITCH_NORM);
 	}
 
 	return iIdAmmo > 0 ? true : false;

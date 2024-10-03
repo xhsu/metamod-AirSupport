@@ -28,7 +28,7 @@ namespace Gas
 		if (auto const iIndex = pPlayer->entindex(); rgflTimeNextCough[iIndex] < gpGlobals->time)
 		{
 			rgflTimeNextCough[iIndex] = gpGlobals->time + UTIL_Random(3.f, 3.5f);
-			g_engfuncs.pfnEmitSound(pPlayer->edict(), CHAN_AUTO, UTIL_GetRandomOne(Sounds::PLAYER_COUGH), VOL_NORM, ATTN_STATIC, 0, UTIL_Random(92, 116));
+			g_engfuncs.pfnEmitSound(pPlayer->edict(), CHAN_AUTO, UTIL_GetRandomOne(Sounds::PLAYER_COUGH), VOL_NORM, ATTN_STATIC, SND_FL_NONE, UTIL_Random(92, 116));
 			return true;
 		}
 
@@ -105,20 +105,20 @@ namespace Burning
 			WriteData(TE_SPRITE);
 			WriteData(vecNoise);
 			WriteData(Sprites::m_rgLibrary[Sprites::FLAME_ON_PLAYER]);
-			WriteData((byte)UTIL_Random(8, 10));
-			WriteData((byte)100);
+			WriteData((uint8_t)UTIL_Random(8, 10));
+			WriteData((uint8_t)100);
 			MsgEnd();
 
 			MsgPVS(SVC_TEMPENTITY, pPlayer->pev->origin);
 			WriteData(TE_DLIGHT);
 			WriteData(vecNoise);	// pos
-			WriteData((byte)UTIL_Random(12, 14));	// rad in 10's
-			WriteData((byte)UTIL_Random(0xC3, 0xCD));	// r
-			WriteData((byte)UTIL_Random(0x3E, 0x46));	// g
-			WriteData((byte)UTIL_Random(0x05, 0x10));	// b
-			WriteData((byte)2);	// brightness
-			WriteData((byte)0);	// life in 10's
-			WriteData((byte)1);	// decay in 10's
+			WriteData((uint8_t)UTIL_Random(12, 14));	// rad in 10's
+			WriteData((uint8_t)UTIL_Random(0xC3, 0xCD));	// r
+			WriteData((uint8_t)UTIL_Random(0x3E, 0x46));	// g
+			WriteData((uint8_t)UTIL_Random(0x05, 0x10));	// b
+			WriteData((uint8_t)2);	// brightness
+			WriteData((uint8_t)0);	// life in 10's
+			WriteData((uint8_t)1);	// decay in 10's
 			MsgEnd();
 		}
 	}

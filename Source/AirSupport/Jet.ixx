@@ -1,5 +1,7 @@
 export module Jet;
 
+export import Prefab;
+
 export import Menu;
 export import Target;
 

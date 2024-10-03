@@ -1,7 +1,6 @@
 export module VTFH;
 
-export import eiface;
-export import util;
+export import hlsdk;
 
 export import CBase;
 export import Platform;

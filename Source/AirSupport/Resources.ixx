@@ -1,27 +1,17 @@
 module;
 
-#ifdef __INTELLISENSE__
-#include <array>
-#include <string_view>
-#include <unordered_map>
-#endif
-
 //#define CONSERVE_SFX_RES_SLOT
 
 export module Resources;
 
-#ifndef __INTELLISENSE__
-export import <array>;
-export import <string_view>;
-export import <unordered_map>;
-#endif
+export import std;
 
 #ifdef PACKING_RESOURCES
 export import Transpiler;
 #elif defined CREATING_ENFORCING_TABLE
 export import Enforcer;
 #else
-export import util;
+export import hlsdk;
 export import :Const;
 #endif
 
