@@ -1,12 +1,18 @@
 #include <cassert>
 
+#ifdef __INTELLISENSE__
+#include <ranges>
+#endif
+
 import std;
+import hlsdk;
 
 import Beam;
 import Effects;
 import Jet;
 import Localization;
 import Math;
+import Message;
 import Projectile;
 import Query;
 import Ray;
@@ -928,12 +934,136 @@ Task CDynamicTarget::Task_Remove() noexcept
 	}
 }
 
+Task CDynamicTarget::Task_Miniature_AirStrike() noexcept
+{
+	// Purpose: The exhaust smoke effect in miniature.
+	// Should be index 1-3, as 0 is the flame.
+
+	for (;;)
+	{
+		for (int i = 3; i > 0; --i)
+		{
+			auto& pExhaust = m_rgpVisualFxSpr[i];
+
+			pExhaust = CSpriteDisplay::Create(pev->origin, kRenderTransAdd, Sprites::ROCKET_TRAIL_SMOKE[0]);
+			pExhaust->pev->renderamt = 220;
+			pExhaust->pev->rendercolor = Vector(255, 255, UTIL_Random(192, 255));
+			pExhaust->pev->frame = (float)UTIL_Random(17, 22);
+			pExhaust->pev->scale = 0.25f * i;	// the up-most one should be largest one.
+			pExhaust->m_Scheduler.Enroll(Task_SpriteOnBone(pExhaust->pev, this, FX_BONES_IDX[AIR_STRIKE][i], g_vecZero, 0, 0, 3.f, false), TASK_ANIMATION);
+			pExhaust->m_Scheduler.Enroll(Task_FadeOut(pExhaust->pev, /*STAY*/ 0, /*DECAY*/ 0.75f, /*ROLL*/ 0, /*SCALE_INC*/ 1.f), TASK_ANIMATION);
+
+			co_await 0.5f;
+		}
+
+		// Wait until the existing SPR dies out.
+		while (m_rgpVisualFxSpr[1] || m_rgpVisualFxSpr[2] || m_rgpVisualFxSpr[3])
+			co_await 0.5f;
+	}
+
+	co_return;
+}
+
+Task CDynamicTarget::Task_Miniature_ClusterBomb(std::string_view SPRITE, double const FPS, bool const REMOVE_ON_FRZ, Vector const vecOfs) noexcept
+{
+	// Purpose: detonate the 'balls' in cluster bomb.
+
+	auto const& iType = g_rgiAirSupportSelected[m_pPlayer->entindex()];
+	auto const iFrameCount = g_rgiSpriteFrameCount.at(SPRITE);
+
+	for (;;)
+	{
+		for (auto&& [pBlast, iBone] : std::views::zip(m_rgpVisualFxSpr, FX_BONES_IDX[iType]))
+		{
+			pBlast = CSpriteDisplay::Create(pev->origin, kRenderTransAdd, SPRITE);
+			pBlast->pev->renderamt = 0x80;
+			pBlast->pev->rendercolor = Vector(255, 255, 255);
+			pBlast->pev->scale = 0.35f;
+			pBlast->m_Scheduler.Enroll(Task_SpriteOnBone(pBlast->pev, this, iBone, vecOfs, 0, 0, 3.f, false), TASK_ANIMATION);
+			pBlast->m_Scheduler.Enroll(Task_SpritePlayOnce(pBlast->pev, iFrameCount, FPS), TASK_ANIMATION);
+
+			co_await 0.12f;
+		}
+
+		co_await float(iFrameCount / FPS);
+
+		if (REMOVE_ON_FRZ && m_bFreezed)
+			co_return;
+	}
+
+	co_return;
+}
+
+Task CDynamicTarget::Task_Miniature_Gunship() noexcept
+{
+	// Purpose: shoot some trace...
+	// The first one is source, the rest are dests.
+
+	auto const iSrc = FX_BONES_IDX[GUNSHIP_STRIKE][0];
+	std::span iDests{ FX_BONES_IDX[GUNSHIP_STRIKE] | std::views::drop(1) };
+	TraceResult tr{};
+
+	for (;;)
+	{
+		for (auto&& iDest : iDests)
+		{
+			auto pMuzzle = CSpriteDisplay::Create(pev->origin, kRenderTransAdd, Sprites::AIRBURST);
+			pMuzzle->pev->renderamt = 220;
+			pMuzzle->pev->rendercolor = Vector(255, 255, UTIL_Random(192, 255));
+			pMuzzle->pev->frame = (float)UTIL_Random(0, 2);
+			pMuzzle->pev->scale = 0.2f;
+			pMuzzle->m_Scheduler.Enroll(Task_SpriteOnBone(pMuzzle->pev, this, iSrc, g_vecZero, 0, 0, 3.f, false), TASK_ANIMATION);
+			pMuzzle->m_Scheduler.Enroll(Task_FadeOut(pMuzzle->pev, /*STAY*/ 0, /*DECAY*/ 20.f, /*ROLL*/ 0, /*SCALE_INC*/ 1.f), TASK_ANIMATION);
+
+			auto const vecSrc = UTIL_GetBonePosition(edict(), iSrc);
+			auto const vecDest = UTIL_GetBonePosition(edict(), iDest);
+
+			tr.vecEndPos = (vecDest - vecSrc).Normalize();	// just q quick borrow.
+			g_engfuncs.pfnTraceLine(vecSrc, vecSrc + tr.vecEndPos * 300.f, dont_ignore_monsters | dont_ignore_glass, edict(), &tr);
+
+			MsgSend(m_pPlayer->pev, SVC_TEMPENTITY);	// demo is only visible to oneself.
+			WriteData(TE_TRACER);
+			WriteData(vecSrc);
+			WriteData(tr.vecEndPos);
+			MsgEnd();
+
+			co_await 0.1f;
+		}
+	}
+
+	co_return;
+}
+
+Task CDynamicTarget::Task_Miniature_Phosphorus() noexcept
+{
+	for (;;)
+	{
+		for (auto&& iBone : FX_BONES_IDX[PHOSPHORUS_MUNITION])
+		{
+			if (UTIL_Random())
+			{
+				auto const vecPos =
+					UTIL_GetBonePosition(edict(), iBone);
+
+				MsgSend(m_pPlayer->pev, SVC_TEMPENTITY);	// demo is only visible to oneself.
+				WriteData(TE_SPARKS);
+				WriteData(vecPos);
+				MsgEnd();
+			}
+
+			co_await UTIL_Random(0.1f, 0.2f);
+		}
+	}
+
+	co_return;
+}
+
 void CDynamicTarget::UpdateEvalMethod() noexcept
 {
 	m_Scheduler.Delist(TASK_QUICK_ANALYZE | TASK_DEEP_ANALYZE);
 
 	DisableBeacons();
-	DisableFireSphere();
+	UpdateVisualDemo();
 
 	auto const &iType = g_rgiAirSupportSelected[m_pPlayer->entindex()];
 
@@ -970,7 +1100,6 @@ void CDynamicTarget::UpdateEvalMethod() noexcept
 	case PHOSPHORUS_MUNITION:
 		g_engfuncs.pfnSetSize(edict(), Vector(-32, -32, 0), Vector(32, 32, 72));
 		m_Scheduler.Enroll(Task_QuickEval_Phosphorus(), TASK_QUICK_ANALYZE);
-		EnableFireSphere();
 		break;
 	}
 }
@@ -1006,37 +1135,100 @@ void CDynamicTarget::DisableBeacons() noexcept
 			pBeacon->pev->flags |= FL_KILLME;
 }
 
-void CDynamicTarget::EnableFireSphere() noexcept
+void CDynamicTarget::UpdateVisualDemo() noexcept
 {
-	Vector vecOrigin{};
-	Angles vecAngles{};
-	int idx{};
-
-	for (auto &&pSphere : m_rgpAttachedSpr)
+	// Clear old vfx demos.
+	for (auto&& pSprite : m_rgpVisualFxSpr)
 	{
-		assert(!pSphere);
-
-		g_engfuncs.pfnGetAttachment(edict(), idx, vecOrigin, vecAngles);
-
-		pSphere = CSpriteDisplay::Create(vecOrigin, kRenderTransAdd, Sprites::FLAME[1]);	// flame2.spr is smaller thus fits better.
-		pSphere->pev->renderamt = 0;
-		pSphere->pev->scale = 0.2f;
-		pSphere->m_Scheduler.Enroll(Task_SpriteOnAttachment_NotOwned(pSphere->pev, this, idx, { -8, 0, 0 }, 2.f, 220.f, 3.f), TASK_ANIMATION);
-		pSphere->m_Scheduler.Enroll(Task_SpriteEnterLoopOut(pSphere->pev, this, 3, 20, 24, 24), TASK_ANIMATION);
-
-		++idx;
+		if (pSprite)
+			pSprite->pev->flags |= FL_KILLME;
+		else
+			break;	// it's safe to assume the following part are also unused.
 	}
-}
 
-void CDynamicTarget::DisableFireSphere() noexcept
-{
-	for (auto &&pSphere : m_rgpAttachedSpr)
-		if (pSphere) [[likely]]
-			pSphere->pev->flags |= FL_KILLME;
+	// Clear old miniature coros
+	m_Scheduler.Delist(TASK_MINIATURE);
+
+	auto const& iType = g_rgiAirSupportSelected[m_pPlayer->entindex()];
+
+	switch (iType)
+	{
+	case AIR_STRIKE:
+	{
+		auto& pExhaustFlame = m_rgpVisualFxSpr[0];
+		pExhaustFlame = CSpriteDisplay::Create(pev->origin, kRenderTransAdd, Sprites::ROCKET_EXHAUST_FLAME);
+		pExhaustFlame->pev->renderamt = 0;
+		pExhaustFlame->pev->scale = 0.35f;
+		pExhaustFlame->m_Scheduler.Enroll(Task_SpriteOnBone(pExhaustFlame->pev, this, FX_BONES_IDX[AIR_STRIKE][0], g_vecZero, 2.f, 220.f, 3.f, true), TASK_ANIMATION);
+
+		// The rest 3 should be... exhaust cloud?
+		m_Scheduler.Enroll(Task_Miniature_AirStrike(), TASK_MINIATURE, true);
+
+		break;
+	}
+
+	case CLUSTER_BOMB:
+		// All 13 would be explo point.
+		m_Scheduler.Enroll(Task_Miniature_ClusterBomb(Sprites::MINOR_EXPLO, 20), TASK_MINIATURE, true);
+		break;
+
+	case CARPET_BOMBARDMENT:
+		// All 8 would be explo point.
+		m_Scheduler.Enroll(Task_Miniature_ClusterBomb(Sprites::CARPET_FRAGMENT_EXPLO, 12, true, { -8, 0, 0 }), TASK_MINIATURE, true);
+		break;
+
+	case GUNSHIP_STRIKE:
+		// The first one is muzzle, the rests are dests.
+		m_Scheduler.Enroll(Task_Miniature_Gunship(), TASK_MINIATURE, true);
+		break;
+
+	case FUEL_AIR_BOMB:
+	{
+		static auto const FRAME_COUNT = g_rgiSpriteFrameCount.at(Sprites::LIFTED_DUST);
+
+		// the poison cloud fades in and out nearby.
+		for (auto&& [pCloud, iBone] : std::views::zip(m_rgpVisualFxSpr, FX_BONES_IDX[FUEL_AIR_BOMB]))
+		{
+			pCloud = CSpriteDisplay::Create(pev->origin, kRenderTransAdd, Sprites::LIFTED_DUST);
+			pCloud->pev->scale = UTIL_Random(0.4f, 0.8f);
+			pCloud->pev->frame = (float)UTIL_Random(0, FRAME_COUNT - 1);
+			pCloud->m_Scheduler.Enroll(Task_SpriteOnBone(pCloud->pev, this, iBone, { -32, 0, 0 }, 0, 0, 3.f, false), TASK_ANIMATION);
+			pCloud->m_Scheduler.Enroll(Task_SineOpaque(pCloud->pev, this, UTIL_Random(0.4f, 0.8f), UTIL_Random(0.f, 3.14f), 0.f, 220.f, 3.f), TASK_ANIMATION);
+		}
+		break;
+	}
+
+	case PHOSPHORUS_MUNITION:
+
+		// Fire burning on the sphere with occational spark.
+		for (auto&& [pSphere, iBone] : std::views::zip(m_rgpVisualFxSpr, FX_BONES_IDX[PHOSPHORUS_MUNITION]))
+		{
+			pSphere = CSpriteDisplay::Create(pev->origin, kRenderTransAdd, Sprites::FLAME[1]);	// flame2.spr is smaller thus fits better.
+			pSphere->pev->renderamt = 0;
+			pSphere->pev->scale = 0.2f;
+			pSphere->m_Scheduler.Enroll(Task_SpriteOnBone(pSphere->pev, this, iBone, { -8, 0, 0 }, 2.f, 220.f, 3.f, false), TASK_ANIMATION);
+			pSphere->m_Scheduler.Enroll(Task_SpriteEnterLoopOut(pSphere->pev, this, 3, 20, 24, 24), TASK_ANIMATION);
+		}
+
+		// Sparks
+		m_Scheduler.Enroll(Task_Miniature_Phosphorus(), TASK_MINIATURE, true);
+
+		break;
+
+	default:
+		break;
+	}
 }
 
 void CDynamicTarget::Spawn() noexcept
 {
+#ifdef _DEBUG
+	// Normally it should be enought, as the largest should be cluster, which is 13.
+	static auto const MAX_BONE_COUNT =
+		std::ranges::max_element(FX_BONES_IDX, {}, &std::ranges::range_value_t<decltype(FX_BONES_IDX)>::size);
+	assert(MAX_BONE_COUNT->size() <= m_rgpVisualFxSpr.size());
+#endif
+
 	g_engfuncs.pfnSetOrigin(edict(), m_pPlayer->pev->origin);
 	g_engfuncs.pfnSetModel(edict(), Models::TARGET);
 	g_engfuncs.pfnSetSize(edict(), Vector::Zero(), Vector::Zero());

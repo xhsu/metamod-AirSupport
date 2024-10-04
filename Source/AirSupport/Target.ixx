@@ -33,11 +33,17 @@ export struct CDynamicTarget : public Prefab_t
 	Task Task_QuickEval_Phosphorus() noexcept;
 	Task Task_Remove() noexcept;
 
+	Task Task_Miniature_AirStrike() noexcept;
+	Task Task_Miniature_ClusterBomb(std::string_view SPRITE, double const FPS, bool const REMOVE_ON_FRZ = false, Vector const vecOfs = g_vecZero) noexcept;
+	//Task Task_Miniature_CarpetBombardment() noexcept;
+	Task Task_Miniature_Gunship() noexcept;
+	//Task Task_Miniature_Thermobaric() noexcept;
+	Task Task_Miniature_Phosphorus() noexcept;	// Spark only
+
 	void UpdateEvalMethod() noexcept;
 	void EnableBeacons() noexcept;
 	void DisableBeacons() noexcept;
-	void EnableFireSphere() noexcept;
-	void DisableFireSphere() noexcept;
+	void UpdateVisualDemo() noexcept;
 
 	void Spawn() noexcept override;
 	static CDynamicTarget *Create(CBasePlayer *pPlayer, CPrefabWeapon *pRadio) noexcept;
@@ -47,13 +53,13 @@ export struct CDynamicTarget : public Prefab_t
 	EHANDLE<CPrefabWeapon> m_pRadio{ nullptr };
 	CBasePlayer *m_pPlayer{};
 	Vector m_vecNormRotatingTo{};	// the endpos of current slerp, use it when converting to fixed target.
-	std::array<EHANDLE<CSpriteDisplay>, 4> m_rgpAttachedSpr{};	// 4 == maxium attachment count on vanilla GoldSrc.
+	std::array<EHANDLE<CSpriteDisplay>, 16> m_rgpVisualFxSpr{};	// it should be enough normally speaking.
 	std::array<EHANDLE<CBeam>, BEACON_COUNT> m_rgpBeacons{};
 	std::array<BodyEnumInfo_t, 4> m_rgBodyInfo{ {{0, 1}, {0, 7}, {0, 2}, {0, 2}} };
 	int &m_iAirSupportTypeModel{ m_rgBodyInfo[1].m_index };
 	qboolean &m_bShowArror{ m_rgBodyInfo[2].m_index };
-	Quaternion m_qAngles{};	// instead of pev->angles
 	bool m_bFreezed{};	// Use enable/disable beacons instead. Indicator of carpet bombardment direction.
+	//Quaternion m_qAngles{};	// instead of pev->angles UNUSED
 };
 
 export struct CFixedTarget : public Prefab_t

@@ -282,6 +282,40 @@ Task Task_SpriteOnAttachment_NotOwned(entvars_t *const pev, EHANDLE<CBaseEntity>
 	co_return;
 }
 
+Task Task_SpriteOnBone(entvars_t *const pev, EHANDLE<CBaseEntity> pAttachTo, uint16_t const BONE, Vector const vecOfs, float const INC, float const PEAK, float const DECAY, bool const OWNED) noexcept
+{
+	Vector vecBoneOrigin{}, vecTransformedOfs{};
+	auto const me = ent_cast<edict_t *>(pev);
+
+	for (; pAttachTo;)	// Must be a post-awaiting. Otherwise the validity of entity is subject to change after the check.
+	{
+		auto&& [f, r, u] = pAttachTo->pev->angles.AngleVectors();
+		vecTransformedOfs = vecOfs.x * f + vecOfs.y * r + vecOfs.z * u;
+		vecBoneOrigin = UTIL_GetBonePosition(pAttachTo.Get(), BONE);	// LUNA: DO NOT use the engine version, it's buggy.
+
+		g_engfuncs.pfnSetOrigin(me, vecBoneOrigin + vecTransformedOfs);
+
+		if (pev->renderamt < PEAK)
+			pev->renderamt = std::min(pev->renderamt + INC, PEAK);
+
+		co_await TaskScheduler::NextFrame::Rank[0];
+	}
+
+	for (; pev->renderamt > 0; pev->renderamt -= DECAY)
+	{
+		co_await TaskScheduler::NextFrame::Rank[0];
+	}
+
+	// In case we over-subtracted.
+	pev->renderamt = 0;
+
+	// Don't remove it unless we own it!
+	if (OWNED)
+		pev->flags |= FL_KILLME;
+
+	co_return;
+}
+
 Task Task_SpriteEnterLoopOut(entvars_t *const pev, EHANDLE<CBaseEntity> pExistanceRelyOn, uint16_t const LOOP_START_POS, uint16_t const LOOP_END_POS_EXC, uint16_t const FRAME_COUNT, float const FPS) noexcept
 {
 	uint16_t iFrame = 0;
@@ -320,6 +354,27 @@ Task Task_SpriteEnterLoopOut(entvars_t *const pev, EHANDLE<CBaseEntity> pExistan
 	}
 
 	pev->flags |= FL_KILLME;
+}
+
+Task Task_SineOpaque(entvars_t* pev, EHANDLE<CBaseEntity> pExistanceRelyOn, double OMEGA, double PHI, float LOWER_BOUND, float UPPER_BOUND, float DECAY) noexcept
+{
+	auto const RANGE = UPPER_BOUND - LOWER_BOUND;
+
+	for (; pExistanceRelyOn;)
+	{
+		auto const flPercentage = (std::sin(OMEGA * gpGlobals->time + PHI) + 1.0) / 2.0;
+		pev->renderamt = float(LOWER_BOUND + RANGE * flPercentage);
+
+		co_await TaskScheduler::NextFrame::Rank[5];
+	}
+
+	for (; pev->renderamt > 0; pev->renderamt -= DECAY)
+	{
+		co_await TaskScheduler::NextFrame::Rank[0];
+	}
+
+	pev->flags |= FL_KILLME;
+	co_return;
 }
 
 //

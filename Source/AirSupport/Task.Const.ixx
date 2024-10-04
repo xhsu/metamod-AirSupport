@@ -19,6 +19,7 @@ export enum ETaskFlags : std::uint64_t
 	TASK_TIME_OUT = (1 << 11),
 	TASK_ACTION = (1 << 12),
 	TASK_ANGLE_INTERPOL = (1 << 13),
+	TASK_MINIATURE = (1 << 14),
 
 	TASK_RADIO_DEPLOY = (1 << 16),
 	TASK_RADIO_REJECTED = (1 << 17),

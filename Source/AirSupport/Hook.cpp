@@ -555,6 +555,7 @@ qboolean fw_AddToFullPack(entity_state_t *pState, int iEntIndex, edict_t *pEdict
 	else if (bIsPlayer) [[unlikely]]
 	{
 		// White phosphorus munitions will burn into your bone.
+		// #FIXME this one should be put into post. It's won't work here.
 
 		if (uint64_t const iPlayerTaskId = TASK_ENTITY_ON_FIRE | (1ull << uint64_t(iEntIndex + 32ull)); TaskScheduler::Exist(iPlayerTaskId, false))
 		{

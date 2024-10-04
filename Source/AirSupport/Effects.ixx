@@ -33,7 +33,9 @@ export extern "C++" Task Task_Remove(entvars_t *const pev, float const TIME) noe
 export extern "C++" Task Task_FadeIn(entvars_t *const pev, float const TRANSPARENT_INC, float const FINAL_VAL, float const ROLL) noexcept;
 export extern "C++" Task Task_Fade(entvars_t *const pev, float const INC, float const DEC, float const PEAK, float const ROLL) noexcept;
 export extern "C++" Task Task_SpriteOnAttachment_NotOwned(entvars_t *const pev, EHANDLE<CBaseEntity> pEnt, uint16_t const ATTACHMENT, Vector const vecOfs, float const INC, float const PEAK, float const DECAY) noexcept;
+export extern "C++" Task Task_SpriteOnBone(entvars_t *const pev, EHANDLE<CBaseEntity> pEnt, uint16_t const BONE, Vector const vecOfs, float const INC, float const PEAK, float const DECAY, bool const OWNED) noexcept;
 export extern "C++" Task Task_SpriteEnterLoopOut(entvars_t *const pev, EHANDLE<CBaseEntity> pEnt, uint16_t const LOOP_START_POS, uint16_t const LOOP_END_POS_EXC, uint16_t const FRAME_COUNT, float const FPS) noexcept;
+export extern "C++" Task Task_SineOpaque(entvars_t* pev, EHANDLE<CBaseEntity> pExistanceRelyOn, double OMEGA, double PHI, float LOWER_BOUND, float UPPER_BOUND, float DECAY) noexcept;
 
 export struct CFlame : public Prefab_t
 {

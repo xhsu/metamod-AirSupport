@@ -1,5 +1,6 @@
 export module Ray;
 
+export import std;
 export import hlsdk;
 
 export struct trace_hull_functor_t final
