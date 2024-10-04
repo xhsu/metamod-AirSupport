@@ -214,6 +214,9 @@
     <ClCompile Include="..\metamod-p\hlsdk\engine\hlsdk.decompiled.ixx">
       <Filter>HLSDK</Filter>
     </ClCompile>
+    <ClCompile Include="Source\AirSupport\WinAPI.ixx">
+      <Filter>Source\AirSupport</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\metamod-p\metamod\metamod_api.hpp">

@@ -1,4 +1,7 @@
-﻿import Jet;
+﻿import std;
+import hlsdk;
+
+import Jet;
 import Menu;
 import Message;
 import Projectile;

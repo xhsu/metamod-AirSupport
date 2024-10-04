@@ -1,6 +1,4 @@
-import <format>;
-import <string>;
-import <filesystem>;
+import std;
 
 import CBase;
 import Hook;

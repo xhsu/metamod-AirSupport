@@ -1,6 +1,4 @@
-import <array>;
-import <memory>;
-import <string_view>;
+import std;
 
 import DamageOverTime;
 import Hook;

@@ -23,6 +23,7 @@ import Task.Const;
 import Task;
 import Uranus;
 import Weapon;
+import WinAPI;
 
 namespace fs = ::std::filesystem;
 
@@ -225,6 +226,9 @@ static void LoadConfiguration() noexcept
 
 void fw_GameInit_Post(void) noexcept
 {
+	// This is something that will be call only once after DLL loaded
+	// It will never call again, as DLL never gets unloaded in this game.
+
 	gpMetaGlobals->mres = MRES_IGNORED;
 	// post event
 
@@ -564,16 +568,21 @@ qboolean fw_AddToFullPack(entity_state_t *pState, int iEntIndex, edict_t *pEdict
 	return true;
 }
 
-void fw_OnFreeEntPrivateData(edict_t *pEdict) noexcept
+static void fw_OnFreeEntPrivateData(edict_t *pEdict) noexcept
 {
 	gpMetaGlobals->mres = MRES_IGNORED;
+
+	if (gpMetaGlobals->prev_mres == MRES_SUPERCEDE)	// It had been handled by other similar plugins.
+		return;
+
+	auto const vft = *(decltype(gSelfModuleBase)*)pEdict->pvPrivateData;
+	// Is the RTTI store in my module?
+	if (vft < gSelfModuleBase || vft > (gSelfModuleBase + gSelfModuleSize))
+		return;
 
 	[[likely]]
 	if (auto const pEntity = (CBaseEntity *)pEdict->pvPrivateData; pEntity != nullptr)
 	{
-		if (gpMetaGlobals->prev_mres == MRES_SUPERCEDE)	// It had been handled by other similar plugins.
-			return;
-
 		if (auto const pPrefab = dynamic_cast<Prefab_t *>(pEntity); pPrefab != nullptr) [[unlikely]]
 		{
 			std::destroy_at(pPrefab);	// Thanks to C++17 we can finally patch up this old game.

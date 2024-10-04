@@ -1,6 +1,8 @@
-import Message;
+import std;
+import hlsdk;
 
 import Menu;
+import Message;
 import Target;
 import Weapon;
 

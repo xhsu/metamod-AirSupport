@@ -85,7 +85,7 @@ export namespace Engine
 		BUILD_NUMBER = m_pfnBuildNumber();
 	}
 
-	constexpr auto LocalBuildNumber(std::string_view COMPILE_DATE = __DATE__, int32_t bias = 0) noexcept
+	constexpr int32_t LocalBuildNumber(std::string_view COMPILE_DATE = __DATE__, int32_t bias = 0) noexcept
 	{
 		constexpr std::string_view mon[12] =
 		{ "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
@@ -109,7 +109,7 @@ export namespace Engine
 			// hence the averaged 0.25 wont affect the accurate value.
 			// Gregorian additional rule wont take effect in the next 100 years.
 			// Let's adjust the algorithm then.
-			+static_cast<decltype(d)>((y - 1) * 365.25)
+			+ static_cast<decltype(d)>((y - 1) * 365.25)
 			- bias;
 	}
 

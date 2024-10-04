@@ -1,9 +1,16 @@
-import <algorithm>;
+#ifdef __INTELLISENSE__
+#include <ranges>
+#endif
+
+#include <stdio.h>
+
+import std;
+import hlsdk;
 
 import Resources;
 
 #if !defined PACKING_RESOURCES && !defined CREATING_ENFORCING_TABLE
-import <span>;
+import std;
 
 import CRC64;
 import FileSystem;

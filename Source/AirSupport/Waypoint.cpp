@@ -1,8 +1,11 @@
-#include <cassert>
-#include <cstdio>
+#ifdef __INTELLISENSE__
+#include <ranges>
+#endif
 
-import std.compat;
+#include <assert.h>
+#include <stdio.h>
 
+import std;
 import hlsdk;
 
 import Task;
@@ -27,7 +30,7 @@ Task Waypoint_Scan(void) noexcept
 
 	if (g_WaypointMgr.m_bPointerOwnership)
 	{
-		free(g_WaypointMgr.m_prgvecOrigins);
+		std::free(g_WaypointMgr.m_prgvecOrigins);
 		g_WaypointMgr.m_prgvecOrigins = nullptr;
 
 		g_WaypointMgr.m_iCount = 0;
@@ -167,7 +170,7 @@ void Waypoint_Read(void) noexcept
 	{
 		if (g_WaypointMgr.m_bPointerOwnership)
 		{
-			free(g_WaypointMgr.m_prgvecOrigins);
+			std::free(g_WaypointMgr.m_prgvecOrigins);
 			g_WaypointMgr.m_prgvecOrigins = nullptr;
 
 			g_WaypointMgr.m_iCount = 0;
@@ -180,7 +183,7 @@ void Waypoint_Read(void) noexcept
 		fread(&g_WaypointMgr.m_iCount, sizeof(size_t), 1, f);
 		assert(g_WaypointMgr.m_iCount > 0);
 
-		g_WaypointMgr.m_prgvecOrigins = (Vector *)malloc(g_WaypointMgr.m_iCount * sizeof(Vector)); assert(g_WaypointMgr.m_prgvecOrigins != nullptr);
+		g_WaypointMgr.m_prgvecOrigins = (Vector *)std::malloc(g_WaypointMgr.m_iCount * sizeof(Vector)); assert(g_WaypointMgr.m_prgvecOrigins != nullptr);
 		fread(g_WaypointMgr.m_prgvecOrigins, sizeof(Vector), g_WaypointMgr.m_iCount, f);
 
 		g_WaypointMgr.m_rgvecOrigins = span<Vector>(g_WaypointMgr.m_prgvecOrigins, g_WaypointMgr.m_iCount);

@@ -1,4 +1,8 @@
-﻿#include <cassert>
+﻿#ifdef __INTELLISENSE__
+#include <ranges>
+#endif
+
+#include <cassert>
 
 import metamod_api;
 
@@ -6,6 +10,7 @@ import Effects;
 import Jet;
 import Localization;
 import Menu;
+import Message;
 import Query;
 import Resources;
 import Target;
