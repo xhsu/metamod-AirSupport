@@ -38,7 +38,7 @@ void OrpheuF_CleanUpMap(CHalfLifeMultiplay *pThis) noexcept
 	// CDynamicTarget does not required to be clear up
 
 	for (auto&& pEnt : Query::all_nonplayer_entities() | Query::with_classname_of(CDynamicTarget::BEAM_CLASSNAME))
-		pEnt->pev->flags |= FL_KILLME;	// Fixing the but when player calls a carpet bombardment during round ending.
+		pEnt->pev->flags |= FL_KILLME;	// Fixing edge case: when player calls a carpet bombardment during round ending.
 
 	for (auto &&pEnt : FIND_ENTITY_BY_CLASSNAME(CFixedTarget::CLASSNAME))
 		pEnt->v.flags |= FL_KILLME;
@@ -119,33 +119,25 @@ void Task_GetWorld(void) noexcept
 	g_pevWorld = &g_pEdictWorld->v;
 }
 
-Task Task_UpdateTeams(void) noexcept
+void Task_UpdateTeams(void) noexcept
 {
-	g_rgpPlayersOfCT.reserve(gpGlobals->maxClients + 1);
-	g_rgpPlayersOfTerrorist.reserve(gpGlobals->maxClients + 1);
+	g_rgpPlayersOfCT.clear();
+	g_rgpPlayersOfTerrorist.clear();
 
-	for (;;)
+	for (CBasePlayer* pPlayer : Query::all_players())
 	{
-		co_await TaskScheduler::NextFrame::Rank[1];
-
-		g_rgpPlayersOfCT.clear();
-		g_rgpPlayersOfTerrorist.clear();
-
-		for (auto &&pPlayer : Query::all_players())
+		switch (pPlayer->m_iTeam)
 		{
-			switch (pPlayer->m_iTeam)
-			{
-			case TEAM_TERRORIST:
-				g_rgpPlayersOfTerrorist.emplace_back(pPlayer->edict());
-				break;
+		case TEAM_TERRORIST:
+			g_rgpPlayersOfTerrorist.emplace_back(pPlayer->edict());
+			break;
 
-			case TEAM_CT:
-				g_rgpPlayersOfCT.emplace_back(pPlayer->edict());
-				break;
+		case TEAM_CT:
+			g_rgpPlayersOfCT.emplace_back(pPlayer->edict());
+			break;
 
-			default:
-				continue;
-			}
+		default:
+			continue;
 		}
 	}
 }

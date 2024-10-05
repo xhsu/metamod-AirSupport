@@ -203,7 +203,6 @@ void fw_ServerActivate_Post(edict_t* pEdictList, int edictCount, int clientMax) 
 	g_engfuncs.pfnCvar_DirectSet(gcvarMaxSpeed, "99999.0");
 	g_engfuncs.pfnCvar_DirectSet(gcvarMaxVelocity, "99999.0");
 
-	TaskScheduler::Enroll(Task_UpdateTeams());
 	TaskScheduler::Enroll(CFuelAirCloud::Task_AirPressure());
 	TaskScheduler::Enroll(Task_TeamwiseAI(CVar::ct_think.Handle(), &g_rgpPlayersOfCT, &g_rgpPlayersOfTerrorist));
 	TaskScheduler::Enroll(Task_TeamwiseAI(CVar::ter_think.Handle(), &g_rgpPlayersOfTerrorist, &g_rgpPlayersOfCT));
@@ -245,6 +244,12 @@ void fw_ServerDeactivate_Post(void) noexcept
 	g_rgiAirSupportSelected.fill(AIR_STRIKE);
 	g_rgpPlayersOfCT.clear();
 	g_rgpPlayersOfTerrorist.clear();
+}
+
+static void fw_StartFrame_Post() noexcept
+{
+	TaskScheduler::Think();
+	Task_UpdateTeams();
 }
 
 void fw_PlayerPostThink(edict_t *pEntity) noexcept
@@ -659,7 +664,7 @@ inline constexpr DLL_FUNCTIONS gFunctionTable_Post =
 	.pfnPlayerPreThink	= nullptr,
 	.pfnPlayerPostThink	= nullptr,
 
-	.pfnStartFrame		= &TaskScheduler::Think,
+	.pfnStartFrame		= &fw_StartFrame_Post,
 	.pfnParmsNewLevel	= nullptr,
 	.pfnParmsChangeLevel= nullptr,
 
@@ -676,14 +681,14 @@ inline constexpr DLL_FUNCTIONS gFunctionTable_Post =
 	.pfnPM_Init				= nullptr,
 	.pfnPM_FindTextureType	= nullptr,
 
-	.pfnSetupVisibility	= nullptr,
-	.pfnUpdateClientData= &fw_UpdateClientData_Post,
-	.pfnAddToFullPack	= &fw_AddToFullPack_Post,
-	.pfnCreateBaseline	= nullptr,
-	.pfnRegisterEncoders= nullptr,
-	.pfnGetWeaponData	= nullptr,
-	.pfnCmdStart		= nullptr,
-	.pfnCmdEnd			= nullptr,
+	.pfnSetupVisibility			= nullptr,
+	.pfnUpdateClientData		= &fw_UpdateClientData_Post,
+	.pfnAddToFullPack			= &fw_AddToFullPack_Post,
+	.pfnCreateBaseline			= nullptr,
+	.pfnRegisterEncoders		= nullptr,
+	.pfnGetWeaponData			= nullptr,
+	.pfnCmdStart				= nullptr,
+	.pfnCmdEnd					= nullptr,
 	.pfnConnectionlessPacket	= nullptr,
 	.pfnGetHullBounds			= nullptr,
 	.pfnCreateInstancedBaselines= nullptr,
