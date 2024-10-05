@@ -40,6 +40,28 @@ namespace Query
 			;
 	}
 
+	// Iterating type: CBasePlayer*
+	export inline decltype(auto) all_observers(void) noexcept
+	{
+		return
+			all_players()
+
+			// Observer is depending on pev->iuser1
+			| std::views::filter([](CBasePlayer* pPlayer) noexcept { return pPlayer->pev->iuser1 != OBS_NONE; })
+			;
+	}
+
+	// Iterating type: CBasePlayer*
+	export inline decltype(auto) all_who_is_observing(edict_t* pTarget) noexcept
+	{
+		return
+			all_observers()
+
+			// LUNA: using directly m_pent is because the player entity never actually deallocated during a game.
+			| std::views::filter([=](CBasePlayer* pPlayer) noexcept { return pPlayer->m_hObserverTarget && pPlayer->m_hObserverTarget.m_pent == pTarget; })
+			;
+	}
+
 	// Iterating type: CBaseEntity*
 	export inline decltype(auto) all_entities(void) noexcept
 	{

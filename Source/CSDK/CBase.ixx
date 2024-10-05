@@ -1105,6 +1105,17 @@ export inline constexpr auto SBAR_TARGETTYPE_TEAMMATE = 1;
 export inline constexpr auto SBAR_TARGETTYPE_ENEMY = 2;
 export inline constexpr auto SBAR_TARGETTYPE_HOSTAGE = 3;
 
+export enum EObserverMode : decltype(entvars_t::iuser1)
+{
+	OBS_NONE = 0,
+	OBS_CHASE_LOCKED,
+	OBS_CHASE_FREE,
+	OBS_ROAMING,
+	OBS_IN_EYE,
+	OBS_MAP_FREE,
+	OBS_MAP_CHASE,
+};
+
 export struct RebuyStruct
 {
 	int m_primaryWeapon;
