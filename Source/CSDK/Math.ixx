@@ -52,11 +52,13 @@ export inline auto get_cylindrical_coord(double radius, double azimuth, double h
 }
 
 // https://www.euclideanspace.com/maths/algebra/realNormedAlgebra/quaternions/slerp/index.htm
-export inline auto quat_slerp(Quaternion const &qSrc, Quaternion qDest, double t) noexcept
+export template <typename Proj = std::identity> inline
+Quaternion quat_slerp(Quaternion const &qSrc, Quaternion qDest, double t, Proj&& proj = {}) noexcept
 {
 	static constexpr double epsilon = 0.0001;
 
 	double p{}, q{};
+	t = std::invoke(proj, t);
 
 	auto cosTheta = qSrc.a * qDest.a + qSrc.b * qDest.b + qSrc.c * qDest.c + qSrc.d * qDest.d;
 

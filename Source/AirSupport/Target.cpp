@@ -1,4 +1,4 @@
-#include <cassert>
+﻿#include <cassert>
 
 #ifdef __INTELLISENSE__
 #include <ranges>
@@ -165,6 +165,93 @@ static Task Task_AngleAlter(entvars_t* const pev, Vector const vStart, Vector co
 	co_return;
 }
 
+static Task Task_AngleAlter(entvars_t* const pev, Quaternion const qStart, Quaternion const qEnd, float const flTimeFrame) noexcept
+{
+	auto const pTarget = reinterpret_cast<CDynamicTarget*>(pev->pContainingEntity->pvPrivateData);
+	auto const FX = (int)CVar::targeting_fx;
+	auto const flStartTime = gpGlobals->time;
+	Quaternion qNow{};
+	float t{};
+
+	if (qStart.Approx(qEnd, 0.01f))
+		co_return;
+
+	for (auto passed = gpGlobals->time - flStartTime;
+		passed <= flTimeFrame;
+		passed = gpGlobals->time - flStartTime)
+	{
+		co_await NEXTFRAME_RANK_ANGULER_VEL;
+
+		// Just like みんなの大好きなMatrix, quaternions are composed from right to left.
+
+		// Step 2: Rotate to the NORM of the surface. Now comes with a interpole!
+		switch (FX)
+		{
+		default:
+			qNow = quat_slerp(qStart, qEnd, passed / flTimeFrame);	// linear
+			break;
+
+		case 1:
+			qNow = quat_slerp(qStart, qEnd, passed / flTimeFrame, &Interpolation::smooth_step);
+			break;
+
+		case 2:
+			qNow = quat_slerp(qStart, qEnd, passed / flTimeFrame, &Interpolation::spring<0.25>);
+			break;
+
+		case 3:
+			qNow = quat_slerp(qStart, qEnd, passed / flTimeFrame, &Interpolation::acce_then_dece);
+			break;
+
+		case 4:
+			qNow = quat_slerp(qStart, qEnd, passed / flTimeFrame, &Interpolation::bounce);
+			break;
+
+		case 5:
+			qNow = quat_slerp(qStart, qEnd, passed / flTimeFrame, &Interpolation::accelerated<1.75>);
+			break;
+
+		case 6:
+			qNow = quat_slerp(qStart, qEnd, passed / flTimeFrame, &Interpolation::anticipate<2.0>);
+			break;
+
+		case 7:
+			qNow = quat_slerp(qStart, qEnd, passed / flTimeFrame, &Interpolation::antic_then_overshoot<2.0 * 1.5>);
+			break;
+
+		case 8:
+			qNow = quat_slerp(qStart, qEnd, passed / flTimeFrame, &Interpolation::cycle<1.0>);
+			break;
+
+		case 9:
+			qNow = quat_slerp(qStart, qEnd, passed / flTimeFrame, &Interpolation::decelerated<1.75>);
+			break;
+
+		case 10:
+			qNow = quat_slerp(qStart, qEnd, passed / flTimeFrame, &Interpolation::overshoot<2.0>);
+			break;
+
+		case 11:
+			qNow = quat_slerp(qStart, qEnd, passed / flTimeFrame, &Interpolation::cubic_hermite<4.0, 4.0>);
+			break;
+		}
+
+		// Step 1: Simulating the pre-miniature update rotational animations.
+		qNow *= pTarget->m_qPseudoanim;
+
+		pev->angles = qNow.Euler();
+		pev->angles[0] = -pev->angles[0];
+	}
+
+	// Just in case that the time gets too short and the 100% frame does not called.
+	co_await NEXTFRAME_RANK_ANGULER_VEL;
+
+	pev->angles = (qEnd * pTarget->m_qPseudoanim).Euler();
+	pev->angles[0] = -pev->angles[0];
+
+	co_return;
+}
+
 //
 // CDynamicTarget
 // Representing the "only I can see" target model when player holding radio.
@@ -189,6 +276,11 @@ Task CDynamicTarget::Task_Animation() noexcept
 	auto LastAnimUpdate = high_resolution_clock::now();
 	auto vecHeadOrg = Vector::Zero();
 
+	// Enables the client model prediction/interpole, even we don't have an actual MDL anim.
+	pev->framerate = 1.0f;
+	pev->frame = 0;
+	pev->animtime = gpGlobals->time;
+
 	for (;;)
 	{
 		[[unlikely]]
@@ -212,9 +304,9 @@ Task CDynamicTarget::Task_Animation() noexcept
 		{
 			// When player is holding LMB, just stop rotation.
 
-			pev->framerate = 0;
-			pev->frame = 0;
-			pev->animtime = 0;
+			//pev->framerate = 0;	// Only used for an actual MDL anim.
+			//pev->frame = 0;
+			//pev->animtime = 0;
 
 			continue;
 		}
@@ -222,6 +314,21 @@ Task CDynamicTarget::Task_Animation() noexcept
 		auto const CurTime = high_resolution_clock::now();
 		auto const flTimeDelta = duration_cast<nanoseconds>(CurTime - LastAnimUpdate).count() / 1'000'000'000.0;
 
+		// LUNA: no more MDL animation since miniature update!
+		// Now simply using a quaternion to represent the rotating targeting model.
+		m_qPseudoanim = Quaternion::AxisAngle(VEC_ALMOST_RIGHT, flTimeDelta * 30);
+
+		if (m_bShowArror())	// We are unable to resolve this one mathmatically so far...
+		{
+			// Not being able to calculate the controll if we are using quaternion on a slope.
+			m_qPseudoanim = Quaternion::Identity();
+		}
+		else if (!m_Scheduler.Exist(TASK_ANGLE_INTERPOL))
+		{
+			pev->angles = (m_qNormRotatingTo * m_qPseudoanim).Euler();
+			pev->angles[0] = -pev->angles[0];
+		}
+/*
 		pev->framerate = float(Models::targetmdl::FPS * flTimeDelta);
 		pev->frame += pev->framerate;
 		pev->animtime = gpGlobals->time;
@@ -233,12 +340,14 @@ Task CDynamicTarget::Task_Animation() noexcept
 			pev->frame -= float((pev->frame / 256.0) * 256.0);
 
 		LastAnimUpdate = CurTime;
+*/
 	}
 }
 
 Task CDynamicTarget::Task_AngleInterpol() noexcept
 {
 	Vector vecLastNorm{ Vector::Up() };
+	Quaternion qLastNorm{ Quaternion::Rotate(VEC_ALMOST_RIGHT, Vector::Up()) };
 
 	for (;;)
 	{
@@ -251,20 +360,20 @@ Task CDynamicTarget::Task_AngleInterpol() noexcept
 
 		co_await NEXTFRAME_RANK_REORDER_ANGVEL;
 
-		if (!vecLastNorm.Approx(m_vecNormRotatingTo, 0.01f))
+		if (!qLastNorm.Approx(m_qNormRotatingTo, 0.01f))
 		{
 			if ((float)CVar::targeting_time > 0.0)
 			{
 				m_Scheduler.Enroll(Task_AngleAlter(
 					pev,
-					// LUNA: WHY THE HECK does the v_angle doing here?!
-					Angles{ -pev->angles.pitch, pev->angles.yaw, pev->angles.roll }.Front(),
-					m_vecNormRotatingTo,
+					// LUNA: WHAT THE HECK does the v_angle doing here?!
+					Quaternion::Euler(Angles{ -pev->angles.pitch, pev->angles.yaw, pev->angles.roll }.ToRadian()),
+					m_qNormRotatingTo,
 					(float)CVar::targeting_time
 				), TASK_ANGLE_INTERPOL, true);
 			}
 
-			vecLastNorm = m_vecNormRotatingTo;
+			qLastNorm = m_qNormRotatingTo;
 		}
 	}
 }
@@ -433,14 +542,14 @@ Task CDynamicTarget::Task_QuickEval_AirStrike() noexcept
 
 		if (m_pTargeting && !m_pTargeting->IsBSPModel() && m_pTargeting->IsAlive())
 		{
-			m_vecNormRotatingTo = Vector::Up();
+			m_qNormRotatingTo = Quaternion::Rotate(VEC_ALMOST_RIGHT, Vector::Up());
 
 			auto const vecCenter = m_pTargeting->Center();
 			g_engfuncs.pfnSetOrigin(edict(), Vector(vecCenter.x, vecCenter.y, m_pTargeting->pev->absmin.z + 1.0));	// snap to target.
 		}
 		else
 		{
-			m_vecNormRotatingTo = tr.vecPlaneNormal;
+			m_qNormRotatingTo = Quaternion::Rotate(VEC_ALMOST_RIGHT, tr.vecPlaneNormal);
 			pev->origin = tr.vecEndPos;
 		}
 
@@ -521,7 +630,7 @@ Task CDynamicTarget::Task_QuickEval_ClusterBomb() noexcept
 			goto LAB_CONTINUE;	// there's no set origin.
 		}
 
-		m_vecNormRotatingTo = tr.vecPlaneNormal;
+		m_qNormRotatingTo = Quaternion::Rotate(VEC_ALMOST_RIGHT, tr.vecPlaneNormal);
 		g_engfuncs.pfnSetOrigin(edict(), tr.vecEndPos);
 
 		// Quick Evaluation
@@ -628,8 +737,8 @@ Task CDynamicTarget::Task_QuickEval_CarpetBombardment() noexcept
 		{
 			// Not pressing LMB, only the main target mdl will showed up.
 
-			m_vecNormRotatingTo = vecSurfNorm;
-			UTIL_SetController(&pev->controller[0], &ARROW_CONTROLLER, (double)-m_pPlayer->pev->angles.yaw + (double)pev->angles.yaw - 90.0);
+			m_qNormRotatingTo = Quaternion::Rotate(VEC_ALMOST_RIGHT, vecSurfNorm);
+			UTIL_SetController(&pev->controller[0], &ARROW_CONTROLLER, (double)-m_pPlayer->pev->angles.yaw + vecSurfNorm.Yaw() - 90.0);
 
 			g_engfuncs.pfnSetOrigin(edict(), vecAiming);
 			pev->skin = Models::targetmdl::SKIN_GREEN;
@@ -772,14 +881,14 @@ Task CDynamicTarget::Task_QuickEval_Gunship() noexcept
 
 		if (m_pTargeting && !m_pTargeting->IsBSPModel() && m_pTargeting->IsAlive())
 		{
-			m_vecNormRotatingTo = Vector::Up();
+			m_qNormRotatingTo = Quaternion::Rotate(VEC_ALMOST_RIGHT, Vector::Up());
 
 			auto const vecCenter = m_pTargeting->Center();
 			g_engfuncs.pfnSetOrigin(edict(), Vector(vecCenter.x, vecCenter.y, m_pTargeting->pev->absmin.z + 1.0));	// snap to target.
 		}
 		else
 		{
-			m_vecNormRotatingTo = tr.vecPlaneNormal;
+			m_qNormRotatingTo = Quaternion::Rotate(VEC_ALMOST_RIGHT, tr.vecPlaneNormal);
 			g_engfuncs.pfnSetOrigin(edict(), tr.vecEndPos);
 		}
 
@@ -885,7 +994,7 @@ Task CDynamicTarget::Task_QuickEval_Phosphorus() noexcept
 			goto LAB_CONTINUE;	// there's no set origin.
 		}
 
-		m_vecNormRotatingTo = tr.vecPlaneNormal;
+		m_qNormRotatingTo = Quaternion::Rotate(VEC_ALMOST_RIGHT, tr.vecPlaneNormal);
 		g_engfuncs.pfnSetOrigin(edict(), tr.vecEndPos);
 
 		// Quick Evaluation
@@ -1068,8 +1177,8 @@ void CDynamicTarget::UpdateEvalMethod() noexcept
 
 	auto const &iType = g_rgiAirSupportSelected[m_pPlayer->entindex()];
 
-	m_iAirSupportTypeModel = iType;
-	m_bShowArror = (iType == CARPET_BOMBARDMENT);
+	m_iAirSupportTypeModel() = iType;
+	m_bShowArror() = (iType == CARPET_BOMBARDMENT);
 	pev->body = UTIL_CalcBody(m_rgBodyInfo);
 
 	m_pTargeting = nullptr;
@@ -1670,7 +1779,8 @@ CFixedTarget *CFixedTarget::Create(CDynamicTarget *const pDynamicTarget) noexcep
 {
 	auto const [pEdict, pPrefab] = UTIL_CreateNamedPrefab<CFixedTarget>();
 
-	pEdict->v.angles = pDynamicTarget->m_vecNormRotatingTo.VectorAngles();
+	pEdict->v.angles = (pDynamicTarget->m_qNormRotatingTo * pDynamicTarget->m_qPseudoanim).Euler();
+	pEdict->v.angles.pitch = -pEdict->v.angles.pitch;	// fucking quake.
 	pEdict->v.origin = pDynamicTarget->pev->origin;
 	pEdict->v.body = pDynamicTarget->pev->body;
 	pEdict->v.sequence = pDynamicTarget->pev->sequence;

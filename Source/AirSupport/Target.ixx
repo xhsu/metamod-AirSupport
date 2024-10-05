@@ -9,6 +9,11 @@ export import PlayerItem;	// Cannot use the Weapon.ixx header, or it would be a 
 export import Prefab;
 export import Task.Const;
 
+// Out quaternion has two problems.
+// 1. When the angle is UP, no rotation could happen.
+// 2. When the angle is LEFT, the cross-product is therefore vecZero, which leads to no quaternion could be calculated.
+export inline constexpr Vector VEC_ALMOST_RIGHT{ 0.99999946, 0, 0.0010010005 };	// #UPDATE_AT_CPP26 constexpr math expanded
+
 export struct CDynamicTarget : public Prefab_t
 {
 	static inline constexpr char CLASSNAME[] = "info_dynamic_target";
@@ -49,17 +54,18 @@ export struct CDynamicTarget : public Prefab_t
 	static CDynamicTarget *Create(CBasePlayer *pPlayer, CPrefabWeapon *pRadio) noexcept;
 	static void RetrieveModelInfo(void) noexcept;
 
+	Quaternion m_qNormRotatingTo{};	// the endpos of current slerp, use it when converting to fixed target.
+	Quaternion m_qPseudoanim{};
 	EHANDLE<CBaseEntity> m_pTargeting{ nullptr };
 	EHANDLE<CPrefabWeapon> m_pRadio{ nullptr };
 	CBasePlayer *m_pPlayer{};
-	Vector m_vecNormRotatingTo{};	// the endpos of current slerp, use it when converting to fixed target.
 	std::array<EHANDLE<CSpriteDisplay>, 16> m_rgpVisualFxSpr{};	// it should be enough normally speaking.
 	std::array<EHANDLE<CBeam>, BEACON_COUNT> m_rgpBeacons{};
 	std::array<BodyEnumInfo_t, 4> m_rgBodyInfo{ {{0, 1}, {0, 7}, {0, 2}, {0, 2}} };
-	int &m_iAirSupportTypeModel{ m_rgBodyInfo[1].m_index };
-	qboolean &m_bShowArror{ m_rgBodyInfo[2].m_index };
 	bool m_bFreezed{};	// Use enable/disable beacons instead. Indicator of carpet bombardment direction.
-	//Quaternion m_qAngles{};	// instead of pev->angles UNUSED
+
+	inline constexpr auto m_iAirSupportTypeModel() noexcept -> int& { return m_rgBodyInfo[1].m_index; }
+	inline constexpr auto m_bShowArror() noexcept -> qboolean& { return m_rgBodyInfo[2].m_index; }
 };
 
 export struct CFixedTarget : public Prefab_t
