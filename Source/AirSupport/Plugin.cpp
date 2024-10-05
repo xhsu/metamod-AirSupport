@@ -1,5 +1,5 @@
 
-import std.compat;
+import std;
 import hlsdk;
 
 import Plugin;
@@ -22,7 +22,7 @@ inline globalvars_t *gpGlobals = nullptr;
 // This appears to be the _first_ DLL routine called by the engine, so we do some setup operations here.
 void __stdcall GiveFnptrsToDll(enginefuncs_t *pengfuncsFromEngine, globalvars_t *pGlobals) noexcept
 {
-	memcpy(&g_engfuncs, pengfuncsFromEngine, sizeof(enginefuncs_t));
+	std::memcpy(&g_engfuncs, pengfuncsFromEngine, sizeof(enginefuncs_t));
 	gpGlobals = pGlobals;
 }
 
@@ -73,7 +73,7 @@ int Meta_Attach(PLUG_LOADTIME iCurrentPhase, META_FUNCTIONS *pFunctionTable, met
 		return false;
 	}
 
-	memcpy(pFunctionTable, &gMetaFunctionTable, sizeof(META_FUNCTIONS));
+	std::memcpy(pFunctionTable, &gMetaFunctionTable, sizeof(META_FUNCTIONS));
 	gpGamedllFuncs = pGamedllFuncs;
 	return true;
 }

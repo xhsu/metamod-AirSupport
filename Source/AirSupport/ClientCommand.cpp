@@ -64,10 +64,10 @@ META_RES OnClientCommand(CBasePlayer *pPlayer, const string &szCommand) noexcept
 #endif
 		g_engfuncs.pfnClientPrintf(pPlayer->edict(), print_console, std::format(
 			"\tCompiled with MSVC {0} and C++ {1}L\n"
-			"\tPlugin build number {2}\n",
+			"\tPlugin version {2}\n",
 
 			_MSC_FULL_VER, __cplusplus,
-			Engine::LocalBuildNumber()
+			PLID->version
 		).c_str());
 
 		return MRES_SUPERCEDE;
@@ -85,15 +85,6 @@ META_RES OnClientCommand(CBasePlayer *pPlayer, const string &szCommand) noexcept
 
 		if (auto const fl = std::atof(g_engfuncs.pfnCmd_Argv(1)); fl > 0)
 			*pSysTimeScale = (float)fl;
-
-		return MRES_SUPERCEDE;
-	}
-	else if (szCommand == "test001")
-	{
-		GoldSrc::CacheStudioModelInfo("models/v_ak47.mdl");
-
-		for (auto&& [seqlabel, data] : GoldSrc::GetStudioModelTiming("models/v_AK47.mdl"))
-			g_engfuncs.pfnServerPrint(std::format("{}: [{:.2f} - {:.2f}] of {:.2f}\n", seqlabel, data.m_fz_begin, data.m_fz_end, data.m_total_length).c_str());
 
 		return MRES_SUPERCEDE;
 	}
