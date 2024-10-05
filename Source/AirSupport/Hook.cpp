@@ -9,6 +9,7 @@ import UtlHook;
 
 import CBase;
 import ConditionZero;
+import Configurations;
 import Effects;
 import Engine;
 import FileSystem;
@@ -100,25 +101,6 @@ static void DeployInlineHook() noexcept
 	bHooksPerformed = true;
 }
 
-static void RetrieveCVarHandles() noexcept
-{
-	static bool bRegistered = false;
-
-	[[unlikely]]
-	if (!bRegistered)
-	{
-		// stub
-
-		bRegistered = true;
-	}
-
-	gcvarFriendlyFire = g_engfuncs.pfnCVarGetPointer("mp_friendlyfire");
-	gcvarMaxSpeed = g_engfuncs.pfnCVarGetPointer("sv_maxspeed");
-	gcvarMaxVelocity = g_engfuncs.pfnCVarGetPointer("sv_maxvelocity");
-
-	CVarManager::Init();
-}
-
 static void DeployConsoleCommand() noexcept
 {
 	static bool bRegistered = false;
@@ -131,95 +113,6 @@ static void DeployConsoleCommand() noexcept
 	g_engfuncs.pfnAddServerCommand("airsupport_readjetspawn", &Waypoint_Read);
 
 	bRegistered = true;
-}
-
-static void LoadConfiguration() noexcept
-{
-	char szGameDir[32]{};
-	g_engfuncs.pfnGetGameDir(szGameDir);
-	fs::path const hGlobalCFG{ std::format("{}/addons/metamod/AirSupport/Config/Default.cfg", szGameDir) };
-
-	// we don't need to be bother by the cfg during debug session.
-#ifdef _DEBUG
-	std::error_code ec{};
-	fs::remove(hGlobalCFG, ec);
-	assert(ec == std::error_code{});
-#endif
-
-	if (!fs::exists(hGlobalCFG))
-	{
-		fs::create_directories(hGlobalCFG.parent_path());
-
-		if (auto f = std::fopen(hGlobalCFG.u8string().c_str(), "wt"); f != nullptr)
-		{
-#ifndef USE_CHT_VER
-			std::println(f, "//");
-			std::println(f, "// AIR SUPPORT plugin configuration file");
-			std::println(f, "//");
-			std::println(f, "// Automatically generated");
-			std::print(f, "// Plugin version {}", PLID->version);
-			std::println(f, ".{}", Engine::LocalBuildNumber());	// don't know why, but merging this line and above will cause a linker error.
-			std::println(f, "//");
-			std::println(f, "// You can create a .cfg file with matched map name to further customize the game.");
-			std::println(f, "// For example, a file named 'de_dust2.cfg' will be loaded only and only if you play in that map.");
-			std::println(f, "//");
-#else
-			std::println(f, u8"//");
-			std::println(f, u8"// 空襲插件配置文件");
-			std::println(f, u8"//");
-			std::println(f, u8"// 本文檔係自動生成");
-			std::print(f, u8"// 適用於插件版本 {}", PLID->version);
-			std::println(f, u8".{}", Engine::LocalBuildNumber());	// don't know why, but merging this line and above will cause a linker error.
-			std::println(f, u8"//");
-			std::println(f, u8"// 本插件支援自動讀取本目錄下與當前地圖同名之配置文件。");
-			std::println(f, u8"// 例如，名為'de_dust2.cfg'的配置文件僅在遊玩de_dust2地圖時被讀取。");
-			std::println(f, u8"//");
-#endif
-			// The sort can only be resolved here, as all cvar had been found/registered.
-			// i.e. the m_handle is not null
-			std::set<console_variable_t*, cvar_wrapper_sorter> const
-				sorted_cvars{ std::from_range, CVarManager::Instance()->m_all };
-
-			for (auto&& pcvar : sorted_cvars)
-			{
-				std::println(f, "");
-
-				if (CVarManager::Instance()->m_Desc.contains(pcvar->Handle()->name))
-				{
-					auto&& [szDefValue, szDomain, szDesc] = CVarManager::Instance()->m_Desc.at(pcvar->Handle()->name);
-
-					// Split the desc into multiple lines.
-					size_t last = 0, next = 0;
-					while ((next = szDesc.find('\n', last)) != szDesc.npos)
-					{
-						std::println(f, "// {}", szDesc.substr(last, next - last));
-						last = next + 1;
-					}
-
-					std::println(f, "// {}", szDesc.substr(last));
-
-#ifndef USE_CHT_VER
-					std::println(f, "// Valid value: {}", szDomain);
-					std::println(f, "// Default: {}", szDefValue);
-#else
-					std::println(f, u8"// 取值範圍: {}", szDomain);
-					std::println(f, u8"// 默認值: {}", szDefValue);
-#endif
-				}
-
-				std::println(f, "{} {}", pcvar->Handle()->name, pcvar->Handle()->string);
-			}
-
-			fclose(f);
-		}
-	}
-
-	g_engfuncs.pfnServerCommand("exec addons/metamod/AirSupport/Config/Default.cfg\n");
-
-	// Map specific config
-	fs::path const hMapConfig{ std::format("{}/addons/metamod/AirSupport/Config/{}.cfg", szGameDir, STRING(gpGlobals->mapname)) };
-	if (fs::exists(hMapConfig))
-		g_engfuncs.pfnServerCommand(std::format("exec addons/metamod/AirSupport/Config/{}.cfg", STRING(gpGlobals->mapname)).c_str());
 }
 
 // Meta API
@@ -538,26 +431,53 @@ void fw_UpdateClientData_Post(const edict_t *ent, int sendweapons, clientdata_t 
 	gpMetaGlobals->mres = MRES_HANDLED;
 }
 
-qboolean fw_AddToFullPack(entity_state_t *pState, int iEntIndex, edict_t *pEdict, edict_t *pClientSendTo, qboolean cl_lw, qboolean bIsPlayer, unsigned char *pSet) noexcept
+static qboolean fw_AddToFullPack(entity_state_t *pState, int iEntIndex, edict_t *pEdict, edict_t *pClientSendTo, qboolean cl_lw, qboolean bIsPlayer, unsigned char *pSet) noexcept
 {
 	gpMetaGlobals->mres = MRES_IGNORED;
 
-	if (pEdict->v.classname == MAKE_STRING(CDynamicTarget::CLASSNAME) || pEdict->v.classname == MAKE_STRING(CFixedTarget::CLASSNAME)) [[unlikely]]
+	[[unlikely]]
+	if (pEdict->v.classname == MAKE_STRING(CDynamicTarget::CLASSNAME) || pEdict->v.classname == MAKE_STRING(CFixedTarget::CLASSNAME))
 	{
 		auto const pClient = (CBasePlayer *)pClientSendTo->pvPrivateData;
 
+		// Could be some issue for observer. #SHOULD_DO_ON_FREE
 		if (pEdict->v.team != pClient->m_iTeam)
 		{
 			gpMetaGlobals->mres = MRES_SUPERCEDE;
 			return false;
 		}
 	}
-	else if (bIsPlayer) [[unlikely]]
+	else if (pEdict->v.classname == MAKE_STRING(CSpriteDisplay::CLASSNAME))	 [[unlikely]]
+	{
+		auto const pSpr = ent_cast<CSpriteDisplay*>(pEdict);
+
+		// Only do the visible trick when a 'owner' player existed.
+		if (pSpr && pSpr->m_pPlayer)
+		{
+			// Only visible to self. Remember that message FXs were using MSG_ONE instead.
+			if (pClientSendTo != pSpr->m_pPlayer->edict())
+			{
+				gpMetaGlobals->mres = MRES_SUPERCEDE;
+				return false;
+			}
+		}
+	}
+
+	return true;
+}
+
+static qboolean fw_AddToFullPack_Post(entity_state_t* pState, int iEntIndex, edict_t* pEdict, edict_t* pClientSendTo, qboolean cl_lw, qboolean bIsPlayer, unsigned char* pSet) noexcept
+{
+	gpMetaGlobals->mres = MRES_IGNORED;
+	// post hook
+
+	[[unlikely]]
+	if (bIsPlayer)
 	{
 		// White phosphorus munitions will burn into your bone.
-		// #FIXME this one should be put into post. It's won't work here.
 
-		if (uint64_t const iPlayerTaskId = TASK_ENTITY_ON_FIRE | (1ull << uint64_t(iEntIndex + 32ull)); TaskScheduler::Exist(iPlayerTaskId, false))
+		if (uint64_t const iPlayerTaskId = TASK_ENTITY_ON_FIRE | (1ull << uint64_t(iEntIndex + 32ull));
+			TaskScheduler::Exist(iPlayerTaskId, false))
 		{
 			pState->renderfx = kRenderFxGlowShell;
 			pState->rendercolor = color24{ 192, 0, 0 };
@@ -757,7 +677,7 @@ inline constexpr DLL_FUNCTIONS gFunctionTable_Post =
 
 	.pfnSetupVisibility	= nullptr,
 	.pfnUpdateClientData= &fw_UpdateClientData_Post,
-	.pfnAddToFullPack	= nullptr,
+	.pfnAddToFullPack	= &fw_AddToFullPack_Post,
 	.pfnCreateBaseline	= nullptr,
 	.pfnRegisterEncoders= nullptr,
 	.pfnGetWeaponData	= nullptr,

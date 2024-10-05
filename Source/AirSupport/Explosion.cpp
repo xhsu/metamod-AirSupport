@@ -3,6 +3,7 @@ import hlsdk;
 
 import UtlRandom;
 
+import Configurations;
 import Effects;
 import Hook;
 import Math;

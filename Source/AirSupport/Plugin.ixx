@@ -10,7 +10,7 @@ inline constexpr plugin_info_t gPluginInfo =
 {
 	.ifvers		= META_INTERFACE_VERSION,
 	.name		= "Air Support",
-	.version	= "1.9.2",
+	.version	= "1.10.0",
 	.date		= __DATE__ __TIME__,
 	.author		= "Luna the Reborn",
 	.url		= "N/A",

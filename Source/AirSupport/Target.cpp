@@ -8,6 +8,7 @@ import std;
 import hlsdk;
 
 import Beam;
+import Configurations;
 import Effects;
 import Jet;
 import Localization;
@@ -945,7 +946,7 @@ Task CDynamicTarget::Task_Miniature_AirStrike() noexcept
 		{
 			auto& pExhaust = m_rgpVisualFxSpr[i];
 
-			pExhaust = CSpriteDisplay::Create(pev->origin, kRenderTransAdd, Sprites::ROCKET_TRAIL_SMOKE[0]);
+			pExhaust = CSpriteDisplay::Create(pev->origin, Sprites::ROCKET_TRAIL_SMOKE[0], m_pPlayer);
 			pExhaust->pev->renderamt = 220;
 			pExhaust->pev->rendercolor = Vector(255, 255, UTIL_Random(192, 255));
 			pExhaust->pev->frame = (float)UTIL_Random(17, 22);
@@ -975,7 +976,7 @@ Task CDynamicTarget::Task_Miniature_ClusterBomb(std::string_view SPRITE, double 
 	{
 		for (auto&& [pBlast, iBone] : std::views::zip(m_rgpVisualFxSpr, FX_BONES_IDX[iType]))
 		{
-			pBlast = CSpriteDisplay::Create(pev->origin, kRenderTransAdd, SPRITE);
+			pBlast = CSpriteDisplay::Create(pev->origin, SPRITE, m_pPlayer);
 			pBlast->pev->renderamt = 0x80;
 			pBlast->pev->rendercolor = Vector(255, 255, 255);
 			pBlast->pev->scale = 0.35f;
@@ -1007,7 +1008,7 @@ Task CDynamicTarget::Task_Miniature_Gunship() noexcept
 	{
 		for (auto&& iDest : iDests)
 		{
-			auto pMuzzle = CSpriteDisplay::Create(pev->origin, kRenderTransAdd, Sprites::AIRBURST);
+			auto pMuzzle = CSpriteDisplay::Create(pev->origin, Sprites::AIRBURST, m_pPlayer);
 			pMuzzle->pev->renderamt = 220;
 			pMuzzle->pev->rendercolor = Vector(255, 255, UTIL_Random(192, 255));
 			pMuzzle->pev->frame = (float)UTIL_Random(0, 2);
@@ -1156,7 +1157,7 @@ void CDynamicTarget::UpdateVisualDemo() noexcept
 	case AIR_STRIKE:
 	{
 		auto& pExhaustFlame = m_rgpVisualFxSpr[0];
-		pExhaustFlame = CSpriteDisplay::Create(pev->origin, kRenderTransAdd, Sprites::ROCKET_EXHAUST_FLAME);
+		pExhaustFlame = CSpriteDisplay::Create(pev->origin, Sprites::ROCKET_EXHAUST_FLAME, m_pPlayer);
 		pExhaustFlame->pev->renderamt = 0;
 		pExhaustFlame->pev->scale = 0.35f;
 		pExhaustFlame->m_Scheduler.Enroll(Task_SpriteOnBone(pExhaustFlame->pev, this, FX_BONES_IDX[AIR_STRIKE][0], g_vecZero, 2.f, 220.f, 3.f, true), TASK_ANIMATION);
@@ -1189,7 +1190,7 @@ void CDynamicTarget::UpdateVisualDemo() noexcept
 		// the poison cloud fades in and out nearby.
 		for (auto&& [pCloud, iBone] : std::views::zip(m_rgpVisualFxSpr, FX_BONES_IDX[FUEL_AIR_BOMB]))
 		{
-			pCloud = CSpriteDisplay::Create(pev->origin, kRenderTransAdd, Sprites::LIFTED_DUST);
+			pCloud = CSpriteDisplay::Create(pev->origin, Sprites::LIFTED_DUST, m_pPlayer);
 			pCloud->pev->scale = UTIL_Random(0.4f, 0.8f);
 			pCloud->pev->frame = (float)UTIL_Random(0, FRAME_COUNT - 1);
 			pCloud->m_Scheduler.Enroll(Task_SpriteOnBone(pCloud->pev, this, iBone, { -32, 0, 0 }, 0, 0, 3.f, false), TASK_ANIMATION);
@@ -1203,7 +1204,7 @@ void CDynamicTarget::UpdateVisualDemo() noexcept
 		// Fire burning on the sphere with occational spark.
 		for (auto&& [pSphere, iBone] : std::views::zip(m_rgpVisualFxSpr, FX_BONES_IDX[PHOSPHORUS_MUNITION]))
 		{
-			pSphere = CSpriteDisplay::Create(pev->origin, kRenderTransAdd, Sprites::FLAME[1]);	// flame2.spr is smaller thus fits better.
+			pSphere = CSpriteDisplay::Create(pev->origin, Sprites::FLAME[1], m_pPlayer);	// flame2.spr is smaller thus fits better.
 			pSphere->pev->renderamt = 0;
 			pSphere->pev->scale = 0.2f;
 			pSphere->m_Scheduler.Enroll(Task_SpriteOnBone(pSphere->pev, this, iBone, { -8, 0, 0 }, 2.f, 220.f, 3.f, false), TASK_ANIMATION);

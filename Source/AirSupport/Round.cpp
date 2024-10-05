@@ -97,8 +97,9 @@ void OrpheuF_CleanUpMap(CHalfLifeMultiplay *pThis) noexcept
 	for (auto &&pEnt : FIND_ENTITY_BY_CLASSNAME(CSparkSpr::CLASSNAME))
 		pEnt->v.flags |= FL_KILLME;
 
-	for (auto &&pEnt : FIND_ENTITY_BY_CLASSNAME(CSpriteDisplay::CLASSNAME))
-		pEnt->v.flags |= FL_KILLME;
+	for (auto&& pEnt : FIND_ENTITY_BY_CLASSNAME(CSpriteDisplay::CLASSNAME))
+		if (auto const p = (CSpriteDisplay*)pEnt->pvPrivateData; !p || !p->m_pPlayer)	// Don't delete miniature fx sprites.
+			pEnt->v.flags |= FL_KILLME;
 
 	// Reset tasks
 

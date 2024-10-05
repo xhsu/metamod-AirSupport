@@ -64,7 +64,7 @@ static bool VerifyByModelAnimations(const char *psz) noexcept
 		auto const iSize = ftell(f);
 
 		fseek(f, 0, SEEK_SET);
-		auto pBuffer = calloc(1, iSize);
+		auto pBuffer = std::calloc(1, iSize);
 		fread(pBuffer, iSize, 1, f);
 
 		auto const phdr = (studiohdr_t *)pBuffer;
@@ -85,7 +85,7 @@ static bool VerifyByModelAnimations(const char *psz) noexcept
 		if (rgSeq.size() >= g_rgrgflAnimTime.at(psz).size())
 			ret = std::ranges::equal(rgSeq, g_rgrgflAnimTime.at(psz), fnCmp);
 
-		free(pBuffer);
+		std::free(pBuffer);
 		fclose(f);
 
 		return ret;

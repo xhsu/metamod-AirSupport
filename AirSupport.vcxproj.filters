@@ -217,6 +217,9 @@
     <ClCompile Include="Source\AirSupport\WinAPI.ixx">
       <Filter>Source\AirSupport</Filter>
     </ClCompile>
+    <ClCompile Include="Source\AirSupport\Configurations.ixx">
+      <Filter>Source\AirSupport</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\metamod-p\metamod\metamod_api.hpp">

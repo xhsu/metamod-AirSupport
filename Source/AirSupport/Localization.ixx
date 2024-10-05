@@ -1,16 +1,6 @@
-﻿module;
+﻿export module Localization;
 
-#ifdef __INTELLISENSE__
-#include <array>
-#include <string_view>
-#endif
-
-export module Localization;
-
-#ifndef __INTELLISENSE__
-export import <array>;
-export import <string_view>;
-#endif
+import std;
 
 // #PLANNED_AS_localization using array not loose format.
 export namespace Localization

@@ -6,6 +6,7 @@
 
 import metamod_api;
 
+import Configurations;
 import Effects;
 import Jet;
 import Localization;
@@ -271,7 +272,7 @@ Task CRadio::Task_Deploy() noexcept
 	m_pPlayer->m_bShieldDrawn = false;
 
 	if (m_pPlayer->m_bOwnsShield)
-		m_pPlayer->pev->gamestate = 1;
+		m_pPlayer->pev->gamestate = 1;	// pause shield protection
 
 	gUranusCollection.pfnDefaultDeploy(this,
 		Models::V_RADIO, Models::P_RADIO, (int)Models::v_radio::seq::draw,

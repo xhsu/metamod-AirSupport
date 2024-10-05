@@ -4,10 +4,9 @@ module;
 
 export module Resources:Const;
 
-export import <cstdint>;
+import std;
 
-export import <string_view>;
-export import <unordered_map>;
+using std::uint64_t;
 
 #include "../../Enforcer/Resource_CRC64.hpp"
 #include "../../Enforcer/Resource_ModelDetails.hpp"

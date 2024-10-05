@@ -5,6 +5,7 @@
 import std;
 import hlsdk;
 
+import Configurations;
 import Effects;
 import Hook;
 import Math;
@@ -111,7 +112,7 @@ Task CPrecisionAirStrike::Task_EmitExhaust() noexcept
 
 		auto const vecOrigin = pev->origin + pev->v_angle.Front() * -48;
 
-		auto pSpark = CSpriteDisplay::Create(vecOrigin, kRenderTransAdd, Sprites::ROCKET_TRAIL_SMOKE[0]);
+		auto pSpark = CSpriteDisplay::Create(vecOrigin, Sprites::ROCKET_TRAIL_SMOKE[0]);
 		pSpark->pev->renderamt = UTIL_Random(50.f, 255.f);
 		pSpark->pev->rendercolor = Vector(255, 255, UTIL_Random(192, 255));
 		pSpark->pev->frame = (float)UTIL_Random(17, 22);
@@ -1155,7 +1156,7 @@ Task CIncendiaryMunition::Task_EmitExhaust() noexcept
 
 		auto const vecOrigin = pev->origin + pev->v_angle.Front() * -48;
 
-		auto pSpark = CSpriteDisplay::Create(vecOrigin, kRenderTransAdd, Sprites::ROCKET_TRAIL_SMOKE[0]);
+		auto pSpark = CSpriteDisplay::Create(vecOrigin, Sprites::ROCKET_TRAIL_SMOKE[0]);
 		pSpark->pev->renderamt = UTIL_Random(50.f, 255.f);
 		pSpark->pev->rendercolor = Vector(255, 255, UTIL_Random(192, 255));
 		pSpark->pev->frame = (float)UTIL_Random(17, 22);

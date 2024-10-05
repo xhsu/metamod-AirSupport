@@ -3,6 +3,7 @@
 import std;
 import hlsdk;
 
+import Configurations;
 import DamageOverTime;
 import Effects;
 import Math;
@@ -1477,7 +1478,7 @@ void CFuelAirCloud::OnTraceAttack(TraceResult const &tr, EHANDLE<CBaseEntity> pS
 // CSpriteDisplay
 //
 
-CSpriteDisplay *CSpriteDisplay::Create(Vector const &vecOrigin, kRenderFn iRenderMethod, std::string_view szModel) noexcept
+CSpriteDisplay *CSpriteDisplay::Create(Vector const &vecOrigin, std::string_view szModel, CBasePlayer* pPlayer) noexcept
 {
 	auto const [pEdict, pPrefab] = UTIL_CreateNamedPrefab<CSpriteDisplay>();
 
@@ -1487,7 +1488,7 @@ CSpriteDisplay *CSpriteDisplay::Create(Vector const &vecOrigin, kRenderFn iRende
 
 	pEdict->v.angles = Angles();
 
-	pEdict->v.rendermode = iRenderMethod;
+	pEdict->v.rendermode = kRenderTransAdd;	// For SPRITE, there is no other option, basically.
 	pEdict->v.renderamt = 128.f;
 	pEdict->v.rendercolor = Vector(255, 255, 255);
 	pEdict->v.frame = 0;
@@ -1499,6 +1500,7 @@ CSpriteDisplay *CSpriteDisplay::Create(Vector const &vecOrigin, kRenderFn iRende
 	pEdict->v.scale = 1.f;
 
 	pPrefab->pev->nextthink = 0.1f;
+	pPrefab->m_pPlayer = pPlayer;	// Only used in elective display
 
 	return pPrefab;
 }
@@ -1553,7 +1555,7 @@ void CPhosphorus::Touch_Flying(CBaseEntity *pOther) noexcept
 		return;
 
 	// Not a real spark, it's just a visual representation of 'too bright to properly see what's going on'
-	auto pSpark = CSpriteDisplay::Create(Vector(pev->origin.x, pev->origin.y, pev->origin.z + 48.0), kRenderTransAdd, Sprites::PHOSPHORUS_MAJOR_SPARK);
+	auto pSpark = CSpriteDisplay::Create(Vector(pev->origin.x, pev->origin.y, pev->origin.z + 48.0), Sprites::PHOSPHORUS_MAJOR_SPARK);
 	pSpark->pev->renderamt = UTIL_Random(192.f, 255.f);
 	pSpark->pev->rendercolor = Vector(255, 255, UTIL_Random(192, 255));
 	pSpark->pev->scale = UTIL_Random(1.f / 1.2f, 1.2f);
@@ -1680,7 +1682,7 @@ Task CPhosphorus::Task_EmitExhaust() noexcept
 		//WriteData((byte)UTIL_Random<short>(50, 255));
 		//MsgEnd();
 
-		auto pSpark = CSpriteDisplay::Create(vecOrigin, kRenderTransAdd, Sprites::ROCKET_TRAIL_SMOKE[0]);
+		auto pSpark = CSpriteDisplay::Create(vecOrigin, Sprites::ROCKET_TRAIL_SMOKE[0]);
 		pSpark->pev->renderamt = UTIL_Random(50.f, 255.f);
 		pSpark->pev->rendercolor = Vector(255, 255, UTIL_Random(192, 255));
 		pSpark->pev->frame = (float)UTIL_Random(17, 22);

@@ -228,11 +228,13 @@ export struct CFuelAirCloud : public Prefab_t
 
 export struct CSpriteDisplay : public Prefab_t
 {
-	static inline constexpr char CLASSNAME[] = "CSpriteDisplay";
+	static inline constexpr char CLASSNAME[] = "env_simple_sprite";
 
 	bool ShouldCollide(EHANDLE<CBaseEntity> pOther) noexcept override { return false; }	// just a SPR, collide with absolutely nothing.
 
-	static CSpriteDisplay *Create(Vector const& vecOrigin, kRenderFn iRenderMethod, std::string_view szModel) noexcept;
+	static CSpriteDisplay *Create(Vector const& vecOrigin, std::string_view szModel, CBasePlayer* pPlayer = nullptr) noexcept;
+
+	CBasePlayer* m_pPlayer{};
 };
 
 export struct CPhosphorus : public Prefab_t

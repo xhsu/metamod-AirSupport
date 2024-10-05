@@ -1,6 +1,7 @@
 ﻿import std;
 import hlsdk;
 
+import Configurations;
 import Jet;
 import Menu;
 import Message;
