@@ -493,23 +493,19 @@ static void fw_OnFreeEntPrivateData(edict_t *pEdict) noexcept
 {
 	gpMetaGlobals->mres = MRES_IGNORED;
 
-	if (gpMetaGlobals->prev_mres == MRES_SUPERCEDE)	// It had been handled by other similar plugins.
-		return;
-
-	auto const vft = *(decltype(gSelfModuleBase)*)pEdict->pvPrivateData;
-	// Is the RTTI store in my module?
-	if (vft < gSelfModuleBase || vft > (gSelfModuleBase + gSelfModuleSize))
+	if (gpMetaGlobals->prev_mres == MRES_SUPERCEDE	// It had been handled by other similar plugins.
+		|| !UTIL_IsLocalRtti(pEdict->pvPrivateData))
 		return;
 
 	[[likely]]
 	if (auto const pEntity = (CBaseEntity *)pEdict->pvPrivateData; pEntity != nullptr)
 	{
-		if (auto const pPrefab = dynamic_cast<Prefab_t *>(pEntity); pPrefab != nullptr) [[unlikely]]
+		if (auto const pPrefab = dynamic_cast<Prefab_t *>(pEntity); pPrefab != nullptr)
 		{
 			std::destroy_at(pPrefab);	// Thanks to C++17 we can finally patch up this old game.
 			gpMetaGlobals->mres = MRES_SUPERCEDE;
 		}
-		else if (auto const pNeoWpn = dynamic_cast<CPrefabWeapon*>(pEntity); pNeoWpn != nullptr) [[unlikely]]
+		else if (auto const pNeoWpn = dynamic_cast<CPrefabWeapon*>(pEntity); pNeoWpn != nullptr)
 		{
 			std::destroy_at(pNeoWpn);
 			gpMetaGlobals->mres = MRES_SUPERCEDE;
@@ -521,17 +517,22 @@ qboolean fw_ShouldCollide(edict_t *pentTouched, edict_t *pentOther) noexcept
 {
 	gpMetaGlobals->mres = MRES_IGNORED;
 
-	if (gpMetaGlobals->prev_mres == MRES_SUPERCEDE)
+	if (gpMetaGlobals->prev_mres == MRES_SUPERCEDE
+		|| pentTouched->pvPrivateData == nullptr
+		|| !UTIL_IsLocalRtti(pentTouched->pvPrivateData))
+	{
+		// this hacking is to get the original returning value...
 		return *(qboolean*)gpMetaGlobals->override_ret;
+	}
 
 	EHANDLE<CBaseEntity> pEntity(pentTouched);
 
-	if (auto const pPrefab = pEntity.As<Prefab_t>(); pPrefab) [[unlikely]]
+	if (auto const pPrefab = pEntity.As<Prefab_t>(); pPrefab)
 	{
 		gpMetaGlobals->mres = MRES_SUPERCEDE;
 		return pPrefab->ShouldCollide(pentOther);
 	}
-	else if (auto const pNeoWpn = pEntity.As<CPrefabWeapon>(); pNeoWpn) [[unlikely]]
+	else if (auto const pNeoWpn = pEntity.As<CPrefabWeapon>(); pNeoWpn)
 	{
 		gpMetaGlobals->mres = MRES_SUPERCEDE;
 		return pNeoWpn->ShouldCollide(pentOther);
