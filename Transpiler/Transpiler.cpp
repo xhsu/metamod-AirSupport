@@ -1,9 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-import studio;
+import std;
+import hlsdk;
 
 import Transpiler;
+
+using std::free;
+using std::calloc;
 
 void __stdcall AddSoundFromModel(const wchar_t* pszPath) noexcept
 {
@@ -21,11 +25,11 @@ void __stdcall AddSoundFromModel(const wchar_t* pszPath) noexcept
 		fread(pBuffer, iSize, 1, f);
 
 		auto const phdr = (studiohdr_t*)pBuffer;
-		auto const pseq = (mstudioseqdesc_t*)((byte*)pBuffer + phdr->seqindex);
+		auto const pseq = (mstudioseqdesc_t*)((std::byte*)pBuffer + phdr->seqindex);
 
-		for (auto i = 0; i < phdr->numseq; ++i)
+		for (unsigned i = 0; i < phdr->numseq; ++i)
 		{
-			auto const pevt = (mstudioevent_t*)((byte*)pBuffer + pseq[i].eventindex);	// still an offset from location '0' of the entire file
+			auto const pevt = (mstudioevent_t*)((std::byte*)pBuffer + pseq[i].eventindex);	// still an offset from location '0' of the entire file
 
 			for (auto j = 0; j < pseq[i].numevents; ++j)
 			{
