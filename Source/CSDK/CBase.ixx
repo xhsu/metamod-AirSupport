@@ -611,7 +611,7 @@ export enum EWeaponState
 	WPNSTATE_SHIELD_DRAWN = (1 << 5),
 };
 
-export enum Bullet
+export enum EBulletTypes
 {
 	BULLET_NONE,
 	BULLET_PLAYER_9MM,

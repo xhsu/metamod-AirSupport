@@ -7,13 +7,14 @@ export import CBase;
 
 using std::uint32_t;
 
-using PFN_ENTITYINIT = void (*)(entvars_t* pev) noexcept;
+export using PFN_ENTITYINIT = void (*)(entvars_t* pev) noexcept;
 
 export struct uranus_func_collection_t final
 {
-	std::uintptr_t m_iVersion = 2024'10'03;
+	std::uintptr_t m_iVersion = 2024'10'06;
 
 	CBaseEntity*	(__cdecl*		pfnCreate)					(const char* pszName, Vector const& vecOrigin, Angles const& vecAngles, edict_t* pentOwner) noexcept = nullptr;
+	void			(__fastcall*	pfnFireBullets)				(CBaseEntity* pThis, void* edx, unsigned long cShots, Vector vecSrc, Vector vecDirShooting, Vector vecSpread, float flDistance, EBulletTypes iBulletType, int iTracerFreq, int iDamage, entvars_t* pevAttacker) noexcept = nullptr;
 	Vector*			(__fastcall*	pfnFireBullets3)			(CBaseEntity* pThis, void* edx, Vector* pret, Vector vecSrc, Vector vecDirShooting, float flSpread, float flDistance, int iPenetration, int iBulletType, int iDamage, float flRangeModifier, entvars_t* pevAttacker, qboolean bPistol, int shared_rand) noexcept = nullptr;
 	void			(__thiscall*	pfnSUB_UseTargets)			(CBaseDelay* pObject, CBaseEntity* pActivator, USE_TYPE useType, float value) noexcept = nullptr;
 	qboolean		(__thiscall*	pfnDefaultDeploy)			(CBasePlayerWeapon* pWeapon, const char* szViewModel, const char* szWeaponModel, int iAnim, const char* szAnimExt, qboolean skiplocal) noexcept = nullptr;
@@ -22,6 +23,8 @@ export struct uranus_func_collection_t final
 	void			(__thiscall*	pfnDropShield)				(CBasePlayer* pPlayer, bool bCallDeploy) noexcept = nullptr;
 	bool			(__thiscall*	pfnCanPlayerBuy)			(CBasePlayer* pPlayer, bool bShowMessage) noexcept = nullptr;
 	void			(__thiscall*	pfnAddAccount)				(CBasePlayer* pPlayer, int32_t iAmount, bool bTrackChange) noexcept = nullptr;
+	void			(__thiscall*	pfnSelectItem)				(CBasePlayer* pPlayer, const char* pszItemName) noexcept = nullptr;
+	qboolean		(__fastcall*	pfnSwitchWeapon)			(CBasePlayer* pPlayer, std::uintptr_t, CBasePlayerItem* pWeapon) noexcept = nullptr;
 
 	void			(__cdecl*		pfnEmptyEntityHashTable)	(void) noexcept = nullptr;
 	void			(__cdecl*		pfnAddEntityHashValue)		(entvars_t* pev, const char* pszClassname, int32_t) noexcept = nullptr;
@@ -38,6 +41,7 @@ export struct uranus_func_collection_t final
 	void			(__cdecl*		pfnUTIL_PrecacheOtherWeapon)(const char* szClassname) noexcept = nullptr;
 	void			(__cdecl*		pfnWriteSigonMessages)		(void) noexcept = nullptr;
 	void			(__cdecl*		pfnCheckStartMoney)			(void) noexcept = nullptr;
+	void			(__cdecl*		pfnRadiusFlash)				(Vector vecSrc, entvars_t* pevInflictor, entvars_t* pevAttacker, float flDamage) noexcept = nullptr;
 
 	// hw.dll
 
@@ -265,6 +269,24 @@ export namespace Uranus
 		}
 	};
 
+	struct RadiusFlash final
+	{
+		static inline constexpr char MODULE[] = "mp.dll";
+		static inline constexpr char NAME[] = u8"::RadiusFlash";
+		static inline constexpr std::tuple PATTERNS
+		{
+			std::cref("\x90\x81\xEC\x2A\x2A\x2A\x2A\xD9\x84\x24\xE4\x00\x00\x00\xD8\x0D\x2A\x2A\x2A\x2A\x8D"),	// NEW
+			std::cref("\xCC\x55\x8B\xEC\x83\xE4\xF8\x81\xEC\x2A\x2A\x2A\x2A\xF3\x0F\x10\x45\x2A\x8D\x45\x08"),	// ANNIV
+		};
+		static inline constexpr std::ptrdiff_t DISPLACEMENT = 1;
+		static inline auto& pfn = gUranusCollection.pfnRadiusFlash;
+
+		inline auto operator()(Vector const& vecSrc, entvars_t* pevInflictor, entvars_t* pevAttacker, float flDamage) const noexcept
+		{
+			return pfn(vecSrc, pevInflictor, pevAttacker, flDamage);
+		}
+	};
+
 	namespace BaseEntity
 	{
 		struct Create final
@@ -285,6 +307,28 @@ export namespace Uranus
 			}
 		};
 
+		struct FireBullets final
+		{
+			static inline constexpr char MODULE[] = "mp.dll";
+			static inline constexpr char NAME[] = u8"::CBaseEntity::FireBullets";
+			static inline constexpr std::tuple PATTERNS
+			{
+				std::cref("\x90\x81\xEC\x2A\x2A\x2A\x2A\xA1\x2A\x2A\x2A\x2A\x53\x55\x8B\xE9\x8B\x48\x40\x8B\x50\x44\x89\x8C\x24\x8C\x00\x00\x00\x8B\x48\x48\x89\x94\x24\x90\x00\x00\x00"),	// NEW
+				std::cref("\xCC\x55\x8B\xEC\x83\xEC\x78\xA1\x2A\x2A\x2A\x2A\x53\x56\x57\xF3\x0F\x10\x40\x2A\x8B"),	// ANNIV
+			};
+			static inline constexpr std::ptrdiff_t DISPLACEMENT = 1;
+			static inline auto& pfn = gUranusCollection.pfnFireBullets;
+
+			inline auto operator() (CBaseEntity* pThis, unsigned long cShots, Vector const& vecSrc, Vector const& vecDirShooting, Vector const& vecSpread, float flDistance, EBulletTypes iBulletType, int iTracerFreq, int iDamage, entvars_t* pevAttacker) const noexcept
+			{
+				return pfn(
+					pThis, nullptr,
+					cShots, vecSrc, vecDirShooting, vecSpread, flDistance, iBulletType, iTracerFreq, iDamage,
+					pevAttacker
+				);
+			}
+		};
+
 		struct FireBullets3 final
 		{
 			static inline constexpr char MODULE[] = "mp.dll";
@@ -297,7 +341,7 @@ export namespace Uranus
 			static inline constexpr std::ptrdiff_t DISPLACEMENT = 1;
 			static inline auto& pfn = gUranusCollection.pfnFireBullets3;
 
-			inline Vector operator() (CBaseEntity* pThis, Vector vecSrc, Vector vecDirShooting, float flSpread, float flDistance, int iPenetration, int iBulletType, int iDamage, float flRangeModifier, entvars_t* pevAttacker, qboolean bPistol, int shared_rand) const noexcept
+			inline Vector operator() (CBaseEntity* pThis, Vector const& vecSrc, Vector const& vecDirShooting, float flSpread, float flDistance, int iPenetration, int iBulletType, int iDamage, float flRangeModifier, entvars_t* pevAttacker, qboolean bPistol, int shared_rand) const noexcept
 			{
 				Vector ret{};
 				pfn(
@@ -444,6 +488,42 @@ export namespace Uranus
 			inline auto operator() (CBasePlayer* pPlayer, int32_t iAmount, bool bTrackChange = true) const noexcept
 			{
 				return pfn(pPlayer, iAmount, bTrackChange);
+			}
+		};
+
+		struct SelectItem final
+		{
+			static inline constexpr char MODULE[] = "mp.dll";
+			static inline constexpr char NAME[] = u8"::CBasePlayer::SelectItem";
+			static inline constexpr std::tuple PATTERNS
+			{
+				std::cref("\x90\x8B\x44\x24\x04\x83\xEC\x14\x85\xC0\x53\x55\x56\x57\x8B\xE9\x0F\x84\x2A\x2A\x2A\x2A\x33"),	// NEW
+				std::cref("\xCC\x55\x8B\xEC\x83\xEC\x08\x53\x8B\x5D\x08\x57\x8B\xF9\x89\x7D\xF8\x85\xDB"),	// ANNIV
+			};
+			static inline constexpr std::ptrdiff_t DISPLACEMENT = 1;
+			static inline auto& pfn = gUranusCollection.pfnSelectItem;
+
+			inline auto operator() (CBasePlayer* pPlayer, const char* pszItemName) const noexcept
+			{
+				return pfn(pPlayer, pszItemName);
+			}
+		};
+
+		struct SwitchWeapon final	// ESP corruption? #INVESTIGATE
+		{
+			static inline constexpr char MODULE[] = "mp.dll";
+			static inline constexpr char NAME[] = u8"::CBasePlayer::SwitchWeapon";
+			static inline constexpr std::tuple PATTERNS
+			{
+				std::cref("\x90\x83\xEC\x0C\x56\x57\x8B\x7C\x24\x18\x8B\xF1\x8B\xCF\x8B\x07\xFF\x90\xF8\x00\x00\x00"),	// NEW
+				std::cref("\xCC\x55\x8B\xEC\x56\x57\x8B\x7D\x08\x8B\xF1\x8B\xCF\x8B\x07\xFF\x90"),	// ANNIV
+			};
+			static inline constexpr std::ptrdiff_t DISPLACEMENT = 1;
+			static inline auto& pfn = gUranusCollection.pfnSwitchWeapon;
+
+			inline auto operator() (CBasePlayer* pPlayer, CBasePlayerItem* pWeapon) const noexcept
+			{
+				return pfn(pPlayer, 0, pWeapon);
 			}
 		};
 	};

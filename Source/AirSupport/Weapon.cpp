@@ -26,7 +26,7 @@ import UtlRandom;
 
 // Hook Forwards
 
-void __fastcall OrpheuF_FireBullets(CBaseEntity *pThis, int edx, unsigned long cShots, Vector vecSrc, Vector vecDirShooting, Vector vecSpread, float flDistance, int iBulletType, int iTracerFreq, int iDamage, entvars_t *pevAttacker) noexcept
+void __fastcall OrpheuF_FireBullets(CBaseEntity *pThis, void* edx, unsigned long cShots, Vector vecSrc, Vector vecDirShooting, Vector vecSpread, float flDistance, EBulletTypes iBulletType, int iTracerFreq, int iDamage, entvars_t *pevAttacker) noexcept
 {
 	g_bIsSomeoneShooting = true;
 	HookInfo::FireBullets(pThis, edx, cShots, vecSrc, vecDirShooting, vecSpread, flDistance, iBulletType, iTracerFreq, iDamage, pevAttacker);
@@ -59,10 +59,29 @@ void __cdecl OrpheuF_W_Precache() noexcept
 
 void CRadio::Spawn() noexcept
 {
+	pev->classname = MAKE_STRING(this->CLASSNAME);
+
 	pev->effects |= EF_NODRAW;
 
 	m_iId = WEAPON_NIL;
 	m_fMaxSpeed = 250.f;
+
+	//g_engfuncs.pfnSetModel(edict(), Models::P_RADIO);
+
+	pev->nextthink = 0.1f;	// think forever.
+
+	//void CBasePlayerItem::FallInit(void)
+	{
+		//pev->movetype = MOVETYPE_TOSS;
+		pev->solid = SOLID_BBOX;	// LUNA: most of these are garbage from obsolete HL weapon system. But this pev->solid is for the sake of CBP::GiveNamedItem
+
+		//g_engfuncs.pfnSetOrigin(edict(), pev->origin);
+		//g_engfuncs.pfnSetSize(edict(), Vector(0, 0, 0), Vector(0, 0, 0));
+		SetTouch(&CBasePlayerItem::DefaultTouch);
+		//SetThink(&CBasePlayerItem::FallThink);
+
+		//pev->nextthink = gpGlobals->time + 0.1;
+	}
 }
 
 qboolean CRadio::GetItemInfo(ItemInfo* p) noexcept

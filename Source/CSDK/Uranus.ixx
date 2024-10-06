@@ -65,10 +65,11 @@ export namespace Uranus
 			TEXTURETYPE_PlaySound,
 			W_Precache, UTIL_PrecacheOther, UTIL_PrecacheOtherWeapon, WriteSigonMessages,
 			CheckStartMoney,
-			BaseEntity::Create, BaseEntity::FireBullets3,
+			RadiusFlash,
+			BaseEntity::Create, BaseEntity::FireBullets, BaseEntity::FireBullets3,
 			BaseDelay::SUB_UseTargets,
 			BaseWeapon::DefaultDeploy,
-			BasePlayer::HintMessage, BasePlayer::SetAnimation, BasePlayer::DropShield, BasePlayer::CanPlayerBuy, BasePlayer::AddAccount
+			BasePlayer::HintMessage, BasePlayer::SetAnimation, BasePlayer::DropShield, BasePlayer::CanPlayerBuy, BasePlayer::AddAccount, BasePlayer::SelectItem, BasePlayer::SwitchWeapon
 		>(bCrashIfNoFound);
 
 		UTIL_SearchPatterns<

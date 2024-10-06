@@ -32,11 +32,6 @@ namespace fs = ::std::filesystem;
 extern void Precache(void) noexcept;
 //
 
-// Weapon.cpp
-extern void __fastcall OrpheuF_FireBullets(CBaseEntity *pThis, int, unsigned long cShots, Vector vecSrc, Vector vecDirShooting, Vector vecSpread, float flDistance, int iBulletType, int iTracerFreq, int iDamage, entvars_t *pevAttacker) noexcept;
-extern Vector* __fastcall OrpheuF_FireBullets3(CBaseEntity* pThis, void* edx, Vector* pret, Vector vecSrc, Vector vecDirShooting, float flSpread, float flDistance, int iPenetration, int iBulletType, int iDamage, float flRangeModifier, entvars_t* pevAttacker, qboolean bPistol, int shared_rand) noexcept;
-//
-
 // Round.cpp
 extern void OrpheuF_CleanUpMap(CHalfLifeMultiplay *pThis) noexcept;
 //
@@ -69,34 +64,10 @@ static void DeployInlineHook() noexcept
 	if (bHooksPerformed)
 		return;
 
-	g_pfnRadiusFlash = (fnRadiusFlash_t)UTIL_SearchPattern("mp.dll", 1, RADIUS_FLASH_FN_NEW_PATTERN, RADIUS_FLASH_FN_ANNIV_PATTERN);
-	g_pfnSelectItem = (fnSelectItem_t)UTIL_SearchPattern("mp.dll", 1, SELECT_ITEM_FN_NEW_PATTERN, SELECT_ITEM_FN_ANNIV_PATTERN);
-	g_pfnSwitchWeapon = (fnSwitchWeapon_t)UTIL_SearchPattern("mp.dll", 1, SWITCH_WEAPON_FN_NEW_PATTERN, SWITCH_WEAPON_FN_ANNIV_PATTERN);
-	g_pfnFireBullets = (fnFireBullets_t)UTIL_SearchPattern("mp.dll", 1, FIRE_BULLETS_FN_NEW_PATTERN, FIRE_BULLETS_FN_ANNIV_PATTERN);
-
-#ifdef _DEBUG
-	assert(g_pfnRadiusFlash != nullptr);
-	assert(g_pfnSelectItem != nullptr);
-	assert(g_pfnSwitchWeapon != nullptr);
-	assert(g_pfnFireBullets != nullptr);
-#else
-	[[unlikely]]
-	if (!g_pfnRadiusFlash)
-		UTIL_Terminate("Function \"::RadiusFlash\" no found!");
-	[[unlikely]]
-	if (!g_pfnSelectItem)
-		UTIL_Terminate("Function \"CBasePlayer::SelectItem\" no found!");
-	[[unlikely]]
-	if (!g_pfnSwitchWeapon)
-		UTIL_Terminate("Function \"CBasePlayer::SwitchWeapon\" no found!");
-	[[unlikely]]
-	if (!g_pfnFireBullets)
-		UTIL_Terminate("Function \"CBaseEntity::FireBullets\" no found!");
-#endif
-
-	HookInfo::FireBullets.ApplyOn(g_pfnFireBullets);
+	HookInfo::FireBullets.ApplyOn(gUranusCollection.pfnFireBullets);
 	HookInfo::FireBullets3.ApplyOn(gUranusCollection.pfnFireBullets3);
 	HookInfo::W_Precache.ApplyOn(gUranusCollection.pfnW_Precache);
+	HookInfo::GetDispatch.ApplyOn(gUranusCollection.pfnGetDispatch);
 
 	bHooksPerformed = true;
 }
@@ -113,6 +84,17 @@ static void DeployConsoleCommand() noexcept
 	g_engfuncs.pfnAddServerCommand("airsupport_readjetspawn", &Waypoint_Read);
 
 	bRegistered = true;
+}
+
+// Linking metamod classname into engine.
+PFN_ENTITYINIT __cdecl OrpheuF_GetDispatch(char const* pszClassName) noexcept
+{
+	std::string_view const szClassName{ pszClassName };
+
+	if (szClassName == CRadio::CLASSNAME)
+		return &LINK_ENTITY_TO_CLASS<CRadio>;
+
+	return HookInfo::GetDispatch(pszClassName);
 }
 
 // Meta API

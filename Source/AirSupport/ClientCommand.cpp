@@ -22,9 +22,24 @@ META_RES OnClientCommand(CBasePlayer *pPlayer, const string &szCommand) noexcept
 	[[unlikely]]
 	if (bAlive && szCommand == "takeradio")
 	{
-		auto pRadio = Prefab_t::Create<CRadio>();
-		pRadio->DefaultTouch(pPlayer);
+		//auto pRadio = Prefab_t::Create<CRadio>();
+		//pRadio->DefaultTouch(pPlayer);
 
+		// This is just a modified version of CBP::GiveNamedItem()
+
+		auto const pEdict = g_engfuncs.pfnCreateNamedEntity(MAKE_STRING(CRadio::CLASSNAME));
+		pEdict->v.origin = pPlayer->pev->origin;
+		pEdict->v.spawnflags |= SF_NORESPAWN;
+
+		gpGamedllFuncs->dllapi_table->pfnSpawn(pEdict);
+
+		auto const iSolid = pEdict->v.solid;
+		gpGamedllFuncs->dllapi_table->pfnTouch(pEdict, pPlayer->edict());
+
+		if (iSolid != pEdict->v.solid)
+			return MRES_SUPERCEDE;
+
+		pEdict->v.flags |= FL_KILLME;
 		return MRES_SUPERCEDE;
 	}
 	else if (szCommand == "showmetargetorigin")

@@ -136,8 +136,8 @@ export struct console_variable_t final
 
 	constexpr cvar_t* Handle() const noexcept { return m_handle; }
 
-	constexpr decltype(auto) operator*() const noexcept { return *m_handle; }
-	constexpr decltype(auto) operator->() const noexcept { return m_handle; }
+	constexpr cvar_t& operator*() const noexcept { return *m_handle; }
+	constexpr cvar_t* operator->() const noexcept { return m_handle; }
 
 	// A bit dangerous, but necessary.
 	template <typename T> __forceinline

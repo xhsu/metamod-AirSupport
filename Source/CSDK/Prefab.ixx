@@ -14,6 +14,19 @@ export import VTFH;
 using std::list;
 using std::pair;
 
+
+// Use when hacking hw.dll::GetDispatch()
+export template <typename T>
+inline void LINK_ENTITY_TO_CLASS(entvars_t* pev) noexcept
+{
+	auto const pMemBlock =
+		g_engfuncs.pfnPvAllocEntPrivateData(pev->pContainingEntity, sizeof(T));	// allocate the memory from engine
+	new (pMemBlock) T{};														// "placement new"
+	auto const pPrefab = std::launder(reinterpret_cast<T*>(pMemBlock));			// object lifetime started.
+
+	pPrefab->pev = pev;
+}
+
 export template <typename T, typename... Tys>
 inline auto UTIL_CreateNamedPrefab(Tys&&... args) noexcept
 {
