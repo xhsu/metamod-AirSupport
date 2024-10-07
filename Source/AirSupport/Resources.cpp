@@ -272,6 +272,14 @@ void Precache(void) noexcept
 	std::ranges::for_each(Sprites::ROCKET_TRAIL_SMOKE, PrecacheSprite);
 	std::ranges::for_each(Sprites::GAS_EXPLO, PrecacheSprite);
 
+	// HUD
+
+#ifdef PACKING_RESOURCES
+	// According to ReHLDS, we have to take the ownership of this one.
+	static std::string const szHudTxtPath = std::format("sprites/{}.txt", HUD::RADIO);
+	g_engfuncs.pfnPrecacheGeneric(szHudTxtPath.c_str());
+#endif
+
 	// Decal
 
 	for (auto &&decal : Decal::GUNSHOT)

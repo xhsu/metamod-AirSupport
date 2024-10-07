@@ -3,3 +3,4 @@ EXPORTS
 	ReceiveCSharpFnPtr			@1
 	Precache					@2
 	AddSoundFromModel			@3
+	AddSpriteFromHud			@4

@@ -36,14 +36,33 @@ namespace AirSupportPublish
 			return m_rgszResources.Count;
 		}
 
+		[UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
+		public static int PrecacheGeneric(IntPtr psz)
+		{
+			var sz = Marshal.PtrToStringUTF8(psz);
+
+			if (sz is not null && !m_rgszResources.Contains(sz))
+			{
+				m_rgszResources.Add(sz);
+
+				if (sz.ToLower().StartsWith("sprites") && sz.ToLower().EndsWith("txt"))
+					AddSpriteFromHud(Path.Combine(Program.m_szResourceRootPath, sz));
+			}
+
+			return m_rgszResources.Count;
+		}
+
 		[DllImport("Transpiler.dll", EntryPoint = "ReceiveCSharpFnPtr", CharSet = CharSet.Auto, CallingConvention = CallingConvention.StdCall)]
-		public static extern void TranspilerInitialize(delegate* unmanaged[Cdecl]<IntPtr, int> pfnPrecacheModel, delegate* unmanaged[Cdecl]<IntPtr, int> pfnPrecacheSound);
+		public static extern void TranspilerInitialize(delegate* unmanaged[Cdecl]<IntPtr, int> pfnPrecacheModel, delegate* unmanaged[Cdecl]<IntPtr, int> pfnPrecacheSound, delegate* unmanaged[Cdecl]<IntPtr, int> pfnPrecacheGeneric);
 
 		[DllImport("Transpiler.dll", EntryPoint = "Precache", CharSet = CharSet.Auto, CallingConvention = CallingConvention.Cdecl)]
 		public static extern void ReadResourcePool();
 
 		[DllImport("Transpiler.dll", EntryPoint = "AddSoundFromModel", CharSet = CharSet.Auto, CallingConvention = CallingConvention.StdCall)]
 		public static extern void AddSoundFromModel(string szPath);
+
+		[DllImport("Transpiler.dll", EntryPoint = "AddSpriteFromHud", CharSet = CharSet.Auto, CallingConvention = CallingConvention.StdCall)]
+		public static extern void AddSpriteFromHud(string szPath);
 	}
 
 	unsafe internal class Program
@@ -60,9 +79,9 @@ namespace AirSupportPublish
 
 			m_szResourceRootPath = args[0];
 
-			Resources.TranspilerInitialize(&Resources.PrecacheModel, &Resources.PrecacheSound);
+			Resources.TranspilerInitialize(&Resources.PrecacheModel, &Resources.PrecacheSound, &Resources.PrecacheGeneric);
 			Resources.ReadResourcePool();
-			Resources.m_rgszResources.Sort();
+			Resources.m_rgszResources.Sort();	// Only needed if it's a List<>
 
 			Console.ForegroundColor = ConsoleColor.Cyan;
 			Console.WriteLine($"Resources Count: {Resources.m_rgszResources.Count}");
