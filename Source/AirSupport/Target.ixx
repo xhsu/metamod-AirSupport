@@ -14,7 +14,7 @@ export import Task.Const;
 // 2. When the angle is LEFT, the cross-product is therefore vecZero, which leads to no quaternion could be calculated.
 export inline constexpr Vector VEC_ALMOST_RIGHT{ 0.99999946, 0, 0.0010010005 };	// #UPDATE_AT_CPP26 constexpr math expanded
 
-export struct CDynamicTarget : public Prefab_t
+export struct CDynamicTarget : Prefab_t
 {
 	static inline constexpr char CLASSNAME[] = "info_dynamic_target";
 	static inline constexpr size_t BEACON_COUNT = 12;
@@ -68,7 +68,7 @@ export struct CDynamicTarget : public Prefab_t
 	inline constexpr auto m_bShowArror() noexcept -> qboolean& { return m_rgBodyInfo[2].m_index; }
 };
 
-export struct CFixedTarget : public Prefab_t
+export struct CFixedTarget : Prefab_t
 {
 	static inline constexpr char CLASSNAME[] = "info_fixed_target";
 	static inline mstudiobonecontroller_t &ARROW_CONTROLLER{ CDynamicTarget::ARROW_CONTROLLER }, &MINIATURE_CONTROLLER{ CDynamicTarget::MINIATURE_CONTROLLER };
