@@ -174,7 +174,7 @@ export namespace TaskScheduler
 	inline TaskScheduler_t m_GlobalScheduler{};
 
 	// StartFrame_Post
-	inline decltype(auto) Think(void) noexcept { return m_GlobalScheduler.Think(); }
+	inline auto Think(void) noexcept -> decltype(m_GlobalScheduler.Think()) { return m_GlobalScheduler.Think(); }
 
 	inline decltype(auto) Enroll(Task &&obj, uint64_t iCoroutineMarker = 0ull, bool bExclusiveMode = false, bool bUsingBits = true) noexcept { return m_GlobalScheduler.Enroll(std::forward<Task>(obj), iCoroutineMarker, bExclusiveMode, bUsingBits); }
 
@@ -185,7 +185,7 @@ export namespace TaskScheduler
 	inline decltype(auto) Exist(uint64_t iCoroutineMarker, bool bUsingBits = true) noexcept { return m_GlobalScheduler.Exist(iCoroutineMarker, bUsingBits); }
 
 	// ServerDeactivate_Post
-	inline decltype(auto) Clear(void) noexcept { return m_GlobalScheduler.Clear(); }
+	inline auto Clear(void) noexcept -> decltype(m_GlobalScheduler.Clear()) { return m_GlobalScheduler.Clear(); }
 };
 
 export namespace TaskScheduler::NextFrame

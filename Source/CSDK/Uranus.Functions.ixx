@@ -17,7 +17,7 @@ export struct uranus_func_collection_t final
 	void			(__fastcall*	pfnFireBullets)				(CBaseEntity* pThis, void* edx, unsigned long cShots, Vector vecSrc, Vector vecDirShooting, Vector vecSpread, float flDistance, EBulletTypes iBulletType, int iTracerFreq, int iDamage, entvars_t* pevAttacker) noexcept = nullptr;
 	Vector*			(__fastcall*	pfnFireBullets3)			(CBaseEntity* pThis, void* edx, Vector* pret, Vector vecSrc, Vector vecDirShooting, float flSpread, float flDistance, int iPenetration, int iBulletType, int iDamage, float flRangeModifier, entvars_t* pevAttacker, qboolean bPistol, int shared_rand) noexcept = nullptr;
 	void			(__thiscall*	pfnSUB_UseTargets)			(CBaseDelay* pObject, CBaseEntity* pActivator, USE_TYPE useType, float value) noexcept = nullptr;
-	qboolean		(__thiscall*	pfnDefaultDeploy)			(CBasePlayerWeapon* pWeapon, const char* szViewModel, const char* szWeaponModel, int iAnim, const char* szAnimExt, qboolean skiplocal) noexcept = nullptr;
+	qboolean		(__fastcall*	pfnDefaultDeploy)			(CBasePlayerWeapon* pWeapon, std::uintptr_t, const char* szViewModel, const char* szWeaponModel, int iAnim, const char* szAnimExt, qboolean skiplocal) noexcept = nullptr;
 	bool			(__thiscall*	pfnHintMessage)				(CBasePlayer* pPlayer, const char* pMessage, qboolean bDisplayIfDead, qboolean bOverrideClientSettings) noexcept = nullptr;
 	void			(__fastcall*	pfnSetAnimation)			(CBasePlayer* pPlayer, std::intptr_t, PLAYER_ANIM playerAnim) noexcept = nullptr;
 	void			(__thiscall*	pfnDropShield)				(CBasePlayer* pPlayer, bool bCallDeploy) noexcept = nullptr;
@@ -400,7 +400,7 @@ export namespace Uranus
 
 			inline auto operator() (CBasePlayerWeapon* pWeapon, const char* szViewModel, const char* szWeaponModel, int iAnim, const char* szAnimExt, bool skiplocal) const noexcept
 			{
-				return pfn(pWeapon, szViewModel, szWeaponModel, iAnim, szAnimExt, skiplocal);
+				return pfn(pWeapon, 0, szViewModel, szWeaponModel, iAnim, szAnimExt, skiplocal);
 			}
 		};
 	}

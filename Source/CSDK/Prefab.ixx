@@ -51,23 +51,22 @@ inline auto UTIL_CreateNamedPrefab(Tys&&... args) noexcept
 	return pair{ pEdict, pPrefab };
 }
 
-export struct Prefab_t : public CBaseEntity
+export struct CBaseInjection : public CBaseEntity
 {
-	// Patch the loose end.
-	Prefab_t(void) noexcept = default;
-	Prefab_t(const Prefab_t &) noexcept = delete;
-	Prefab_t(Prefab_t &&) noexcept = delete;
-	Prefab_t &operator=(const Prefab_t &) noexcept = delete;
-	Prefab_t &operator=(Prefab_t &&) noexcept = delete;
-	virtual ~Prefab_t() noexcept = default;
+	CBaseInjection(void) noexcept = default;
+	CBaseInjection(const CBaseInjection&) noexcept = delete;
+	CBaseInjection(CBaseInjection&&) noexcept = delete;
+	CBaseInjection& operator=(const CBaseInjection&) noexcept = delete;
+	CBaseInjection& operator=(CBaseInjection&&) noexcept = delete;
+	// Still no destructor.
 
 	// Define all missing function from our pure virtual class.
 	void Spawn() noexcept override {}
 	void Precache() noexcept override {}
-	void Restart() noexcept override { m_Scheduler.Clear(); }
-	void KeyValue(KeyValueData *pkvd) noexcept override { pkvd->fHandled = false; }
-	int Save(void *save) noexcept override { return 0; }
-	int Restore(void *restore) noexcept override { return 0; }
+	void Restart() noexcept override {}
+	void KeyValue(KeyValueData* pkvd) noexcept override { pkvd->fHandled = false; }
+	int Save(void* save) noexcept override { return 0; }
+	int Restore(void* restore) noexcept override { return 0; }
 	int ObjectCaps() noexcept override { return FCAP_ACROSS_TRANSITION; }
 	void Activate() noexcept override {}
 
@@ -83,13 +82,13 @@ export struct Prefab_t : public CBaseEntity
 			max = 0;
 			for (i = 0; i < 3; i++)
 			{
-				v = abs(double(((float *)pev->mins)[i]));
+				v = abs(double(((float*)pev->mins)[i]));
 				if (v > max)
 				{
 					max = v;
 				}
 
-				v = abs(double(((float *)pev->maxs)[i]));
+				v = abs(double(((float*)pev->maxs)[i]));
 				if (v > max)
 				{
 					max = v;
@@ -97,8 +96,8 @@ export struct Prefab_t : public CBaseEntity
 			}
 			for (i = 0; i < 3; i++)
 			{
-				((float *)pev->absmin)[i] = ((float *)pev->origin)[i] - (float)max;
-				((float *)pev->absmax)[i] = ((float *)pev->origin)[i] + (float)max;
+				((float*)pev->absmin)[i] = ((float*)pev->origin)[i] - (float)max;
+				((float*)pev->absmax)[i] = ((float*)pev->origin)[i] + (float)max;
 			}
 		}
 		else
@@ -120,9 +119,9 @@ export struct Prefab_t : public CBaseEntity
 	// still realize that they are teammates. (overridden for monsters that form groups)
 	int Classify() noexcept override { return CLASS_NONE; }
 
-	void DeathNotice(entvars_t *pevChild) noexcept override {}
-	void TraceAttack(entvars_t *pevAttacker, float flDamage, Vector vecDir, TraceResult *ptr, int bitsDamageType) noexcept override { return g_pfnEntityTraceAttack(this, pevAttacker, flDamage, vecDir, ptr, bitsDamageType); }
-	qboolean TakeDamage(entvars_t *pevInflictor, entvars_t *pevAttacker, float flDamage, int bitsDamageType) noexcept override { return g_pfnEntityTakeDamage(this, pevInflictor, pevAttacker, flDamage, bitsDamageType); }
+	void DeathNotice(entvars_t* pevChild) noexcept override {}
+	void TraceAttack(entvars_t* pevAttacker, float flDamage, Vector vecDir, TraceResult* ptr, int bitsDamageType) noexcept override { return g_pfnEntityTraceAttack(this, pevAttacker, flDamage, vecDir, ptr, bitsDamageType); }
+	qboolean TakeDamage(entvars_t* pevInflictor, entvars_t* pevAttacker, float flDamage, int bitsDamageType) noexcept override { return g_pfnEntityTakeDamage(this, pevInflictor, pevAttacker, flDamage, bitsDamageType); }
 	qboolean TakeHealth(float flHealth, int bitsDamageType) noexcept override
 	{
 		if (pev->takedamage == DAMAGE_NO)
@@ -140,18 +139,18 @@ export struct Prefab_t : public CBaseEntity
 
 		return true;
 	}
-	void Killed(entvars_t *pevAttacker, int iGib) noexcept override { return g_pfnEntityKilled(this, pevAttacker, iGib); }
+	void Killed(entvars_t* pevAttacker, int iGib) noexcept override { return g_pfnEntityKilled(this, pevAttacker, iGib); }
 	int BloodColor() noexcept override { return DONT_BLEED; }
-	void TraceBleed(float flDamage, Vector vecDir, TraceResult *ptr, int bitsDamageType) noexcept override { return g_pfnEntityTraceBleed(this, flDamage, vecDir, ptr, bitsDamageType); }
-	qboolean IsTriggered(CBaseEntity *pActivator) noexcept override { return true; }
-	CBaseMonster *MyMonsterPointer() noexcept override { return nullptr; }
-	void *MySquadMonsterPointer() noexcept override { return nullptr; }
+	void TraceBleed(float flDamage, Vector vecDir, TraceResult* ptr, int bitsDamageType) noexcept override { return g_pfnEntityTraceBleed(this, flDamage, vecDir, ptr, bitsDamageType); }
+	qboolean IsTriggered(CBaseEntity* pActivator) noexcept override { return true; }
+	CBaseMonster* MyMonsterPointer() noexcept override { return nullptr; }
+	void* MySquadMonsterPointer() noexcept override { return nullptr; }
 	int GetToggleState() noexcept override { return TS_AT_TOP; }
 	void AddPoints(int score, qboolean bAllowNegativeScore) noexcept override {}
 	void AddPointsToTeam(int score, qboolean bAllowNegativeScore) noexcept override {}
-	qboolean AddPlayerItem(CBasePlayerItem *pItem) noexcept override { return false; }
-	qboolean RemovePlayerItem(CBasePlayerItem *pItem) noexcept override { return false; }
-	int GiveAmmo(int iAmount, char *szName, int iMax = -1) noexcept override { return -1; }
+	qboolean AddPlayerItem(CBasePlayerItem* pItem) noexcept override { return false; }
+	qboolean RemovePlayerItem(CBasePlayerItem* pItem) noexcept override { return false; }
+	int GiveAmmo(int iAmount, char* szName, int iMax = -1) noexcept override { return -1; }
 	float GetDelay() noexcept override { return 0.0f; }
 	int IsMoving() noexcept override { return (pev->velocity != Vector::Zero()); }
 	void OverrideReset() noexcept override {}
@@ -160,11 +159,11 @@ export struct Prefab_t : public CBaseEntity
 	// This is ONLY used by the node graph to test movement through a door
 	void SetToggleState(int state) noexcept override {}
 
-	// LUNA: Totally unused. Swap to others?
+	// LUNA: Totally unused. ReGameDLL repurposed them.
 	void StartSneaking() noexcept override {}
 	void StopSneaking() noexcept override {}
 
-	qboolean OnControls(entvars_t *onpev) noexcept override { return false; }
+	qboolean OnControls(entvars_t* onpev) noexcept override { return false; }
 	qboolean IsSneaking() noexcept override { return false; }
 	qboolean IsAlive() noexcept override { return (pev->deadflag == DEAD_NO && pev->health > 0.0f); }
 	qboolean IsBSPModel() noexcept override { return (pev->solid == SOLID_BSP || pev->movetype == MOVETYPE_PUSHSTEP); }
@@ -196,26 +195,26 @@ export struct Prefab_t : public CBaseEntity
 	}
 	qboolean IsPlayer() noexcept override { return false; }
 	qboolean IsNetClient() noexcept override { return false; }
-	const char *TeamID() noexcept override { return ""; }
-	CBaseEntity *GetNextTarget() noexcept override { return g_pfnEntityGetNextTarget(this); }
-	void Think() noexcept final { m_Scheduler.Think(); pev->nextthink = 0.1f; }	// ensure the think can never be block by child classes.
-	void Touch(CBaseEntity *pOther) noexcept override { if (m_pfnTouch) (this->*m_pfnTouch)(pOther); }
-	void Use(CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType = USE_OFF, float value = 0.0f) noexcept override { if (m_pfnUse) (this->*m_pfnUse)(pActivator, pCaller, useType, value); }
-	void Blocked(CBaseEntity *pOther) noexcept override { if (m_pfnBlocked) (this->*m_pfnBlocked)(pOther); }
-	CBaseEntity *Respawn() noexcept override { return nullptr; }
+	const char* TeamID() noexcept override { return ""; }
+	CBaseEntity* GetNextTarget() noexcept override { return g_pfnEntityGetNextTarget(this); }
+	void Think() noexcept override { if (m_pfnThink) (this->*m_pfnThink)(); }
+	void Touch(CBaseEntity* pOther) noexcept override { if (m_pfnTouch) (this->*m_pfnTouch)(pOther); }
+	void Use(CBaseEntity* pActivator, CBaseEntity* pCaller, USE_TYPE useType = USE_OFF, float value = 0.0f) noexcept override { if (m_pfnUse) (this->*m_pfnUse)(pActivator, pCaller, useType, value); }
+	void Blocked(CBaseEntity* pOther) noexcept override { if (m_pfnBlocked) (this->*m_pfnBlocked)(pOther); }
+	CBaseEntity* Respawn() noexcept override { return nullptr; }
 
 	// used by monsters that are created by the MonsterMaker
 	void UpdateOwner() noexcept override {}
 	qboolean FBecomeProne() noexcept override { return false; }
 
-	Vector Center() noexcept override { return (pev->absmax + pev->absmin) * 0.5f; }		// center point of entity
-	Vector EyePosition() noexcept override { return (pev->origin + pev->view_ofs); }		// position of eyes
-	Vector EarPosition() noexcept override { return (pev->origin + pev->view_ofs); }		// position of ears
-	Vector BodyTarget(const Vector &posSrc) noexcept override { return Center(); }		// position to shoot at
+	Vector Center() noexcept override { return (pev->absmax + pev->absmin) * 0.5f; }	// center point of entity
+	Vector EyePosition() noexcept override { return (pev->origin + pev->view_ofs); }	// position of eyes
+	Vector EarPosition() noexcept override { return (pev->origin + pev->view_ofs); }	// position of ears
+	Vector BodyTarget(const Vector& posSrc) noexcept override { return Center(); }		// position to shoot at
 
 	int Illumination() noexcept override { return g_engfuncs.pfnGetEntityIllum(edict()); }
 
-	qboolean FVisible(CBaseEntity *pEntity) noexcept override
+	qboolean FVisible(CBaseEntity* pEntity) noexcept override
 	{
 		if (pEntity->pev->flags & FL_NOTARGET)
 			return false;
@@ -229,7 +228,7 @@ export struct Prefab_t : public CBaseEntity
 		auto const vecTargetOrigin = pEntity->EyePosition();
 
 		TraceResult tr{};
-		g_engfuncs.pfnTraceLine(vecLookerOrigin, vecTargetOrigin, ignore_monsters|ignore_glass, edict(), &tr);
+		g_engfuncs.pfnTraceLine(vecLookerOrigin, vecTargetOrigin, ignore_monsters | ignore_glass, edict(), &tr);
 
 		if (tr.flFraction != 1.0f)
 		{
@@ -242,13 +241,13 @@ export struct Prefab_t : public CBaseEntity
 			return true;
 		}
 	}
-	qboolean FVisible(const Vector &vecOrigin) noexcept override
+	qboolean FVisible(const Vector& vecOrigin) noexcept override
 	{
 		//look through the caller's 'eyes'
 		auto const vecLookerOrigin = EyePosition();
 
 		TraceResult tr{};
-		g_engfuncs.pfnTraceLine(vecLookerOrigin, vecOrigin, ignore_monsters|ignore_glass, edict(), &tr);
+		g_engfuncs.pfnTraceLine(vecLookerOrigin, vecOrigin, ignore_monsters | ignore_glass, edict(), &tr);
 
 		if (tr.flFraction != 1.0f)
 		{
@@ -261,6 +260,23 @@ export struct Prefab_t : public CBaseEntity
 			return true;
 		}
 	}
+
+};
+
+export struct Prefab_t : public CBaseInjection
+{
+	// Patch the loose end.
+	Prefab_t(void) noexcept = default;
+	Prefab_t(const Prefab_t &) noexcept = delete;
+	Prefab_t(Prefab_t &&) noexcept = delete;
+	Prefab_t &operator=(const Prefab_t &) noexcept = delete;
+	Prefab_t &operator=(Prefab_t &&) noexcept = delete;
+	virtual ~Prefab_t() noexcept = default;	// Extended.
+
+	void Restart() noexcept override { m_Scheduler.Clear(); }
+
+	void Think() noexcept final { m_Scheduler.Think(); pev->nextthink = 0.1f; }	// ensure the think can never be block by child classes.
+
 
 	// LUNA: Extended Virtual Funcs: Be adviced that original CBaseEntity does not containing these!
 	virtual bool ShouldCollide(EHANDLE<CBaseEntity> pOther) noexcept { return true; }

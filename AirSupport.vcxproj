@@ -173,6 +173,7 @@ start Enforcer.exe</Command>
     <ClCompile Include="Source\AirSupport\Round.ixx" />
     <ClCompile Include="Source\AirSupport\Target.cpp" />
     <ClCompile Include="Source\AirSupport\Target.ixx" />
+    <ClCompile Include="Source\CSDK\SaveRestore.ixx" />
     <ClCompile Include="Source\CSDK\Sprite.ixx" />
     <ClCompile Include="Source\CSDK\Models.ixx" />
     <ClCompile Include="Source\CSDK\Task.ixx" />

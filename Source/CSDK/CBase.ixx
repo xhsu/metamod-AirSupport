@@ -1602,3 +1602,32 @@ public:
 	int m_iBounceCount;
 	qboolean m_fRegisteredSound;
 };
+
+export class CWeaponBox : public CBaseEntity
+{
+public:
+	void Spawn(void) noexcept override = 0;
+	void Precache(void) noexcept override = 0;
+	void KeyValue(KeyValueData* pkvd) noexcept override = 0;
+	int Save(void* save) noexcept override = 0;
+	int Restore(void* restore) noexcept override = 0;
+	void Touch(CBaseEntity* pOther) noexcept override = 0;
+	void SetObjectCollisionBox(void) noexcept override = 0;
+
+//public:
+//	BOOL IsEmpty(void);
+//	int GiveAmmo(int iCount, char* szName, int iMax, int* pIndex = NULL);
+//	void EXPORT Kill(void);
+//	BOOL HasWeapon(CBasePlayerItem* pCheckItem);
+//	BOOL PackWeapon(CBasePlayerItem* pWeapon);
+//	BOOL PackAmmo(int iszName, int iCount);
+
+//public:
+//	static TYPEDESCRIPTION m_SaveData[];
+
+public:
+	CBasePlayerItem* m_rgpPlayerItems[MAX_ITEM_TYPES];
+	int m_rgiszAmmo[MAX_AMMO_SLOTS];
+	int m_rgAmmo[MAX_AMMO_SLOTS];
+	int m_cAmmoTypes;
+};

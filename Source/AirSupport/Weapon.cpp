@@ -293,7 +293,7 @@ Task CRadio::Task_Deploy() noexcept
 	if (m_pPlayer->m_bOwnsShield)
 		m_pPlayer->pev->gamestate = 1;	// pause shield protection
 
-	gUranusCollection.pfnDefaultDeploy(this,
+	Uranus::BaseWeapon::DefaultDeploy{}(this,
 		Models::V_RADIO, Models::P_RADIO, (int)Models::v_radio::seq::draw,
 		"knife", false
 	);	// Enforce to play the anim.

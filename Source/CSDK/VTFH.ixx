@@ -13,6 +13,7 @@ export inline constexpr size_t VFTIDX_CBASE_KILLED = 14;
 export inline constexpr size_t VFTIDX_CBASE_TRACEBLEED = 16;
 export inline constexpr size_t VFTIDX_CBASE_DAMAGEDECAL = 29;
 export inline constexpr size_t VFTIDX_CBASE_GETNEXTTARGET = 43;
+export inline constexpr size_t VFTIDX_CBASE_TOUCH = 45;
 
 export using fnEntityTraceAttack_t = void(__thiscall*)(CBaseEntity*, entvars_t* pevAttacker, float flDamage, Vector vecDir, TraceResult* ptr, int bitsDamageType) noexcept;
 export using fnEntityTakeDamage_t = qboolean(__thiscall*)(CBaseEntity*, entvars_t* pevInflictor, entvars_t* pevAttacker, float flDamage, int bitsDamageType) noexcept;
@@ -20,6 +21,7 @@ export using fnEntityKilled_t = void(__thiscall*)(CBaseEntity*, entvars_t* pevAt
 export using fnEntityTraceBleed_t = void(__thiscall*)(CBaseEntity*, float flDamage, Vector vecDir, TraceResult* ptr, int bitsDamageType) noexcept;
 export using fnEntityDamageDecal_t = int(__thiscall*)(CBaseEntity*, int bitsDamageType) noexcept;
 export using fnEntityGetNextTarget_t = CBaseEntity * (__thiscall*)(CBaseEntity*) noexcept;
+export using fnEntityTouch_t = void(__thiscall*)(CBaseEntity*, CBaseEntity*) noexcept;
 
 export inline fnEntityTraceAttack_t g_pfnEntityTraceAttack = nullptr;
 export inline fnEntityTakeDamage_t g_pfnEntityTakeDamage = nullptr;
