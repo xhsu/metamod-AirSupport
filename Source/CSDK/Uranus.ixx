@@ -69,7 +69,7 @@ export namespace Uranus
 			BaseEntity::Create, BaseEntity::FireBullets, BaseEntity::FireBullets3,
 			BaseDelay::SUB_UseTargets,
 			BaseWeapon::DefaultDeploy,
-			BasePlayer::HintMessage, BasePlayer::SetAnimation, BasePlayer::DropShield, BasePlayer::CanPlayerBuy, BasePlayer::AddAccount, BasePlayer::SelectItem, BasePlayer::SwitchWeapon
+			BasePlayer::HintMessage, BasePlayer::SetAnimation, BasePlayer::DropShield, BasePlayer::CanPlayerBuy, BasePlayer::AddAccount, BasePlayer::SelectItem, BasePlayer::SwitchWeapon, BasePlayer::DropPlayerItem
 		>(bCrashIfNoFound);
 
 		UTIL_SearchPatterns<

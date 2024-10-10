@@ -11,7 +11,7 @@ export using PFN_ENTITYINIT = void (*)(entvars_t* pev) noexcept;
 
 export struct uranus_func_collection_t final
 {
-	std::uintptr_t m_iVersion = 2024'10'06;
+	std::uintptr_t m_iVersion = 2024'10'10;
 
 	CBaseEntity*	(__cdecl*		pfnCreate)					(const char* pszName, Vector const& vecOrigin, Angles const& vecAngles, edict_t* pentOwner) noexcept = nullptr;
 	void			(__fastcall*	pfnFireBullets)				(CBaseEntity* pThis, void* edx, unsigned long cShots, Vector vecSrc, Vector vecDirShooting, Vector vecSpread, float flDistance, EBulletTypes iBulletType, int iTracerFreq, int iDamage, entvars_t* pevAttacker) noexcept = nullptr;
@@ -25,6 +25,7 @@ export struct uranus_func_collection_t final
 	void			(__thiscall*	pfnAddAccount)				(CBasePlayer* pPlayer, int32_t iAmount, bool bTrackChange) noexcept = nullptr;
 	void			(__thiscall*	pfnSelectItem)				(CBasePlayer* pPlayer, const char* pszItemName) noexcept = nullptr;
 	qboolean		(__fastcall*	pfnSwitchWeapon)			(CBasePlayer* pPlayer, std::uintptr_t, CBasePlayerItem* pWeapon) noexcept = nullptr;
+	void			(__fastcall*	pfnDropPlayerItem)			(CBasePlayer* pPlayer, std::uintptr_t, char const* pszItemName) noexcept = nullptr;
 
 	void			(__cdecl*		pfnEmptyEntityHashTable)	(void) noexcept = nullptr;
 	void			(__cdecl*		pfnAddEntityHashValue)		(entvars_t* pev, const char* pszClassname, int32_t) noexcept = nullptr;
@@ -530,6 +531,24 @@ export namespace Uranus
 			inline auto operator() (CBasePlayer* pPlayer, CBasePlayerItem* pWeapon) const noexcept
 			{
 				return pfn(pPlayer, 0, pWeapon);
+			}
+		};
+
+		struct DropPlayerItem final
+		{
+			static inline constexpr char MODULE[] = "mp.dll";
+			static inline constexpr char NAME[] = u8"::CBasePlayer::DropPlayerItem";
+			static inline constexpr std::tuple PATTERNS
+			{
+				std::cref("\x90\x83\xEC\x24\x33\xC0\x53\x55\x56\x8B\x74\x24\x34\x57\x8B\xD9\x8B\xFE"),	// 8684
+				std::cref("\xCC\x55\x8B\xEC\x8B\x55\x08\x83\xEC\x1C\x53\x8B\xD9\x8B\xCA\x56\x8D\x71\x01"),	// 9920
+			};
+			static inline constexpr std::ptrdiff_t DISPLACEMENT = 1;
+			static inline auto& pfn = gUranusCollection.pfnDropPlayerItem;
+
+			inline auto operator() (CBasePlayer* pPlayer, char const* pszItemName) const noexcept
+			{
+				return pfn(pPlayer, 0, pszItemName);
 			}
 		};
 	};
