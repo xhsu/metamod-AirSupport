@@ -759,7 +759,7 @@ public:
 //	void EXPORT LinearMoveDone(void);
 //	void AngularMove(Vector vecDestAngle, float flSpeed);
 //	void EXPORT AngularMoveDone(void);
-//	BOOL IsLockedByMaster(void);
+//	qboolean IsLockedByMaster(void);
 
 //public:
 //	static float AxisValue(int flags, const Vector &angles);
@@ -916,9 +916,9 @@ public:
 //public:
 //	void MakeIdealYaw(Vector vecTarget)override;
 //	Activity GetSmallFlinchActivity(void)override;
-//	BOOL ShouldGibMonster(int iGib)override;
+//	qboolean ShouldGibMonster(int iGib)override;
 //	void CallGibMonster(void)override;
-//	BOOL FCheckAITrigger(void)override;
+//	qboolean FCheckAITrigger(void)override;
 //	int DeadTakeDamage(entvars_t *pevInflictor, entvars_t *pevAttacker, float flDamage, int bitsDamageType)override;
 //	float DamageForce(float damage)override;
 //	void RadiusDamage(entvars_t *pevInflictor, entvars_t *pevAttacker, float flDamage, int iClassIgnore, int bitsDamageType)override;
@@ -1630,4 +1630,114 @@ public:
 	int m_rgiszAmmo[MAX_AMMO_SLOTS];
 	int m_rgAmmo[MAX_AMMO_SLOTS];
 	int m_cAmmoTypes;
+};
+
+export class CHostage : public CBaseMonster
+{
+public:
+	void Spawn() override = 0;
+	void Precache() override = 0;
+	int ObjectCaps() override = 0;		// make hostage "useable"
+	int Classify()  override = 0;
+	void TraceAttack(entvars_t* pevAttacker, float flDamage, Vector vecDir, TraceResult* ptr, int bitsDamageType) override = 0;
+	qboolean TakeDamage(entvars_t* pevInflictor, entvars_t* pevAttacker, float flDamage, int bitsDamageType) override = 0;
+	int BloodColor() override = 0;
+
+#ifndef REGAMEDLL_FIXES
+	qboolean IsAlive() override = 0;
+#endif
+
+	void Touch(CBaseEntity* pOther) override = 0;
+	void Use(CBaseEntity* pActivator, CBaseEntity* pCaller, USE_TYPE useType, float value) override = 0;
+
+public:
+	//void EXPORT IdleThink();
+	//void EXPORT Remove();
+	//void RePosition();
+	//void SetActivity(Activity act);
+	//Activity GetActivity() { return m_Activity; }
+	//float GetModifiedDamage(float flDamage, int nHitGroup);
+	//void SetFlinchActivity();
+	//void SetDeathActivity();
+	//void PlayPainSound();
+	//void PlayFollowRescueSound();
+	//void AnnounceDeath(CBasePlayer* pAttacker);
+	//void ApplyHostagePenalty(CBasePlayer* pAttacker);
+	//void GiveCTTouchBonus(CBasePlayer* pPlayer);
+	//void SendHostagePositionMsg();
+	//void SendHostageEventMsg();
+	//void DoFollow();
+	//BOOL IsOnLadder();
+	//void PointAt(const Vector& vecLoc);
+	//void MoveToward(const Vector& vecLoc);
+	//void NavReady();
+	//void Wiggle();
+	//void PreThink();
+	//bool CanTakeDamage(entvars_t* pevAttacker);
+
+	// queries
+	//bool IsFollowingSomeone() noexcept { return IsFollowing(); }
+	//CBaseEntity* GetLeader()				// return our leader, or NULL
+	//{
+	//	if (m_improv) {
+	//		return m_improv->GetFollowLeader();
+	//	}
+
+	//	return m_hTargetEnt;
+	//}
+	//bool IsFollowing(const CBaseEntity* pEntity = nullptr)
+	//{
+	//	if (m_improv) {
+	//		return m_improv->IsFollowing(pEntity);
+	//	}
+
+	//	if ((!pEntity && !m_hTargetEnt) || (pEntity && m_hTargetEnt != pEntity))
+	//		return false;
+
+	//	if (m_State != FOLLOW)
+	//		return false;
+
+	//	return true;
+	//}
+
+	bool IsValid()  const noexcept { return (pev->takedamage == DAMAGE_YES); }
+	bool IsDead()   const noexcept { return (pev->deadflag == DEAD_DEAD); }
+	bool IsAtHome() const noexcept { return (pev->origin - m_vStart).LengthSquared() < (20.0 * 20.0); }
+	auto GetHomePosition() const noexcept -> Vector const& { return m_vStart; }
+
+public:
+	Activity m_Activity;	// Missing from ReGameDLL
+	qboolean m_bTouched;
+	qboolean m_bRescueMe;
+	float m_flFlinchTime;
+	float m_flNextChange;
+	float m_flMarkPosition;
+	int m_iModel;
+	int m_iSkin;
+	float m_flNextRadarTime;
+	enum state { FOLLOW, STAND, DUCK, SCARED, IDLE, FOLLOWPATH };
+	state m_State;
+	Vector m_vStart;
+	Vector m_vStartAngles;
+	Vector m_vPathToFollow[20];	// MAX_HOSTAGES_NAV
+	int m_iWaypoint;
+	CBasePlayer* m_target;
+	void* m_LocalNav;	// CLocalNav*
+	int m_nTargetNode;
+	Vector vecNodes[100];	// MAX_NODES
+	EHANDLE<CBasePlayer> m_hStoppedTargetEnt;
+	float m_flNextFullThink;
+	float m_flPathCheckInterval;
+	float m_flLastPathCheck;
+	int m_nPathNodes;
+	qboolean m_fHasPath;
+	float m_flPathAcquired;
+	Vector m_vOldPos;
+	int m_iHostageIndex;
+	qboolean m_bStuck;
+	float m_flStuckTime;
+	void* m_improv;	// CHostageImprov*
+
+	enum ModelType { REGULAR_GUY, OLD_GUY, BLACK_GUY, GOOFY_GUY };
+	ModelType m_whichModel;
 };
