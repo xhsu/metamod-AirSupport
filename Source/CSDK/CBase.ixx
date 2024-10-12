@@ -178,7 +178,7 @@ public:
 	Vector FireBullets3(Vector vecSrc, Vector vecDirShooting, float flSpread, float flDistance, int iPenetration, int iBulletType, int iDamage, float flRangeModifier, entvars_t *pevAttacker, qboolean bPistol, int shared_rand = 0);
 	bool Intersects(CBaseEntity *pOther) noexcept { return (pOther->pev->absmin.x > pev->absmax.x || pOther->pev->absmin.y > pev->absmax.y || pOther->pev->absmin.z > pev->absmax.z || pOther->pev->absmax.x < pev->absmin.x || pOther->pev->absmax.y < pev->absmin.y || pOther->pev->absmax.z < pev->absmin.z); }
 //	void MakeDormant(void);
-//	int IsDormant(void);
+	inline bool IsDormant() const noexcept { return (pev->flags & FL_DORMANT) == FL_DORMANT; }
 //	qboolean IsLockedByMaster(void) { return FALSE; }
 
 //public:
