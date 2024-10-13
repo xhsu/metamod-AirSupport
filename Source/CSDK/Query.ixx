@@ -36,7 +36,7 @@ namespace Query
 			std::views::filter([](void *p) noexcept { return p != nullptr; }) |
 
 			// Only player who is alive, and connected. Disconnected player will be marked as DEAD_DEAD therefore filtered.
-			std::views::filter([](CBasePlayer *pPlayer) noexcept { return pPlayer->pev->deadflag == DEAD_NO && pPlayer->pev->takedamage != DAMAGE_NO; })
+			std::views::filter([](CBasePlayer *pPlayer) noexcept { return pPlayer->pev->deadflag == DEAD_NO; })
 			;
 	}
 

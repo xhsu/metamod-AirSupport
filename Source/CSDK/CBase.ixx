@@ -1137,6 +1137,14 @@ export enum struct MusicState
 	INTENSE
 };
 
+export enum ECsTeams : std::int32_t
+{
+	TEAM_UNASSIGNED,
+	TEAM_TERRORIST,
+	TEAM_CT,
+	TEAM_SPECTATOR,
+};
+
 export class CBasePlayer : public CBaseMonster
 {
 public:
@@ -1341,7 +1349,7 @@ public:
 	float m_flEjectBrass;
 	int m_iKevlar;
 	bool m_bNotKilled;
-	int m_iTeam;
+	ECsTeams m_iTeam;
 	int m_iAccount;
 	bool m_bHasPrimary;
 	float m_flDeathThrowTime;
