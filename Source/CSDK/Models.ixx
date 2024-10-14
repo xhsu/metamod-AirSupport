@@ -17,6 +17,7 @@ export import Wave;
 
 struct seq_timing_t final
 {
+	std::int32_t m_iSeqIdx{ -1 };
 	float m_fz_begin{ -1 };
 	float m_fz_end{ -1 };
 	float m_total_length{ -1 };
@@ -45,6 +46,8 @@ struct CaseIgnoredStrLess final
 			&to_lower
 		);
 	}
+
+	using is_transparent = int;
 };
 
 namespace GoldSrc
@@ -110,8 +113,11 @@ namespace GoldSrc
 			// The type deduction indicates these are copy.
 			// But they are not.
 			// decltype(flFzBegin) == float, is because it is a float in the original type declaration.
-			auto& [flFzBegin, flFzEnd, flAnimLen] =
+			auto& [iSeqIdx, flFzBegin, flFzEnd, flAnimLen] =
 				StudioInfo.try_emplace(seq.label).first->second;
+
+			// Idx could just be ptr diff
+			iSeqIdx = std::addressof(seq) - pseq;
 
 			if (seq.numevents)
 			{
@@ -167,6 +173,11 @@ namespace GoldSrc
 		if (auto f = std::fopen(RegisteredPath.c_str(), "rb"); f)
 		{
 			BuildStudioModelInfo(f, &StudioInfo);
+
+			// Save the simplified path as well, like "models/v_ak47.mdl"
+			// It's more useful than "cstrike/models/v_ak47.mdl"
+			m_StudioInfo.try_emplace(std::string{ szRelativePath }, StudioInfo);
+
 			fclose(f);
 		}
 		else
