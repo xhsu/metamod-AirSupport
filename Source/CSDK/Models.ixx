@@ -18,6 +18,9 @@ export import Wave;
 struct seq_timing_t final
 {
 	std::int32_t m_iSeqIdx{ -1 };
+	Activity m_Activity{ ACT_INVALID };
+	float m_flGroundSpeed{ 0 };
+	float m_flFrameRate{ 256.f };
 	float m_fz_begin{ -1 };
 	float m_fz_end{ -1 };
 	float m_total_length{ -1 };
@@ -113,11 +116,13 @@ namespace GoldSrc
 			// The type deduction indicates these are copy.
 			// But they are not.
 			// decltype(flFzBegin) == float, is because it is a float in the original type declaration.
-			auto& [iSeqIdx, flFzBegin, flFzEnd, flAnimLen] =
+			auto& [iSeqIdx, iAct, flGrSpd, flFR, flFzBegin, flFzEnd, flAnimLen] =
 				StudioInfo.try_emplace(seq.label).first->second;
 
 			// Idx could just be ptr diff
 			iSeqIdx = std::addressof(seq) - pseq;
+
+			iAct = (Activity)seq.activity;
 
 			if (seq.numevents)
 			{
@@ -145,6 +150,9 @@ namespace GoldSrc
 
 			// Total len
 			flAnimLen = (float)((double)seq.numframes / (double)seq.fps);
+
+			// Speed in inch per second
+			GetSequenceInfo(phdr, iSeqIdx, &flFR, &flGrSpd);
 		}
 
 		delete[] pBuffer; pBuffer = nullptr;
