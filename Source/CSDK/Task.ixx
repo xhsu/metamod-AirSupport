@@ -17,7 +17,8 @@ export struct Task final
 	{
 		float m_flNextThink{ gpGlobals->time + 3600 };
 
-		static void unhandled_exception(void) noexcept	// Fixed name. What to do in a case of an exception.
+		// Fixed name. What to do in a case of an exception.
+		static void unhandled_exception(void) noexcept
 		{
 			try
 			{
@@ -33,54 +34,97 @@ export struct Task final
 				UTIL_Terminate("Unhandled exception on Task with unknown type.");
 			}
 		}
-		Task get_return_object(void) noexcept { return Task{ this }; }	// Fixed name. Coroutine creation.
-		static constexpr suspend_never initial_suspend(void) noexcept { return {}; }	// Fixed name. Startup.
-		suspend_always yield_value(float flTimeFrame) noexcept { m_flNextThink = gpGlobals->time + flTimeFrame; return {}; }	// Fixed name. Value from co_yield
-		suspend_always await_transform(float flTimeFrame) noexcept { m_flNextThink = gpGlobals->time + flTimeFrame; return {}; }	// Fixed name. Value from co_await
+
+		// Fixed name. Coroutine creation.
+		Task get_return_object(void) noexcept { return Task{ this }; }
+
+		// Fixed name. Startup.
+		static constexpr suspend_never initial_suspend(void) noexcept { return {}; }
+
+		// Fixed name. Value from co_yield
+		suspend_always yield_value(float flTimeFrame) noexcept { m_flNextThink = gpGlobals->time + flTimeFrame; return {}; }
+
+		// Fixed name. Value from co_await
+		suspend_always await_transform(float flTimeFrame) noexcept { m_flNextThink = gpGlobals->time + flTimeFrame; return {}; }
+
 		//static constexpr void return_value(void) noexcept {}	// Fixed name. Value from co_return. LUNA: Mutually exclusive with return_void?
 		static constexpr void return_void(void) noexcept {}	// Fixed name. Value from co_return. LUNA: Mutually exclusive with return_value?
-		static constexpr suspend_always final_suspend(void) noexcept { return {}; }	// Ending. LUNA: must be suspend_always otherwise it will cause memory access violation: accessing freed mem.
+
+		// Ending. LUNA: must be suspend_always otherwise it will cause memory access violation: accessing freed mem.
+		static constexpr suspend_always final_suspend(void) noexcept { return {}; }
 	};
 
 	using Handle_t = std::coroutine_handle<promise_type>;
 	Handle_t m_handle;
 	uint64_t m_iCoroutineMarker{};	// LUNA: use for marking the removal of coroutine
 
-	explicit Task(promise_type *ppt) noexcept : m_handle{ Handle_t::from_promise(*ppt) } {}	// Get handle and form the promise
-	Task(Task &&rhs) noexcept : m_handle{ std::exchange(rhs.m_handle, nullptr) }, m_iCoroutineMarker{ rhs.m_iCoroutineMarker } {}	// Move only
+	explicit Task(promise_type *ppt) noexcept
+		: m_handle{ Handle_t::from_promise(*ppt) } {}	// Get handle and form the promise
+	Task(Task const&) noexcept = delete;	// One cannot copy a task.
+	Task(Task &&rhs) noexcept
+		: m_handle{ std::exchange(rhs.m_handle, nullptr) }, m_iCoroutineMarker{ rhs.m_iCoroutineMarker } {}	// Move only
 	~Task() noexcept { if (m_handle) m_handle.destroy(); }
 
 	inline bool Done(void) const noexcept { return m_handle.done(); }
 	inline bool ShouldResume(void) const noexcept { return m_handle.promise().m_flNextThink < gpGlobals->time; }
 	inline void Resume(void) const noexcept { return m_handle.resume(); }
-	inline auto operator<=> (Task const& rhs) const noexcept { return this->m_handle.promise().m_flNextThink <=> rhs.m_handle.promise().m_flNextThink; }
+	inline auto operator<=> (Task const& rhs) const noexcept -> decltype(0.f <=> 0.f) { return this->m_handle.promise().m_flNextThink <=> rhs.m_handle.promise().m_flNextThink; }
+};
+
+export enum struct ESchedulerPolicy : bool
+{
+	SORTED,
+	UNORDERED,
 };
 
 export struct TaskScheduler_t final
 {
 	list<Task> m_List{};
+	ESchedulerPolicy m_ExePolicy{ ESchedulerPolicy::SORTED };
 
 	inline void Think(void) noexcept
 	{
-		while (!m_List.empty())
+		switch (m_ExePolicy)
 		{
-			// #IMPROVEMENT should it be sorted and therefore have a O(nlogn) complx or just execute all suitable tasks one by one?
-			// Does the execution order actually matter?
-			m_List.sort();
-
-			while (!m_List.empty() && m_List.front().Done())
+			// Price for ordered execution in the same frame: O(nlogn)
+		case ESchedulerPolicy::SORTED:
+			while (!m_List.empty())
 			{
-				m_List.pop_front();
+				m_List.sort();
+
+				while (!m_List.empty() && m_List.front().Done())
+				{
+					m_List.pop_front();
+				}
+
+				if (m_List.empty())
+					break;
+
+				[[likely]]
+				if (m_List.front().ShouldResume())
+					m_List.front().Resume();
+				else
+					break;	// if the first one in queue is not going to resume, then nor should anyone else.
 			}
+			break;
 
-			if (m_List.empty())
-				break;
+			// There are some cases that execution order in the same frame does not matter.
+		case ESchedulerPolicy::UNORDERED:
+			for (auto it = m_List.begin(); it != m_List.end(); /* Does nothing */)
+			{
+				if (it->ShouldResume())
+					it->Resume();
 
-			[[likely]]
-			if (m_List.front().ShouldResume())
-				m_List.front().Resume();
-			else
-				break;	// if the first one in queue is not going to resume, then nor should anyone else.
+				if (it->Done())
+					it = m_List.erase(it);
+				else
+					++it;
+			}
+			break;
+
+		default:
+			std::unreachable();
+			break;
 		}
 	}
 
@@ -167,6 +211,11 @@ export struct TaskScheduler_t final
 	{
 		m_List.clear();
 	}
+
+	inline auto Policy(void) noexcept -> decltype((m_ExePolicy))
+	{
+		return m_ExePolicy;
+	}
 };
 
 export namespace TaskScheduler
@@ -186,6 +235,8 @@ export namespace TaskScheduler
 
 	// ServerDeactivate_Post
 	inline auto Clear(void) noexcept -> decltype(m_GlobalScheduler.Clear()) { return m_GlobalScheduler.Clear(); }
+
+	inline decltype(auto) Policy() noexcept { return m_GlobalScheduler.Policy(); }
 };
 
 export namespace TaskScheduler::NextFrame
