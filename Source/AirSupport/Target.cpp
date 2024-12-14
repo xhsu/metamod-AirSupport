@@ -237,7 +237,11 @@ static Task Task_AngleAlter(entvars_t* const pev, Quaternion const qStart, Quate
 		}
 
 		// Step 1: Simulating the pre-miniature update rotational animations.
-		qNow *= pTarget->m_qPseudoanim;
+		qNow *=
+			Quaternion::AxisAngle(
+				VEC_ALMOST_RIGHT,
+				pTarget->m_pflArrowYaw.value_or(pTarget->m_pPlayer->pev->angles.yaw + 90.f)
+			);
 
 		pev->angles = qNow.Euler();
 		pev->angles[0] = -pev->angles[0];
@@ -246,7 +250,11 @@ static Task Task_AngleAlter(entvars_t* const pev, Quaternion const qStart, Quate
 	// Just in case that the time gets too short and the 100% frame does not called.
 	co_await NEXTFRAME_RANK_ANGULER_VEL;
 
-	pev->angles = (qEnd * pTarget->m_qPseudoanim).Euler();
+	pev->angles =
+		(qEnd * Quaternion::AxisAngle(
+			VEC_ALMOST_RIGHT,
+			pTarget->m_pflArrowYaw.value_or(pTarget->m_pPlayer->pev->angles.yaw + 90.f))
+			).Euler();
 	pev->angles[0] = -pev->angles[0];
 
 	co_return;
@@ -311,24 +319,13 @@ Task CDynamicTarget::Task_Animation() noexcept
 			continue;
 		}
 
+		// LUNA: no more MDL animation since miniature update!
+		// Now simply using a quaternion to represent the rotating targeting model.
+		++this->m_iRingController();
+/*
 		auto const CurTime = high_resolution_clock::now();
 		auto const flTimeDelta = duration_cast<nanoseconds>(CurTime - LastAnimUpdate).count() / 1'000'000'000.0;
 
-		// LUNA: no more MDL animation since miniature update!
-		// Now simply using a quaternion to represent the rotating targeting model.
-		m_qPseudoanim = Quaternion::AxisAngle(VEC_ALMOST_RIGHT, flTimeDelta * 30);
-
-		if (m_bShowArror())	// We are unable to resolve this one mathmatically so far...
-		{
-			// Not being able to calculate the controll if we are using quaternion on a slope.
-			m_qPseudoanim = Quaternion::Identity();
-		}
-		else if (!m_Scheduler.Exist(TASK_ANGLE_INTERPOL))
-		{
-			pev->angles = (m_qNormRotatingTo * m_qPseudoanim).Euler();
-			pev->angles[0] = -pev->angles[0];
-		}
-/*
 		pev->framerate = float(Models::targetmdl::FPS * flTimeDelta);
 		pev->frame += pev->framerate;
 		pev->animtime = gpGlobals->time;
@@ -374,6 +371,16 @@ Task CDynamicTarget::Task_AngleInterpol() noexcept
 			}
 
 			qLastNorm = m_qNormRotatingTo;
+		}
+		else
+		{
+			auto const q = m_qNormRotatingTo * Quaternion::AxisAngle(
+				VEC_ALMOST_RIGHT,
+				m_pflArrowYaw.value_or(m_pPlayer->pev->angles.yaw + 90.0)
+			);
+
+			pev->angles = q.Euler();
+			pev->angles[0] = -pev->angles[0];
 		}
 	}
 }
@@ -738,7 +745,8 @@ Task CDynamicTarget::Task_QuickEval_CarpetBombardment() noexcept
 			// Not pressing LMB, only the main target mdl will showed up.
 
 			m_qNormRotatingTo = Quaternion::Rotate(VEC_ALMOST_RIGHT, vecSurfNorm);
-			UTIL_SetController(&pev->controller[0], &ARROW_CONTROLLER, (double)-m_pPlayer->pev->angles.yaw + vecSurfNorm.Yaw() - 90.0);
+			//UTIL_SetController(&pev->controller[0], &ARROW_CONTROLLER, (double)-m_pPlayer->pev->angles.yaw + vecSurfNorm.Yaw() - 90.0);
+			m_pflArrowYaw = m_pPlayer->pev->angles.yaw + 90.f;
 
 			g_engfuncs.pfnSetOrigin(edict(), vecAiming);
 			pev->skin = Models::targetmdl::SKIN_GREEN;
@@ -785,7 +793,8 @@ Task CDynamicTarget::Task_QuickEval_CarpetBombardment() noexcept
 		};
 		auto const flMaxDistFwd = tr2.flFraction * (CARPET_BOMBARDMENT_INTERVAL * BEACON_COUNT / 2);
 
-		UTIL_SetController(&pev->controller[0], &ARROW_CONTROLLER, -vecForward.Yaw() + pev->angles.yaw - 90.f);
+		//UTIL_SetController(&pev->controller[0], &ARROW_CONTROLLER, -vecForward.Yaw() + pev->angles.yaw - 90.f);
+		m_pflArrowYaw = (float)vecForward.Yaw() + 90.f;
 
 		for (double flFw = 0, flRt = -48; auto &&pBeacon : m_rgpBeacons)
 		{
@@ -1182,6 +1191,7 @@ void CDynamicTarget::UpdateEvalMethod() noexcept
 	pev->body = UTIL_CalcBody(m_rgBodyInfo);
 
 	m_pTargeting = nullptr;
+	m_pflArrowYaw.reset();
 
 	switch (iType)
 	{
@@ -1779,7 +1789,7 @@ CFixedTarget *CFixedTarget::Create(CDynamicTarget *const pDynamicTarget) noexcep
 {
 	auto const [pEdict, pPrefab] = UTIL_CreateNamedPrefab<CFixedTarget>();
 
-	pEdict->v.angles = (pDynamicTarget->m_qNormRotatingTo * pDynamicTarget->m_qPseudoanim).Euler();
+	pEdict->v.angles = (pDynamicTarget->m_qNormRotatingTo * Quaternion::AxisAngle(VEC_ALMOST_RIGHT, pDynamicTarget->m_pflArrowYaw.value_or(0.f))).Euler();
 	pEdict->v.angles.pitch = -pEdict->v.angles.pitch;	// fucking quake.
 	pEdict->v.origin = pDynamicTarget->pev->origin;
 	pEdict->v.body = pDynamicTarget->pev->body;

@@ -54,18 +54,20 @@ export struct CDynamicTarget : Prefab_t
 	static CDynamicTarget *Create(CBasePlayer *pPlayer, CPrefabWeapon *pRadio) noexcept;
 	static void RetrieveModelInfo(void) noexcept;
 
-	Quaternion m_qNormRotatingTo{};	// the endpos of current slerp, use it when converting to fixed target.
-	Quaternion m_qPseudoanim{};
+	Quaternion m_qNormRotatingTo{};
+	//Vector m_vecNormRotatingTo{};	// the endpos of current slerp, use it when converting to fixed target.
 	EHANDLE<CBaseEntity> m_pTargeting{ nullptr };
 	EHANDLE<CPrefabWeapon> m_pRadio{ nullptr };
 	CBasePlayer *m_pPlayer{};
 	std::array<EHANDLE<CSpriteDisplay>, 16> m_rgpVisualFxSpr{};	// it should be enough normally speaking.
 	std::array<EHANDLE<CBeam>, BEACON_COUNT> m_rgpBeacons{};
 	std::array<BodyEnumInfo_t, 4> m_rgBodyInfo{ {{0, 1}, {0, 7}, {0, 2}, {0, 2}} };
+	std::optional<float> m_pflArrowYaw{};
 	bool m_bFreezed{};	// Use enable/disable beacons instead. Indicator of carpet bombardment direction.
 
 	inline constexpr auto m_iAirSupportTypeModel() noexcept -> int& { return m_rgBodyInfo[1].m_index; }
 	inline constexpr auto m_bShowArror() noexcept -> qboolean& { return m_rgBodyInfo[2].m_index; }
+	inline constexpr auto m_iRingController() noexcept -> std::uint8_t& { return pev->controller[0]; }
 };
 
 export struct CFixedTarget : Prefab_t
