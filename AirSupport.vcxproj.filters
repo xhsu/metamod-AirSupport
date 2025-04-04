@@ -229,6 +229,9 @@
     <ClCompile Include="Source\CSDK\SaveRestore.ixx">
       <Filter>Source\CSDK</Filter>
     </ClCompile>
+    <ClCompile Include="..\metamod-p\hlsdk\dlls\hlsdk.sv.animation.ixx">
+      <Filter>HLSDK</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\metamod-p\metamod\metamod_api.hpp">
@@ -247,6 +250,9 @@
       <Filter>HLSDK</Filter>
     </ClInclude>
     <ClInclude Include="..\metamod-p\hlsdk\dlls\vector.hpp">
+      <Filter>HLSDK</Filter>
+    </ClInclude>
+    <ClInclude Include="..\metamod-p\hlsdk\dlls\hlsdk.sv.animation.hpp">
       <Filter>HLSDK</Filter>
     </ClInclude>
   </ItemGroup>

@@ -133,7 +133,7 @@ export inline constexpr app_version_t APP_VERSION
 {
 	.m_major = 1,
 	.m_minor = 10,
-	.m_revision = 1,
+	.m_revision = 2,
 	.m_build = static_cast<uint8_t>(BUILD_NUMBER % 255),
 };
 

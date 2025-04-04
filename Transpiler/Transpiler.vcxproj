@@ -88,6 +88,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\metamod-p\hlsdk\dlls\hlsdk.sv.animation.ixx" />
     <ClCompile Include="..\..\metamod-p\hlsdk\dlls\hlsdk.sv.ixx" />
     <ClCompile Include="..\..\metamod-p\hlsdk\dlls\hlsdk.sv.util.ixx" />
     <ClCompile Include="..\..\metamod-p\hlsdk\dlls\vector.ixx" />
@@ -104,6 +105,7 @@
     <None Include="export.def" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\metamod-p\hlsdk\dlls\hlsdk.sv.animation.hpp" />
     <ClInclude Include="..\..\metamod-p\hlsdk\dlls\hlsdk.sv.hpp" />
     <ClInclude Include="..\..\metamod-p\hlsdk\dlls\hlsdk.sv.util.hpp" />
     <ClInclude Include="..\..\metamod-p\hlsdk\dlls\vector.hpp" />

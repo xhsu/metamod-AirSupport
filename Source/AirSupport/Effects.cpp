@@ -1,4 +1,4 @@
-#include <cassert>
+#include <cassert>	// #UPDATE_AT_CPP26 replace all with contract
 
 import std;
 import hlsdk;

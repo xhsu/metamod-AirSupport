@@ -9,7 +9,7 @@
       <UniqueIdentifier>{65b2490c-37fb-4c9a-9694-8e2855849264}</UniqueIdentifier>
     </Filter>
     <Filter Include="HLSDK">
-      <UniqueIdentifier>{4e9d55bc-0fdc-4695-b9eb-da9378fab323}</UniqueIdentifier>
+      <UniqueIdentifier>{101eb66a-cf39-4dd3-86a9-3eb88838fa45}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -43,19 +43,22 @@
     <ClCompile Include="..\..\metamod-p\hlsdk\dlls\hlsdk.sv.util.ixx">
       <Filter>HLSDK</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\metamod-p\hlsdk\dlls\vector.ixx">
+      <Filter>HLSDK</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\metamod-p\hlsdk\engine\hlsdk.customentity.ixx">
+      <Filter>HLSDK</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\metamod-p\hlsdk\engine\hlsdk.decompiled.ixx">
       <Filter>HLSDK</Filter>
     </ClCompile>
     <ClCompile Include="..\..\metamod-p\hlsdk\engine\hlsdk.engine.ixx">
       <Filter>HLSDK</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\metamod-p\hlsdk\dlls\vector.ixx">
-      <Filter>HLSDK</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\metamod-p\hlsdk\hlsdk.ixx">
       <Filter>HLSDK</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\metamod-p\hlsdk\engine\hlsdk.decompiled.ixx">
+    <ClCompile Include="..\..\metamod-p\hlsdk\dlls\hlsdk.sv.animation.ixx">
       <Filter>HLSDK</Filter>
     </ClCompile>
   </ItemGroup>
@@ -66,13 +69,16 @@
     <ClInclude Include="..\..\metamod-p\hlsdk\dlls\hlsdk.sv.util.hpp">
       <Filter>HLSDK</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\metamod-p\hlsdk\dlls\vector.hpp">
+      <Filter>HLSDK</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\metamod-p\hlsdk\engine\hlsdk.customentity.hpp">
       <Filter>HLSDK</Filter>
     </ClInclude>
     <ClInclude Include="..\..\metamod-p\hlsdk\engine\hlsdk.engine.hpp">
       <Filter>HLSDK</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\metamod-p\hlsdk\dlls\vector.hpp">
+    <ClInclude Include="..\..\metamod-p\hlsdk\dlls\hlsdk.sv.animation.hpp">
       <Filter>HLSDK</Filter>
     </ClInclude>
   </ItemGroup>

@@ -68,7 +68,7 @@ using tempent_ptr_t = std::unique_ptr<edict_t, decltype([](edict_t *pe) noexcept
 
 namespace Burning
 {
-	Task _Internal_TakeDamage(CBasePlayer *pVictim, entvars_t *pevAttacker) noexcept
+	static inline Task _Internal_TakeDamage(CBasePlayer *pVictim, entvars_t *pevAttacker) noexcept
 	{
 		tempent_ptr_t pInf{ g_engfuncs.pfnCreateNamedEntity(MAKE_STRING("info_target")) };
 
@@ -86,7 +86,7 @@ namespace Burning
 		}
 	}
 
-	Task _Internal_DisplayFlameSpr(CBasePlayer *pPlayer) noexcept
+	static inline Task _Internal_DisplayFlameSpr(CBasePlayer *pPlayer) noexcept
 	{
 		for (; pPlayer->IsAlive(); co_await 0.1f)
 		{

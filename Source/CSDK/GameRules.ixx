@@ -12,14 +12,6 @@ export import CBase;
 export import Engine;
 export import Platform;
 
-export enum ECounterStrikeTeam
-{
-	TEAM_UNASSIGNED = 0,
-	TEAM_TERRORIST,
-	TEAM_CT,
-	TEAM_SPECTATOR,
-};
-
 export class IVoiceGameMgrHelper
 {
 public:
