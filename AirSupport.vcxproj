@@ -187,7 +187,10 @@ start Enforcer.exe</Command>
     <ClCompile Include="Source\AirSupport\Weapon.cpp" />
     <ClCompile Include="Source\CSDK\Ray.ixx" />
     <ClCompile Include="Source\CSDK\Wave.ixx" />
-    <ClCompile Include="Source\CSDK\ZBot.ixx" />
+    <ClCompile Include="Source\CSDK\ZBot.ixx">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="Source\CSDK\Uranus.Functions.ixx" />
     <ClCompile Include="Source\CSDK\Uranus.ixx" />
   </ItemGroup>
