@@ -381,6 +381,7 @@ edict_t* fw_CreateNamedEntity(int className) noexcept
 
 	gpMetaGlobals->mres = MRES_IGNORED;
 	return *(edict_t**)gpMetaGlobals->orig_ret;
+	// pre
 }
 
 int fw_CheckVisibility(const edict_t *entity, unsigned char *pset) noexcept

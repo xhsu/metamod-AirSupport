@@ -34,20 +34,6 @@ export struct CVarManager final
 	}
 };
 
-// msvc++ bug?
-// decltype(lambda) gets error..
-export struct cvar_wrapper_sorter final
-{
-	/*static*/ constexpr bool operator() (auto lhs, auto rhs) const noexcept
-	{
-		// remember to sort the string, not the address of that string.
-		return
-			std::string_view{ &lhs->Handle()->name[0] }
-			<
-			std::string_view{ &rhs->Handle()->name[0] };
-	}
-};
-
 export struct console_variable_t final
 {
 	// MUST be used with static string literal
@@ -129,7 +115,7 @@ export struct console_variable_t final
 		}
 		else
 		{
-			// #UPDATE_AT_CPP23 static_assert(false);
+			static_assert(false, "Unsupported type to retrieve from CVar.");
 			return m_handle->value;
 		}
 	}
@@ -148,4 +134,18 @@ export struct console_variable_t final
 
 private:
 	cvar_t* m_handle{};
+};
+
+// msvc++ bug?
+// decltype(lambda) gets error..
+export struct cvar_wrapper_sorter final
+{
+	static constexpr bool operator() (console_variable_t* lhs, console_variable_t* rhs) noexcept
+	{
+		// remember to sort the string, not the address of that string.
+		return
+			std::string_view{ lhs->Handle()->name }
+			<
+			std::string_view{ rhs->Handle()->name };
+	}
 };
