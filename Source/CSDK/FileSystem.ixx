@@ -8,13 +8,14 @@ module;
 #define NOMINMAX	// LUNA: first thing to do when using windows header. It makes 'Windows SDK for C++' compatiable with C++. Fuck Microsoft.
 #include <Windows.h>
 
-#include <stdio.h>
-
 export module FileSystem;
 
 export import std;
 
 export import Platform;
+
+using std::FILE;
+using std::fopen;
 
 inline constexpr char CREATEINTERFACE_PROCNAME[] = "CreateInterface";
 
@@ -214,7 +215,7 @@ namespace FileSystem
 		return std::filesystem::relative(AbsolutePath, ExecutePath).u8string();
 	}
 
-	export FILE *StandardOpen(const char *pszRelativePath, const char *pszMode) noexcept
+	export FILE *FOpen(const char *pszRelativePath, const char *pszMode) noexcept
 	{
 		auto const pszAbsPath = GetAbsolutePath(pszRelativePath);
 

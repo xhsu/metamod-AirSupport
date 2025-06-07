@@ -24,7 +24,7 @@ static bool VerifyByCRC64(const char* psz) noexcept
 	if (!g_rgiCRC64.contains(psz) || !g_bShouldEnforceModels)
 		return true;
 
-	if (auto f = FileSystem::StandardOpen(psz, "rb"); f != nullptr)
+	if (auto f = FileSystem::FOpen(psz, "rb"); f != nullptr)
 	{
 		auto const crc = CRC64::CheckFile(f);
 		fclose(f);
@@ -42,7 +42,7 @@ static bool VerifyBySoundLength(const char* psz) noexcept
 
 	std::string const sz = std::string("sound/") + psz;
 
-	if (auto f = FileSystem::StandardOpen(sz.c_str(), "rb"); f != nullptr)
+	if (auto f = FileSystem::FOpen(sz.c_str(), "rb"); f != nullptr)
 	{
 		auto const flCurFileLength = Wave::Length(f);
 		fclose(f);
@@ -58,7 +58,7 @@ static bool VerifyByModelAnimations(const char *psz) noexcept
 	if (!g_rgrgflAnimTime.contains(psz) || !g_bShouldEnforceModels)
 		return true;
 
-	if (auto f = FileSystem::StandardOpen(psz, "rb"); f != nullptr)
+	if (auto f = FileSystem::FOpen(psz, "rb"); f != nullptr)
 	{
 		fseek(f, 0, SEEK_END);
 		auto const iSize = ftell(f);
@@ -99,7 +99,7 @@ static bool VerifyBySpriteFrame(const char *psz) noexcept
 	if (!g_rgiSpriteFrameCount.contains(psz) || !g_bShouldEnforceModels)
 		return true;
 
-	if (auto f = FileSystem::StandardOpen(psz, "rb"); f != nullptr)
+	if (auto f = FileSystem::FOpen(psz, "rb"); f != nullptr)
 	{
 		GoldSrc::Sprite_t const hSprite{ f };
 		fclose(f);

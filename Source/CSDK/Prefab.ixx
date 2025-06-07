@@ -45,6 +45,7 @@ inline auto UTIL_CreateNamedPrefab(Tys&&... args) noexcept
 	assert(pEdict->pvPrivateData != nullptr);
 	assert(pEdict->v.pContainingEntity == pEdict);
 
+	static_assert(requires { { MAKE_STRING(T::CLASSNAME) } -> std::convertible_to<std::string_view>; }, "Entity class must have a classname defined.");
 	pEdict->v.classname = MAKE_STRING(T::CLASSNAME);
 
 	// #IMPROVEMENT add to CS hash table.
