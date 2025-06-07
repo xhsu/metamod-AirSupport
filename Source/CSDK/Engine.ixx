@@ -92,7 +92,7 @@ export namespace Engine
 		constexpr uint8_t mond[12] =
 		{ 31,    28,    31,    30,    31,    30,    31,    31,    30,    31,    30,    31 };
 
-		// #UPDATE_AT_CPP23 P2647R1
+		// #UPDATE_AT_CPP23 P2647R1 Permitting static constexpr variables in constexpr functions
 		const auto today_m = COMPILE_DATE.substr(0, 3);
 		const auto today_d = (COMPILE_DATE[5] - '0') + (COMPILE_DATE[4] != ' ' ? (COMPILE_DATE[4] - '0') : 0) * 10;
 		const auto today_y = (COMPILE_DATE[10] - '0') + (COMPILE_DATE[9] - '0') * 10 + (COMPILE_DATE[8] - '0') * 100 + (COMPILE_DATE[7] - '0') * 1000;

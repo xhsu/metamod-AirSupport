@@ -87,7 +87,7 @@ export inline void WriteData(auto&& arg) noexcept
 		g_engfuncs.pfnWriteChar(arg);
 
 	else
-		static_assert(AlwaysFalse<T>, "Invalid argument!");
+		static_assert(false, "Invalid argument!");
 };
 
 export __forceinline void MsgEnd(void) noexcept
@@ -189,8 +189,8 @@ struct Message_t final
 			g_engfuncs.pfnMessageBegin(iDest, m_iMessageIndex, nullptr, nullptr);
 		else if constexpr (iDest == MSG_PAS || iDest == MSG_PAS_R || iDest == MSG_PVS || iDest == MSG_PVS_R)
 			g_engfuncs.pfnMessageBegin(iDest, m_iMessageIndex, vecOrigin, nullptr);
-		//else
-		//	[]() noexcept { static_assert(AlwaysFalse<This_t>, "Invalid message casting method!"); }();	// #UPDATE_AT_CPP23 CWG2518 allowing static_assert(false)
+		else
+			static_assert(false, "Invalid message casting method!");
 
 		MsgArgs_t tplArgs = std::make_tuple(args...);
 
@@ -216,8 +216,8 @@ struct Message_t final
 			g_engfuncs.pfnMessageBegin(iDest, m_iMessageIndex);
 		else if constexpr (iDest == MSG_PAS || iDest == MSG_PAS_R || iDest == MSG_PVS || iDest == MSG_PVS_R)
 			g_engfuncs.pfnMessageBegin(iDest, m_iMessageIndex, vecOrigin);
-		//else
-		//	[]() noexcept { static_assert(AlwaysFalse<This_t>, "Invalid message casting method!"); }();	// #UPDATE_AT_CPP23 CWG2518 allowing static_assert(false)
+		else
+			static_assert(false, "Invalid message casting method!");
 
 		auto const tplArgs = std::make_tuple(args...);
 

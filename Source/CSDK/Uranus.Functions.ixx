@@ -53,7 +53,6 @@ export struct uranus_func_collection_t final
 
 export inline uranus_func_collection_t gUranusCollection;
 
-// #UPDATE_AT_CPP23 static operator()
 export namespace Uranus
 {
 	struct EmptyEntityHashTable final
@@ -69,7 +68,7 @@ export namespace Uranus
 		static inline constexpr std::ptrdiff_t DISPLACEMENT = 1;
 		static inline auto& pfn = gUranusCollection.pfnEmptyEntityHashTable;
 
-		inline void operator() (void) const noexcept
+		static inline void operator() (void) noexcept
 		{
 			return pfn();
 		}
@@ -88,7 +87,7 @@ export namespace Uranus
 		static inline constexpr std::ptrdiff_t DISPLACEMENT = 1;
 		static inline auto& pfn = gUranusCollection.pfnAddEntityHashValue;
 
-		inline void operator() (entvars_t* pev, const char* pszClassname) const noexcept
+		static inline void operator() (entvars_t* pev, const char* pszClassname) noexcept
 		{
 			return pfn(pev, pszClassname, 0);
 		}
@@ -107,7 +106,7 @@ export namespace Uranus
 		static inline constexpr std::ptrdiff_t DISPLACEMENT = 1;
 		static inline auto& pfn = gUranusCollection.pfnRemoveEntityHashValue;
 
-		inline void operator() (entvars_t* pev, const char* pszClassname) const noexcept
+		static inline void operator() (entvars_t* pev, const char* pszClassname) noexcept
 		{
 			return pfn(pev, pszClassname, 0);
 		}
@@ -125,7 +124,7 @@ export namespace Uranus
 		static inline constexpr std::ptrdiff_t DISPLACEMENT = 1;
 		static inline auto& pfn = gUranusCollection.pfnClearMultiDamage;
 
-		inline void operator() (void) const noexcept
+		static inline void operator() (void) noexcept
 		{
 			return pfn();
 		}
@@ -143,7 +142,7 @@ export namespace Uranus
 		static inline constexpr std::ptrdiff_t DISPLACEMENT = 1;
 		static inline auto& pfn = gUranusCollection.pfnApplyMultiDamage;
 
-		inline void operator() (entvars_t* pevInflictor, entvars_t* pevAttacker) const noexcept
+		static inline void operator() (entvars_t* pevInflictor, entvars_t* pevAttacker) noexcept
 		{
 			return pfn(pevInflictor, pevAttacker);
 		}
@@ -161,7 +160,7 @@ export namespace Uranus
 		static inline constexpr std::ptrdiff_t DISPLACEMENT = 1;
 		static inline auto& pfn = gUranusCollection.pfnAddMultiDamage;
 
-		inline void operator() (entvars_t* pevInflictor, CBaseEntity* pEntity, float flDamage, int bitsDamageType) const noexcept
+		static inline void operator() (entvars_t* pevInflictor, CBaseEntity* pEntity, float flDamage, int bitsDamageType) noexcept
 		{
 			return pfn(pevInflictor, pEntity, flDamage, bitsDamageType);
 		}
@@ -179,7 +178,7 @@ export namespace Uranus
 		static inline constexpr std::ptrdiff_t DISPLACEMENT = 1;
 		static inline auto& pfn = gUranusCollection.pfnTEXTURETYPE_PlaySound;
 
-		inline auto operator() (TraceResult* ptr, Vector vecSrc, Vector vecEnd, int iBulletType) const noexcept
+		static inline auto operator() (TraceResult* ptr, Vector vecSrc, Vector vecEnd, int iBulletType) noexcept
 		{
 			return pfn(ptr, vecSrc, vecEnd, iBulletType);
 		}
@@ -197,7 +196,7 @@ export namespace Uranus
 		static inline constexpr std::ptrdiff_t DISPLACEMENT = 1;
 		static inline auto& pfn = gUranusCollection.pfnW_Precache;
 
-		inline void operator() (void) const noexcept
+		static inline void operator() (void) noexcept
 		{
 			return pfn();
 		}
@@ -215,7 +214,7 @@ export namespace Uranus
 		static inline constexpr std::ptrdiff_t DISPLACEMENT = 1;
 		static inline auto& pfn = gUranusCollection.pfnUTIL_PrecacheOther;
 
-		inline void operator() (const char* szClassname) const noexcept
+		static inline void operator() (const char* szClassname) noexcept
 		{
 			return pfn(szClassname);
 		}
@@ -233,7 +232,7 @@ export namespace Uranus
 		static inline constexpr std::ptrdiff_t DISPLACEMENT = 1;
 		static inline auto& pfn = gUranusCollection.pfnUTIL_PrecacheOtherWeapon;
 
-		inline void operator() (const char* szClassname) const noexcept
+		static inline void operator() (const char* szClassname) noexcept
 		{
 			return pfn(szClassname);
 		}
@@ -251,7 +250,7 @@ export namespace Uranus
 		static inline constexpr std::ptrdiff_t DISPLACEMENT = 1;
 		static inline auto& pfn = gUranusCollection.pfnWriteSigonMessages;
 
-		inline void operator() (void) const noexcept
+		static inline void operator() (void) noexcept
 		{
 			return pfn();
 		}
@@ -269,7 +268,7 @@ export namespace Uranus
 		static inline constexpr std::ptrdiff_t DISPLACEMENT = 1;
 		static inline auto& pfn = gUranusCollection.pfnCheckStartMoney;
 
-		inline void operator() (void) const noexcept
+		static inline void operator() (void) noexcept
 		{
 			return pfn();
 		}
@@ -287,7 +286,7 @@ export namespace Uranus
 		static inline constexpr std::ptrdiff_t DISPLACEMENT = 1;
 		static inline auto& pfn = gUranusCollection.pfnRadiusFlash;
 
-		inline auto operator()(Vector const& vecSrc, entvars_t* pevInflictor, entvars_t* pevAttacker, float flDamage) const noexcept
+		static inline auto operator()(Vector const& vecSrc, entvars_t* pevInflictor, entvars_t* pevAttacker, float flDamage) noexcept
 		{
 			return pfn(vecSrc, pevInflictor, pevAttacker, flDamage);
 		}
@@ -307,7 +306,7 @@ export namespace Uranus
 			static inline constexpr std::ptrdiff_t DISPLACEMENT = 1;
 			static inline auto& pfn = gUranusCollection.pfnCreate;
 
-			inline CBaseEntity* operator() (const char* pszName, Vector const& vecOrigin, Angles const& vecAngles, edict_t* pentOwner) const noexcept
+			static inline auto operator() (const char* pszName, Vector const& vecOrigin, Angles const& vecAngles, edict_t* pentOwner) noexcept
 			{
 				return pfn(pszName, vecOrigin, vecAngles, pentOwner);
 			}
@@ -325,7 +324,7 @@ export namespace Uranus
 			static inline constexpr std::ptrdiff_t DISPLACEMENT = 1;
 			static inline auto& pfn = gUranusCollection.pfnFireBullets;
 
-			inline auto operator() (CBaseEntity* pThis, unsigned long cShots, Vector const& vecSrc, Vector const& vecDirShooting, Vector const& vecSpread, float flDistance, EBulletTypes iBulletType, int iTracerFreq, int iDamage, entvars_t* pevAttacker) const noexcept
+			static inline auto operator() (CBaseEntity* pThis, unsigned long cShots, Vector const& vecSrc, Vector const& vecDirShooting, Vector const& vecSpread, float flDistance, EBulletTypes iBulletType, int iTracerFreq, int iDamage, entvars_t* pevAttacker) noexcept
 			{
 				return pfn(
 					pThis, nullptr,
@@ -347,7 +346,7 @@ export namespace Uranus
 			static inline constexpr std::ptrdiff_t DISPLACEMENT = 1;
 			static inline auto& pfn = gUranusCollection.pfnFireBullets3;
 
-			inline Vector operator() (CBaseEntity* pThis, Vector const& vecSrc, Vector const& vecDirShooting, float flSpread, float flDistance, int iPenetration, int iBulletType, int iDamage, float flRangeModifier, entvars_t* pevAttacker, qboolean bPistol, int shared_rand) const noexcept
+			static inline Vector operator() (CBaseEntity* pThis, Vector const& vecSrc, Vector const& vecDirShooting, float flSpread, float flDistance, int iPenetration, int iBulletType, int iDamage, float flRangeModifier, entvars_t* pevAttacker, qboolean bPistol, int shared_rand) noexcept
 			{
 				Vector ret{};
 				pfn(
@@ -378,7 +377,7 @@ export namespace Uranus
 			static inline constexpr std::ptrdiff_t DISPLACEMENT = 1;
 			static inline auto& pfn = gUranusCollection.pfnSUB_UseTargets;
 
-			inline void operator() (CBaseDelay* pObject, CBaseEntity* pActivator, USE_TYPE useType, float value) const noexcept
+			static inline void operator() (CBaseDelay* pObject, CBaseEntity* pActivator, USE_TYPE useType, float value) noexcept
 			{
 				return pfn(pObject, pActivator, useType, value);
 			}
@@ -399,7 +398,7 @@ export namespace Uranus
 			static inline constexpr std::ptrdiff_t DISPLACEMENT = 1;
 			static inline auto& pfn = gUranusCollection.pfnDefaultDeploy;
 
-			inline auto operator() (CBasePlayerWeapon* pWeapon, const char* szViewModel, const char* szWeaponModel, int iAnim, const char* szAnimExt, bool skiplocal) const noexcept
+			static inline auto operator() (CBasePlayerWeapon* pWeapon, const char* szViewModel, const char* szWeaponModel, int iAnim, const char* szAnimExt, bool skiplocal) noexcept
 			{
 				return pfn(pWeapon, 0, szViewModel, szWeaponModel, iAnim, szAnimExt, skiplocal);
 			}
@@ -420,7 +419,7 @@ export namespace Uranus
 			static inline constexpr std::ptrdiff_t DISPLACEMENT = 1;
 			static inline auto& pfn = gUranusCollection.pfnHintMessage;
 
-			inline bool operator() (CBasePlayer* pPlayer, const char* pMessage, qboolean bDisplayIfDead, qboolean bOverrideClientSettings) const noexcept
+			static inline bool operator() (CBasePlayer* pPlayer, const char* pMessage, qboolean bDisplayIfDead, qboolean bOverrideClientSettings) noexcept
 			{
 				return pfn(pPlayer, pMessage, bDisplayIfDead, bOverrideClientSettings);
 			}
@@ -438,7 +437,7 @@ export namespace Uranus
 			static inline constexpr std::ptrdiff_t DISPLACEMENT = 1;
 			static inline auto& pfn = gUranusCollection.pfnSetAnimation;
 
-			inline void operator() (CBasePlayer* pPlayer, PLAYER_ANIM playerAnim) const noexcept
+			static inline void operator() (CBasePlayer* pPlayer, PLAYER_ANIM playerAnim) noexcept
 			{
 				pfn(pPlayer, 0, playerAnim);
 			}
@@ -456,7 +455,7 @@ export namespace Uranus
 			static inline constexpr std::ptrdiff_t DISPLACEMENT = 1;
 			static inline auto& pfn = gUranusCollection.pfnDropShield;
 
-			inline auto operator() (CBasePlayer* pPlayer, bool bCallDeploy = true) const noexcept
+			static inline auto operator() (CBasePlayer* pPlayer, bool bCallDeploy = true) noexcept
 			{
 				return pfn(pPlayer, bCallDeploy);
 			}
@@ -474,7 +473,7 @@ export namespace Uranus
 			static inline constexpr std::ptrdiff_t DISPLACEMENT = 1;
 			static inline auto& pfn = gUranusCollection.pfnCanPlayerBuy;
 
-			inline auto operator() (CBasePlayer* pPlayer, bool bShowMessage = true) const noexcept
+			static inline auto operator() (CBasePlayer* pPlayer, bool bShowMessage = true) noexcept
 			{
 				return pfn(pPlayer, bShowMessage);
 			}
@@ -492,7 +491,7 @@ export namespace Uranus
 			static inline constexpr std::ptrdiff_t DISPLACEMENT = 1;
 			static inline auto& pfn = gUranusCollection.pfnAddAccount;
 
-			inline auto operator() (CBasePlayer* pPlayer, int32_t iAmount, bool bTrackChange = true) const noexcept
+			static inline auto operator() (CBasePlayer* pPlayer, int32_t iAmount, bool bTrackChange = true) noexcept
 			{
 				return pfn(pPlayer, iAmount, bTrackChange);
 			}
@@ -510,7 +509,7 @@ export namespace Uranus
 			static inline constexpr std::ptrdiff_t DISPLACEMENT = 1;
 			static inline auto& pfn = gUranusCollection.pfnSelectItem;
 
-			inline auto operator() (CBasePlayer* pPlayer, const char* pszItemName) const noexcept
+			static inline auto operator() (CBasePlayer* pPlayer, const char* pszItemName) noexcept
 			{
 				return pfn(pPlayer, pszItemName);
 			}
@@ -528,7 +527,7 @@ export namespace Uranus
 			static inline constexpr std::ptrdiff_t DISPLACEMENT = 1;
 			static inline auto& pfn = gUranusCollection.pfnSwitchWeapon;
 
-			inline auto operator() (CBasePlayer* pPlayer, CBasePlayerItem* pWeapon) const noexcept
+			static inline auto operator() (CBasePlayer* pPlayer, CBasePlayerItem* pWeapon) noexcept
 			{
 				return pfn(pPlayer, 0, pWeapon);
 			}
@@ -546,7 +545,7 @@ export namespace Uranus
 			static inline constexpr std::ptrdiff_t DISPLACEMENT = 1;
 			static inline auto& pfn = gUranusCollection.pfnDropPlayerItem;
 
-			inline auto operator() (CBasePlayer* pPlayer, char const* pszItemName) const noexcept
+			static inline auto operator() (CBasePlayer* pPlayer, char const* pszItemName) noexcept
 			{
 				return pfn(pPlayer, 0, pszItemName);
 			}
@@ -595,7 +594,7 @@ export namespace HW
 		static inline constexpr std::ptrdiff_t DISPLACEMENT = 1;
 		static inline auto& pfn = gUranusCollection.pfnGetDispatch;
 
-		inline auto operator() (const char* pszClassName) const noexcept
+		static inline auto operator() (const char* pszClassName) noexcept
 		{
 			return pfn(pszClassName);
 		}

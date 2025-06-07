@@ -139,7 +139,7 @@ export namespace Interpolation
 
 	constexpr double bounce(double const t) noexcept
 	{
-		constexpr auto l = [](double const t) /*#UPDATE_AT_CPP23 static*/ noexcept { return t * t * 8; };
+		constexpr auto l = [](double const t) static noexcept { return t * t * 8; };
 		
 		if (t < 0.3535)
 			return l(t);
@@ -169,9 +169,9 @@ export namespace Interpolation
 	template <double tension = 2.0 * 1.5> constexpr
 	double antic_then_overshoot(double const t) noexcept
 	{
-		constexpr auto a = [](double const t) /*#UPDATE_AT_CPP23 static*/ noexcept
+		constexpr auto a = [](double const t) static noexcept
 			{ return t * t * ((tension + 1) * t - tension); };
-		constexpr auto o = [](double const t) /*#UPDATE_AT_CPP23 static*/ noexcept
+		constexpr auto o = [](double const t) static noexcept
 			{ return t * t * ((tension + 1) * t + tension); };
 
 		if (t < 0.5)

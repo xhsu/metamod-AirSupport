@@ -39,7 +39,7 @@ struct CaseIgnoredStrLess final
 		return c;
 	}
 
-	/*#UPDATE_AT_CPP23 static*/ constexpr bool operator() (std::string_view lhs, std::string_view rhs) const noexcept
+	static constexpr bool operator() (std::string_view lhs, std::string_view rhs) noexcept
 	{
 		return std::ranges::lexicographical_compare(
 			lhs,

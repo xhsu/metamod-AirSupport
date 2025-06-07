@@ -228,7 +228,8 @@ export void LoadConfiguration() noexcept
 
 				if (CVarManager::Instance()->m_Desc.contains(pcvar->Handle()->name))
 				{
-					auto&& [szDefValue, szDomain, szDesc] = CVarManager::Instance()->m_Desc.at(pcvar->Handle()->name);
+					auto&& [szDefValue, szDomain, szDesc]
+						= CVarManager::Instance()->m_Desc.at(pcvar->Handle()->name);
 
 					// Split the desc into multiple lines.
 					size_t last = 0, next = 0;

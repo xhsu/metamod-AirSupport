@@ -6,7 +6,6 @@ module;
 
 export module Query;
 
-export import <experimental/generator>;	// #UPDATE_AT_CPP23
 export import std;
 export import hlsdk;
 
@@ -19,11 +18,11 @@ namespace Query
 	{
 		return
 			std::span(g_engfuncs.pfnPEntityOfEntIndex(1), gpGlobals->maxClients) // from 1 to 32 actually, iota parsed as [1, 33)
-			| std::views::transform([](edict_t &ent) noexcept { return ent.free ? nullptr : (CBasePlayer *)ent.pvPrivateData; })
-			| std::views::filter([](void *p) noexcept { return p != nullptr; })
+			| std::views::transform([](edict_t &ent) static noexcept { return ent.free ? nullptr : (CBasePlayer *)ent.pvPrivateData; })
+			| std::views::filter([](void *p) static noexcept { return p != nullptr; })
 
 			// Connected but not necessary alive.
-			| std::views::filter([](CBasePlayer *pPlayer) noexcept { return !pPlayer->has_disconnected && !(pPlayer->pev->flags & FL_DORMANT); })
+			| std::views::filter([](CBasePlayer *pPlayer) static noexcept { return !pPlayer->has_disconnected && !(pPlayer->pev->flags & FL_DORMANT); })
 			;
 	}
 
@@ -32,11 +31,11 @@ namespace Query
 	{
 		return
 			std::span(g_engfuncs.pfnPEntityOfEntIndex(1), gpGlobals->maxClients) |
-			std::views::transform([](edict_t &ent) noexcept { return ent.free ? nullptr : (CBasePlayer *)ent.pvPrivateData; }) |
-			std::views::filter([](void *p) noexcept { return p != nullptr; }) |
+			std::views::transform([](edict_t &ent) static noexcept { return ent.free ? nullptr : (CBasePlayer *)ent.pvPrivateData; }) |
+			std::views::filter([](void *p) static noexcept { return p != nullptr; }) |
 
 			// Only player who is alive, and connected. Disconnected player will be marked as DEAD_DEAD therefore filtered.
-			std::views::filter([](CBasePlayer *pPlayer) noexcept { return pPlayer->pev->deadflag == DEAD_NO; })
+			std::views::filter([](CBasePlayer *pPlayer) static noexcept { return pPlayer->pev->deadflag == DEAD_NO; })
 			;
 	}
 
@@ -47,7 +46,7 @@ namespace Query
 			all_players()
 
 			// Observer is depending on pev->iuser1
-			| std::views::filter([](CBasePlayer* pPlayer) noexcept { return pPlayer->pev->iuser1 != OBS_NONE; })
+			| std::views::filter([](CBasePlayer* pPlayer) static noexcept { return pPlayer->pev->iuser1 != OBS_NONE; })
 			;
 	}
 
@@ -67,8 +66,8 @@ namespace Query
 	{
 		return
 			std::span(g_engfuncs.pfnPEntityOfEntIndex(0), gpGlobals->maxEntities) |
-			std::views::transform([](edict_t& ent) noexcept { return ent.free ? nullptr : (CBaseEntity *)ent.pvPrivateData; }) |
-			std::views::filter([](void *p) noexcept { return p != nullptr; })
+			std::views::transform([](edict_t& ent) static noexcept { return ent.free ? nullptr : (CBaseEntity *)ent.pvPrivateData; }) |
+			std::views::filter([](void *p) static noexcept { return p != nullptr; })
 			;
 	}
 
@@ -77,8 +76,8 @@ namespace Query
 	{
 		return
 			std::span(g_engfuncs.pfnPEntityOfEntIndex(gpGlobals->maxClients + 1), gpGlobals->maxEntities - (gpGlobals->maxClients + 1)) |
-			std::views::transform([](edict_t &ent) noexcept { return ent.free ? nullptr : (CBaseEntity *)ent.pvPrivateData; }) |
-			std::views::filter([](void *p) noexcept { return p != nullptr; })
+			std::views::transform([](edict_t &ent) static noexcept { return ent.free ? nullptr : (CBaseEntity *)ent.pvPrivateData; }) |
+			std::views::filter([](void *p) static noexcept { return p != nullptr; })
 			;
 	}
 
@@ -99,13 +98,13 @@ namespace Query
 		return
 			std::span(g_engfuncs.pfnPEntityOfEntIndex(gpGlobals->maxClients + 1), gpGlobals->maxEntities - (gpGlobals->maxClients + 1))
 			| std::views::filter([istr = MAKE_STRING(T::CLASSNAME)](edict_t& ent) noexcept { return istr == ent.v.classname; })
-			| std::views::transform([](edict_t& ent) noexcept { return ent.free ? nullptr : (T*)ent.pvPrivateData; })
-			| std::views::filter([](T* p) noexcept { return p != nullptr; })
+			| std::views::transform([](edict_t& ent) static noexcept { return ent.free ? nullptr : (T*)ent.pvPrivateData; })
+			| std::views::filter([](T* p) static noexcept { return p != nullptr; })
 			;
 	}
 
 	// Iterating type: CBasePlayerWeapon*
-	export std::experimental::generator<CBasePlayerWeapon*> all_weapons_belongs_to(CBasePlayer const* pPlayer) noexcept
+	export std::generator<CBasePlayerWeapon*> all_weapons_belongs_to(CBasePlayer const* pPlayer) noexcept
 	{
 		for (auto&& p : pPlayer->m_rgpPlayerItems)
 		{
@@ -127,7 +126,7 @@ namespace Query
 		static_assert(sizeof...(Tys) > 0, "Must be at least one type to test!");
 
 		return
-			std::views::filter([](auto &&ent) noexcept -> bool { auto const hdl = EHANDLE<CBaseEntity>(ent); return (... || hdl.Is<Tys>()); });
+			std::views::filter([](auto &&ent) static noexcept -> bool { auto const hdl = EHANDLE<CBaseEntity>(ent); return (... || hdl.Is<Tys>()); });
 	}
 
 	export template <typename... Tys> inline decltype(auto) exactly(void) noexcept
@@ -136,13 +135,13 @@ namespace Query
 		static_assert(requires { { (... || (MAKE_STRING(Tys::CLASSNAME) == std::ptrdiff_t{})) } -> std::same_as<bool>; }, "Must be local class!");
 
 		return
-			std::views::filter([](auto&& ent) noexcept -> bool { auto const pEdict = ent_cast<edict_t*>(ent); return (... || (MAKE_STRING(Tys::CLASSNAME) == pEdict->v.classname)); });
+			std::views::filter([](auto&& ent) static noexcept -> bool { auto const pEdict = ent_cast<edict_t*>(ent); return (... || (MAKE_STRING(Tys::CLASSNAME) == pEdict->v.classname)); });
 	}
 
 	export template <typename T> inline decltype(auto) as(void) noexcept
 	{
 		return
-			std::views::transform([](auto &&ent) noexcept -> T* { return EHANDLE<CBaseEntity>(ent).As<T>(); });
+			std::views::transform([](auto &&ent) static noexcept -> T* { return EHANDLE<CBaseEntity>(ent).As<T>(); });
 	}
 
 	export template <size_t N> inline decltype(auto) with_classname_of(const char (&szClassname)[N]) noexcept
