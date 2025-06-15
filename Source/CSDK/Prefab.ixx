@@ -7,9 +7,9 @@ export module Prefab;
 import std;
 import hlsdk;
 
-export import CBase;
-export import Task;
-export import VTFH;
+import CBase;
+import Task;
+import VTFH;
 
 using std::list;
 using std::pair;

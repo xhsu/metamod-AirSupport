@@ -8,14 +8,14 @@ module;
 
 export module Models;
 
-export import std;
-export import hlsdk;
+import std;
+import hlsdk;
 
-export import FileSystem;
-export import Platform;
-export import Wave;
+import FileSystem;
+import Platform;
+import Wave;
 
-struct seq_timing_t final
+export struct seq_timing_t final
 {
 	std::int32_t m_iSeqIdx{ -1 };
 	Activity m_Activity{ ACT_INVALID };
@@ -30,11 +30,11 @@ struct CaseIgnoredStrLess final
 {
 	static constexpr char to_lower(char c) noexcept
 	{
-		if ((c & 0b10000000) == 0b10000000)	// utf-8 character, keep it as it is.
+		if ((c & 0b1000'0000) == 0b1000'0000)	// utf-8 character, keep it as it is.
 			return c;
 
 		if (c >= 'A' && c <= 'Z')
-			return static_cast<char>(c - 'A' + 'a');
+			return static_cast<char>(c ^ 0b0010'0000);	// Flip the 6th bit
 
 		return c;
 	}
@@ -164,7 +164,7 @@ namespace GoldSrc
 		m_rgszCurrentError.clear();
 
 		auto const RegisteredPath = FileSystem::RelativeToWorkingDir(szRelativePath);
-		auto&&[iter, bNewEntry] = m_StudioInfo.try_emplace(RegisteredPath);
+		auto&& [iter, bNewEntry] = m_StudioInfo.try_emplace(RegisteredPath);
 		auto& StudioInfo = iter->second;
 
 		[[unlikely]]
@@ -200,3 +200,6 @@ namespace GoldSrc
 		return true;
 	}
 }
+
+// Const version of the namespaced one. Just for the sake of safty.
+export inline auto const& gStudioInfo{ GoldSrc::m_StudioInfo };

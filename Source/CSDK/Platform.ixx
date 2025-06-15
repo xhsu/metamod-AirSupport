@@ -12,7 +12,7 @@ module;
 
 export module Platform;
 
-export import std;
+import std;
 
 
 export template <typename... Tys> [[noreturn]] void UTIL_Terminate(const char *psz, Tys&&... args) noexcept

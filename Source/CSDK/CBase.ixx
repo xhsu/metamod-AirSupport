@@ -10,8 +10,8 @@ export module CBase;
 //		 Find more in ConditionZero.ixx
 //		 For virtual functions, they are located in VTFH.ixx
 
-export import std;
-export import hlsdk;
+import std;
+import hlsdk;
 
 // These are caps bits to indicate what an object's capabilities (currently used for save/restore and level transitions)
 export inline constexpr auto FCAP_CUSTOMSAVE = 0x00000001;
@@ -662,8 +662,8 @@ public:
 
 //public:
 	bool DefaultDeploy(char const *szViewModel, char const *szWeaponModel, int iAnim, char const *szAnimExt, int skiplocal = 0) noexcept;
-//	int DefaultReload(int iClipSize, int iAnim, float fDelay, int body = 0);
-//	void ReloadSound(void);
+	qboolean DefaultReload(int iClipSize, int iAnim, float fDelay, int body = 0) noexcept;
+	void ReloadSound(void) noexcept;
 	qboolean AddPrimaryAmmo(int iCount, const char* szName, int iMaxClip, int iMaxCarry) noexcept;
 	qboolean AddSecondaryAmmo(int iCount, const char* szName, int iMaxCarry) noexcept;
 //	int PrimaryAmmoIndex(void);

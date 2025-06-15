@@ -1,9 +1,9 @@
 export module Uranus:Functions;
 
-export import std;
-export import hlsdk;
+import std;
+import hlsdk;
 
-export import CBase;
+import CBase;
 
 using std::uint32_t;
 

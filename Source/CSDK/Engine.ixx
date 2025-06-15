@@ -9,9 +9,12 @@ export module Engine;
 import std;
 import hlsdk;
 
-export import Platform;
+import Platform;
 
-export import UtlHook;
+import UtlHook;
+
+using std::uint8_t;
+using std::int32_t;
 
 export namespace Engine
 {
@@ -100,7 +103,7 @@ export namespace Engine
 		const auto this_leap = std::chrono::year{ today_y }.is_leap();
 
 		const auto m = std::ranges::find(mon, today_m) - std::ranges::begin(mon) + 1;	// "Jan" at index 0
-		const auto d = std::ranges::fold_left(mond | std::views::take(m - 1), today_d - (this_leap ? 0 : 1), std::plus<>{});
+		const auto d = std::ranges::fold_left(mond | std::views::take(m - 1), today_d - (this_leap ? 0 : 1), std::plus{});
 		const auto y = today_y - 1900;
 
 		return

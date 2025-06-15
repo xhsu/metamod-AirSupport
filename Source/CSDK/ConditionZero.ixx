@@ -4,19 +4,25 @@ module;
 #include <cassert>
 #endif
 
+#include <cstring>	// _stricmp
+
 export module ConditionZero;
 
-export import std;
-export import hlsdk;
+import std;
+import hlsdk;
 
-export import CBase;
-export import GameRules;	// only used in CBase extensions.
-export import Message;		// only used in CBase extensions.
-export import Platform;
-export import Uranus;		// runtime hook compatibility
+import CBase;
+import GameRules;	// only used in CBase extensions.
+import Message;		// only used in CBase extensions.
+import Platform;
+import Query;		// for each player, only used in CBase extensions.
+import Uranus;		// runtime hook compatibility
 
 import UtlHook;
 import UtlRandom;
+
+
+using std::strcpy;	// #MSVC_BUG_STDCOMPAT
 
 
 export inline constexpr std::ptrdiff_t ITEM_INFO_ARRAY_OFS_8684 = 0x100CDC09 - 0x100CDC00;	// offset from W_Precache
@@ -313,6 +319,49 @@ bool CBasePlayerWeapon::DefaultDeploy(char const* szViewModel, char const* szWea
 	m_pPlayer->m_bResumeZoom = false;
 
 	return true;
+}
+
+qboolean CBasePlayerWeapon::DefaultReload(int iClipSize, int iAnim, float fDelay, int body) noexcept
+{
+	if (m_pPlayer->m_rgAmmo[m_iPrimaryAmmoType] <= 0)
+		return false;
+
+	auto const j = std::min(iClipSize - m_iClip, m_pPlayer->m_rgAmmo[m_iPrimaryAmmoType]);
+	if (!j)
+	{
+		return false;
+	}
+
+	m_pPlayer->m_flNextAttack = fDelay;
+
+	ReloadSound();
+	SendWeaponAnim(iAnim, UseDecrement() ? 1 : 0);
+
+	m_fInReload = true;
+	m_flTimeWeaponIdle = fDelay + 0.5f;
+
+	return true;
+}
+
+void CBasePlayerWeapon::ReloadSound(void) noexcept
+{
+	static constexpr auto MAX_DIST_RELOAD_SOUND = 512.0 * 512.0;
+
+	for (CBasePlayer* pPlayer : Query::all_players())
+	{
+		if (pPlayer == m_pPlayer)
+			continue;
+
+		auto const distance = (m_pPlayer->pev->origin - pPlayer->pev->origin).LengthSquared();
+		if (distance <= MAX_DIST_RELOAD_SOUND)
+		{
+			gmsgReloadSound::Send(
+				pPlayer->edict(),
+				std::uint8_t((1.0f - (distance / MAX_DIST_RELOAD_SOUND)) * 255.0f),
+				!strcmp(STRING(pev->classname), "weapon_m3") || !strcmp(STRING(pev->classname), "weapon_xm1014")
+			);
+		}
+	}
 }
 
 qboolean CBasePlayerWeapon::AddPrimaryAmmo(int iCount, const char* szName, int iMaxClip, int iMaxCarry) noexcept

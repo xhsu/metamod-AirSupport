@@ -1,11 +1,18 @@
 export module PlayerItem;
 
+import std;
+import hlsdk;
+
 import CBase;
 import ConditionZero;
 import GameRules;
 import Message;
 import Task;
 import VTFH;
+
+
+using std::uint16_t;	// #MSVC_BUG_STDCOMPAT
+
 
 export inline constexpr auto WEAPON_IS_ONTARGET = 0x40;
 

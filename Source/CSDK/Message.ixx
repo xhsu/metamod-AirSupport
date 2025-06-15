@@ -14,14 +14,14 @@ module;
 
 export module Message;
 
-export import std;
-export import hlsdk;
+import std;
+import hlsdk;
 
 #ifdef USING_METAMOD
-export import Plugin;
+import Plugin;
 #endif
 
-export import UtlConcepts;
+import UtlConcepts;
 
 using std::bit_cast;
 using std::uint8_t;
@@ -291,6 +291,7 @@ export using gmsgBarTime = Message_t<"BarTime", int16_t>;
 export using gmsgBrass = Message_t<"Brass", Vector/*origin*/, Vector/*velocity*/, msg_angle_t/*rotation*/, int16_t/*model*/, uint8_t/*soundtype*/, uint8_t/*entityIndex*/>;
 export using gmsgCurWeapon = Message_t<"CurWeapon", uint8_t/*state*/, uint8_t/*iId*/, uint8_t/*iClip*/>;
 export using gmsgHudText = Message_t<"HudTextPro", const char*/*message*/, uint8_t/*is_hint*/>;	// Arkshine: not usable except build-in texts.
+export using gmsgReloadSound = Message_t<"ReloadSound", uint8_t/*volume*/, uint8_t/*bIsShotgun*/>;
 export using gmsgRoundTime = Message_t<"RoundTime", uint16_t/*countdown*/>;
 export using gmsgScreenFade = Message_t<"ScreenFade", uint16_t, uint16_t, uint16_t, uint8_t, uint8_t, uint8_t, uint8_t>;
 export using gmsgScreenShake = Message_t<"ScreenShake", uint16_t, uint16_t, uint16_t>;
@@ -298,7 +299,7 @@ export using gmsgShowMenu = Message_t<"ShowMenu", uint16_t, int8_t, uint8_t, con
 export using gmsgTextMsg = Message_t<"TextMsg", uint8_t, const char*>;	// 4 args more actually, but whatever.
 export using gmsgWeapPickup = Message_t<"WeapPickup", uint8_t>;
 export using gmsgWeaponAnim = Message_t<"WeapAnim", uint8_t, uint8_t>;	// actually no such message exist. pure wrapper.
-export using gmsgWeaponList = Message_t<"WeaponList", const char*, uint8_t, uint8_t, uint8_t, uint8_t, uint8_t, uint8_t, uint8_t, uint8_t>;
+export using gmsgWeaponList = Message_t<"WeaponList", const char*/*name*/, uint8_t/*prim ammo*/, uint8_t/*prim ammo max*/, uint8_t/*sec ammo*/, uint8_t/*sec ammo max*/, uint8_t/*slot id*/, uint8_t/*order in slot*/, uint8_t/*iId*/, uint8_t/*flags*/>;
 
 
 // Goal: Retrieve commonly used messages.
@@ -309,6 +310,7 @@ export void RetrieveMessageHandles(void) noexcept
 	gmsgBrass::Retrieve();
 	gmsgCurWeapon::Retrieve();
 	gmsgHudText::Retrieve();
+	gmsgReloadSound::Retrieve();
 	gmsgRoundTime::Retrieve();
 	gmsgScreenFade::Retrieve();
 	gmsgScreenShake::Retrieve();

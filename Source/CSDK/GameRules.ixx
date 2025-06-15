@@ -6,11 +6,14 @@ module;
 
 export module GameRules;
 
-export import UtlHook;
+import std;
+import hlsdk;
 
-export import CBase;
-export import Engine;
-export import Platform;
+import UtlHook;
+
+import CBase;
+import Engine;
+import Platform;
 
 export class IVoiceGameMgrHelper
 {

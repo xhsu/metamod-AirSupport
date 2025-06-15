@@ -199,7 +199,7 @@ namespace FileSystem
 		return true;
 	}
 
-	export std::string_view GetAbsolutePath(const char *pszRelativePath) noexcept
+	export [[nodiscard]] std::string_view GetAbsolutePath(const char *pszRelativePath) noexcept
 	{
 		static char szBuffer[1024]{};
 		m_pObject->GetLocalPath(pszRelativePath, szBuffer, sizeof(szBuffer) - 1);
@@ -207,7 +207,7 @@ namespace FileSystem
 		return szBuffer;
 	}
 
-	export std::string RelativeToWorkingDir(std::string_view szRelativePath) noexcept
+	export [[nodiscard]] std::string RelativeToWorkingDir(std::string_view szRelativePath) noexcept
 	{
 		static auto const ExecutePath = std::filesystem::current_path();
 		auto const AbsolutePath = FileSystem::GetAbsolutePath(szRelativePath.data());
@@ -215,7 +215,7 @@ namespace FileSystem
 		return std::filesystem::relative(AbsolutePath, ExecutePath).u8string();
 	}
 
-	export FILE *FOpen(const char *pszRelativePath, const char *pszMode) noexcept
+	export [[nodiscard]] FILE *FOpen(const char *pszRelativePath, const char *pszMode) noexcept
 	{
 		auto const pszAbsPath = GetAbsolutePath(pszRelativePath);
 

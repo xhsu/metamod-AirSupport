@@ -32,7 +32,7 @@ void UTIL_SearchPatterns(bool bDoNoFoundCheck = true) noexcept
 	[[unlikely]]
 	if ((... || (Tys::pfn == nullptr)))
 	{
-		std::string szReport{ "Function: \"" };	// #UPDATE_AT_CPP23 fmt::join
+		std::string szReport{ "Function: \"" };	// #UPDATE_AT_CPP26 fmt::join
 
 		for (auto&& [pszModule, pszName] : std::views::zip(InvalidFunctionSources, InvalidFunctionNames))
 		{
