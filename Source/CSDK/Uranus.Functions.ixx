@@ -36,6 +36,9 @@ export struct uranus_func_collection_t final
 	void			(__cdecl*		pfnAddMultiDamage)			(entvars_t* pevInflictor, CBaseEntity* pEntity, float flDamage, int bitsDamageType) noexcept = nullptr;
 
 	float			(__cdecl*		pfnTEXTURETYPE_PlaySound)	(TraceResult* ptr, Vector vecSrc, Vector vecEnd, int iBulletType) noexcept = nullptr;
+	char			(__cdecl*		pfnUTIL_TextureHit)			(TraceResult* ptr, Vector vecSrc, Vector vecEnd) noexcept = nullptr;
+
+	float			(__cdecl*		pfnUTIL_SharedRandomFloat)	(uint32_t seed, float low, float high) noexcept = nullptr;
 
 	void			(__cdecl*		pfnW_Precache)				(void) noexcept = nullptr;
 	void			(__cdecl*		pfnUTIL_PrecacheOther)		(const char* szClassname) noexcept = nullptr;
@@ -166,6 +169,23 @@ export namespace Uranus
 		}
 	};
 
+	struct UTIL_TextureHit final
+	{
+		static inline constexpr char MODULE[] = "mp.dll";
+		static inline constexpr char NAME[] = u8"::UTIL_TextureHit";
+		static inline constexpr std::tuple PATTERNS
+		{
+			std::cref("\xCC\x55\x8B\xEC\x83\xEC\x5C\xA1****\x33\xC5\x89\x45\xFC\x8B\x45\x08\x56\x57\x8B\x40\x30\x85\xC0\x0F\x85"),	// 9980
+		};
+		static inline constexpr std::ptrdiff_t DISPLACEMENT = 1;
+		static inline auto& pfn = gUranusCollection.pfnUTIL_TextureHit;
+
+		static inline auto operator() (TraceResult* ptr, Vector const& vecSrc, Vector const& vecEnd) noexcept
+		{
+			return pfn(ptr, vecSrc, vecEnd);
+		}
+	};
+
 	struct TEXTURETYPE_PlaySound final
 	{
 		static inline constexpr char MODULE[] = "mp.dll";
@@ -178,9 +198,26 @@ export namespace Uranus
 		static inline constexpr std::ptrdiff_t DISPLACEMENT = 1;
 		static inline auto& pfn = gUranusCollection.pfnTEXTURETYPE_PlaySound;
 
-		static inline auto operator() (TraceResult* ptr, Vector vecSrc, Vector vecEnd, int iBulletType) noexcept
+		static inline auto operator() (TraceResult* ptr, Vector const& vecSrc, Vector const& vecEnd, int iBulletType) noexcept
 		{
 			return pfn(ptr, vecSrc, vecEnd, iBulletType);
+		}
+	};
+
+	struct UTIL_SharedRandomFloat final
+	{
+		static inline constexpr char MODULE[] = "mp.dll";
+		static inline constexpr char NAME[] = u8"::UTIL_SharedRandomFloat";
+		static inline constexpr std::tuple PATTERNS
+		{
+			std::cref("\xCC\x55\x8B\xEC\x8B\x45\x10\x03\x45\x0C\x03\x45\x08\x0F\xB6\xC0\xF3\x0F\x10\x45"),	// 9980
+		};
+		static inline constexpr std::ptrdiff_t DISPLACEMENT = 1;
+		static inline auto& pfn = gUranusCollection.pfnUTIL_SharedRandomFloat;
+
+		static inline auto operator() (uint32_t seed, float low, float high) noexcept
+		{
+			return pfn(seed, low, high);
 		}
 	};
 

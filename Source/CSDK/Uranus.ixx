@@ -59,10 +59,12 @@ export namespace Uranus
 	{
 		using namespace Uranus;
 
+		// #UPDATE_AT_CPP26 reflection
 		UTIL_SearchPatterns<
 			EmptyEntityHashTable, AddEntityHashValue, RemoveEntityHashValue,
 			ClearMultiDamage, ApplyMultiDamage, AddMultiDamage,
-			TEXTURETYPE_PlaySound,
+			TEXTURETYPE_PlaySound, UTIL_TextureHit,
+			UTIL_SharedRandomFloat,
 			W_Precache, UTIL_PrecacheOther, UTIL_PrecacheOtherWeapon, WriteSigonMessages,
 			CheckStartMoney,
 			RadiusFlash,

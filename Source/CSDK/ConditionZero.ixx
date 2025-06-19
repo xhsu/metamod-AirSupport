@@ -40,6 +40,12 @@ export inline constexpr unsigned char GI_AMMO_INDEX_8684_PATTERN[] = "\xA3\x2A\x
 export inline constexpr unsigned char GI_AMMO_INDEX_9899_PATTERN[] = "\x05\x2A\x2A\x2A\x2A\x00\x00\x00\x00\xE8\x2A\x2A\x2A\x2A\x68\x2A\x2A\x2A\x2A\xE8\x2A\x2A\x2A\x2A\x68\x2A\x2A\x2A\x2A\xE8\x2A\x2A\x2A\x2A\x68\x2A\x2A\x2A\x2A\xE8";
 
 export inline std::int32_t* gpiAmmoIndex = nullptr;
+export inline struct MULTIDAMAGE final
+{
+	CBaseEntity* pEntity{};
+	float amount{};
+	int type{};
+} *gpMultiDamage{ nullptr };
 
 
 // ServerActivate_Post
@@ -60,11 +66,16 @@ export void RetrieveConditionZeroVar() noexcept
 		1
 	);
 
+	gpMultiDamage = UTIL_RetrieveGlobalVariable<MULTIDAMAGE>(
+		gUranusCollection.pfnClearMultiDamage,
+		2	// C7 05 | 3C 55 14 10 | 00 00 00 00 => mov gMultiDamage.pEntity, 0
+	);
+
 	CBasePlayerItem::ItemInfoArray = std::span{ pItemInfo, MAX_WEAPONS };
 	CBasePlayerItem::AmmoInfoArray = std::span{ pAmmoInfo, MAX_AMMO_SLOTS };
 
 #ifdef _DEBUG
-	assert(pItemInfo && pAmmoInfo && gpiAmmoIndex);
+	assert(pItemInfo && pAmmoInfo && gpiAmmoIndex && gpMultiDamage);
 #else
 	[[unlikely]]
 	if (!pItemInfo)
