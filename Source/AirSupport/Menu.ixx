@@ -2,10 +2,13 @@
 
 export module Menu;
 
-export import std;
+import std;
+import hlsdk;
 
-export import Hook;
-export import Plugin;
+import Hook;
+import Plugin;
+
+using std::uint16_t;	// #MSVC_BUG_STDCOMPAT
 
 export enum EAirSupportTypes
 {

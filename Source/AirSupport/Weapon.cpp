@@ -8,6 +8,7 @@ import metamod_api;
 
 import Configurations;
 import Effects;
+import Hook;
 import Jet;
 import Localization;
 import Menu;

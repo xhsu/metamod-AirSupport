@@ -12,6 +12,7 @@ import Projectile;
 import Query;
 import Resources;
 import Target;
+import Task;
 
 import UtlRandom;
 

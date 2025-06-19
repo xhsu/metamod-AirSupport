@@ -1,9 +1,12 @@
 export module Effects;
 
-export import std;
+import std;
+import hlsdk;
 
-export import Prefab;
-export import Task.Const;
+import CBase;
+import Prefab;
+import Task.Const;
+import Task;
 
 using std::array;
 using std::list;

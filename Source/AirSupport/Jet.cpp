@@ -12,6 +12,8 @@ import Round;
 
 import UtlRandom;
 
+using std::int32_t;	// #MSVC_BUG_STDCOMPAT
+
 //
 // CJet
 //

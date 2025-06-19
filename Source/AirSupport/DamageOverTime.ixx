@@ -1,7 +1,9 @@
 export module DamageOverTime;
 
-export import CBase;
-export import Query;
+import hlsdk;
+
+import CBase;
+import Query;
 
 export extern "C++" namespace Gas
 {

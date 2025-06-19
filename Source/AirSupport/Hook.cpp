@@ -26,6 +26,9 @@ import Uranus;
 import Weapon;
 import WinAPI;
 
+using std::strcmp;	// #MSVC_BUG_STDCOMPAT
+using std::memcpy;
+
 namespace fs = ::std::filesystem;
 
 // Resources.cpp

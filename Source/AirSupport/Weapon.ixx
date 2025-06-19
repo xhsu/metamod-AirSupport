@@ -1,10 +1,12 @@
 export module Weapon;
 
-export import CBase;
-export import PlayerItem;
-export import Target;
-export import Task.Const;
-export import Task;
+import CBase;
+import PlayerItem;
+import Target;
+import Task.Const;
+import Task;
+
+using std::uint64_t;	// #MSVC_BUG_STDCOMPAT
 
 
 //export inline constexpr auto RADIO_KEY = 16486345;

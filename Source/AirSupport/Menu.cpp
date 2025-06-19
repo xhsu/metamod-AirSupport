@@ -7,6 +7,9 @@ import Target;
 import Weapon;
 
 
+using std::uint16_t;
+
+
 void UTIL_ShowMenu(edict_t *pPlayer, uint16_t bitsValidSlots, std::string szText) noexcept
 {
 LAB_RESTART:;

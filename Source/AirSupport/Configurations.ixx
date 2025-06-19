@@ -253,7 +253,7 @@ export void LoadConfiguration() noexcept
 				std::println(f, "{} {}", pcvar->Handle()->name, pcvar->Handle()->string);
 			}
 
-			fclose(f);
+			std::fclose(f);
 		}
 	}
 

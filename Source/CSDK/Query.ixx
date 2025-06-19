@@ -1,15 +1,18 @@
 module;
 
 #ifdef __INTELLISENSE__
+#include <algorithm>
 #include <ranges>
 #endif
 
 export module Query;
 
-export import std;
-export import hlsdk;
+import std;
+import hlsdk;
 
-export import CBase;
+import CBase;
+
+import <experimental/generator>;	// #MSVC_BUG_GENERATOR
 
 namespace Query
 {
@@ -104,7 +107,7 @@ namespace Query
 	}
 
 	// Iterating type: CBasePlayerWeapon*
-	export std::generator<CBasePlayerWeapon*> all_weapons_belongs_to(CBasePlayer const* pPlayer) noexcept
+	export std::experimental::generator<CBasePlayerWeapon*> all_weapons_belongs_to(CBasePlayer const* pPlayer) noexcept
 	{
 		for (auto&& p : pPlayer->m_rgpPlayerItems)
 		{

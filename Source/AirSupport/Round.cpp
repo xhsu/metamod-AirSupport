@@ -2,6 +2,7 @@ import hlsdk;
 
 import Effects;
 import GameRules;
+import Hook;
 import Jet;
 import Projectile;
 import Query;
