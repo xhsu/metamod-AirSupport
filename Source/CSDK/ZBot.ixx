@@ -5,6 +5,7 @@ module;
 export module ZBot;
 
 import std;
+import hlsdk;
 
 import UtlHook;
 
@@ -159,11 +160,11 @@ public:
 	virtual void AddServerCommand(const char* cmd) = 0;
 	virtual void AddServerCommands() = 0;
 
-	virtual void RestartRound();
-	virtual void StartFrame();
+	virtual void RestartRound() = 0;
+	virtual void StartFrame() = 0;
 
 	// Events are propogated to all bots.
-	virtual void OnEvent(GameEventType event, CBaseEntity* pEntity = nullptr, CBaseEntity* pOther = nullptr);	// Invoked when event occurs in the game (some events have NULL entity).
+	virtual void OnEvent(GameEventType event, CBaseEntity* pEntity = nullptr, CBaseEntity* pOther = nullptr) = 0;	// Invoked when event occurs in the game (some events have NULL entity).
 	virtual unsigned int GetPlayerPriority(CBasePlayer* pPlayer) const = 0;										// return priority of player (0 = max pri)
 
 public:
