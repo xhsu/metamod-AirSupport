@@ -681,35 +681,35 @@ public:
 //	static TYPEDESCRIPTION m_SaveData[];
 
 public:
-	int m_iPlayEmptySound{};
-	int m_fFireOnEmpty{};
+	qboolean m_iPlayEmptySound{};	// #PLANNED_PIW_cbase_rewrite only for M3 and M1014, they won't constantly play empty fire SFX when holding LMB.
+	qboolean m_fFireOnEmpty{};	// #PLANNED_PIW_cbase_useless should be abolish. Always true when needed, always false when don't needed.
 	float m_flNextPrimaryAttack{};
 	float m_flNextSecondaryAttack{};
 	float m_flTimeWeaponIdle{};
 	int m_iPrimaryAmmoType{};
-	int m_iSecondaryAmmoType{};
+	int m_iSecondaryAmmoType{};	// #PLANNED_PIW_cbase_rewrite probably just drop this one in CS.
 	int m_iClip{};
 	int m_iClientClip{};
 	int m_iClientWeaponState{};
-	int m_fInReload{};
-	int m_fInSpecialReload{};
-	int m_iDefaultAmmo{};
-	int m_iShellId{};
-	float m_fMaxSpeed{};
+	qboolean m_fInReload{};
+	qboolean m_fInSpecialReload{};
+	int m_iDefaultAmmo{};	// #PLANNED_PIW_cbase_rewrite should be a data sheet.
+	int m_iShellId{};	// #PLANNED_PIW_cbase_rewrite used by M3 and AWP, should be templated.
+	float m_fMaxSpeed{};	// #PLANNED_PIW_cbase_useless what the hell is the point? Just return the value!
 	bool m_bDelayFire{};
 	qboolean m_iDirection{};
-	bool m_bSecondarySilencerOn{};
+	bool m_bSecondarySilencerOn{};	// #PLANNED_PIW_cbase_useless unreferenced.
 	float m_flAccuracy{};
 	float m_flLastFire{};
 	int m_iShotsFired{};
-	Vector m_vVecAiming{};
-	string_t model_name{};
+	Vector m_vVecAiming{};	// #PLANNED_PIW_cbase_useless used without assigning value. ref by M1014.
+	string_t model_name{};	// #PLANNED_PIW_cbase_useless assigned in DefaultDeploy() without any usage.
 	float m_flGlock18Shoot{};
 	int m_iGlock18ShotsFired{};
 	float m_flFamasShoot{};
 	int m_iFamasShotsFired{};
-	float m_fBurstSpread{};
-	int m_iWeaponState{};
+	float m_fBurstSpread{};	// #PLANNED_PIW_cbase_rewrite FAMAS only.
+	int m_iWeaponState{};	// #PLANNED_PIW_cbase_useless Used in M3 and M1014, value assigned, sent to client, but never used in SV.
 	float m_flNextReload{};
 	float m_flDecreaseShotsFired{};
 	unsigned short m_usFireGlock18{};
@@ -717,8 +717,8 @@ public:
 
 	// LUNA: ReGameDLL added? Or build >= 6153??
 	// hle time creep vars
-	float m_flPrevPrimaryAttack{};
-	float m_flLastFireTime{};
+	float m_flPrevPrimaryAttack{}; // #PLANNED_PIW_cbase_useless dead code in 6153
+	float m_flLastFireTime{}; // #PLANNED_PIW_cbase_useless dead code in 6153
 };
 
 export class CBasePlayerAmmo : public CBaseEntity
@@ -886,6 +886,21 @@ export inline constexpr auto GIB_NEVER = 1; // Never gib, no matter how much dea
 export inline constexpr auto GIB_ALWAYS = 2; // Always gib ( Houndeye Shock, Barnacle Bite )
 export inline constexpr auto GIB_HEALTH_VALUE = -30;
 
+export enum EHitBoxGroup : std::uint32_t
+{
+	HITGROUP_GENERIC,
+	HITGROUP_HEAD,
+	HITGROUP_CHEST,
+	HITGROUP_STOMACH,
+	HITGROUP_LEFTARM,
+	HITGROUP_RIGHTARM,
+	HITGROUP_LEFTLEG,
+	HITGROUP_RIGHTLEG,
+	HITGROUP_SHIELD,
+
+	NUM_HITGROUPS,
+};
+
 export class CBaseMonster : public CBaseToggle
 {
 public:
@@ -943,7 +958,7 @@ public:
 public:
 	Activity m_Activity;
 	Activity m_IdealActivity;
-	int m_LastHitGroup;
+	EHitBoxGroup m_LastHitGroup;
 	int m_bitsDamageType;
 	uint8_t m_rgbTimeBasedDamage[CDMG_TIMEBASED];
 	MONSTERSTATE m_MonsterState;
@@ -1062,10 +1077,10 @@ export inline constexpr auto SUIT_NEXT_IN_10MIN = 600;
 export inline constexpr auto SUIT_NEXT_IN_30MIN = 1800;
 export inline constexpr auto SUIT_NEXT_IN_1HOUR = 3600;
 
-export inline constexpr auto AUTOAIM_2DEGREES = 0.0348994967025;
-export inline constexpr auto AUTOAIM_5DEGREES = 0.08715574274766;
-export inline constexpr auto AUTOAIM_8DEGREES = 0.1391731009601;
-export inline constexpr auto AUTOAIM_10DEGREES = 0.1736481776669;
+export inline constexpr auto AUTOAIM_2DEGREES = 0.0348994967025f;
+export inline constexpr auto AUTOAIM_5DEGREES = 0.08715574274766f;
+export inline constexpr auto AUTOAIM_8DEGREES = 0.1391731009601f;
+export inline constexpr auto AUTOAIM_10DEGREES = 0.1736481776669f;
 
 export inline constexpr auto CSUITNOREPEAT = 32;
 
