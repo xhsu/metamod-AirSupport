@@ -148,7 +148,7 @@ export class CBotManager
 {
 public:
 	CBotManager();
-	virtual ~CBotManager() {}
+	//virtual ~CBotManager() {}
 
 	virtual void ClientDisconnect(CBasePlayer* pPlayer) = 0;
 	virtual qboolean ClientCommand(CBasePlayer* pPlayer, const char* pcmd) = 0;
@@ -180,7 +180,9 @@ public:
 
 private:
 	// the list of active grenades the bots are aware of
-	ActiveGrenadeList m_activeGrenadeList;
+	//ActiveGrenadeList m_activeGrenadeList;	// LUNA: the size of this in CZ is 8, hence m_gameScenario can be (DWORD *) + 3
+	std::uint32_t m_activeGrenadeList_ptr_to_node{};
+	std::uint32_t m_activeGrenadeList_count{};
 };
 
 // Simple class for counting down a short interval of time
@@ -219,7 +221,7 @@ public:
 	virtual void RestartRound() = 0;										// (EXTEND) invoked when a new round begins
 	virtual void StartFrame() = 0;											// (EXTEND) called each frame
 
-	virtual void OnEvent(GameEventType event, CBaseEntity* pEntity = nullptr, CBaseEntity* pOther = nullptr) = 0;
+	virtual void OnEvent(GameEventType event, CBaseEntity* pEntity = nullptr, CBaseEntity* pOther = nullptr) = 0;	// LUNA: index = 9
 	virtual unsigned int GetPlayerPriority(CBasePlayer* pPlayer) const = 0;	// return priority of pPlayer (0 = max pri)
 	virtual bool IsImportantPlayer(CBasePlayer* pPlayer) const = 0;			// return true if pPlayer is important to scenario (VIP, bomb carrier, etc)
 
@@ -422,27 +424,30 @@ private:
 
 export namespace ZBot
 {
-	inline constexpr unsigned char INSTALL_BOT_CONTROL_FN_ANNIV_PATTERN[] = "\xCC\x55\x8B\xEC\x6A\xFF\x68\x2A\x2A\x2A\x2A\x64\xA1\x2A\x2A\x2A\x2A\x50\x51\x56\x57\xA1\x2A\x2A\x2A\x2A\x33\xC5";
+	inline constexpr unsigned char INSTALL_BOT_CONTROL_FN_ANNIV_PATTERN[] = "\xCC\x55\x8B\xEC\x6A\xFF\x68****\x64\xA1****\x50\x51\x56\x57\xA1****\x33\xC5\x50\x8D\x45\xF4\x64\xA3****\x8B\x3D";
 
-	inline CBotManager** ppTheBots{ nullptr };
+	inline CCSBotManager** ppTheBots{ nullptr };
 
 	// Need to be retrieve every new game. #NO_URGENT
 	void RetrieveManager(void) noexcept
 	{
-		auto addr = (std::uintptr_t)UTIL_SearchPattern("mp.dll", INSTALL_BOT_CONTROL_FN_ANNIV_PATTERN, 1);
+		auto const pfnInstallBotControl
+			= UTIL_SearchPattern("mp.dll", INSTALL_BOT_CONTROL_FN_ANNIV_PATTERN, 1);
 
-		[[unlikely]]
-		if (!addr)
-		{
+		if (!pfnInstallBotControl) [[unlikely]]
 			UTIL_Terminate("Function \"::InstallBotControl\" no found!");
-		}
 
-		static constexpr std::ptrdiff_t ofs_anniv = 0x1F357 - 0x1F330;
+		ppTheBots = UTIL_RetrieveGlobalVariable<CCSBotManager*>(
+			pfnInstallBotControl,
+			0x1F357 - 0x1F330	// 8B 3D 5C E1 0F 10                             mov     edi, TheBots
+		);
 
-		addr += ofs_anniv;
-		//auto v = *(CBotManager**)(void**)(*(long*)addr);
+		assert(ppTheBots);
+		[[maybe_unused]] auto& TheBots = **ppTheBots;
+	}
 
-		//assert(v != nullptr);
-		ppTheBots = (CBotManager**)(void**)(*(long*)addr);
+	[[nodiscard]] __forceinline CCSBotManager* Manager() noexcept
+	{
+		return *ppTheBots;
 	}
 }
