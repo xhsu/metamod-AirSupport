@@ -5,8 +5,10 @@ module;
 
 export module Sprite;
 
-export import std;
-export import hlsdk;
+import std;
+import hlsdk;
+
+import FileSystem;
 
 using std::unique_ptr;
 using std::vector;
@@ -16,9 +18,36 @@ using std::uint8_t;
 using std::uint16_t;
 using std::uint32_t;
 
-export namespace GoldSrc
+struct CaseIgnoredStrLess final
 {
-	struct Sprite_t
+	static constexpr char to_lower(char c) noexcept
+	{
+		if ((c & 0b1000'0000) == 0b1000'0000)	// utf-8 character, keep it as it is.
+			return c;
+
+		if (c >= 'A' && c <= 'Z')
+			return static_cast<char>(c ^ 0b0010'0000);	// Flip the 6th bit
+
+		return c;
+	}
+
+	static constexpr bool operator() (std::string_view lhs, std::string_view rhs) noexcept
+	{
+		return std::ranges::lexicographical_compare(
+			lhs,
+			rhs,
+			{},
+			&to_lower,
+			&to_lower
+		);
+	}
+
+	using is_transparent = int;
+};
+
+namespace GoldSrc
+{
+	export struct Sprite_t
 	{
 		static inline constexpr uint32_t FORMAT_IDENTIFIER = 0x50534449;
 		static inline constexpr int32_t FORMAT_VERSION = 2;
@@ -115,4 +144,37 @@ export namespace GoldSrc
 
 		__forceinline void ReadFromFile(FILE* f) noexcept { return ReadFromFile(f, this); }
 	};
+
+	struct SpriteInfoManager
+	{
+		std::map<std::string_view, Sprite_t, CaseIgnoredStrLess> m_Info{};
+
+		template <size_t N>
+		bool Add(const char(&szPath)[N]) noexcept
+		{
+			if (auto f = FileSystem::FOpen(szPath, "rb"); f != nullptr)
+			{
+				auto const [it, bNew] = m_Info.try_emplace(
+					szPath,
+					f
+				);
+				fclose(f);
+
+				return bNew;
+			}
+
+			return false;
+		}
+
+		[[nodiscard]]
+		__forceinline auto operator[](std::string_view szPath) const noexcept -> Sprite_t const*
+		{
+			if (auto const it = m_Info.find(szPath); it != m_Info.cend())
+				return std::addressof(it->second);
+
+			return nullptr;
+		}
+	};
+
+	export inline SpriteInfoManager SpriteInfo{};
 };

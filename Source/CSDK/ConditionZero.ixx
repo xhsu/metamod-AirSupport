@@ -368,7 +368,7 @@ void CBasePlayerWeapon::ReloadSound(void) noexcept
 		{
 			gmsgReloadSound::Send(
 				pPlayer->edict(),
-				std::uint8_t((1.0f - (distance / MAX_DIST_RELOAD_SOUND)) * 255.0f),
+				std::uint8_t((1.0 - std::sqrt(distance / MAX_DIST_RELOAD_SOUND)) * 255.0),
 				!strcmp(STRING(pev->classname), "weapon_m3") || !strcmp(STRING(pev->classname), "weapon_xm1014")
 			);
 		}

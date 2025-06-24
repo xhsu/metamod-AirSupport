@@ -12,9 +12,11 @@ import VTFH;
 
 
 using std::uint16_t;	// #MSVC_BUG_STDCOMPAT
+using std::uint64_t;
 
 
 export inline constexpr auto WEAPON_IS_ONTARGET = 0x40;
+
 
 
 // LUNA:	the diamond inheritance will actually affect the memory layout.
@@ -125,7 +127,7 @@ export struct CPrefabWeapon : CBasePlayerWeapon
 	qboolean IsNetClient() noexcept override { return false; }
 	const char* TeamID() noexcept override { return ""; }
 	CBaseEntity* GetNextTarget() noexcept override { return g_pfnEntityGetNextTarget(this); }
-	void Think() noexcept final { m_Scheduler.Think(); pev->nextthink = 0.1f; }	// ensure the think can never be block by child classes.
+	void Think() noexcept override { m_Scheduler.Think(); pev->nextthink = 0.1f; }	// ensure the think can never be block by child classes.
 	void Touch(CBaseEntity* pOther) noexcept override { if (m_pfnTouch) (this->*m_pfnTouch)(pOther); }
 	void Use(CBaseEntity* pActivator, CBaseEntity* pCaller, USE_TYPE useType = USE_OFF, float value = 0.0f) noexcept override { if (m_pfnUse) (this->*m_pfnUse)(pActivator, pCaller, useType, value); }
 	void Blocked(CBaseEntity* pOther) noexcept override { if (m_pfnBlocked) (this->*m_pfnBlocked)(pOther); }
@@ -300,7 +302,7 @@ public:	// CBasePlayerItem
 	int SecondaryAmmoIndex(void) noexcept final { return -1; }	// #PLANNED_PIW_useless not useful in CS
 	//int UpdateClientData(CBasePlayer* pPlayer) noexcept override { return 0; }	- overridden by CBasePlayerWeapon
 	//CBasePlayerItem* GetWeaponPtr(void) noexcept override { return nullptr; }	- overridden by CBasePlayerWeapon
-	float GetMaxSpeed(void) noexcept override { return 260; }
+	float GetMaxSpeed(void) noexcept override { return m_fMaxSpeed; }
 	int iItemSlot(void) noexcept override { return 0; }
 
 

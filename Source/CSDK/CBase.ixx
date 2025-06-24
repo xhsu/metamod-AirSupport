@@ -631,6 +631,18 @@ export enum EBulletTypes
 	BULLET_PLAYER_357SIG,
 };
 
+export inline constexpr auto LOUD_GUN_VOLUME = 1000;
+export inline constexpr auto NORMAL_GUN_VOLUME = 600;
+export inline constexpr auto QUIET_GUN_VOLUME = 200;
+
+export inline constexpr auto BIG_EXPLOSION_VOLUME = 2048;
+export inline constexpr auto NORMAL_EXPLOSION_VOLUME = 1024;
+export inline constexpr auto SMALL_EXPLOSION_VOLUME = 512;
+
+export inline constexpr auto BRIGHT_GUN_FLASH = 512;
+export inline constexpr auto NORMAL_GUN_FLASH = 256;
+export inline constexpr auto DIM_GUN_FLASH = 128;
+
 export class CBasePlayerWeapon : public CBasePlayerItem
 {
 public:

@@ -105,6 +105,7 @@ export struct TaskScheduler_t final
 			break;
 
 			// There are some cases that execution order in the same frame does not matter.
+			// Remember that even if you co_await 0.f in this case, the coro will still only resume once per think!
 		case ESchedulerPolicy::UNORDERED:
 			for (auto it = m_List.begin(); it != m_List.end(); /* Does nothing */)
 			{
@@ -137,8 +138,10 @@ export struct TaskScheduler_t final
 			obj.m_iCoroutineMarker = iCoroutineMarker;
 
 			m_List.emplace_back(std::forward<Task>(obj));
-			m_List.sort();
-			m_List.remove_if(std::bind_front(&Task::Done));
+			m_List.remove_if(std::bind_front(&Task::Done));	// Need to be wrapped by bind for some reason..
+
+			if (m_ExePolicy == ESchedulerPolicy::SORTED)
+				m_List.sort();
 		}
 	}
 
@@ -232,7 +235,7 @@ export namespace TaskScheduler
 	// ServerDeactivate_Post
 	inline auto Clear(void) noexcept -> decltype(m_GlobalScheduler.Clear()) { return m_GlobalScheduler.Clear(); }
 
-	inline decltype(auto) Policy() noexcept { return m_GlobalScheduler.Policy(); }
+	inline auto Policy() noexcept -> decltype(m_GlobalScheduler.Policy()) { return m_GlobalScheduler.Policy(); }
 };
 
 export namespace TaskScheduler::NextFrame
