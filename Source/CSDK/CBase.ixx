@@ -1327,7 +1327,7 @@ public:
 //	void DrawnShiled(void) override;
 	bool HasShield(void) const noexcept { return m_bOwnsShield; }
 	void UpdateShieldCrosshair(bool bShieldDrawn) noexcept;
-//	void DropShield(bool bDeploy) override;
+	void DropShield(bool bDeploy = true) noexcept;
 //	void GiveShield(bool bRetire) override;
 //	bool IsProtectedByShield(void) override;
 //	void RemoveShield(void) override;

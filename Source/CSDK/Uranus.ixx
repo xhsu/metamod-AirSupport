@@ -65,7 +65,7 @@ export namespace Uranus
 			ClearMultiDamage, ApplyMultiDamage, AddMultiDamage,
 			TEXTURETYPE_PlaySound, UTIL_TextureHit,
 			UTIL_SharedRandomFloat,
-			W_Precache, UTIL_PrecacheOther, UTIL_PrecacheOtherWeapon, WriteSigonMessages,
+			W_Precache, UTIL_PrecacheOther, UTIL_PrecacheOtherWeapon, packPlayerItem, WriteSigonMessages,
 			CheckStartMoney,
 			RadiusFlash,
 			BaseEntity::Create, BaseEntity::FireBullets, BaseEntity::FireBullets3,

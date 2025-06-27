@@ -637,3 +637,8 @@ void CBasePlayer::UpdateShieldCrosshair(bool bShieldDrawn) noexcept
 	else
 		m_iHideHUD |= HIDEHUD_CROSSHAIR;
 }
+
+void CBasePlayer::DropShield(bool bDeploy) noexcept
+{
+	return Uranus::BasePlayer::DropShield{}(this, bDeploy);
+}

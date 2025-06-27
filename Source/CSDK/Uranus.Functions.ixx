@@ -24,8 +24,8 @@ export struct uranus_func_collection_t final
 	bool			(__thiscall*	pfnCanPlayerBuy)			(CBasePlayer* pPlayer, bool bShowMessage) noexcept = nullptr;
 	void			(__thiscall*	pfnAddAccount)				(CBasePlayer* pPlayer, int32_t iAmount, bool bTrackChange) noexcept = nullptr;
 	void			(__thiscall*	pfnSelectItem)				(CBasePlayer* pPlayer, const char* pszItemName) noexcept = nullptr;
-	qboolean		(__fastcall*	pfnSwitchWeapon)			(CBasePlayer* pPlayer, std::uintptr_t, CBasePlayerItem* pWeapon) noexcept = nullptr;
-	void			(__fastcall*	pfnDropPlayerItem)			(CBasePlayer* pPlayer, std::uintptr_t, char const* pszItemName) noexcept = nullptr;
+	qboolean		(__fastcall*	pfnSwitchWeapon)			(CBasePlayer* pPlayer, void*, CBasePlayerItem* pWeapon) noexcept = nullptr;
+	void			(__fastcall*	pfnDropPlayerItem)			(CBasePlayer* pPlayer, void*, char const* pszItemName) noexcept = nullptr;
 
 	void			(__cdecl*		pfnEmptyEntityHashTable)	(void) noexcept = nullptr;
 	void			(__cdecl*		pfnAddEntityHashValue)		(entvars_t* pev, const char* pszClassname, int32_t) noexcept = nullptr;
@@ -43,6 +43,7 @@ export struct uranus_func_collection_t final
 	void			(__cdecl*		pfnW_Precache)				(void) noexcept = nullptr;
 	void			(__cdecl*		pfnUTIL_PrecacheOther)		(const char* szClassname) noexcept = nullptr;
 	void			(__cdecl*		pfnUTIL_PrecacheOtherWeapon)(const char* szClassname) noexcept = nullptr;
+	void			(__cdecl*		pfnpackPlayerItem)			(CBasePlayer* pPlayer, CBasePlayerItem* pItem, bool packAmmo) noexcept = nullptr;
 	void			(__cdecl*		pfnWriteSigonMessages)		(void) noexcept = nullptr;
 	void			(__cdecl*		pfnCheckStartMoney)			(void) noexcept = nullptr;
 	void			(__cdecl*		pfnRadiusFlash)				(Vector vecSrc, entvars_t* pevInflictor, entvars_t* pevAttacker, float flDamage) noexcept = nullptr;
@@ -272,6 +273,23 @@ export namespace Uranus
 		static inline void operator() (const char* szClassname) noexcept
 		{
 			return pfn(szClassname);
+		}
+	};
+
+	struct packPlayerItem final
+	{
+		static inline constexpr char MODULE[] = "mp.dll";
+		static inline constexpr char NAME[] = u8"::packPlayerItem";
+		static inline constexpr std::tuple PATTERNS
+		{
+			std::cref("\x55\x8B\xEC\x83\xEC\x0C\x57\x8B\x7D\x0C\x85\xFF\x0F\x84"),	// 9980
+		};
+		static inline constexpr std::ptrdiff_t DISPLACEMENT = 0;
+		static inline auto& pfn = gUranusCollection.pfnpackPlayerItem;
+
+		static inline auto operator()(CBasePlayer* pPlayer, CBasePlayerItem* pItem, bool packAmmo) noexcept
+		{
+			return pfn(pPlayer, pItem, packAmmo);
 		}
 	};
 
