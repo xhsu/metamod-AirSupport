@@ -514,15 +514,96 @@ export enum WeaponIdType
 export struct ItemInfo
 {
 	int iSlot{};
+
+	// No reference outside SignOn Message.
 	int iPosition{};
+
+	/*
+	* Internal usage:
+	ItemPostFrame - just to set m_fFireOnEmpty, useless.
+	AddToPlayer - setup m_iPrimaryAmmoType
+	ExtractAmmo - giving default ammo?
+	ExtractClipAmmo - giving clip ammo; prob used in HL1
+
+	* External usage:
+	CGameRules::CanHavePlayerItem - can have ammo used by this gun
+	CBasePlayer::DropPlayerItem, ::packPlayerItem - packing ammo when dropping
+	::UTIL_PrecacheOtherWeapon - register ammo
+	::MaxAmmoCarry
+	::WriteSigonMessages
+	*/
 	const char* pszAmmo1{};
+
+	/*
+	* Internal usage:
+	IsUseable - called in ItemPostFrame to prevent auto-reload, when weapon is not using ammo.
+	ExtractAmmo, ExtractClipAmmo - see pszAmmo1, same usage.
+
+	* External usage:
+	CGameRules::CanHavePlayerItem - see pszAmmo1, same usage.
+	::MaxAmmoCarry
+	::BuyGunAmmo
+	::WriteSigonMessages
+	*/
 	int iMaxAmmo1{};
+
 	const char* pszAmmo2{};
 	int iMaxAmmo2{};
+
+	/*
+	* Internal usage:
+	(NONE)
+
+	* External usage:
+	CHalfLifeMultiplay::DeathNotice
+	::GetWeaponName
+	::WriteSigonMessages
+	*/
 	const char* pszName{};
+
+	/*
+	* Internal usage:
+	ItemPostFrame - for reloading a gun.
+	ExtractAmmo - for calling AddPrimaryAmmo
+
+	* External usage:
+	(NONE)
+	*/
 	int iMaxClip{};
+
+	/*
+	* Internal usage:
+	ItemPostFrame - for reloading a gun.
+	ExtractAmmo - for calling AddPrimaryAmmo
+
+	* External usage:
+	dllexport ::GetWeaponData
+	dllexport ::UpdateClientData
+	*/
 	int iId{};
+
+	/*
+	* Interal usage:
+	ItemPostFrame - ITEM_FLAG_NOAUTORELOAD
+
+	* External usage:
+	CBasePlayer::UpdateClientData - ITEM_FLAG_EXHAUSTIBLE
+		just to print "Hint_out_of_ammo"
+	CBasePlayer::DropPlayerItem - ITEM_FLAG_EXHAUSTIBLE
+	CHalfLifeMultiplay::FlWeaponTryRespawn - ITEM_FLAG_LIMITINWORLD
+	::WriteSigonMessages
+	*/
 	int iFlags{};
+
+	/*
+	* Interal usage:
+	(NONE)
+
+	* External usage:
+	CHalfLifeMultiplay::FShouldSwitchWeapon - comparing weight between cur and other.
+	CHalfLifeMultiplay::GetNextBestWeapon
+	CBasePlayer::PackDeadPlayerItems - finding the most important weapon to drop.
+	*/
 	int iWeight{};
 };
 
@@ -680,7 +761,7 @@ public:
 	qboolean AddSecondaryAmmo(int iCount, const char* szName, int iMaxCarry) noexcept;
 //	int PrimaryAmmoIndex(void);
 //	int SecondaryAmmoIndex(void);
-	void EjectBrassLate(void) noexcept;
+	void EjectBrassLate(void) const noexcept;
 //	void KickBack(float up_base, float lateral_base, float up_modifier, float lateral_modifier, float up_max, float lateral_max, int direction_change);
 	void FireRemaining(int &shotsFired, float &shootTime, bool isGlock18) noexcept;
 //	void SetPlayerShieldAnim(void);

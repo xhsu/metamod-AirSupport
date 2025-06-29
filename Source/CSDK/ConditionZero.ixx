@@ -423,7 +423,7 @@ qboolean CBasePlayerWeapon::AddSecondaryAmmo(int iCount, const char* szName, int
 	return iIdAmmo > 0 ? true : false;
 }
 
-void CBasePlayerWeapon::EjectBrassLate(void) noexcept
+void CBasePlayerWeapon::EjectBrassLate(void) const noexcept
 {
 	auto&& [fwd, right, up] = (m_pPlayer->pev->v_angle + m_pPlayer->pev->punchangle).AngleVectors();
 
