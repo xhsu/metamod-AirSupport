@@ -681,6 +681,8 @@ public:	// CBasePlayerWeapon
 public:
 	// LUNA: Extended Virtual Funcs: Be adviced that original CBaseEntity does not containing these!
 	virtual bool ShouldCollide(EHANDLE<CBaseEntity> pOther) noexcept { return true; }
+	// Turn off viewmodel prediction.
+	virtual void UpdateClientData(clientdata_t* cd) noexcept { cd->m_flNextAttack = 9999.f; }
 
 	TaskScheduler_t m_Scheduler{};
 	WeaponIdType m_iClientPredictionId{ WEAPON_NONE };	// WEAPON_NONE for disabling client local weapons.
