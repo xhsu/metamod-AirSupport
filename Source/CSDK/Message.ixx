@@ -22,6 +22,7 @@ import Plugin;
 #endif
 
 import UtlConcepts;
+import UtlHook;
 
 using std::bit_cast;
 using std::uint8_t;
@@ -301,6 +302,7 @@ export using gmsgWeapPickup = Message_t<"WeapPickup", uint8_t>;
 export using gmsgWeaponAnim = Message_t<"WeapAnim", uint8_t, uint8_t>;	// actually no such message exist. pure wrapper.
 export using gmsgWeaponList = Message_t<"WeaponList", const char*/*name*/, uint8_t/*prim ammo*/, uint8_t/*prim ammo max*/, uint8_t/*sec ammo*/, uint8_t/*sec ammo max*/, uint8_t/*slot id*/, uint8_t/*order in slot*/, uint8_t/*iId*/, uint8_t/*flags*/>;
 
+export inline sizebuf_t* gpMsgBuffer = nullptr;
 
 // Goal: Retrieve commonly used messages.
 // Call once in ServerActivate_Post.
@@ -320,6 +322,15 @@ export void RetrieveMessageHandles(void) noexcept
 	gmsgWeaponList::Retrieve();
 
 	gmsgWeaponAnim::m_iMessageIndex = SVC_WEAPONANIM;
+
+	if (g_engfuncs.pfnWriteByte != nullptr) [[likely]]
+	{
+		// It's 0x1C for 3266.
+		static constexpr auto GLB_MSG_BUF_OFS = 0x101E596D - 0x101E5950;	// 9980, HL25
+		gpMsgBuffer = UTIL_RetrieveGlobalVariable<sizebuf_t>(g_engfuncs.pfnWriteByte, GLB_MSG_BUF_OFS);
+
+		assert(gpMsgBuffer && std::strcmp(gpMsgBuffer->buffername, "MessageBegin/End") == 0);
+	}
 }
 
 #endif
