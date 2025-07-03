@@ -628,9 +628,9 @@ public:
 	virtual int Save(void *save) = 0;	// CSave &
 	virtual int Restore(void *restore) = 0;	// CRestore &
 	virtual void SetObjectCollisionBox(void) = 0;
-	virtual int AddToPlayer(CBasePlayer *pPlayer) = 0;
-	virtual int AddDuplicate(CBasePlayerItem *pItem) = 0;
-	virtual int GetItemInfo(ItemInfo* p) = 0;
+	virtual qboolean AddToPlayer(CBasePlayer *pPlayer) = 0;
+	virtual qboolean AddDuplicate(CBasePlayerItem *pItem) = 0;
+	virtual qboolean GetItemInfo(ItemInfo* p) = 0;
 	virtual qboolean CanDeploy(void) = 0;
 	virtual qboolean CanDrop(void) = 0;
 	virtual qboolean Deploy(void) = 0;
@@ -729,11 +729,11 @@ export class CBasePlayerWeapon : public CBasePlayerItem
 public:
 	virtual int Save(void *save) = 0;	// CSave &
 	virtual int Restore(void *restore) = 0;	// CRestore &
-	virtual int AddToPlayer(CBasePlayer *pPlayer) = 0;
-	virtual int AddDuplicate(CBasePlayerItem *pItem) = 0;
-	virtual int ExtractAmmo(CBasePlayerWeapon *pWeapon) = 0;
-	virtual int ExtractClipAmmo(CBasePlayerWeapon *pWeapon) = 0;
-	virtual int AddWeapon(void) = 0;
+	virtual qboolean AddToPlayer(CBasePlayer *pPlayer) = 0;
+	virtual qboolean AddDuplicate(CBasePlayerItem *pItem) = 0;
+	virtual qboolean ExtractAmmo(CBasePlayerWeapon *pWeapon) = 0;
+	virtual qboolean ExtractClipAmmo(CBasePlayerWeapon *pWeapon) = 0;
+	virtual qboolean AddWeapon(void) = 0;
 	virtual void UpdateItemInfo(void) = 0;
 	virtual qboolean PlayEmptySound(void) = 0;
 	virtual void ResetEmptySound(void) = 0;
@@ -1389,7 +1389,7 @@ public:
 //	void SpawnClientSideCorpse(void) override;
 //	void SetPrefsFromUserinfo(char *infobuffer) override;
 //	void HostageUsed(void) override;
-//	bool CanPlayerBuy(bool display) override;
+	bool CanPlayerBuy(bool display) noexcept;
 //	void StudioEstimateGait(void) override;
 //	void CalculatePitchBlend(void) override;
 //	void CalculateYawBlend(void) override;

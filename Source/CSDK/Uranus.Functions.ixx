@@ -46,6 +46,9 @@ export struct uranus_func_collection_t final
 	void			(__cdecl*		pfnpackPlayerItem)			(CBasePlayer* pPlayer, CBasePlayerItem* pItem, bool packAmmo) noexcept = nullptr;
 	void			(__cdecl*		pfnWriteSigonMessages)		(void) noexcept = nullptr;
 	void			(__cdecl*		pfnCheckStartMoney)			(void) noexcept = nullptr;
+	bool			(__cdecl*		pfnBuyGunAmmo)				(CBasePlayer* player, CBasePlayerItem* weapon, bool bBlinkMoney) noexcept = nullptr;
+	qboolean		(__cdecl*		pfnHandleBuyAliasCommands)	(CBasePlayer* player, const char* pszCommand) noexcept = nullptr;
+	void			(__cdecl*		pfnBuyItem)					(CBasePlayer* player, int32_t iSlot) noexcept = nullptr;
 	void			(__cdecl*		pfnRadiusFlash)				(Vector vecSrc, entvars_t* pevInflictor, entvars_t* pevAttacker, float flDamage) noexcept = nullptr;
 
 	// hw.dll
@@ -326,6 +329,57 @@ export namespace Uranus
 		static inline void operator() (void) noexcept
 		{
 			return pfn();
+		}
+	};
+
+	struct BuyGunAmmo final
+	{
+		static inline constexpr char MODULE[] = "mp.dll";
+		static inline constexpr char NAME[] = u8"::BuyGunAmmo";
+		static inline constexpr std::tuple PATTERNS
+		{
+			std::cref("\xCC\x55\x8B\xEC\x56\x57\x8B\x7D\x08\x8B\xCF\x6A\x01\xE8"),	// 9980
+		};
+		static inline constexpr std::ptrdiff_t DISPLACEMENT = 1;
+		static inline auto& pfn = gUranusCollection.pfnBuyGunAmmo;
+
+		static inline auto operator()(CBasePlayer* pPlayer, CBasePlayerItem* pWeapon, bool bBlinkMoney) noexcept
+		{
+			return pfn(pPlayer, pWeapon, bBlinkMoney);
+		}
+	};
+
+	struct HandleBuyAliasCommands final
+	{
+		static inline constexpr char MODULE[] = "mp.dll";
+		static inline constexpr char NAME[] = u8"::HandleBuyAliasCommands";
+		static inline constexpr std::tuple PATTERNS
+		{
+			std::cref("\xCC\x55\x8B\xEC\x83\xEC\x08\x53\x8B\x5D\x0C\x8D\x45\xFC\x56\x57\x50"),	// 9980
+		};
+		static inline constexpr std::ptrdiff_t DISPLACEMENT = 1;
+		static inline auto& pfn = gUranusCollection.pfnHandleBuyAliasCommands;
+
+		static inline auto operator()(CBasePlayer* pPlayer, const char* pszCommand) noexcept
+		{
+			return pfn(pPlayer, pszCommand);
+		}
+	};
+
+	struct BuyItem final
+	{
+		static inline constexpr char MODULE[] = "mp.dll";
+		static inline constexpr char NAME[] = u8"::BuyItem";
+		static inline constexpr std::tuple PATTERNS
+		{
+			std::cref("\xCC\x55\x8B\xEC\x56\x8B\x75\x08\x8B\xCE\x57\x8B\x7D\x0C\x6A\x01\xE8"),	// 9980
+		};
+		static inline constexpr std::ptrdiff_t DISPLACEMENT = 1;
+		static inline auto& pfn = gUranusCollection.pfnBuyItem;
+
+		static inline auto operator()(CBasePlayer* pPlayer, int32_t iSlot) noexcept
+		{
+			return pfn(pPlayer, iSlot);
 		}
 	};
 

@@ -630,6 +630,83 @@ void CBasePlayer::TabulateAmmo(void) noexcept
 	ammo_357sig = AmmoInventory(GetAmmoIndex("357SIG"));
 }
 
+bool CBasePlayer::CanPlayerBuy(bool display) noexcept
+{
+	if (!g_pGameRules->IsMultiplayer())
+	{
+		//return CHalfLifeTraining::PlayerCanBuy(this);
+		return (this->m_signals.GetState() & SIGNAL_BUY) != 0;
+	}
+
+	// is the player alive?
+	if (pev->deadflag != DEAD_NO)
+	{
+		return false;
+	}
+
+	// is the player in a buy zone?
+	if (!(m_signals.GetState() & SIGNAL_BUY))
+	{
+		return false;
+	}
+
+	auto const flBuyTime = g_engfuncs.pfnCVarGetFloat("mp_buytime");
+	if (flBuyTime != -1)
+	{
+		auto buyTime = std::lroundf(flBuyTime * 60.0f);
+		if (buyTime < 15)
+		{
+			buyTime = 15;
+			g_engfuncs.pfnCVarSetFloat("mp_buytime", 0.25f);
+		}
+
+		if (gpGlobals->time - g_pGameRules->m_fRoundStartTime > buyTime)
+		{
+			if (display)
+			{
+				gmsgTextMsg::Unmanaged<MSG_ONE>(
+					g_vecZero, edict(),
+					HUD_PRINTCENTER, "#Cant_buy", std::format("{}", buyTime).c_str()
+				);
+			}
+
+			return false;
+		}
+	}
+
+	if (m_bIsVIP)
+	{
+		if (display)
+		{
+			gmsgTextMsg::Send(edict(), HUD_PRINTCENTER, "#VIP_cant_buy");
+		}
+
+		return false;
+	}
+
+	if (g_pGameRules->m_bCTCantBuy && m_iTeam == TEAM_CT)
+	{
+		if (display)
+		{
+			gmsgTextMsg::Send(edict(), HUD_PRINTCENTER, "#CT_cant_buy");
+		}
+
+		return false;
+	}
+
+	if (g_pGameRules->m_bTCantBuy && m_iTeam == TEAM_TERRORIST)
+	{
+		if (display)
+		{
+			gmsgTextMsg::Send(edict(), HUD_PRINTCENTER, "#Terrorist_cant_buy");
+		}
+
+		return false;
+	}
+
+	return true;
+}
+
 void CBasePlayer::UpdateShieldCrosshair(bool bShieldDrawn) noexcept
 {
 	if (bShieldDrawn)

@@ -289,6 +289,7 @@ struct Message_t final
 #ifdef USING_METAMOD
 
 export using gmsgBarTime = Message_t<"BarTime", int16_t>;
+export using gmsgBlinkAcct = Message_t<"BlinkAcct", uint8_t/*numBlinks*/>;
 export using gmsgBrass = Message_t<"Brass", Vector/*origin*/, Vector/*velocity*/, msg_angle_t/*rotation*/, int16_t/*model*/, uint8_t/*soundtype*/, uint8_t/*entityIndex*/>;
 export using gmsgCurWeapon = Message_t<"CurWeapon", uint8_t/*state*/, uint8_t/*iId*/, uint8_t/*iClip*/>;
 export using gmsgHudText = Message_t<"HudTextPro", const char*/*message*/, uint8_t/*is_hint*/>;	// Arkshine: not usable except build-in texts.
@@ -309,6 +310,7 @@ export inline sizebuf_t* gpMsgBuffer = nullptr;
 export void RetrieveMessageHandles(void) noexcept
 {
 	gmsgBarTime::Retrieve();
+	gmsgBlinkAcct::Retrieve();
 	gmsgBrass::Retrieve();
 	gmsgCurWeapon::Retrieve();
 	gmsgHudText::Retrieve();
