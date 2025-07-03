@@ -299,7 +299,7 @@ public:	// CBasePlayerItem
 		SetTouch(nullptr);
 	}
 	//int PrimaryAmmoIndex(void) noexcept override { return -1; }	- overridden by CBasePlayerWeapon
-	int SecondaryAmmoIndex(void) noexcept final { return -1; }	// #PLANNED_PIW_useless not useful in CS
+	int SecondaryAmmoIndex(void) noexcept final { return m_iSecondaryAmmoType; }	// #PLANNED_PIW_useless not useful in CS. In original class it returns -1.
 	//int UpdateClientData(CBasePlayer* pPlayer) noexcept override { return 0; }	- overridden by CBasePlayerWeapon
 	//CBasePlayerItem* GetWeaponPtr(void) noexcept override { return nullptr; }	- overridden by CBasePlayerWeapon
 	float GetMaxSpeed(void) noexcept override { return m_fMaxSpeed; }
@@ -327,14 +327,14 @@ public:	// CBasePlayerWeapon
 
 		return false;
 	}
-	qboolean AddDuplicate(CBasePlayerItem* pItem) noexcept final	// #PLANNED_PIW_useless only called from player side and achieves absolutely nothing.
+	qboolean AddDuplicate(CBasePlayerItem* pItem) noexcept override	// #PLANNED_PIW_useless only called from player side and achieves absolutely nothing.
 	{
 		if (m_iDefaultAmmo)
 			return ExtractAmmo((CBasePlayerWeapon*)pItem);
 
 		return ExtractClipAmmo((CBasePlayerWeapon*)pItem);
 	}
-	int ExtractAmmo(CBasePlayerWeapon* pWeapon) noexcept final	// #PLANNED_PIW_useless only called by AddDuplicate
+	qboolean ExtractAmmo(CBasePlayerWeapon* pWeapon) noexcept override	// #PLANNED_PIW_useless only called by AddDuplicate
 	{
 		int res = 0;
 		if (pszAmmo1())
@@ -352,7 +352,7 @@ public:	// CBasePlayerWeapon
 
 		return res;
 	}
-	int ExtractClipAmmo(CBasePlayerWeapon* pWeapon) noexcept final	// #PLANNED_PIW_useless only called by AddDuplicate
+	qboolean ExtractClipAmmo(CBasePlayerWeapon* pWeapon) noexcept override	// #PLANNED_PIW_useless only called by AddDuplicate
 	{
 		int iAmmo;
 		if (m_iClip == WEAPON_NOCLIP)
@@ -367,7 +367,7 @@ public:	// CBasePlayerWeapon
 
 		return pWeapon->m_pPlayer->GiveAmmo(iAmmo, (char*)pszAmmo1(), iMaxAmmo1());
 	}
-	int AddWeapon(void) noexcept final { ExtractAmmo(this); return true; }	// #PLANNED_PIW_useless called by AddToPlayer() and achieves nothing.
+	qboolean AddWeapon(void) noexcept override { ExtractAmmo(this); return true; }	// #PLANNED_PIW_useless called by AddToPlayer() and achieves nothing.
 	void UpdateItemInfo(void) noexcept final {};	// #PLANNED_PIW_useless always empty.
 	qboolean PlayEmptySound(void) noexcept override	// #PLANNED_PIW_rewrite drop m_iPlayEmptySound, as it is always set to 1.
 	{
