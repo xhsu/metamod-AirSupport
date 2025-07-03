@@ -8,11 +8,17 @@ module;
 #define NOMINMAX	// LUNA: first thing to do when using windows header. It makes 'Windows SDK for C++' compatiable with C++. Fuck Microsoft.
 #include <Windows.h>
 
+#include <stdio.h>	// SEEK_SET etc.
+
 export module FileSystem;
 
-export import std;
+#ifdef __INTELLISENSE__
+import std;
+#else
+import std.compat;	// #MSVC_BUG_STDCOMPAT
+#endif
 
-export import Platform;
+import Platform;
 
 using std::FILE;
 using std::fopen;
@@ -220,6 +226,22 @@ namespace FileSystem
 		auto const pszAbsPath = GetAbsolutePath(pszRelativePath);
 
 		return fopen(pszAbsPath.data(), pszMode);
+	}
+
+	export [[nodiscard]] auto LoadBinaryFile(const char* pszRelativePath) noexcept -> std::unique_ptr<std::byte[]>
+	{
+		auto f = FOpen(pszRelativePath, "rb");
+		if (!f)
+			return nullptr;
+
+		fseek(f, 0, SEEK_END);
+		auto const iLength = (size_t)ftell(f);
+		auto buf = std::make_unique<std::byte[]>(iLength);
+		fseek(f, 0, SEEK_SET);
+		fread(buf.get(), 1, iLength, f);
+		fclose(f);
+
+		return std::move(buf);
 	}
 
 	export void Shutdown() noexcept
