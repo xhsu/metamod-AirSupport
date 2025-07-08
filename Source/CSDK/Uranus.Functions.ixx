@@ -43,6 +43,7 @@ export struct uranus_func_collection_t final
 	void			(__cdecl*		pfnW_Precache)				(void) noexcept = nullptr;
 	void			(__cdecl*		pfnUTIL_PrecacheOther)		(const char* szClassname) noexcept = nullptr;
 	void			(__cdecl*		pfnUTIL_PrecacheOtherWeapon)(const char* szClassname) noexcept = nullptr;
+	void			(__cdecl*		pfnAddAmmoNameToAmmoRegistry)(const char* szAmmoName) noexcept = nullptr;
 	void			(__cdecl*		pfnpackPlayerItem)			(CBasePlayer* pPlayer, CBasePlayerItem* pItem, bool packAmmo) noexcept = nullptr;
 	void			(__cdecl*		pfnWriteSigonMessages)		(void) noexcept = nullptr;
 	void			(__cdecl*		pfnCheckStartMoney)			(void) noexcept = nullptr;
@@ -276,6 +277,23 @@ export namespace Uranus
 		static inline void operator() (const char* szClassname) noexcept
 		{
 			return pfn(szClassname);
+		}
+	};
+
+	struct AddAmmoNameToAmmoRegistry final
+	{
+		static inline constexpr char MODULE[] = "mp.dll";
+		static inline constexpr char NAME[] = u8"::AddAmmoNameToAmmoRegistry";
+		static inline constexpr std::tuple PATTERNS
+		{
+			std::cref("\xCC\x55\x8B\xEC\x53\x8B\x1D****\x56\x57\x8B\x7D\x08\xBE"),	// 9980
+		};
+		static inline constexpr std::ptrdiff_t DISPLACEMENT = 1;
+		static inline auto& pfn = gUranusCollection.pfnAddAmmoNameToAmmoRegistry;
+
+		static inline auto operator() (const char* szAmmoName) noexcept
+		{
+			return pfn(szAmmoName);
 		}
 	};
 
