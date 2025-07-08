@@ -8,9 +8,10 @@ Programmer - Luna the Reborn
 */
 module;
 
-#define USING_METAMOD
-
 #include <cassert>
+
+#define USING_METAMOD
+#define GOLDSRC_MESSAGE_MODULE_VERSION 20250709L
 
 export module Message;
 
@@ -25,10 +26,11 @@ import UtlConcepts;
 import UtlHook;
 
 using std::bit_cast;
-using std::uint8_t;
-using std::uint16_t;
-using std::int8_t;
 using std::int16_t;
+using std::int32_t;
+using std::int8_t;
+using std::uint16_t;
+using std::uint8_t;
 
 // A wrapper that force pfnWriteAngle
 export struct msg_angle_t final
@@ -71,21 +73,26 @@ export inline void WriteData(auto&& arg) noexcept
 		g_engfuncs.pfnWriteCoord(arg[1]);
 		g_engfuncs.pfnWriteCoord(arg[2]);
 	}
+	else if constexpr (std::is_same_v<T, Vector2D>)
+	{
+		g_engfuncs.pfnWriteCoord(arg[0]);
+		g_engfuncs.pfnWriteCoord(arg[1]);
+	}
 	else if constexpr (std::is_same_v<T, msg_angle_t>)
 		g_engfuncs.pfnWriteAngle(arg.m_angle_data);
 
 	// general cases
 
 	else if constexpr (sizeof(T) == 4)	// long, int, float
-		g_engfuncs.pfnWriteLong(bit_cast<int>(arg));
+		g_engfuncs.pfnWriteLong(bit_cast<int32_t>(arg));
 
 	else if constexpr (sizeof(T) == 2)	// short, char16_t
-		g_engfuncs.pfnWriteShort(bit_cast<short>(arg));
+		g_engfuncs.pfnWriteShort(bit_cast<int16_t>(arg));
 
 	else if constexpr (std::is_same_v<T, bool> || ((std::is_unsigned_v<T> || std::is_enum_v<T>) && sizeof(T) == 1))	// bool, uchar, byte
-		g_engfuncs.pfnWriteByte(bit_cast<unsigned char>(arg));
+		g_engfuncs.pfnWriteByte(bit_cast<uint8_t>(arg));
 	else if constexpr (sizeof(T) == 1)	// signed char
-		g_engfuncs.pfnWriteChar(arg);
+		g_engfuncs.pfnWriteChar(bit_cast<char>(arg));
 
 	else
 		static_assert(false, "Invalid argument!");
@@ -99,13 +106,13 @@ export __forceinline void MsgEnd(void) noexcept
 export template <unsigned int iScale>
 inline unsigned short ScaledFloat(double fl) noexcept
 {
-	return (unsigned short)std::round(std::clamp<double>(fl * iScale, 0, 0xFFFF));
+	return (unsigned short)std::lround(std::clamp<double>(fl * iScale, 0, 0xFFFF));
 }
 
 export template <unsigned int iScale>
 inline void WriteScaledFloat(double fl) noexcept
 {
-	auto const val = (unsigned short)std::round(std::clamp<double>(fl * iScale, 0, 0xFFFF));
+	auto const val = (unsigned short)std::lround(std::clamp<double>(fl * iScale, 0, 0xFFFF));
 	WriteData(val);
 }
 
@@ -139,9 +146,7 @@ struct Message_t final
 	static inline constexpr auto NAME = _name;	// Convertible to char* at anytime.
 	static inline constexpr auto COUNT = sizeof...(Tys);
 	static inline constexpr bool HAS_STRING = AnySame<const char*, Tys...>;	// Once a string is placed, there will be no chance for a constant length message.
-	static inline constexpr bool HAS_VECTOR = AnySame<Vector, Tys...> || AnySame<Angles, Tys...>;	// The vector uses WRITE_COORD, hence it has total size of 3*2=6 instead of 3*4=12.
-	static inline constexpr auto SIZE = (sizeof(Tys) + ... + 0);
-	static inline constexpr auto IDX_SEQ = std::index_sequence_for<Tys...>{};
+	static inline constexpr auto SIZE = ((std::same_as<Tys, Vector> || std::same_as<Tys, Angles> ? 6u : std::same_as<Tys, Vector2D> ? 4u : sizeof(Tys)) + ... + 0);	// The 3d vector uses WRITE_COORD, hence it has total size of 3*2=6 instead of 3*4=12.
 
 	// Constrains
 	static_assert(_name.m_length <= 12U, "Name of message must less than 11 characters.");	// one extra for '\0'
@@ -156,7 +161,7 @@ struct Message_t final
 		if (m_iMessageIndex)
 			return;
 
-		if constexpr (HAS_STRING || HAS_VECTOR)
+		if constexpr (HAS_STRING)
 			m_iMessageIndex = g_engfuncs.pfnRegUserMsg(NAME, -1);	// Any length.	(Written bytes unchecked by engine)
 		else
 			m_iMessageIndex = g_engfuncs.pfnRegUserMsg(NAME, SIZE);	// No message arg case is included.
@@ -180,7 +185,7 @@ struct Message_t final
 #endif
 
 	template <MSG_DEST iDest>
-	static void Marshalled(const Vector &vecOrigin, edict_t *pClient, const Tys&... args) noexcept
+	static void Marshalled(const Vector &vecOrigin, edict_t *pClient, Tys const&... args) noexcept
 	{
 		assert(m_iMessageIndex > 0);
 
@@ -193,21 +198,13 @@ struct Message_t final
 		else
 			static_assert(false, "Invalid message casting method!");
 
-		MsgArgs_t tplArgs = std::make_tuple(args...);
-
-		// No panic, this is a instant-called lambda function.
-		// De facto static_for. #UPDATE_AT_CPP26 pack indexing?
-		[&]<size_t... I>(std::index_sequence<I...>) noexcept
-		{
-			(WriteData(std::get<I>(tplArgs)), ...);
-		}
-		(IDX_SEQ);
+		(WriteData(args), ...);
 
 		g_engfuncs.pfnMessageEnd();
 	}
 
-	template <MSG_DEST iDest, typename... Ts>
-	static void Unmanaged(const Vector &vecOrigin, edict_t *pClient, const Ts&... args) noexcept
+	template <MSG_DEST iDest>
+	static void Unmanaged(const Vector &vecOrigin, edict_t *pClient, auto&&... args) noexcept
 	{
 		assert(m_iMessageIndex > 0);
 
@@ -220,15 +217,7 @@ struct Message_t final
 		else
 			static_assert(false, "Invalid message casting method!");
 
-		auto const tplArgs = std::make_tuple(args...);
-
-		// No panic, this is a instant-called lambda function.
-		// De facto static_for.
-		[&]<size_t... I>(std::index_sequence<I...>) noexcept
-		{
-			(WriteData(std::get<I>(tplArgs)), ...);
-		}
-		(std::index_sequence_for<Ts...>{});
+		(WriteData(std::forward<decltype(args)>(args)), ...);
 
 		g_engfuncs.pfnMessageEnd();
 	}
