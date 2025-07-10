@@ -11,7 +11,8 @@ module;
 #include <cassert>
 
 #define USING_METAMOD
-#define GOLDSRC_MESSAGE_MODULE_VERSION 20250709L
+#define USING_BUILTIN_WRITING
+#define GOLDSRC_MESSAGE_MODULE_VERSION 20250710L
 
 export module Message;
 
@@ -21,9 +22,14 @@ import hlsdk;
 #ifdef USING_METAMOD
 import Plugin;
 #endif
+#ifdef USING_BUILTIN_WRITING
+import Uranus;
+#endif
 
 import UtlConcepts;
+#ifdef USING_BUILTIN_WRITING
 import UtlHook;
+#endif
 
 using std::bit_cast;
 using std::int16_t;
@@ -31,6 +37,9 @@ using std::int32_t;
 using std::int8_t;
 using std::uint16_t;
 using std::uint8_t;
+
+// The user message buffer
+export inline sizebuf_t* gpMsgBuffer = nullptr;
 
 // A wrapper that force pfnWriteAngle
 export struct msg_angle_t final
@@ -63,6 +72,8 @@ export inline void WriteData(auto&& arg) noexcept
 {
 	using T = std::remove_cvref_t<std::decay_t<decltype(arg)>>;
 
+#ifndef USING_BUILTIN_WRITING
+
 	// some special objects.
 
 	if constexpr (std::is_convertible_v<T, std::string_view>)
@@ -93,7 +104,56 @@ export inline void WriteData(auto&& arg) noexcept
 		g_engfuncs.pfnWriteByte(bit_cast<uint8_t>(arg));
 	else if constexpr (sizeof(T) == 1)	// signed char
 		g_engfuncs.pfnWriteChar(bit_cast<char>(arg));
+#else
 
+	// some special objects.
+
+	if constexpr (std::is_convertible_v<T, std::string_view>)
+	{
+		std::string_view const sz{ arg };
+		auto const p = reinterpret_cast<char*>(gUranusCollection.pfnSZ_GetSpace(gpMsgBuffer, sz.length() + 1));
+		std::memcpy(p, sz.data(), sz.length());
+		p[sz.length()] = '\0';
+	}
+	else if constexpr (std::is_same_v<T, Vector> || std::is_same_v<T, Angles>)
+	{
+		std::array const arr{
+			std::bit_cast<uint16_t>((int16_t)std::lround(arg[0] * 8.0)),
+			std::bit_cast<uint16_t>((int16_t)std::lround(arg[1] * 8.0)),
+			std::bit_cast<uint16_t>((int16_t)std::lround(arg[2] * 8.0)),
+		};
+		static_assert(sizeof(arr) == 6);
+		auto const p = gUranusCollection.pfnSZ_GetSpace(gpMsgBuffer, sizeof(arr));
+
+		std::memcpy(p, &arr[0], sizeof(arr));
+	}
+	else if constexpr (std::is_same_v<T, Vector2D>)
+	{
+		std::array const arr{
+			std::bit_cast<uint16_t>((int16_t)std::lround(arg[0] * 8.0)),
+			std::bit_cast<uint16_t>((int16_t)std::lround(arg[1] * 8.0)),
+		};
+		static_assert(sizeof(arr) == 4);
+		auto const p = gUranusCollection.pfnSZ_GetSpace(gpMsgBuffer, sizeof(arr));
+
+		std::memcpy(p, &arr[0], sizeof(arr));
+	}
+	else if constexpr (std::is_same_v<T, msg_angle_t>)
+	{
+		auto const p = reinterpret_cast<uint8_t*>(gUranusCollection.pfnSZ_GetSpace(gpMsgBuffer, 1));
+		auto const val = std::fmodf(arg.m_angle_data, 360.f) * 255.f / 360.f;
+		*p = static_cast<uint8_t>(std::lroundf(val));
+	}
+
+	// general cases
+
+	else if constexpr (sizeof(T) <= 4 && !std::is_pointer_v<T>)
+	{
+		auto const p = gUranusCollection.pfnSZ_GetSpace(gpMsgBuffer, sizeof(T));
+		std::memcpy(p, std::addressof(arg), sizeof(T));
+	}
+
+#endif
 	else
 		static_assert(false, "Invalid argument!");
 };
@@ -103,16 +163,16 @@ export __forceinline void MsgEnd(void) noexcept
 	g_engfuncs.pfnMessageEnd();
 }
 
-export template <unsigned int iScale>
-inline unsigned short ScaledFloat(double fl) noexcept
+export template <uint32_t iScale>
+inline uint16_t ScaledFloat(double fl) noexcept
 {
 	return (unsigned short)std::lround(std::clamp<double>(fl * iScale, 0, 0xFFFF));
 }
 
-export template <unsigned int iScale>
+export template <uint32_t iScale>
 inline void WriteScaledFloat(double fl) noexcept
 {
-	auto const val = (unsigned short)std::lround(std::clamp<double>(fl * iScale, 0, 0xFFFF));
+	auto const val = (uint16_t)std::lround(std::clamp<double>(fl * iScale, 0, 0xFFFF));
 	WriteData(val);
 }
 
@@ -292,8 +352,6 @@ export using gmsgWeapPickup = Message_t<"WeapPickup", uint8_t>;
 export using gmsgWeaponAnim = Message_t<"WeapAnim", uint8_t, uint8_t>;	// actually no such message exist. pure wrapper.
 export using gmsgWeaponList = Message_t<"WeaponList", const char*/*name*/, uint8_t/*prim ammo*/, uint8_t/*prim ammo max*/, uint8_t/*sec ammo*/, uint8_t/*sec ammo max*/, uint8_t/*slot id*/, uint8_t/*order in slot*/, uint8_t/*iId*/, uint8_t/*flags*/>;
 
-export inline sizebuf_t* gpMsgBuffer = nullptr;
-
 // Goal: Retrieve commonly used messages.
 // Call once in ServerActivate_Post.
 export void RetrieveMessageHandles(void) noexcept
@@ -314,6 +372,7 @@ export void RetrieveMessageHandles(void) noexcept
 
 	gmsgWeaponAnim::m_iMessageIndex = SVC_WEAPONANIM;
 
+#ifdef USING_BUILTIN_WRITING
 	if (g_engfuncs.pfnWriteByte != nullptr) [[likely]]
 	{
 		// It's 0x1C for 3266.
@@ -322,6 +381,7 @@ export void RetrieveMessageHandles(void) noexcept
 
 		assert(gpMsgBuffer && std::strcmp(gpMsgBuffer->buffername, "MessageBegin/End") == 0);
 	}
+#endif
 }
 
 #endif
