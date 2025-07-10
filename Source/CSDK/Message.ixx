@@ -26,7 +26,6 @@ import Plugin;
 import Uranus;
 #endif
 
-import UtlConcepts;
 #ifdef USING_BUILTIN_WRITING
 import UtlHook;
 #endif
@@ -205,7 +204,7 @@ struct Message_t final
 	// Constants
 	static inline constexpr auto NAME = _name;	// Convertible to char* at anytime.
 	static inline constexpr auto COUNT = sizeof...(Tys);
-	static inline constexpr bool HAS_STRING = AnySame<const char*, Tys...>;	// Once a string is placed, there will be no chance for a constant length message.
+	static inline constexpr bool HAS_STRING = (... || std::convertible_to<Tys, std::string_view>);	// Once a string is placed, there will be no chance for a constant length message.
 	static inline constexpr auto SIZE = ((std::same_as<Tys, Vector> || std::same_as<Tys, Angles> ? 6u : std::same_as<Tys, Vector2D> ? 4u : sizeof(Tys)) + ... + 0);	// The 3d vector uses WRITE_COORD, hence it has total size of 3*2=6 instead of 3*4=12.
 
 	// Constrains
@@ -216,7 +215,7 @@ struct Message_t final
 	static inline ESvcCommands m_iMessageIndex = (ESvcCommands)0;	// initialize with SVC_BAD
 
 	// Methods
-	static void Register(void) noexcept
+	static inline void Register(void) noexcept
 	{
 		if (m_iMessageIndex)
 			return;
@@ -245,7 +244,7 @@ struct Message_t final
 #endif
 
 	template <MSG_DEST iDest>
-	static void Marshalled(const Vector &vecOrigin, edict_t *pClient, Tys const&... args) noexcept
+	static inline void Marshalled(const Vector &vecOrigin, edict_t *pClient, Tys const&... args) noexcept
 	{
 		assert(m_iMessageIndex > 0);
 
@@ -264,7 +263,7 @@ struct Message_t final
 	}
 
 	template <MSG_DEST iDest>
-	static void Unmanaged(const Vector &vecOrigin, edict_t *pClient, auto&&... args) noexcept
+	static inline void Unmanaged(const Vector &vecOrigin, edict_t *pClient, auto&&... args) noexcept
 	{
 		assert(m_iMessageIndex > 0);
 
