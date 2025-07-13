@@ -77,7 +77,8 @@ export namespace Uranus
 		UTIL_SearchPatterns<
 			HW::Sys_Error,
 			HW::SZ_GetSpace,
-			HW::GetDispatch
+			HW::GetDispatch,
+			HW::Host_InitializeGameDLL, HW::Host_ShutdownServer
 		>(bCrashIfNoFound);
 	}
 }

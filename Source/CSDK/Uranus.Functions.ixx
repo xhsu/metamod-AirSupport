@@ -57,6 +57,8 @@ export struct uranus_func_collection_t final
 	void			(__cdecl*		pfnSys_Error)				(const char* Format, ...) noexcept = nullptr;	// [[noreturn]]
 	void*			(__cdecl*		pfnSZ_GetSpace)				(sizebuf_t* buf, uint32_t length) noexcept = nullptr;
 	PFN_ENTITYINIT	(__cdecl*		pfnGetDispatch)				(char const* pszClassName) noexcept = nullptr;
+	void			(__cdecl*		pfnHost_InitializeGameDLL)	(void) noexcept = nullptr;
+	void			(__cdecl*		pfnHost_ShutdownServer)		(qboolean bIsCrash) noexcept = nullptr;
 };
 
 export inline uranus_func_collection_t gUranusCollection;
@@ -724,6 +726,40 @@ export namespace HW
 		static inline auto operator() (const char* pszClassName) noexcept
 		{
 			return pfn(pszClassName);
+		}
+	};
+
+	struct Host_InitializeGameDLL final
+	{
+		static inline constexpr char MODULE[] = "hw.dll";
+		static inline constexpr char NAME[] = u8"::Host_InitializeGameDLL";
+		static inline constexpr std::tuple PATTERNS
+		{
+			std::cref("\xCC\xE8****\x33\xC0\x83\x3D*****\x0F\x9F\xC0\x50\xE8****\x83\xC4\x04\x83\x3D"),	// 9980
+		};
+		static inline constexpr std::ptrdiff_t DISPLACEMENT = 1;
+		static inline auto& pfn = gUranusCollection.pfnHost_InitializeGameDLL;
+
+		static inline auto operator() () noexcept
+		{
+			return pfn();
+		}
+	};
+
+	struct Host_ShutdownServer final
+	{
+		static inline constexpr char MODULE[] = "hw.dll";
+		static inline constexpr char NAME[] = u8"::Host_ShutdownServer";
+		static inline constexpr std::tuple PATTERNS
+		{
+			std::cref("\xCC\x55\x8B\xEC\x83\xEC\x14\x83\x3D*****\x53\x56\x57\x0F\x84"),	// 9980
+		};
+		static inline constexpr std::ptrdiff_t DISPLACEMENT = 1;
+		static inline auto& pfn = gUranusCollection.pfnHost_ShutdownServer;
+
+		static inline auto operator() (qboolean bIsCrash) noexcept
+		{
+			return pfn(bIsCrash);
 		}
 	};
 }
