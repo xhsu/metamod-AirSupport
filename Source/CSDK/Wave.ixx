@@ -1,6 +1,5 @@
 module;
 
-#include <stdint.h>
 #include <stdio.h>
 
 #ifdef __INTELLISENSE__
@@ -11,7 +10,7 @@ export module Wave;
 
 import std;
 
-using std::string_view;
+using namespace std;
 
 export struct wav_hdr_t
 {

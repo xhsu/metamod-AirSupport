@@ -1,7 +1,5 @@
 module;
 
-#include <stdio.h>
-
 #ifdef __INTELLISENSE__
 #include <algorithm>
 #endif
@@ -19,7 +17,17 @@ import FileSystem;
 import Platform;
 import Wave;
 
-struct TranscriptedModel
+export enum EEventTypeId
+{
+	STUDIOEV_MUZZLEFLASH_AT_ATTACHMENT_0 = 0x1389,
+	STUDIOEV_MUZZLESPARK = 0x138A,
+	STUDIOEV_PLAYSOUND = 0x138C,
+	STUDIOEV_MUZZLEFLASH_AT_ATTACHMENT_1 = 0x1393,
+	STUDIOEV_MUZZLEFLASH_AT_ATTACHMENT_2 = 0x139D,
+	STUDIOEV_MUZZLEFLASH_AT_ATTACHMENT_3 = 0x13A7,
+};
+
+export struct TranscriptedModel
 {
 	char				m_szName[64]{};
 
@@ -42,7 +50,7 @@ struct TranscriptedModel
 	TranscriptedModel(mstudiomodel_t const& src) noexcept : TranscriptedModel(std::addressof(src)) {}
 };
 
-struct TranscriptedPartGroup final
+export struct TranscriptedPartGroup final
 {
 	char							m_szName[64]{};
 	int32_t							m_iBase{};
@@ -62,9 +70,10 @@ struct TranscriptedPartGroup final
 	~TranscriptedPartGroup() noexcept = default;
 };
 
-struct TranscriptedSequence final
+export struct TranscriptedSequence final
 {
 	char				m_szLabel[32]{};	// sequence label
+	int32_t				m_index{};			// LUNA: added for convenience.
 
 	float				m_fps{};		// frames per second	
 	int32_t				m_flags{};		// looping/non-looping flags
@@ -73,6 +82,7 @@ struct TranscriptedSequence final
 	int32_t				m_actweight{};
 
 	std::vector<mstudioevent_t> m_Events{};
+	std::vector<std::any> m_EventExtraInfo{};
 
 	uint32_t			m_numframes{};	// number of frames per sequence
 
@@ -91,11 +101,72 @@ struct TranscriptedSequence final
 		std::span const Events{ reinterpret_cast<mstudioevent_t const*>(buf + src->eventindex), src->numevents };
 
 		m_Events.append_range(Events);
+		m_EventExtraInfo.resize(Events.size());
+
+		for (auto&& [Event, ExtraInfo] : std::views::zip(m_Events, m_EventExtraInfo))
+		{
+			switch (Event.event)
+			{
+			case STUDIOEV_PLAYSOUND:
+			{
+				auto const szPath = std::format("sound/{}", Event.options);
+				auto const RegisteredPath = FileSystem::RelativeToWorkingDir(szPath);
+				ExtraInfo = Wave::Length(RegisteredPath.c_str());
+
+				break;
+			}
+
+			case STUDIOEV_MUZZLEFLASH_AT_ATTACHMENT_0:
+			case STUDIOEV_MUZZLEFLASH_AT_ATTACHMENT_1:
+			case STUDIOEV_MUZZLEFLASH_AT_ATTACHMENT_2:
+			case STUDIOEV_MUZZLEFLASH_AT_ATTACHMENT_3:
+			case STUDIOEV_MUZZLESPARK:
+				ExtraInfo = std::atoi(Event.options);
+				break;
+
+			default:
+				break;
+			}
+		}
 	}
 	TranscriptedSequence(TranscriptedSequence&&) noexcept = default;
 	TranscriptedSequence& operator=(TranscriptedSequence const&) noexcept = default;
 	TranscriptedSequence& operator=(TranscriptedSequence&&) noexcept = default;
 	~TranscriptedSequence() noexcept = default;
+
+	[[nodiscard]] constexpr auto GetFirstEventTime() const noexcept -> float
+	{
+		if (m_Events.empty())
+			return -1;
+
+		return decltype(m_fps)(m_Events.front().frame) / m_fps;
+	}
+
+	[[nodiscard]] constexpr auto GetTotalLength() const noexcept -> float
+	{
+		return (decltype(m_fps))m_numframes / m_fps;
+	}
+
+	[[nodiscard]] auto GetTimeAfterLastWav() const noexcept -> float
+	{
+		auto const SearchResult = std::ranges::find_last(m_Events, STUDIOEV_PLAYSOUND, &mstudioevent_t::event);
+		if (SearchResult.empty())
+			return -1;
+
+		auto& Event = *SearchResult.begin();
+		auto const EventIndex = std::addressof(Event) - m_Events.data();
+		auto const flEventTimeSpot = Event.frame / m_fps;
+
+		try
+		{
+			return flEventTimeSpot + std::any_cast<float>(m_EventExtraInfo.at(EventIndex));
+		}
+		catch ([[maybe_unused]] const std::exception& e)
+		{
+			return -1;
+		}
+
+	}
 };
 
 export struct TranscriptedStudio final
@@ -147,7 +218,7 @@ export struct TranscriptedStudio final
 			m_Sequences.reserve(pHeader->numseq);
 			auto source = reinterpret_cast<mstudioseqdesc_t const*>(buf + pHeader->seqindex);
 			for (size_t i = 0; i < pHeader->numseq; ++i, ++source)
-				m_Sequences.emplace_back(buf, source);
+				m_Sequences.emplace_back(buf, source).m_index = (int)i;
 		}
 
 		m_SeqGroups.resize(pHeader->numseqgroups);
@@ -192,193 +263,13 @@ export struct TranscriptedStudio final
 	TranscriptedStudio& operator=(TranscriptedStudio const&) noexcept = default;
 	TranscriptedStudio& operator=(TranscriptedStudio&&) noexcept = default;
 	~TranscriptedStudio() noexcept = default;
+
+	[[nodiscard]] auto AtSequence(std::string_view szLabel) const noexcept -> TranscriptedSequence const*
+	{
+		auto res = std::ranges::find(m_Sequences, szLabel, &TranscriptedSequence::m_szLabel);
+		if (res != std::ranges::cend(m_Sequences))
+			return std::addressof(*res);
+
+		return nullptr;
+	}
 };
-
-export struct seq_timing_t final
-{
-	std::int32_t m_iSeqIdx{ -1 };
-	Activity m_Activity{ ACT_INVALID };
-	float m_flGroundSpeed{ 0 };
-	float m_flFrameRate{ 256.f };
-	float m_fz_begin{ -1 };
-	float m_fz_end{ -1 };
-	float m_total_length{ -1 };
-};
-
-struct CaseIgnoredStrLess final
-{
-	static constexpr char to_lower(char c) noexcept
-	{
-		if ((c & 0b1000'0000) == 0b1000'0000)	// utf-8 character, keep it as it is.
-			return c;
-
-		if (c >= 'A' && c <= 'Z')
-			return static_cast<char>(c ^ 0b0010'0000);	// Flip the 6th bit
-
-		return c;
-	}
-
-	static constexpr bool operator() (std::string_view lhs, std::string_view rhs) noexcept
-	{
-		return std::ranges::lexicographical_compare(
-			lhs,
-			rhs,
-			{},
-			&to_lower,
-			&to_lower
-		);
-	}
-
-	using is_transparent = int;
-};
-
-namespace GoldSrc
-{
-	// gStudioInfo["v_ak47.mdl"]["idle"] => std::pair
-	using studio_timing_t = std::map<std::string, seq_timing_t, CaseIgnoredStrLess>;
-
-	export inline std::vector<std::string> m_rgszCurrentError{};
-	export inline std::map<std::string, studio_timing_t, CaseIgnoredStrLess> m_StudioInfo;
-
-	export [[nodiscard]] inline
-	studio_timing_t& GetStudioModelTiming(std::string_view szRelativePath) noexcept
-	{
-		auto const RegisteredPath = FileSystem::RelativeToWorkingDir(szRelativePath);
-
-		try
-		{
-			return m_StudioInfo.at(RegisteredPath);
-		}
-		catch (const std::exception& e)
-		{
-			UTIL_Terminate("Exception: %s\nFile '%s' accessed without cached!", e.what(), RegisteredPath);
-		}
-	}
-
-	inline double WeaponSoundLength(std::string_view sz5004Option) noexcept
-	{
-		auto const szPath = std::format("sound/{}", sz5004Option);
-		auto const RegisteredPath = FileSystem::RelativeToWorkingDir(szPath);
-
-		return Wave::Length(RegisteredPath.c_str());
-	}
-
-	inline void BuildStudioModelInfo(FILE* f, studio_timing_t* pStudioInfo) noexcept
-	{
-		auto& StudioInfo = *pStudioInfo;
-
-		fseek(f, 0, SEEK_END);
-		auto const iSize = ftell(f);
-
-		fseek(f, 0, SEEK_SET);
-		auto pBuffer = new std::byte[iSize]{};
-		fread(pBuffer, iSize, 1, f);
-
-		auto const phdr = reinterpret_cast<studiohdr_t*>(pBuffer);
-		auto const pseq = reinterpret_cast<mstudioseqdesc_t*>(pBuffer + phdr->seqindex);
-		auto const seqs = std::span{ pseq, static_cast<size_t>(phdr->numseq) };
-
-		for (auto&& seq : seqs)
-		{
-			if (StudioInfo.contains(seq.label))
-			{
-				m_rgszCurrentError.emplace_back(std::format(
-					"{}: Multiple sequences with same name '{}'.",
-					__FUNCTION__,
-					seq.label
-				));
-
-				continue;
-			}
-
-			// https://en.cppreference.com/w/cpp/language/structured_binding
-			// The type deduction indicates these are copy.
-			// But they are not.
-			// decltype(flFzBegin) == float, is because it is a float in the original type declaration.
-			auto& [iSeqIdx, iAct, flGrSpd, flFR, flFzBegin, flFzEnd, flAnimLen] =
-				StudioInfo.try_emplace(seq.label).first->second;
-
-			// Idx could just be ptr diff
-			iSeqIdx = std::addressof(seq) - pseq;
-
-			iAct = (Activity)seq.activity;
-
-			if (seq.numevents)
-			{
-				auto const pevents = reinterpret_cast<mstudioevent_t*>(pBuffer + seq.eventindex);
-				auto const events = std::span{ pevents, static_cast<size_t>(seq.numevents) };
-
-				// Find the begin of the first sound event.
-				if (auto ev = std::ranges::find(events, 5004, &mstudioevent_t::event);
-					ev != std::end(events))
-				{
-					flFzBegin = (float)((double)ev->frame / (double)seq.fps);
-				}
-
-				// Find the end of last sound event.
-				if (auto rev = std::ranges::find_last(events, 5004, &mstudioevent_t::event);
-					rev.cbegin() != rev.cend())
-				{
-					auto ev = rev.begin();
-					flFzEnd = (float)((double)ev->frame / (double)seq.fps);
-
-					if (auto const flSoundLen = WeaponSoundLength(ev->options); flSoundLen > 0)
-						flFzEnd += (float)flSoundLen;
-				}
-			}
-
-			// Total len
-			flAnimLen = (float)((double)seq.numframes / (double)seq.fps);
-
-			// Speed in inch per second
-			GetSequenceInfo(phdr, iSeqIdx, &flFR, &flGrSpd);
-		}
-
-		delete[] pBuffer; pBuffer = nullptr;
-	}
-
-	export bool CacheStudioModelInfo(std::string_view szRelativePath) noexcept
-	{
-		// Fresh start.
-		m_rgszCurrentError.clear();
-
-		auto const RegisteredPath = FileSystem::RelativeToWorkingDir(szRelativePath);
-		auto&& [iter, bNewEntry] = m_StudioInfo.try_emplace(RegisteredPath);
-		auto& StudioInfo = iter->second;
-
-		[[unlikely]]
-		if (!bNewEntry)
-		{
-			m_rgszCurrentError.emplace_back(
-				std::format("{}: Studio model '{}' had been loaded.", __FUNCTION__, RegisteredPath)
-			);
-
-			return true;
-		}
-
-		[[likely]]
-		if (auto f = std::fopen(RegisteredPath.c_str(), "rb"); f)
-		{
-			BuildStudioModelInfo(f, &StudioInfo);
-
-			// Save the simplified path as well, like "models/v_ak47.mdl"
-			// It's more useful than "cstrike/models/v_ak47.mdl"
-			m_StudioInfo.try_emplace(std::string{ szRelativePath }, StudioInfo);
-
-			fclose(f);
-		}
-		else
-		{
-			m_rgszCurrentError.emplace_back(
-				std::format("{}: File '{}' no found.", __FUNCTION__, RegisteredPath)
-			);
-
-			return false;
-		}
-
-		return true;
-	}
-}
-
-// Const version of the namespaced one. Just for the sake of safty.
-export inline auto const& gStudioInfo{ GoldSrc::m_StudioInfo };
