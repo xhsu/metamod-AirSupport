@@ -96,7 +96,7 @@ namespace Query
 	// Iterating type: T*
 	export template <typename T> inline decltype(auto) all_instances_of(void) noexcept
 	{
-		static_assert(requires { { MAKE_STRING(T::CLASSNAME) == std::ptrdiff_t{} } -> std::same_as<bool>; }, "Must be local class!");
+		static_assert(requires { { MAKE_STRING(T::CLASSNAME) == string_t{} } -> std::same_as<bool>; }, "Must be local class!");
 
 		return
 			std::span(g_engfuncs.pfnPEntityOfEntIndex(gpGlobals->maxClients + 1), gpGlobals->maxEntities - (gpGlobals->maxClients + 1))

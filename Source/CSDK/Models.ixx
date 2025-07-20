@@ -1,7 +1,7 @@
 module;
 
 #ifdef __INTELLISENSE__
-#include <algorithm>
+#include <ranges>
 #endif
 
 export module Models;
@@ -109,8 +109,10 @@ export struct TranscriptedSequence final
 			{
 			case STUDIOEV_PLAYSOUND:
 			{
-				auto const szPath = std::format("sound/{}", Event.options);
-				auto const RegisteredPath = FileSystem::RelativeToWorkingDir(szPath);
+				char buf[sizeof(Event.options) + sizeof("sound/") + 1]{};
+				snprintf(buf, sizeof(buf), "sound/%s", Event.options);
+
+				auto const RegisteredPath = FileSystem::RelativeToWorkingDir(buf);
 				ExtraInfo = Wave::Length(RegisteredPath.c_str());
 
 				break;
