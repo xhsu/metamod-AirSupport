@@ -1409,7 +1409,7 @@ public:
 	bool HasShield(void) const noexcept { return m_bOwnsShield; }
 	void UpdateShieldCrosshair(bool bShieldDrawn) noexcept;
 	void DropShield(bool bDeploy = true) noexcept;
-//	void GiveShield(bool bRetire) override;
+	void GiveShield(bool bDeploy = true) noexcept;
 //	bool IsProtectedByShield(void) override;
 //	void RemoveShield(void) override;
 //	void UpdateLocation(bool bForceUpdate) override;

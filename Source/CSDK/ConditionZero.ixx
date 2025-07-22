@@ -719,3 +719,28 @@ void CBasePlayer::DropShield(bool bDeploy) noexcept
 {
 	return Uranus::BasePlayer::DropShield{}(this, bDeploy);
 }
+
+void CBasePlayer::GiveShield(bool bDeploy) noexcept
+{
+	m_bOwnsShield = true;
+	m_bHasPrimary = true;
+
+	pev->gamestate = HITGROUP_SHIELD_ENABLED;
+
+	if (m_pActiveItem)
+	{
+		CBasePlayerWeapon* pWeapon = static_cast<CBasePlayerWeapon*>(m_pActiveItem);
+
+		if (bDeploy)
+		{
+			if (m_rgAmmo[pWeapon->m_iPrimaryAmmoType] > 0)
+				pWeapon->Holster();
+
+			if (!pWeapon->Deploy())
+				pWeapon->RetireWeapon();
+		}
+	}
+
+	// NOTE: Moved above, because CC4::Deploy can reset hitbox of shield
+	//pev->gamestate = HITGROUP_SHIELD_ENABLED;
+}
